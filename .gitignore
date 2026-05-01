@@ -12,7 +12,11 @@ dist
 dist-ssr
 *.local
 .env.server
-uploads/avatar
+uploads
+
+*.mp4
+*.mov
+*.avi
 
 # Editor directories and files
 .vscode/*
