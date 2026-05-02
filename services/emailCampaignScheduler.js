@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import EmailCampaign from "../models/emailCampaignModel.js";
+import EmailCampaign from "../models/EmailCampaignModel.js";
 import { sendCampaignById } from "../controllers/emailCampaignSendController.js";
 
 let schedulerStarted = false;
