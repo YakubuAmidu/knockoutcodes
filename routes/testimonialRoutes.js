@@ -11,7 +11,7 @@ import {
   testimonialCreateLimiter,
   testimonialsReadLimiter,
 } from "../middleware/rateLimiters.js";
-import { antiBot } from "../middleware/antibotMiddleware.js";
+import { antiBot } from "../middleware/antiBotMiddleware.js";
 
 const router = express.Router();
 
