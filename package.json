@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "start": "node server.js",
     "dev:server": "cross-env NODE_ENV=development nodemon server.js",
-    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev\"",
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev\""
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
