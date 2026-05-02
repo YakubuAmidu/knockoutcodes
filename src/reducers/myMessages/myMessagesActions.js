@@ -2,13 +2,12 @@
 import { MY_MESSAGES_ACTIONS as T } from "./myMessagesActionTypes";
 
 const API_BASE_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://api.knockoutcodes.com";
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:5000/api/v1";
 
-const LIST_MY_TICKETS = "/api/v1/contacts/my";
-const OPEN_MY_TICKET = (id) => `/api/v1/contacts/my/${id}`;
-const REPLY_MY_TICKET = (id) => `/api/v1/contacts/my/${id}/reply`;
+const LIST_MY_TICKETS = "/contacts/my";
+const OPEN_MY_TICKET = (id) => `/contacts/my/${id}`;
+const REPLY_MY_TICKET = (id) => `/contacts/my/${id}/reply`;
 
 async function safeJson(res) {
   try {
@@ -38,7 +37,7 @@ async function ensureCsrfToken() {
   if (fromCookie) return fromCookie;
 
   // 2) Ask backend to issue one (sets cookie + returns token)
-  const res = await fetch(`${API_BASE_URL}/api/v1/auth/csrf`, {
+  const res = await fetch(`${API_BASE_URL}/auth/csrf`, {
     method: "GET",
     credentials: "include",
     headers: {

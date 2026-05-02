@@ -69,6 +69,7 @@ app.use(securityHeaders());
 const isProd = process.env.NODE_ENV === "production";
 
 const explicitOrigins = [
+  "https://silver-pasca-64a87c.netlify.app",
   "https://knockoutcodes.com",
   "https://www.knockoutcodes.com",
   ...(process.env.CORS_ORIGINS

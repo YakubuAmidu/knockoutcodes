@@ -33,15 +33,13 @@ import axiosInstance from "../../utils/axiosInstance.js";
 
 // ===== Base URLs (used) =====
 const API_BASE_URL =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://api.knockoutcodes.com";
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:5000/api/v1";
 
-const ME_ENDPOINT = "/api/v1/users/me";
+const ME_ENDPOINT = "/users/me";
 
 // ✅ Same avatar endpoint pattern as your UserProfile
-const AVATAR_ENDPOINT = "/api/v1/users/me/avatar";
+const AVATAR_ENDPOINT = "/users/me/avatar";
 
 // ✅ Cache key (same idea as UserProfile)
 const ME_CACHE_KEY = "kc_me";

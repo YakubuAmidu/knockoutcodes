@@ -1,7 +1,7 @@
 // /src/lib/apiClient.js
 import axios from "axios";
 
-const isDev = import.meta.env.DEV;
+// const isDev = import.meta.env.DEV;
 
 /**
  * ✅ Base URL rules:
@@ -14,7 +14,7 @@ const isDev = import.meta.env.DEV;
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL &&
     String(import.meta.env.VITE_API_BASE_URL).trim()) ||
-  (isDev ? "http://localhost:5000" : "https://api.knockoutcodes.com");
+  "http://localhost:5000/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -74,7 +74,7 @@ export function attach401Handler(onUnauthorized) {
 
 /** GET /api/v1/testimonials -> returns array */
 export async function getAllTestimonials() {
-  const { data } = await api.get("/api/v1/testimonials");
+  const { data } = await api.get("/testimonials");
   if (Array.isArray(data?.testimonials)) return data.testimonials;
   if (Array.isArray(data)) return data;
   return [];
@@ -95,7 +95,7 @@ async function postCheckout(path, payload) {
  */
 export async function createProductCheckoutSession(items) {
   const safeItems = Array.isArray(items) ? items : [];
-  return postCheckout("/api/v1/checkout/products", { items: safeItems });
+  return postCheckout("/checkout/products", { items: safeItems });
 }
 
 /**
@@ -104,7 +104,7 @@ export async function createProductCheckoutSession(items) {
  * body: { planId } or { priceId } depending on your backend
  */
 export async function createSubscriptionCheckoutSession(payload) {
-  return postCheckout("/api/v1/checkout/subscriptions", payload);
+  return postCheckout("/checkout/subscriptions", payload);
 }
 
 /* =========================
@@ -117,7 +117,7 @@ export async function createSubscriptionCheckoutSession(payload) {
  */
 export async function getMemberships(params = "") {
   const q = String(params || "").trim();
-  const { data } = await api.get(`/api/v1/memberships${q ? `?${q}` : ""}`);
+  const { data } = await api.get(`/memberships${q ? `?${q}` : ""}`);
 
   // supports: { data: [] } or { memberships: [] } or []
   const list = data?.data ?? data?.memberships ?? data;
@@ -129,7 +129,7 @@ export async function getMemberships(params = "") {
  */
 export async function getMembershipById(id) {
   const safe = encodeURIComponent(String(id || ""));
-  const { data } = await api.get(`/api/v1/memberships/${safe}`);
+  const { data } = await api.get(`/memberships/${safe}`);
   return data?.data ?? data?.membership ?? data;
 }
 
@@ -138,7 +138,7 @@ export async function getMembershipById(id) {
  * POST /subscriptions/checkout
  */
 export async function createMembershipCheckoutSession(payload) {
-  const { data } = await api.post("/api/v1/subscriptions/checkout", payload);
+  const { data } = await api.post("/subscriptions/checkout", payload);
   if (!data?.url) throw new Error("Checkout URL missing from server response.");
   return data; // { url, id? }
 }

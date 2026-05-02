@@ -27,23 +27,22 @@ import {
 
 // -----------------------------
 const API_BASE_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://api.knockoutcodes.com";
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:5000/api/v1";
 
-const ME_ENDPOINT = "/api/v1/users/me";
-const LOGOUT_ENDPOINT = "/api/v1/auth/logout";
-const CSRF_ENDPOINT = "/api/v1/auth/csrf";
+const ME_ENDPOINT = "/users/me";
+const LOGOUT_ENDPOINT = "/auth/logout";
+const CSRF_ENDPOINT = "/auth/csrf";
 
 // ✅ avatar + password endpoints
-const AVATAR_ENDPOINT = "/api/v1/users/me/avatar";
-const PASSWORD_ENDPOINT = "/api/v1/users/me/password";
+const AVATAR_ENDPOINT = "/users/me/avatar";
+const PASSWORD_ENDPOINT = "/users/me/password";
 
 // ✅ user support inbox endpoint (private)
-const MY_CONTACTS_ENDPOINT = "/api/v1/contacts/my";
+const MY_CONTACTS_ENDPOINT = "/contacts/my";
 
 // ✅ NEW: device/session management endpoints (best-effort; backend can implement these)
-const SESSIONS_ENDPOINT = "/api/v1/auth/sessions"; // GET list, DELETE /:id revoke, DELETE /others revoke others
+const SESSIONS_ENDPOINT = "/auth/sessions"; // GET list, DELETE /:id revoke, DELETE /others revoke others
 
 // ✅ local cache key for fast reloads
 const ME_CACHE_KEY = "kc_me";
