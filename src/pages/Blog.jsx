@@ -568,7 +568,7 @@ const Blog = () => {
 
       if (selectedCategory) params.category = selectedCategory;
 
-      const res = await axios.get(`${API_BASE_URL}/api/v1/blogs`, {
+      const res = await axios.get(`${API_BASE_URL}/blogs`, {
         params,
         withCredentials: false,
       });
