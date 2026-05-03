@@ -54,24 +54,43 @@ const unsafeMethods = new Set(["post", "put", "patch", "delete"]);
 let csrfBootstrapPromise = null;
 let refreshPromise = null;
 let didBroadcastAuthFail = false;
+let csrfTokenMemory = "";
 
 async function ensureCsrfCookie() {
-  const existing = getCookie("csrfToken");
-  if (existing) return existing;
+  // 1. Localhost/dev may still allow reading csrfToken from document.cookie
+  const existingCookieToken = getCookie("csrfToken");
+  if (existingCookieToken) {
+    csrfTokenMemory = existingCookieToken;
+    return existingCookieToken;
+  }
 
+  // 2. Production Netlify cannot read Render cookies, so use memory token
+  if (csrfTokenMemory) return csrfTokenMemory;
+
+  // 3. Request CSRF from backend. Backend sets cookie AND returns csrfToken in JSON.
   if (!csrfBootstrapPromise) {
     csrfBootstrapPromise = axios
       .get(`${baseURL}/auth/csrf`, {
         withCredentials: true,
         timeout: 10000,
       })
+      .then((res) => {
+        const token =
+          res?.data?.csrfToken ||
+          res?.data?.token ||
+          res?.data?.data?.csrfToken ||
+          res?.data?.data?.token ||
+          "";
+
+        csrfTokenMemory = token || getCookie("csrfToken") || "";
+        return csrfTokenMemory;
+      })
       .finally(() => {
         csrfBootstrapPromise = null;
       });
   }
 
-  await csrfBootstrapPromise;
-  return getCookie("csrfToken");
+  return csrfBootstrapPromise;
 }
 
 function normalizeUrl(url = "") {
@@ -151,8 +170,9 @@ axiosInstance.interceptors.request.use(
       const csrfToken = await ensureCsrfCookie();
 
       if (csrfToken) {
-        config.headers["X-CSRF-Token"] = csrfToken;
-      }
+  config.headers["X-CSRF-Token"] = csrfToken;
+  config.headers["x-csrf-token"] = csrfToken;
+}
 
       config.headers["X-Request-Intent"] = "user-action";
     }
@@ -199,9 +219,10 @@ axiosInstance.interceptors.response.use(
           ...originalConfig,
           _csrfRetry: true,
           headers: {
-            ...(originalConfig.headers || {}),
-            "X-CSRF-Token": csrfToken || getCookie("csrfToken") || "",
-          },
+  ...(originalConfig.headers || {}),
+  "X-CSRF-Token": csrfToken || getCookie("csrfToken") || "",
+  "x-csrf-token": csrfToken || getCookie("csrfToken") || "",
+},
         });
       } catch {
         return Promise.reject(error);
