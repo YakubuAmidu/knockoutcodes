@@ -74,9 +74,9 @@ export function contactReducer(state = contactInitialState, action) {
     }
 
     case CONTACT_ACTIONS.RESET_ALL: {
-      persistDraft(contactInitialState.form);
-      return contactInitialState;
-    }
+  clearDraftStorage();
+  return contactInitialState;
+}
 
     default:
       return state;

@@ -1,452 +1,1328 @@
 // src/pages/MyOrders.jsx
-import { useEffect, useState } from "react";
-import styled from "styled-components";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import styled, { keyframes } from "styled-components";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import axiosInstance from "../../utils/axiosInstance";
 import { useToast } from "../components/Toast";
 
-const MyOrders = () => {
-  const { push } = useToast();
+const LIMIT = 12;
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function formatCurrency(amount, currency = "USD") {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return "—";
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${n.toFixed(2)} ${currency}`;
+  }
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeStatus(value, fallback = "pending") {
+  return String(value || fallback).toLowerCase().trim();
+}
+
+function shortText(value, max = 48) {
+  const text = String(value || "").trim();
+  if (!text) return "—";
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function hasTracking(order) {
+  return Boolean(
+    order?.shipping?.trackingNumber ||
+      order?.shipping?.trackingUrl ||
+      order?.shipping?.carrier ||
+      order?.shipping?.shippedAt
+  );
+}
+
+export default function MyOrders() {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const push = toast?.push || toast?.showToast;
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshingId, setRefreshingId] = useState(0);
+  const [error, setError] = useState("");
 
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    let isMounted = true;
+  const paidCount = useMemo(
+    () => orders.filter((order) => normalizeStatus(order?.paymentStatus) === "paid").length,
+    [orders]
+  );
 
-    const fetchMyOrders = async () => {
-      try {
-        setLoading(true);
+  const processingCount = useMemo(
+    () => orders.filter((order) => normalizeStatus(order?.status, "new") === "processing").length,
+    [orders]
+  );
 
-        // Backend getOrders supports userId filter, but we also
-        // have a GET /api/v1/orders/:id. For a user "My Orders"
-        // we’ll use a dedicated endpoint later if you add it.
-        // For now this assumes your backend treats non-admin
-        // GET /api/v1/orders with auth as "own orders only".
-        const res = await axiosInstance.get("/orders", {
-          params: {
-            page,
-            limit: 10,
-          },
-        });
+  const totalSpent = useMemo(
+    () => orders.reduce((sum, order) => sum + Number(order?.total || 0), 0),
+    [orders]
+  );
 
-        if (!isMounted) return;
+  const fetchMyOrders = useCallback(async () => {
+    let cancelled = false;
 
-        const payload = res.data || {};
-        const items = Array.isArray(payload.data) ? payload.data : [];
+    try {
+      setLoading(true);
+      setError("");
 
-        setOrders(items);
-        setTotal(payload.pagination?.total || 0);
-        setPages(payload.pagination?.pages || 1);
-      } catch (error) {
-        if (!isMounted) return;
+      const { data } = await axiosInstance.get("/orders/my", {
+        params: {
+          page,
+          limit: LIMIT,
+          t: Date.now(),
+        },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
 
-        const message =
-          error.response?.data?.message ||
-          "Failed to load your orders. Please try again.";
+      if (cancelled) return;
 
-        push({
-          title: "Orders error",
-          description: message,
-          variant: "error",
-        });
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
+      const items = Array.isArray(data?.data) ? data.data : [];
 
-    fetchMyOrders();
+      setOrders(items);
+      setTotal(Number(data?.pagination?.total || items.length || 0));
+      setPages(Number(data?.pagination?.pages || 1));
+    } catch (err) {
+      if (cancelled) return;
+
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to load your orders. Please try again.";
+
+      setError(message);
+
+      push?.({
+        title: "Orders error",
+        description: message,
+        variant: "error",
+      });
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
   }, [page, push]);
 
-  const handlePrev = () => {
-    setPage((prev) => (prev > 1 ? prev - 1 : prev));
-  };
+  useEffect(() => {
+    let alive = true;
 
-  const handleNext = () => {
-    setPage((prev) => (prev < pages ? prev + 1 : prev));
-  };
-
-  const formatDateTime = (value) => {
-    if (!value) return "—";
-    try {
-      return new Date(value).toLocaleString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return String(value);
-    }
-  };
-
-  const formatCurrency = (amount, currency) => {
-    if (typeof amount !== "number") return "—";
-    const code = currency || "USD";
-
-    try {
-      return new Intl.NumberFormat(undefined, {
-        style: "currency",
-        currency: code,
-        maximumFractionDigits: 2,
-      }).format(amount);
-    } catch {
-      return `${amount.toFixed(2)} ${code}`;
-    }
-  };
-
-  const summarizeItems = (items) => {
-    if (!Array.isArray(items) || items.length === 0) return "—";
-
-    if (items.length === 1) {
-      const first = items[0];
-      return `${first.title} ×${first.quantity || 1}`;
+    async function run() {
+      if (!alive) return;
+      await fetchMyOrders();
     }
 
-    const first = items[0];
-    const remaining = items.length - 1;
-    return `${first.title} ×${first.quantity || 1} + ${remaining} more`;
-  };
+    run();
+
+    return () => {
+      alive = false;
+    };
+  }, [fetchMyOrders, refreshingId]);
+
+  function refreshOrders() {
+    setRefreshingId((prev) => prev + 1);
+  }
+
+  function handlePrev() {
+    setPage((prev) => Math.max(1, prev - 1));
+  }
+
+  function handleNext() {
+    setPage((prev) => Math.min(pages, prev + 1));
+  }
 
   return (
-    <Wrap>
-      <Header>
-        <Title>My Orders</Title>
-        <Meta>
-          <span>
-            <strong>{total}</strong> total
-          </span>
-          <span>
-            Page <strong>{page}</strong> of <strong>{pages}</strong>
-          </span>
-        </Meta>
-      </Header>
+    <Page>
+      <GlowOne />
+      <GlowTwo />
 
-      <Card>
-        {loading ? (
-          <StateText>Loading your orders…</StateText>
-        ) : orders.length === 0 ? (
-          <StateText>You have no orders yet.</StateText>
-        ) : (
-          <List>
-            {orders.map((order) => {
-              const totalValue = formatCurrency(
-                order.total,
-                order.currency
-              );
-              const createdAt = formatDateTime(order.createdAt);
-              const paymentStatus = order.paymentStatus || "pending";
-              const status = order.status || "new";
+      <Shell>
+        <Hero
+          as={motion.header}
+          initial={{ opacity: 0, y: 16, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.38 }}
+        >
+          <HeroText>
+            <Badge>
+              <LiveDot />
+              KNOCKOUTCODES • PRIVATE ORDER VAULT
+            </Badge>
 
-              return (
-                <OrderCard key={order._id}>
-                  <OrderHeader>
-                    <OrderTitle>Order #{order._id.slice(-6)}</OrderTitle>
-                    <OrderMeta>{createdAt}</OrderMeta>
-                  </OrderHeader>
+            <Title>
+              Your purchases. <span>Clear, protected, and easy to understand.</span>
+            </Title>
 
-                  <OrderBody>
-                    <Column>
-                      <Label>Items</Label>
-                      <Value>{summarizeItems(order.items)}</Value>
-                    </Column>
+            <Subtitle>
+              View every product order connected to your account, including payment status,
+              order status, items purchased, quantity, total paid, transaction reference, and order date.
+            </Subtitle>
 
-                    <Column>
-                      <Label>Total Paid</Label>
-                      <Value>{totalValue}</Value>
-                    </Column>
+            <HeroActions>
+              <PrimaryButton type="button" onClick={() => navigate("/products")}>
+                Shop More Products
+              </PrimaryButton>
 
-                    <Column>
-                      <Label>Payment</Label>
-                      <BadgeRow>
+              <GhostButton type="button" onClick={refreshOrders}>
+                Refresh Orders
+              </GhostButton>
+
+              <GhostLink to="/user-dashboard">Back To Dashboard</GhostLink>
+            </HeroActions>
+          </HeroText>
+
+          <HeroPanel>
+            <PanelEyebrow>Order Control</PanelEyebrow>
+
+            <HeroStat>
+              <HeroStatValue>{total}</HeroStatValue>
+              <HeroStatLabel>Total Orders</HeroStatLabel>
+            </HeroStat>
+
+            <HeroMiniGrid>
+              <HeroMiniCard>
+                <MiniValue>{paidCount}</MiniValue>
+                <MiniLabel>Paid</MiniLabel>
+              </HeroMiniCard>
+
+              <HeroMiniCard>
+                <MiniValue>{processingCount}</MiniValue>
+                <MiniLabel>Processing</MiniLabel>
+              </HeroMiniCard>
+
+              <HeroMiniCard>
+                <MiniValue>{formatCurrency(totalSpent, "USD")}</MiniValue>
+                <MiniLabel>Page Total</MiniLabel>
+              </HeroMiniCard>
+            </HeroMiniGrid>
+          </HeroPanel>
+        </Hero>
+
+        <StatsGrid>
+          <StatCard>
+            <StatLabel>Payment</StatLabel>
+            <StatValue>Verified</StatValue>
+            <StatText>Paid orders are confirmed through Stripe before appearing here.</StatText>
+          </StatCard>
+
+          <StatCard>
+            <StatLabel>Access</StatLabel>
+            <StatValue>Private</StatValue>
+            <StatText>This page only loads orders that belong to your user account.</StatText>
+          </StatCard>
+
+          <StatCard>
+            <StatLabel>Tracking</StatLabel>
+            <StatValue>Clear</StatValue>
+            <StatText>Each card shows item details, status, total, and transaction info.</StatText>
+          </StatCard>
+        </StatsGrid>
+
+        <OrdersPanel>
+          <PanelHeader>
+            <div>
+              <PanelTitle>My Products & Orders</PanelTitle>
+              <PanelSub>
+                Page {page} of {pages} • {total} total order{total === 1 ? "" : "s"}
+              </PanelSub>
+            </div>
+
+            <PanelActions>
+              <SmallButton type="button" onClick={refreshOrders} disabled={loading}>
+                {loading ? "Refreshing…" : "Refresh"}
+              </SmallButton>
+            </PanelActions>
+          </PanelHeader>
+
+          {loading ? (
+            <StateBox>
+              <Spinner />
+              <StateTitle>Loading your private orders…</StateTitle>
+              <StateText>Checking your account and pulling your latest confirmed purchases.</StateText>
+            </StateBox>
+          ) : error ? (
+            <StateBox>
+              <StateIcon>!</StateIcon>
+              <StateTitle>Orders could not load.</StateTitle>
+              <StateText>{error}</StateText>
+              <StateActions>
+                <PrimaryButton type="button" onClick={refreshOrders}>
+                  Try Again
+                </PrimaryButton>
+              </StateActions>
+            </StateBox>
+          ) : orders.length === 0 ? (
+            <StateBox>
+              <StateIcon>⌁</StateIcon>
+              <StateTitle>No orders yet.</StateTitle>
+              <StateText>
+                When you buy KnockoutCodes products, your verified orders will appear here.
+              </StateText>
+              <StateActions>
+                <PrimaryButton type="button" onClick={() => navigate("/products")}>
+                  Shop Products
+                </PrimaryButton>
+              </StateActions>
+            </StateBox>
+          ) : (
+            <OrderGrid>
+              {orders.map((order) => {
+                const paymentStatus = normalizeStatus(order?.paymentStatus);
+                const orderStatus = normalizeStatus(order?.status, "new");
+                const itemList = safeArray(order?.items);
+                const orderId = String(order?._id || "");
+                const shortId = orderId ? orderId.slice(-8).toUpperCase() : "ORDER";
+                const currency = order?.currency || "USD";
+                const firstItem = itemList[0] || {};
+                const totalQty = itemList.reduce(
+                  (sum, item) => sum + Number(item?.quantity || 0),
+                  0
+                );
+
+                return (
+                  <OrderCard key={orderId || order?.transactionId}>
+                    <CardTopBar />
+
+                    <OrderTop>
+                      <OrderIdentity>
+                        <OrderBadge>Order #{shortId}</OrderBadge>
+                        <OrderDate>{formatDateTime(order?.createdAt)}</OrderDate>
+                      </OrderIdentity>
+
+                      <OrderStatusRow>
                         <PaymentBadge data-status={paymentStatus}>
                           {paymentStatus}
                         </PaymentBadge>
-                        <MethodTag>{order.paymentMethod || "stripe"}</MethodTag>
-                      </BadgeRow>
-                    </Column>
 
-                    <Column>
-                      <Label>Status</Label>
-                      <StatusBadge data-status={status}>{status}</StatusBadge>
-                    </Column>
-                  </OrderBody>
+                        <StatusBadge data-status={orderStatus}>
+                          {orderStatus}
+                        </StatusBadge>
+                      </OrderStatusRow>
+                    </OrderTop>
 
-                  {order.couponCode && (
-                    <FooterRow>
-                      <FooterLabel>Coupon</FooterLabel>
-                      <FooterValue>{order.couponCode}</FooterValue>
-                    </FooterRow>
-                  )}
-                </OrderCard>
-              );
-            })}
-          </List>
-        )}
-      </Card>
+                    <ProductBlock>
+                      <Label>Product</Label>
+                      <ProductTitle title={firstItem?.title || "Purchased item"}>
+                        {shortText(firstItem?.title || "Purchased item", 58)}
+                      </ProductTitle>
 
-      {orders.length > 0 && (
-        <PaginationRow>
-          <PageButton type="button" disabled={page <= 1} onClick={handlePrev}>
-            Prev
-          </PageButton>
-          <PageInfo>
-            Page {page} of {pages}
-          </PageInfo>
-          <PageButton
-            type="button"
-            disabled={page >= pages}
-            onClick={handleNext}
-          >
-            Next
-          </PageButton>
-        </PaginationRow>
-      )}
-    </Wrap>
+                      {itemList.length > 1 ? (
+                        <ExtraItems>
+                          + {itemList.length - 1} more item{itemList.length - 1 === 1 ? "" : "s"}
+                        </ExtraItems>
+                      ) : null}
+                    </ProductBlock>
+
+                    <DetailsGrid>
+                      <DetailBox>
+                        <DetailLabel>Quantity</DetailLabel>
+                        <DetailValue>{totalQty || 1}</DetailValue>
+                      </DetailBox>
+
+                      <DetailBox>
+                        <DetailLabel>Unit Price</DetailLabel>
+                        <DetailValue>
+                          {formatCurrency(firstItem?.unitPrice, firstItem?.currency || currency)}
+                        </DetailValue>
+                      </DetailBox>
+
+                      <DetailBox>
+                        <DetailLabel>Subtotal</DetailLabel>
+                        <DetailValue>{formatCurrency(order?.subtotal, currency)}</DetailValue>
+                      </DetailBox>
+
+                      <DetailBox>
+                        <DetailLabel>Total Paid</DetailLabel>
+                        <DetailValue>{formatCurrency(order?.total, currency)}</DetailValue>
+                      </DetailBox>
+
+                      <DetailBox>
+                        <DetailLabel>Currency</DetailLabel>
+                        <DetailValue>{currency}</DetailValue>
+                      </DetailBox>
+
+                      <DetailBox>
+                        <DetailLabel>Method</DetailLabel>
+                        <DetailValue>{order?.paymentMethod || "stripe"}</DetailValue>
+                      </DetailBox>
+                    </DetailsGrid>
+
+                    {hasTracking(order) ? (
+  <TrackingBox>
+    <Label>Shipping & Tracking</Label>
+
+    <TrackingGrid>
+      <DetailBox>
+        <DetailLabel>Carrier</DetailLabel>
+        <DetailValue>{order?.shipping?.carrier || "—"}</DetailValue>
+      </DetailBox>
+
+      <DetailBox>
+        <DetailLabel>Tracking Number</DetailLabel>
+        <DetailValue>{order?.shipping?.trackingNumber || "—"}</DetailValue>
+      </DetailBox>
+
+      <DetailBox>
+        <DetailLabel>Shipped At</DetailLabel>
+        <DetailValue>{formatDateTime(order?.shipping?.shippedAt)}</DetailValue>
+      </DetailBox>
+
+      <DetailBox>
+        <DetailLabel>Status</DetailLabel>
+        <DetailValue>{order?.status || "processing"}</DetailValue>
+      </DetailBox>
+    </TrackingGrid>
+
+    {order?.shipping?.trackingUrl ? (
+      <TrackingLink
+        href={order.shipping.trackingUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Track Package
+      </TrackingLink>
+    ) : null}
+  </TrackingBox>
+) : (
+  <TrackingBox>
+    <Label>Shipping & Tracking</Label>
+    <TrackingEmpty>
+      Tracking will appear here once your order is shipped.
+    </TrackingEmpty>
+  </TrackingBox>
+                    )}
+                    
+      {order?.shippingAddress ? (
+  <TrackingBox>
+    <Label>Shipping Address</Label>
+
+    <TrackingGrid>
+      <DetailBox>
+        <DetailLabel>Name</DetailLabel>
+        <DetailValue>{order.shippingAddress.fullName || "—"}</DetailValue>
+      </DetailBox>
+
+      <DetailBox>
+        <DetailLabel>Email</DetailLabel>
+        <DetailValue>{order.shippingAddress.email || "—"}</DetailValue>
+      </DetailBox>
+
+      <DetailBox>
+        <DetailLabel>Phone</DetailLabel>
+        <DetailValue>{order.shippingAddress.phone || "—"}</DetailValue>
+      </DetailBox>
+
+      <DetailBox>
+        <DetailLabel>Country</DetailLabel>
+        <DetailValue>{order.shippingAddress.country || "—"}</DetailValue>
+      </DetailBox>
+    </TrackingGrid>
+
+    <AddressLine>
+      {[
+        order.shippingAddress.line1,
+        order.shippingAddress.line2,
+        order.shippingAddress.city,
+        order.shippingAddress.state,
+        order.shippingAddress.postalCode,
+      ]
+        .filter(Boolean)
+        .join(", ") || "—"}
+    </AddressLine>
+  </TrackingBox>
+) : null}
+
+                    <ItemSection>
+                      <Label>Items In This Order</Label>
+
+                      <ItemStack>
+                        {itemList.map((item, idx) => (
+                          <ItemLine key={`${orderId}-${item?.product || idx}`}>
+                            <ItemDot />
+                            <ItemText>
+                              <span>{item?.title || "Purchased item"}</span>
+                              <small>
+                                Qty {item?.quantity || 1} •{" "}
+                                {formatCurrency(item?.unitPrice, item?.currency || currency)} each
+                              </small>
+                            </ItemText>
+                            <ItemTotal>
+                              {formatCurrency(
+                                Number(item?.unitPrice || 0) * Number(item?.quantity || 1),
+                                item?.currency || currency
+                              )}
+                            </ItemTotal>
+                          </ItemLine>
+                        ))}
+                      </ItemStack>
+                    </ItemSection>
+
+                    <OrderInfoGrid>
+                      <InfoRow>
+                        <InfoLabel>Order ID</InfoLabel>
+                        <InfoValue title={orderId}>{orderId || "—"}</InfoValue>
+                      </InfoRow>
+
+                      <InfoRow>
+                        <InfoLabel>Transaction</InfoLabel>
+                        <InfoValue title={order?.transactionId || ""}>
+                          {order?.transactionId || "—"}
+                        </InfoValue>
+                      </InfoRow>
+
+                      <InfoRow>
+                        <InfoLabel>Updated</InfoLabel>
+                        <InfoValue>{formatDateTime(order?.updatedAt)}</InfoValue>
+                      </InfoRow>
+                    </OrderInfoGrid>
+
+                    {order?.couponCode ? (
+  <OrderFooter>
+    <FooterChip>Coupon: {order.couponCode}</FooterChip>
+  </OrderFooter>
+) : null}
+                  </OrderCard>
+                );
+              })}
+            </OrderGrid>
+          )}
+        </OrdersPanel>
+
+        {orders.length > 0 ? (
+          <PaginationRow>
+            <PageButton type="button" disabled={page <= 1} onClick={handlePrev}>
+              ← Previous
+            </PageButton>
+
+            <PageInfo>
+              Page <strong>{page}</strong> of <strong>{pages}</strong>
+            </PageInfo>
+
+            <PageButton type="button" disabled={page >= pages} onClick={handleNext}>
+              Next →
+            </PageButton>
+          </PaginationRow>
+        ) : null}
+      </Shell>
+    </Page>
   );
-};
+}
 
-export default MyOrders;
-
-/* ============================
-   Styled Components
-   ============================ */
-
-const Wrap = styled.main`
-  width: 100%;
-  min-height: 100%;
-  padding: 20px 16px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: ${({ theme }) => theme.colors.darkBrown};
-  color: ${({ theme }) => theme.colors.ivory};
+const pulse = keyframes`
+  0%, 100% { transform: scale(1); opacity: .8; }
+  50% { transform: scale(1.35); opacity: 1; }
 `;
 
-const Header = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const Page = styled.main`
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 96px 18px 76px;
+  color: ${({ theme }) => theme.colors.ivory};
+  background:
+    radial-gradient(circle at 14% 8%, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(circle at 86% 16%, rgba(90, 56, 37, 0.32), transparent 42%),
+    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, ${({ theme }) => theme.colors.black} 86%);
+`;
+
+const GlowOne = styled.div`
+  position: absolute;
+  width: 440px;
+  height: 440px;
+  border-radius: 999px;
+  left: -190px;
+  top: 120px;
+  background: rgba(214, 182, 159, 0.13);
+  filter: blur(18px);
+`;
+
+const GlowTwo = styled.div`
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 999px;
+  right: -210px;
+  bottom: 70px;
+  background: rgba(90, 56, 37, 0.32);
+  filter: blur(22px);
+`;
+
+const Shell = styled.section`
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: ${({ theme }) => theme.layout.max};
+  margin: 0 auto;
+`;
+
+const Hero = styled.section`
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) 360px;
+  gap: 16px;
+  align-items: stretch;
+
+  @media (max-width: 920px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const HeroText = styled.div`
+  padding: 24px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 249, 242, 0.12);
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  backdrop-filter: blur(18px);
+`;
+
+const Badge = styled.div`
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
+  padding: 10px 13px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.35);
+  color: ${({ theme }) => theme.colors.ivory};
+  border: 1px solid rgba(214, 182, 159, 0.25);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+`;
+
+const LiveDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.colors.lightBrown};
+  box-shadow: 0 0 0 6px rgba(214, 182, 159, 0.13);
+  animation: ${pulse} 1.4s ease-in-out infinite;
 `;
 
 const Title = styled.h1`
-  margin: 0;
-  font-size: 20px;
-  letter-spacing: 0.4px;
-`;
+  margin: 16px 0 10px;
+  max-width: 860px;
+  font-size: clamp(34px, 5.5vw, 76px);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+  color: ${({ theme }) => theme.colors.ivory};
 
-const Meta = styled.div`
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  opacity: 0.9;
-
-  span strong {
-    font-weight: 700;
+  span {
+    color: ${({ theme }) => theme.colors.lightBrown};
   }
 `;
 
-const Card = styled.section`
-  border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.colors.brown};
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-  padding: 14px 12px;
+const Subtitle = styled.p`
+  margin: 0;
+  max-width: 740px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.84;
+  line-height: 1.75;
 `;
 
-const StateText = styled.p`
-  margin: 8px 0;
-  font-size: 13px;
-  opacity: 0.95;
-`;
-
-const List = styled.div`
+const HeroActions = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 10px;
+  margin-top: 18px;
+`;
+
+const PrimaryButton = styled.button`
+  border: 0;
+  cursor: pointer;
+  min-height: 45px;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  color: ${({ theme }) => theme.colors.black};
+  font-weight: 950;
+  box-shadow: ${({ theme }) => theme.shadow.soft};
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const GhostButton = styled.button`
+  border: 1px solid rgba(255, 249, 242, 0.14);
+  cursor: pointer;
+  min-height: 45px;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.24);
+  color: ${({ theme }) => theme.colors.ivory};
+  font-weight: 950;
+
+  &:hover {
+    border-color: rgba(214, 182, 159, 0.42);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const GhostLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 45px;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid rgba(255, 249, 242, 0.14);
+  background: rgba(0, 0, 0, 0.24);
+  color: ${({ theme }) => theme.colors.ivory};
+  text-decoration: none;
+  font-weight: 950;
+
+  &:hover {
+    border-color: rgba(214, 182, 159, 0.42);
+    transform: translateY(-1px);
+  }
+`;
+
+const HeroPanel = styled.aside`
+  padding: 18px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background:
+    linear-gradient(145deg, rgba(214, 182, 159, 0.12), rgba(0, 0, 0, 0.42)),
+    ${({ theme }) => theme.colors.glass};
+  border: 1px solid rgba(214, 182, 159, 0.18);
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  backdrop-filter: blur(18px);
+`;
+
+const PanelEyebrow = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+`;
+
+const HeroStat = styled.div`
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.28);
+`;
+
+const HeroStatValue = styled.div`
+  font-size: 44px;
+  font-weight: 950;
+  color: ${({ theme }) => theme.colors.ivory};
+`;
+
+const HeroStatLabel = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const HeroMiniGrid = styled.div`
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+`;
+
+const HeroMiniCard = styled.div`
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 249, 242, 0.09);
+`;
+
+const MiniValue = styled.div`
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 18px;
+  font-weight: 950;
+`;
+
+const MiniLabel = styled.div`
+  margin-top: 4px;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const StatsGrid = styled.div`
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatCard = styled.div`
+  padding: 16px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background: ${({ theme }) => theme.colors.glass};
+  border: 1px solid rgba(255, 249, 242, 0.1);
+  box-shadow: ${({ theme }) => theme.shadow.soft};
+  backdrop-filter: blur(14px);
+`;
+
+const StatLabel = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+`;
+
+const StatValue = styled.div`
+  margin-top: 8px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 22px;
+  font-weight: 950;
+`;
+
+const StatText = styled.p`
+  margin: 6px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.72;
+  line-height: 1.5;
+  font-size: 13px;
+`;
+
+const OrdersPanel = styled.section`
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025)),
+    rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 249, 242, 0.11);
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  backdrop-filter: blur(18px);
+`;
+
+const PanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+`;
+
+const PanelTitle = styled.h2`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 22px;
+  letter-spacing: -0.02em;
+`;
+
+const PanelSub = styled.p`
+  margin: 6px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.72;
+`;
+
+const PanelActions = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const SmallButton = styled(GhostButton)`
+  min-height: 40px;
+  padding: 0 13px;
+  font-size: 13px;
+`;
+
+const OrderGrid = styled.div`
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+
+  @media (max-width: 1120px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const OrderCard = styled.article`
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 10px 10px 8px;
-`;
-
-const OrderHeader = styled.div`
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
+    rgba(0, 0, 0, 0.31);
+  border: 1px solid rgba(255, 249, 242, 0.1);
+  min-height: 520px;
+  height: auto;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
-`;
+  flex-direction: column;
 
-const OrderTitle = styled.h2`
-  margin: 0;
-  font-size: 14px;
-  letter-spacing: 0.3px;
-`;
-
-const OrderMeta = styled.span`
-  font-size: 11px;
-  opacity: 0.85;
-`;
-
-const OrderBody = styled.div`
-  display: grid;
-  grid-template-columns: 2fr 1.2fr 1.2fr 1.1fr;
-  gap: 10px;
-  align-items: flex-start;
-  margin-top: 4px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(214, 182, 159, 0.34);
+    box-shadow: ${({ theme }) => theme.shadow.soft};
   }
 `;
 
-const Column = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+const CardTopBar = styled.div`
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, transparent);
 `;
 
-const Label = styled.span`
-  font-size: 11px;
-  opacity: 0.75;
+const OrderTop = styled.div`
+  display: grid;
+  gap: 10px;
 `;
 
-const Value = styled.span`
-  font-size: 13px;
-  font-weight: 500;
-`;
-
-const BadgeRow = styled.div`
-  display: flex;
+const OrderIdentity = styled.div`
+  display: grid;
   gap: 6px;
-  align-items: center;
+`;
+
+const OrderBadge = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const OrderDate = styled.div`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.68;
+  font-size: 12px;
+  line-height: 1.4;
+`;
+
+const OrderStatusRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const ProductBlock = styled.div`
+  margin-top: 14px;
+`;
+
+const Label = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+`;
+
+const ProductTitle = styled.h3`
+  margin: 6px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 950;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const ExtraItems = styled.div`
+  margin-top: 7px;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 12px;
+  font-weight: 900;
+`;
+
+const DetailsGrid = styled.div`
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+`;
+
+const DetailBox = styled.div`
+  padding: 10px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 249, 242, 0.08);
+  min-width: 0;
+`;
+
+const DetailLabel = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const DetailValue = styled.div`
+  margin-top: 5px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 12px;
+  font-weight: 900;
+  word-break: break-word;
+`;
+
+const ItemSection = styled.div`
+  margin-top: 14px;
+`;
+
+const ItemStack = styled.div`
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+`;
+
+const ItemLine = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 12px;
+`;
+
+const ItemDot = styled.span`
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.colors.lightBrown};
+`;
+
+const ItemText = styled.div`
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  span {
+    font-weight: 850;
+    line-height: 1.35;
+  }
+
+  small {
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.62;
+    line-height: 1.35;
+  }
+`;
+
+const ItemTotal = styled.div`
+  grid-column: 2;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 950;
+`;
+
+const OrderInfoGrid = styled.div`
+  margin-top: auto;
+  padding-top: 14px;
+  display: grid;
+  gap: 8px;
+`;
+
+const InfoRow = styled.div`
+  padding: 9px 10px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 249, 242, 0.075);
+`;
+
+const InfoLabel = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const InfoValue = styled.div`
+  margin-top: 4px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.76;
+  font-size: 11px;
+  word-break: break-all;
 `;
 
 const PaymentBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: 7px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 11px;
+  font-weight: 950;
   text-transform: capitalize;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 249, 242, 0.16);
 
   &[data-status="paid"] {
+    color: #d9ffe7;
     background: rgba(46, 204, 113, 0.16);
-    border-color: rgba(46, 204, 113, 0.9);
+    border-color: rgba(46, 204, 113, 0.55);
   }
 
   &[data-status="pending"] {
+    color: #fff3c4;
     background: rgba(241, 196, 15, 0.16);
-    border-color: rgba(241, 196, 15, 0.9);
+    border-color: rgba(241, 196, 15, 0.55);
   }
 
   &[data-status="failed"],
   &[data-status="refunded"] {
+    color: #ffd1d1;
     background: rgba(231, 76, 60, 0.16);
-    border-color: rgba(231, 76, 60, 0.9);
+    border-color: rgba(231, 76, 60, 0.55);
   }
-`;
-
-const MethodTag = styled.span`
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.85;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px dashed rgba(255, 255, 255, 0.35);
 `;
 
 const StatusBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: 7px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 11px;
+  font-weight: 950;
   text-transform: capitalize;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 249, 242, 0.16);
 
   &[data-status="new"] {
-    background: rgba(52, 152, 219, 0.18);
-    border-color: rgba(52, 152, 219, 0.9);
+    color: #d7efff;
+    background: rgba(52, 152, 219, 0.16);
+    border-color: rgba(52, 152, 219, 0.55);
   }
 
   &[data-status="processing"] {
-    background: rgba(241, 196, 15, 0.18);
-    border-color: rgba(241, 196, 15, 0.9);
+    color: #fff3c4;
+    background: rgba(241, 196, 15, 0.16);
+    border-color: rgba(241, 196, 15, 0.55);
   }
 
   &[data-status="completed"] {
-    background: rgba(46, 204, 113, 0.18);
-    border-color: rgba(46, 204, 113, 0.9);
+    color: #d9ffe7;
+    background: rgba(46, 204, 113, 0.16);
+    border-color: rgba(46, 204, 113, 0.55);
   }
 
-  &[data-status="cancelled"] {
-    background: rgba(231, 76, 60, 0.18);
-    border-color: rgba(231, 76, 60, 0.9);
+  &[data-status="cancelled"],
+  &[data-status="canceled"] {
+    color: #ffd1d1;
+    background: rgba(231, 76, 60, 0.16);
+    border-color: rgba(231, 76, 60, 0.55);
   }
 `;
 
-const FooterRow = styled.div`
-  margin-top: 6px;
-  display: flex;
-  gap: 6px;
-  font-size: 11px;
-  opacity: 0.85;
-`;
-
-const FooterLabel = styled.span`
-  font-weight: 600;
-`;
-
-const FooterValue = styled.span``;
-
-const PaginationRow = styled.div`
-  margin-top: 8px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+const OrderFooter = styled.div`
+  margin-top: 12px;
+  display: grid;
   gap: 8px;
 `;
 
-const PageButton = styled.button`
-  min-width: 72px;
-  padding: 6px 10px;
-  border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: ${({ disabled, theme }) =>
-    disabled ? "rgba(0,0,0,0.3)" : theme.colors.lightBrown};
-  color: ${({ theme }) => theme.colors.black};
+const FooterChip = styled.div`
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  color: ${({ theme }) => theme.colors.lightBrown};
+  background: rgba(214, 182, 159, 0.11);
+  border: 1px solid rgba(214, 182, 159, 0.2);
   font-size: 12px;
-  font-weight: 600;
-  cursor: ${({ disabled }) => (disabled ? "default" : "pointer")};
-  opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-weight: 900;
+`;
+
+const FooterNote = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.68;
+  font-size: 12px;
+  line-height: 1.45;
+`;
+
+const StateBox = styled.div`
+  margin-top: 14px;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 249, 242, 0.1);
+`;
+
+const StateIcon = styled.div`
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  background: rgba(214, 182, 159, 0.12);
+  border: 1px solid rgba(214, 182, 159, 0.22);
+  font-size: 26px;
+  font-weight: 950;
+`;
+
+const StateTitle = styled.h3`
+  margin: 12px 0 6px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 22px;
+`;
+
+const StateText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.72;
+  line-height: 1.55;
+`;
+
+const StateActions = styled.div`
+  margin-top: 16px;
+`;
+
+const Spinner = styled.span`
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 3px solid rgba(214, 182, 159, 0.2);
+  border-top-color: ${({ theme }) => theme.colors.lightBrown};
+  animation: ${spin} 0.85s linear infinite;
+`;
+
+const PaginationRow = styled.div`
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const PageButton = styled.button`
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid rgba(255, 249, 242, 0.14);
+  background: ${({ disabled, theme }) =>
+    disabled ? "rgba(0,0,0,0.25)" : theme.colors.lightBrown};
+  color: ${({ disabled, theme }) =>
+    disabled ? "rgba(255,249,242,.55)" : theme.colors.black};
+  font-weight: 950;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
 
   &:hover {
     transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
-    box-shadow: ${({ disabled, theme }) =>
-      disabled ? "none" : theme.shadow.soft};
   }
 `;
 
-const PageInfo = styled.span`
+const PageInfo = styled.div`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  font-size: 13px;
+`;
+
+const TrackingBox = styled.div`
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(214, 182, 159, 0.08);
+  border: 1px solid rgba(214, 182, 159, 0.16);
+`;
+
+const TrackingGrid = styled.div`
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+`;
+
+const TrackingLink = styled.a`
+  margin-top: 10px;
+  min-height: 38px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.colors.lightBrown};
+  color: ${({ theme }) => theme.colors.black};
+  text-decoration: none;
   font-size: 12px;
-  opacity: 0.9;
+  font-weight: 950;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const TrackingEmpty = styled.p`
+  margin: 8px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.7;
+  font-size: 12px;
+  line-height: 1.5;
+`;
+
+const AddressLine = styled.div`
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 249, 242, 0.075);
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
 `;

@@ -18,7 +18,9 @@ const router = express.Router();
 
 // Public shop routes
 router.get("/", ...productPublicShield, safeSort, getProducts);
-router.get("/:id", ...productPublicShield, validateObjectId("id"), getProduct);
+
+// Public product detail — supports MongoDB _id OR SEO slug
+router.get("/:idOrSlug", ...productPublicShield, getProduct);
 
 // Admin product management
 router.post("/",

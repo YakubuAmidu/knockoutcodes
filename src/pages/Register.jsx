@@ -1,5 +1,5 @@
 // src/pages/Register.jsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +17,20 @@ import {
 } from "../reducers/register/registerActions";
 
 const LOGIN_ROUTE = "/login";
+
+function normalizeEmail(value = "") {
+  return String(value).trim().toLowerCase();
+}
+
+function safeSetLocalStorage(key, value) {
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(key, value);
+    }
+  } catch {
+    // Ignore storage errors safely.
+  }
+}
 
 const floatGlow = keyframes`
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.72; }
@@ -36,6 +50,8 @@ export default function Register() {
 
   const { form, error, loading } = useSelector((state) => state.register);
 
+  const submitLockRef = useRef(false);
+
   const ids = useMemo(
     () => ({
       name: "register_name",
@@ -52,6 +68,7 @@ export default function Register() {
   useEffect(() => {
     return () => {
       dispatch(resetRegister());
+      submitLockRef.current = false;
     };
   }, [dispatch]);
 
@@ -66,30 +83,44 @@ export default function Register() {
 
   async function onSubmit(e) {
     e.preventDefault();
+
+    if (submitLockRef.current || loading) return;
+
     dispatch(clearRegisterError());
 
-    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
+    const cleanName = String(form.name || "").trim();
+    const cleanEmail = normalizeEmail(form.email);
+    const cleanPassword = String(form.password || "");
+    const cleanConfirmPassword = String(form.confirmPassword || "");
+
+    if (!cleanName || !cleanEmail || !cleanPassword || !cleanConfirmPassword) {
       fail("Please fill all fields.");
       return;
     }
 
-    if (form.password.length < 8) {
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      fail("Please enter a valid email address.");
+      return;
+    }
+
+    if (cleanPassword.length < 8) {
       fail("Password must be at least 8 characters.");
       return;
     }
 
-    if (form.password !== form.confirmPassword) {
+    if (cleanPassword !== cleanConfirmPassword) {
       fail("Passwords do not match.");
       return;
     }
 
     const payload = {
-      name: form.name.trim(),
-      email: form.email.trim().toLowerCase(),
-      password: form.password,
+      name: cleanName,
+      email: cleanEmail,
+      password: cleanPassword,
     };
 
     try {
+      submitLockRef.current = true;
       dispatch(registerRequest());
 
       const result = await registerWithCtx(payload, { remember: true });
@@ -102,29 +133,41 @@ export default function Register() {
       }
 
       dispatch(registerSuccess());
-      showToast("Account created successfully. Please log in.", "success");
 
-      localStorage.setItem("lastRegisteredEmail", payload.email);
+      showToast(
+        "Account created successfully. Please verify your email before logging in.",
+        "success"
+      );
+
+      safeSetLocalStorage("lastRegisteredEmail", payload.email);
 
       navigate(LOGIN_ROUTE, {
         replace: true,
-        state: { registeredEmail: payload.email },
+        state: {
+          registeredEmail: payload.email,
+          needsEmailVerification: true,
+          message:
+            "Account created successfully. Please verify your email using the link sent to your email before logging in.",
+        },
       });
     } catch {
       const message = "Network error. Please try again.";
       dispatch(registerFail(message));
       showToast(message, "error");
+    } finally {
+      submitLockRef.current = false;
     }
   }
 
-  const canSubmit =
-    form.name.trim() &&
-    form.email.trim() &&
-    form.password &&
-    form.confirmPassword &&
-    form.password === form.confirmPassword &&
-    form.password.length >= 8 &&
-    !loading;
+  const canSubmit = Boolean(
+    String(form.name || "").trim() &&
+      normalizeEmail(form.email) &&
+      form.password &&
+      form.confirmPassword &&
+      form.password === form.confirmPassword &&
+      form.password.length >= 8 &&
+      !loading
+  );
 
   return (
     <Screen>
@@ -726,12 +769,12 @@ const Submit = styled.button`
   }
 
   &:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-  filter: grayscale(20%);
-  box-shadow: none;
-}
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    filter: grayscale(20%);
+    box-shadow: none;
+  }
 `;
 
 const Minor = styled.p`

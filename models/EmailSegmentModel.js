@@ -1,5 +1,10 @@
+// models/emailSegmentModel.js
 import mongoose from "mongoose";
 
+/**
+ * Email segment schema
+ * Stores reusable subscriber/customer groups for email campaigns.
+ */
 const emailSegmentSchema = new mongoose.Schema(
   {
     name: {
@@ -8,7 +13,7 @@ const emailSegmentSchema = new mongoose.Schema(
       trim: true,
       minlength: [2, "Segment name must be at least 2 characters"],
       maxlength: [80, "Segment name cannot exceed 80 characters"],
-      index: true,
+      unique: true,
     },
 
     description: {
@@ -20,16 +25,8 @@ const emailSegmentSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: [
-        "newsletter",
-        "buyers",
-        "coaching",
-        "vip",
-        "inactive",
-        "manual",
-      ],
+      enum: ["newsletter", "buyers", "coaching", "vip", "inactive", "manual"],
       default: "newsletter",
-      index: true,
     },
 
     status: {
@@ -45,11 +42,13 @@ const emailSegmentSchema = new mongoose.Schema(
         enum: ["all", "newsletter", "orders", "coaching", "manual"],
         default: "all",
       },
+
       minOrders: {
         type: Number,
-        default: 0,
         min: 0,
+        default: 0,
       },
+
       tags: {
         type: [String],
         default: [],
@@ -60,14 +59,40 @@ const emailSegmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
-      index: true,
     },
   },
   { timestamps: true }
 );
 
-emailSegmentSchema.index({ name: 1 }, { unique: true });
+/**
+ * Cleans segment fields before saving.
+ */
+emailSegmentSchema.pre("validate", function (next) {
+  if (this.name) {
+    this.name = String(this.name).trim();
+  }
 
-const EmailSegment = mongoose.model("EmailSegment", emailSegmentSchema);
+  if (this.rules?.tags?.length) {
+    this.rules.tags = [
+      ...new Set(
+        this.rules.tags
+          .map((tag) => String(tag || "").trim().toLowerCase())
+          .filter(Boolean)
+      ),
+    ];
+  }
+
+  next();
+});
+
+/**
+ * Indexes for filtering and admin search.
+ */
+emailSegmentSchema.index({ type: 1, status: 1 });
+emailSegmentSchema.index({ createdBy: 1, createdAt: -1 });
+
+const EmailSegment =
+  mongoose.models.EmailSegment ||
+  mongoose.model("EmailSegment", emailSegmentSchema);
 
 export default EmailSegment;

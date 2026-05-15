@@ -3,44 +3,55 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+
 import { useToast } from "../components/Toast";
 import { createProductCheckoutSession } from "../lib/apiClient";
 import { CHECKOUT_ACTIONS } from "../reducers/checkout/checkoutActionTypes";
-
-// redux
-import { useDispatch, useSelector } from "react-redux";
 import { CART_ACTIONS } from "../reducers/cart/cartActionTypes";
+
+function formatMoney(value) {
+  const n = Number(value || 0);
+  return `$${n.toFixed(2)}`;
+}
+
+function clampQty(q) {
+  const n = Number(q);
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(1, Math.floor(n));
+}
 
 export default function Cart() {
   const toast = useToast();
   const dispatch = useDispatch();
 
-  // ✅ single source of truth
   const items = useSelector((state) => state?.cart?.items || []);
-
-  // ✅ local UI state
   const [redirecting, setRedirecting] = useState(false);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
-      (sum, it) => sum + (Number(it.price) || 0) * (Number(it.qty) || 1),
+      (sum, item) => sum + Number(item.price || 0) * clampQty(item.qty),
       0
     );
-    const itemCount = items.reduce((sum, it) => sum + (Number(it.qty) || 1), 0);
-    return { subtotal, itemCount };
+
+    const itemCount = items.reduce(
+      (sum, item) => sum + clampQty(item.qty),
+      0
+    );
+
+    return {
+      subtotal,
+      itemCount,
+    };
   }, [items]);
 
   function pushToast(payload) {
     toast?.push?.(payload);
   }
 
-  function clampQty(q) {
-    const n = Number(q);
-    if (!Number.isFinite(n)) return 1;
-    return Math.max(1, Math.floor(n));
-  }
-
   function updateQty(cartItemId, nextQty) {
+    if (!cartItemId || redirecting) return;
+
     const qty = clampQty(nextQty);
 
     dispatch({
@@ -49,58 +60,67 @@ export default function Cart() {
     });
 
     pushToast({
-      title: "Success",
-      description: "Cart updated ✅",
+      title: "Cart updated",
+      description: "Quantity updated successfully.",
       variant: "success",
     });
   }
 
   function removeItem(cartItemId) {
-    dispatch({ type: CART_ACTIONS.REMOVE_ITEM, payload: cartItemId });
+    if (!cartItemId || redirecting) return;
+
+    dispatch({
+      type: CART_ACTIONS.REMOVE_ITEM,
+      payload: cartItemId,
+    });
 
     pushToast({
-      title: "Success",
-      description: "Removed from cart ✅",
+      title: "Removed",
+      description: "Product removed from cart.",
       variant: "success",
     });
   }
 
   function clearCart() {
+    if (!items.length || redirecting) return;
+
+    const ok = window.confirm("Clear your entire cart?");
+    if (!ok) return;
+
     dispatch({ type: CART_ACTIONS.CLEAR });
 
     pushToast({
-      title: "Success",
-      description: "Cart cleared ✅",
+      title: "Cart cleared",
+      description: "Your cart is now empty.",
       variant: "success",
     });
   }
 
   async function checkout() {
-    // ✅ prevent double clicks
     if (redirecting) return;
 
-    // ✅ validate first (DO NOT set redirecting yet)
     if (!items.length) {
       pushToast({
-        title: "Error",
-        description: "Your cart is empty.",
-        variant: "error",
+        title: "Cart is empty",
+        description: "Add at least one product before checkout.",
+        variant: "warning",
       });
       return;
     }
 
-    // Build items for backend (do NOT send prices)
-    const payloadItems = items.map((it) => ({
-      productId: it.productId,
-      qty: clampQty(it.qty),
+    const payloadItems = items.map((item) => ({
+      productId: item.productId,
+      qty: clampQty(item.qty),
     }));
 
-    // guard bad ids
-    const hasBad = payloadItems.some((x) => !x.productId);
-    if (hasBad) {
+    const hasBadItem = payloadItems.some(
+      (item) => !item.productId || item.qty < 1
+    );
+
+    if (hasBadItem) {
       pushToast({
-        title: "Error",
-        description: "One or more cart items are missing productId.",
+        title: "Cart error",
+        description: "One or more items are missing valid product data.",
         variant: "error",
       });
       return;
@@ -108,21 +128,31 @@ export default function Cart() {
 
     try {
       setRedirecting(true);
+
       dispatch({ type: CHECKOUT_ACTIONS.START });
 
       const data = await createProductCheckoutSession(payloadItems);
 
-      dispatch({ type: CHECKOUT_ACTIONS.SUCCESS, payload: data });
+      if (!data?.url) {
+        throw new Error("Stripe checkout URL was not returned.");
+      }
 
-      // ✅ Stripe redirect
+      dispatch({
+        type: CHECKOUT_ACTIONS.SUCCESS,
+        payload: data,
+      });
+
       window.location.href = data.url;
-    } catch (e) {
+    } catch (error) {
       const msg =
-        e?.response?.data?.message ||
-        e?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
         "Checkout failed. Please try again.";
 
-      dispatch({ type: CHECKOUT_ACTIONS.ERROR, payload: msg });
+      dispatch({
+        type: CHECKOUT_ACTIONS.ERROR,
+        payload: msg,
+      });
 
       pushToast({
         title: "Checkout failed",
@@ -137,143 +167,197 @@ export default function Cart() {
   return (
     <Page>
       <Inner>
-        <Top
+        <Hero
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <Badge>KO • CART</Badge>
+          <Badge>🥊 KNOCKOUTCODES • SECURE CART</Badge>
+
           <Title>
-            ⚡ <span>LOCK IN</span> YOUR GEAR — THEN GO WORK.
+            Lock in the gear. <span>Then go train like the work matters.</span>
           </Title>
+
           <Sub>
-            Review your items, adjust size/color quantity, and check out when
-            you’re ready.
+            Review your KnockoutCodes products, adjust quantities, and continue
+            to secure checkout. Final taxes, shipping, and verified product
+            totals are handled during checkout.
           </Sub>
 
-          <TopActions>
-            <BackLink to="/products">← Continue Shopping</BackLink>
+          <HeroStats>
+            <StatCard>
+              <StatNumber>{totals.itemCount}</StatNumber>
+              <StatLabel>Total Items</StatLabel>
+            </StatCard>
 
-            <GhostBtn type="button" onClick={clearCart} disabled={!items.length || redirecting}>
+            <StatCard>
+              <StatNumber>{items.length}</StatNumber>
+              <StatLabel>Product Lines</StatLabel>
+            </StatCard>
+
+            <StatCard>
+              <StatNumber>{formatMoney(totals.subtotal)}</StatNumber>
+              <StatLabel>Estimated Subtotal</StatLabel>
+            </StatCard>
+          </HeroStats>
+
+          <TopActions>
+            <PrimaryLink to="/products">← Continue Shopping</PrimaryLink>
+
+            <GhostBtn
+              type="button"
+              onClick={clearCart}
+              disabled={!items.length || redirecting}
+            >
               Clear Cart
             </GhostBtn>
           </TopActions>
-        </Top>
+        </Hero>
 
         <Grid>
-          <LeftCard
+          <CartPanel
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.05 }}
           >
-            <CardHead>
-              <CardTitle>Items</CardTitle>
-              <Small>
-                {totals.itemCount} item{totals.itemCount === 1 ? "" : "s"}
-              </Small>
-            </CardHead>
+            <PanelHeader>
+              <div>
+                <PanelTitle>Your Fight Gear</PanelTitle>
+                <PanelSub>
+                  {totals.itemCount} item{totals.itemCount === 1 ? "" : "s"} ready
+                  for checkout
+                </PanelSub>
+              </div>
+
+              <SecureBadge>Secure Checkout Ready</SecureBadge>
+            </PanelHeader>
 
             {!items.length ? (
-              <Empty>
+              <EmptyBox>
                 <EmptyTitle>Your cart is empty.</EmptyTitle>
-                <EmptySub>Pick your gear and come back here.</EmptySub>
-                <EmptyBtn to="/products">Shop KnockoutCodes →</EmptyBtn>
-              </Empty>
+                <EmptyText>
+                  Choose premium KnockoutCodes gear and your cart will appear
+                  here.
+                </EmptyText>
+                <EmptyButton to="/products">Shop Products →</EmptyButton>
+              </EmptyBox>
             ) : (
-              <List>
-                {items.map((it) => (
-                  <Row key={it.cartItemId || it.productId}>
-                    <Thumb>
-                      {it.image ? (
-                        <ThumbImg src={it.image} alt={it.title || "Product"} />
-                      ) : (
-                        <ThumbFallback>—</ThumbFallback>
-                      )}
-                    </Thumb>
+              <ItemList>
+                {items.map((item) => {
+                  const qty = clampQty(item.qty);
+                  const lineTotal = Number(item.price || 0) * qty;
+                  const key = item.cartItemId || item.productId;
 
-                    <Info>
-                      <Name title={it.title || "Product"}>{it.title || "Product"}</Name>
+                  return (
+                    <CartRow key={key}>
+                      <Thumb>
+                        {item.image ? (
+                          <ThumbImg src={item.image} alt={item.title || "Product"} />
+                        ) : (
+                          <ThumbFallback>No Image</ThumbFallback>
+                        )}
+                      </Thumb>
 
-                      <Meta>
-                        {it.size ? <Pill>Size: {it.size}</Pill> : <Pill>No size</Pill>}
-                        {it.color ? <Pill>Color: {it.color}</Pill> : <Pill>No color</Pill>}
-                      </Meta>
+                      <ItemInfo>
+                        <ItemName title={item.title || "Product"}>
+                          {item.title || "Product"}
+                        </ItemName>
 
-                      <MiniDesc>{it.description || ""}</MiniDesc>
+                        <ItemMeta>
+                          <MiniPill>{item.size ? `Size: ${item.size}` : "No size"}</MiniPill>
+                          <MiniPill>
+                            {item.color ? `Color: ${item.color}` : "No color"}
+                          </MiniPill>
+                        </ItemMeta>
 
-                      <Controls>
-                        <QtyWrap>
-                          <QtyBtn
+                        {item.description ? (
+                          <MiniDesc>{item.description}</MiniDesc>
+                        ) : null}
+
+                        <MobilePrice>{formatMoney(lineTotal)}</MobilePrice>
+
+                        <Controls>
+                          <QtyBox>
+                            <QtyBtn
+                              type="button"
+                              onClick={() => updateQty(key, qty - 1)}
+                              disabled={redirecting || qty <= 1}
+                              aria-label="Decrease quantity"
+                            >
+                              −
+                            </QtyBtn>
+
+                            <QtyInput
+                              value={qty}
+                              onChange={(e) => updateQty(key, e.target.value)}
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              disabled={redirecting}
+                              aria-label="Quantity"
+                            />
+
+                            <QtyBtn
+                              type="button"
+                              onClick={() => updateQty(key, qty + 1)}
+                              disabled={redirecting}
+                              aria-label="Increase quantity"
+                            >
+                              +
+                            </QtyBtn>
+                          </QtyBox>
+
+                          <RemoveBtn
                             type="button"
-                            onClick={() => updateQty(it.cartItemId, clampQty(it.qty) - 1)}
+                            onClick={() => removeItem(key)}
                             disabled={redirecting}
                           >
-                            −
-                          </QtyBtn>
+                            Remove
+                          </RemoveBtn>
+                        </Controls>
+                      </ItemInfo>
 
-                          <QtyInput
-                            value={clampQty(it.qty)}
-                            onChange={(e) => updateQty(it.cartItemId, e.target.value)}
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            aria-label="Quantity"
-                            disabled={redirecting}
-                          />
-
-                          <QtyBtn
-                            type="button"
-                            onClick={() => updateQty(it.cartItemId, clampQty(it.qty) + 1)}
-                            disabled={redirecting}
-                          >
-                            +
-                          </QtyBtn>
-                        </QtyWrap>
-
-                        <RemoveBtn
-                          type="button"
-                          onClick={() => removeItem(it.cartItemId)}
-                          disabled={redirecting}
-                        >
-                          Remove
-                        </RemoveBtn>
-                      </Controls>
-                    </Info>
-
-                    <Right>
-                      <Unit>${Number(it.price || 0).toFixed(2)}</Unit>
-                      <LineTotal>
-                        ${(Number(it.price || 0) * clampQty(it.qty)).toFixed(2)}
-                      </LineTotal>
-                    </Right>
-                  </Row>
-                ))}
-              </List>
+                      <PriceBlock>
+                        <UnitPrice>{formatMoney(item.price)}</UnitPrice>
+                        <LineTotal>{formatMoney(lineTotal)}</LineTotal>
+                      </PriceBlock>
+                    </CartRow>
+                  );
+                })}
+              </ItemList>
             )}
-          </LeftCard>
+          </CartPanel>
 
-          <RightCard
+          <SummaryPanel
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.1 }}
           >
-            <CardTitle>Summary</CardTitle>
+            <PanelTitle>Order Summary</PanelTitle>
+            <PanelSub>Clean, secure, and ready for Stripe checkout.</PanelSub>
 
-            <SummaryRow>
-              <Label>Subtotal</Label>
-              <Value>${totals.subtotal.toFixed(2)}</Value>
-            </SummaryRow>
+            <SummaryBox>
+              <SummaryRow>
+                <SummaryLabel>Subtotal</SummaryLabel>
+                <SummaryValue>{formatMoney(totals.subtotal)}</SummaryValue>
+              </SummaryRow>
 
-            <SummaryRow>
-              <Label>Estimated Shipping</Label>
-              <Value>—</Value>
-            </SummaryRow>
+              <SummaryRow>
+                <SummaryLabel>Shipping</SummaryLabel>
+                <SummaryMuted>Calculated later</SummaryMuted>
+              </SummaryRow>
 
-            <Divider />
+              <SummaryRow>
+                <SummaryLabel>Taxes</SummaryLabel>
+                <SummaryMuted>Calculated later</SummaryMuted>
+              </SummaryRow>
 
-            <SummaryRow>
-              <Big>Total</Big>
-              <Big>${totals.subtotal.toFixed(2)}</Big>
-            </SummaryRow>
+              <Divider />
+
+              <SummaryRow>
+                <TotalLabel>Estimated Total</TotalLabel>
+                <TotalValue>{formatMoney(totals.subtotal)}</TotalValue>
+              </SummaryRow>
+            </SummaryBox>
 
             <CheckoutBtn
               type="button"
@@ -283,33 +367,42 @@ export default function Cart() {
             >
               {redirecting ? (
                 <BtnRow>
-                  <BtnSpinner />
+                  <Spinner />
                   Redirecting…
                 </BtnRow>
               ) : (
-                "Checkout"
+                "Continue To Secure Checkout"
               )}
             </CheckoutBtn>
 
+            <TrustBox>
+              <TrustTitle>Checkout Protection</TrustTitle>
+              <TrustText>
+                The cart shows your estimate, but the backend verifies products
+                and calculates the real Stripe price before payment.
+              </TrustText>
+            </TrustBox>
+
             <FinePrint>
-              Taxes/shipping calculated at checkout after payment integration.
+              Admin accounts should be blocked from product checkout on the
+              backend using `preventAdminPurchase`.
             </FinePrint>
-          </RightCard>
+          </SummaryPanel>
         </Grid>
       </Inner>
     </Page>
   );
 }
 
-/* ------------------------- STYLES (theme colors) ------------------------- */
+/* ------------------------- styles ------------------------- */
 
 const Page = styled.main`
   min-height: 100vh;
   padding: 96px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214,182,159,0.20) 0%, rgba(0,0,0,0) 45%),
-    radial-gradient(circle at 82% 16%, rgba(90,56,37,0.30) 0%, rgba(0,0,0,0) 46%),
+    radial-gradient(circle at 18% 8%, rgba(214, 182, 159, 0.22) 0%, rgba(0, 0, 0, 0) 42%),
+    radial-gradient(circle at 82% 16%, rgba(90, 56, 37, 0.34) 0%, rgba(0, 0, 0, 0) 46%),
     linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
 `;
 
@@ -319,204 +412,243 @@ const Inner = styled.section`
   margin: 0 auto;
 `;
 
-const Top = styled(motion.header)`
+const Hero = styled(motion.header)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.12);
-  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 28px 22px;
   backdrop-filter: blur(18px);
 `;
 
 const Badge = styled.div`
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.12);
-  font-weight: 900;
-  letter-spacing: 0.16em;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
   color: ${({ theme }) => theme.colors.ivory};
 `;
 
 const Title = styled.h1`
-  margin: 12px 0 8px;
-  font-size: clamp(26px, 3.0vw, 42px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  margin: 14px 0 10px;
+  max-width: 980px;
+  font-size: clamp(30px, 4vw, 58px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
 
   span {
     color: ${({ theme }) => theme.colors.lightBrown};
-    text-shadow: 0 14px 38px rgba(0,0,0,0.45);
+    text-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
   }
 `;
 
 const Sub = styled.p`
   margin: 0;
-  opacity: 0.92;
+  max-width: 82ch;
   color: ${({ theme }) => theme.colors.ivory};
-  max-width: 75ch;
+  opacity: 0.92;
+  line-height: 1.65;
+`;
+
+const HeroStats = styled.div`
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatCard = styled.div`
+  padding: 14px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+`;
+
+const StatNumber = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 24px;
+  font-weight: 950;
+`;
+
+const StatLabel = styled.div`
+  margin-top: 4px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.84;
 `;
 
 const TopActions = styled.div`
   display: flex;
   gap: 10px;
+  margin-top: 18px;
   flex-wrap: wrap;
-  margin-top: 14px;
 `;
 
-const BackLink = styled(Link)`
+const PrimaryLink = styled(Link)`
   display: inline-flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, rgba(214,182,159,0.95), rgba(90,56,37,0.95));
+  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 1000;
   text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.12);
-  transition: transform 0.15s ease;
-
-  &:hover { transform: translateY(-2px); }
+  font-weight: 950;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const GhostBtn = styled.button`
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(0,0,0,0.55);
-  }
 
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
 const Grid = styled.div`
+  margin-top: 16px;
   display: grid;
   grid-template-columns: 1fr 420px;
   gap: 16px;
-  margin-top: 16px;
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const LeftCard = styled(motion.section)`
+const CartPanel = styled(motion.section)`
+  padding: 16px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(18px);
-  padding: 16px;
 `;
 
-const RightCard = styled(motion.aside)`
-  border-radius: ${({ theme }) => theme.radius.xl};
-  background: ${({ theme }) => theme.colors.glass};
-  box-shadow: ${({ theme }) => theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.12);
-  backdrop-filter: blur(18px);
-  padding: 16px;
+const SummaryPanel = styled(motion.aside)`
   height: fit-content;
+  padding: 16px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background: ${({ theme }) => theme.colors.glass};
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
 `;
 
-const CardHead = styled.div`
+const PanelHeader = styled.div`
   display: flex;
-  align-items: flex-end;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 `;
 
-const CardTitle = styled.h2`
+const PanelTitle = styled.h2`
   margin: 0;
-  font-size: 18px;
-  letter-spacing: 0.02em;
+  font-size: 20px;
+  letter-spacing: -0.01em;
 `;
 
-const Small = styled.div`
+const PanelSub = styled.p`
+  margin: 6px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.86;
   font-size: 13px;
-  opacity: 0.85;
-  color: ${({ theme }) => theme.colors.ivory};
 `;
 
-const Empty = styled.div`
+const SecureBadge = styled.div`
+  padding: 8px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(214, 182, 159, 0.15);
+  color: ${({ theme }) => theme.colors.lightBrown};
+  border: 1px solid rgba(214, 182, 159, 0.24);
+  font-size: 12px;
+  font-weight: 950;
+`;
+
+const EmptyBox = styled.div`
+  padding: 20px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.28);
-  padding: 18px;
-  display: grid;
-  gap: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
-const EmptyTitle = styled.div`
-  font-weight: 1000;
-  font-size: 18px;
+const EmptyTitle = styled.h3`
+  margin: 0 0 6px;
 `;
 
-const EmptySub = styled.div`
-  opacity: 0.9;
+const EmptyText = styled.p`
+  margin: 0;
   color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.88;
 `;
 
-const EmptyBtn = styled(Link)`
-  margin-top: 8px;
+const EmptyButton = styled(Link)`
+  margin-top: 12px;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, rgba(214,182,159,0.95), rgba(90,56,37,0.95));
-  color: ${({ theme }) => theme.colors.black};
-  font-weight: 1000;
   text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  color: ${({ theme }) => theme.colors.black};
+  font-weight: 950;
 `;
 
-const List = styled.div`
+const ItemList = styled.div`
   display: grid;
   gap: 12px;
 `;
 
-const Row = styled.div`
+const CartRow = styled.div`
   display: grid;
-  grid-template-columns: 92px 1fr 130px;
+  grid-template-columns: 96px 1fr 130px;
   gap: 12px;
   padding: 12px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 
-  @media (max-width: 640px) {
-    grid-template-columns: 92px 1fr;
+  @media (max-width: 680px) {
+    grid-template-columns: 88px 1fr;
   }
 `;
 
 const Thumb = styled.div`
-  width: 92px;
-  height: 92px;
+  width: 96px;
+  height: 96px;
   border-radius: ${({ theme }) => theme.radius.md};
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: grid;
   place-items: center;
+
+  @media (max-width: 680px) {
+    width: 88px;
+    height: 88px;
+  }
 `;
 
 const ThumbImg = styled.img`
@@ -528,41 +660,47 @@ const ThumbImg = styled.img`
 
 const ThumbFallback = styled.div`
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.7;
-  font-weight: 1000;
+  opacity: 0.72;
+  font-size: 11px;
+  font-weight: 950;
 `;
 
-const Info = styled.div`
+const ItemInfo = styled.div`
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  min-width: 0;
 `;
 
-const Name = styled.div`
-  font-weight: 1000;
-  letter-spacing: -0.01em;
+const ItemName = styled.div`
+  font-weight: 950;
+  color: ${({ theme }) => theme.colors.ivory};
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
-const Meta = styled.div`
+const ItemMeta = styled.div`
   display: flex;
-  gap: 8px;
+  gap: 7px;
   flex-wrap: wrap;
 `;
 
-const Pill = styled.div`
-  padding: 7px 10px;
+const MiniPill = styled.span`
+  padding: 6px 8px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.45);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0, 0, 0, 0.4);
   color: ${({ theme }) => theme.colors.lightBrown};
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
   font-weight: 900;
-  font-size: 12px;
 `;
 
-const MiniDesc = styled.div`
-  font-size: 13px;
+const MiniDesc = styled.p`
+  margin: 0;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.9;
-  line-height: 1.35;
+  opacity: 0.85;
+  font-size: 13px;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -574,175 +712,202 @@ const Controls = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin-top: 4px;
   flex-wrap: wrap;
-  margin-top: 6px;
 `;
 
-const QtyWrap = styled.div`
+const QtyBox = styled.div`
   display: grid;
-  grid-template-columns: 44px 64px 44px;
-  gap: 10px;
+  grid-template-columns: 42px 58px 42px;
+  gap: 8px;
   align-items: center;
 `;
 
 const QtyBtn = styled.button`
-  height: 44px;
+  height: 42px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
-  font-size: 18px;
-  font-weight: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(0,0,0,0.55);
-  }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
 const QtyInput = styled.input`
-  height: 44px;
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.30);
-  color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 1000;
-  padding: 0 10px;
-  outline: none;
+  height: 42px;
   text-align: center;
-
-  &:focus {
-    border-color: rgba(214,182,159,0.55);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.10);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(0, 0, 0, 0.28);
+  color: ${({ theme }) => theme.colors.ivory};
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
+  outline: none;
 `;
 
 const RemoveBtn = styled.button`
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.30);
+  background: rgba(0, 0, 0, 0.3);
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
   cursor: pointer;
 
-  &:hover { background: rgba(0,0,0,0.55); }
-
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
   }
 `;
 
-const Right = styled.div`
+const PriceBlock = styled.div`
   display: grid;
   justify-items: end;
   align-content: start;
   gap: 6px;
 
-  @media (max-width: 640px) {
-    justify-items: start;
+  @media (max-width: 680px) {
+    display: none;
   }
 `;
 
-const Unit = styled.div`
-  font-weight: 900;
-  opacity: 0.9;
+const UnitPrice = styled.div`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.82;
+  font-weight: 850;
 `;
 
 const LineTotal = styled.div`
-  font-weight: 1000;
   color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 18px;
+  font-weight: 950;
+`;
+
+const MobilePrice = styled.div`
+  display: none;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 950;
+
+  @media (max-width: 680px) {
+    display: block;
+  }
+`;
+
+const SummaryBox = styled.div`
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
 `;
 
 const SummaryRow = styled.div`
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 12px;
 `;
 
-const Label = styled.div`
+const SummaryLabel = styled.div`
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.9;
+  opacity: 0.86;
 `;
 
-const Value = styled.div`
-  font-weight: 1000;
+const SummaryValue = styled.div`
+  font-weight: 950;
+`;
+
+const SummaryMuted = styled.div`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.68;
+  font-weight: 800;
 `;
 
 const Divider = styled.div`
   height: 1px;
-  background: rgba(255,255,255,0.12);
-  margin: 14px 0;
+  background: rgba(255, 255, 255, 0.12);
 `;
 
-const Big = styled.div`
-  font-weight: 1100;
+const TotalLabel = styled.div`
   font-size: 18px;
+  font-weight: 950;
 `;
 
-const BtnRow = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-`;
-
-const BtnSpinner = styled.span`
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2px solid rgba(0,0,0,0.18);
-  border-top-color: rgba(0,0,0,0.65);
-  display: inline-block;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+const TotalValue = styled.div`
+  font-size: 18px;
+  font-weight: 950;
+  color: ${({ theme }) => theme.colors.lightBrown};
 `;
 
 const CheckoutBtn = styled.button`
   width: 100%;
-  margin-top: 14px;
-  padding: 12px 14px;
+  margin-top: 16px;
+  padding: 13px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: linear-gradient(90deg, rgba(214,182,159,0.95), rgba(90,56,37,0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 1100;
+  font-weight: 950;
   cursor: pointer;
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  transition: transform 0.15s ease, opacity 0.15s ease;
-
-  &:hover { transform: translateY(-2px); }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.58;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
-const FinePrint = styled.div`
-  margin-top: 10px;
-  font-size: 12px;
+const BtnRow = styled.span`
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+`;
+
+const Spinner = styled.span`
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  border-top-color: rgba(0, 0, 0, 0.65);
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const TrustBox = styled.div`
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+`;
+
+const TrustTitle = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 950;
+  margin-bottom: 5px;
+`;
+
+const TrustText = styled.p`
+  margin: 0;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.8;
+  opacity: 0.86;
+  font-size: 13px;
+  line-height: 1.5;
+`;
+
+const FinePrint = styled.p`
+  margin: 12px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.72;
+  font-size: 12px;
+  line-height: 1.5;
 `;

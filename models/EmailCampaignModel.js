@@ -1,6 +1,9 @@
 // models/emailCampaignModel.js
 import mongoose from "mongoose";
 
+/**
+ * Allowed campaign statuses.
+ */
 const EMAIL_CAMPAIGN_STATUSES = [
   "draft",
   "scheduled",
@@ -10,8 +13,12 @@ const EMAIL_CAMPAIGN_STATUSES = [
   "paused",
 ];
 
+/**
+ * Validates optional CTA URLs.
+ */
 function isValidHttpUrl(value) {
   if (!value) return true;
+
   try {
     const url = new URL(value);
     return ["http:", "https:"].includes(url.protocol);
@@ -20,18 +27,26 @@ function isValidHttpUrl(value) {
   }
 }
 
+/**
+ * Normalizes and removes duplicate emails.
+ */
 function normalizeEmails(list = []) {
   if (!Array.isArray(list)) return [];
 
   return [
     ...new Set(
       list
-        .map((email) => String(email).trim().toLowerCase())
+        .map((email) => String(email || "").trim().toLowerCase())
         .filter(Boolean)
     ),
   ];
 }
 
+/**
+ * Email campaign schema
+ * Stores campaign content, audience targeting, scheduling,
+ * sending progress, locking, and delivery totals.
+ */
 const emailCampaignSchema = new mongoose.Schema(
   {
     name: {
@@ -140,7 +155,6 @@ const emailCampaignSchema = new mongoose.Schema(
       type: String,
       enum: EMAIL_CAMPAIGN_STATUSES,
       default: "draft",
-      index: true,
     },
 
     scheduledFor: {
@@ -156,42 +170,45 @@ const emailCampaignSchema = new mongoose.Schema(
 
     totalRecipients: {
       type: Number,
-      default: 0,
       min: 0,
+      default: 0,
     },
 
     totalSent: {
       type: Number,
-      default: 0,
       min: 0,
+      default: 0,
     },
 
     totalFailed: {
       type: Number,
-      default: 0,
       min: 0,
+      default: 0,
     },
 
     totalUnsubscribed: {
       type: Number,
-      default: 0,
       min: 0,
+      default: 0,
     },
 
-    failedRecipients: [
-      {
-        email: {
-          type: String,
-          trim: true,
-          lowercase: true,
+    failedRecipients: {
+      type: [
+        {
+          email: {
+            type: String,
+            trim: true,
+            lowercase: true,
+          },
+          error: {
+            type: String,
+            trim: true,
+            maxlength: 500,
+          },
         },
-        error: {
-          type: String,
-          trim: true,
-          maxlength: 500,
-        },
-      },
-    ],
+      ],
+      default: [],
+    },
 
     lastError: {
       type: String,
@@ -205,7 +222,6 @@ const emailCampaignSchema = new mongoose.Schema(
       default: true,
     },
 
-    // 🔒 LOCKING SYSTEM (CRITICAL FOR DUPLICATE SEND PREVENTION)
     processingLockedAt: {
       type: Date,
       default: null,
@@ -226,32 +242,27 @@ const emailCampaignSchema = new mongoose.Schema(
 
     retryCount: {
       type: Number,
-      default: 0,
       min: 0,
+      default: 0,
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-//
-// 🔥 PRE-VALIDATION GUARD (VERY IMPORTANT)
-//
+/**
+ * Validates scheduling, audience, and campaign totals before saving.
+ */
 emailCampaignSchema.pre("validate", function (next) {
-  // Clear manual recipients if not manual
   if (this.audienceType !== "manual") {
     this.manualRecipients = [];
   }
 
-  // Validate scheduling
   if (this.status === "scheduled") {
     if (!this.scheduledFor) {
       return next(
@@ -260,34 +271,30 @@ emailCampaignSchema.pre("validate", function (next) {
     }
 
     if (this.scheduledFor <= new Date()) {
-      return next(
-        new Error("scheduledFor must be a future date")
-      );
+      return next(new Error("scheduledFor must be a future date"));
     }
   }
 
-  // Normalize scheduling state
   if (this.status !== "scheduled") {
     this.scheduledFor = null;
   }
 
-  // Prevent impossible totals
-  if (
-    this.totalRecipients >= 0 &&
-    this.totalSent + this.totalFailed > this.totalRecipients
-  ) {
-    return next(
-      new Error("Sent + Failed cannot exceed totalRecipients")
-    );
+  if (this.status === "sent" && !this.sentAt) {
+    this.sentAt = new Date();
+  }
+
+  if (this.totalSent + this.totalFailed > this.totalRecipients) {
+    return next(new Error("Sent + Failed cannot exceed totalRecipients"));
   }
 
   next();
 });
 
-//
-// 🚀 INDEXES (PERFORMANCE CRITICAL)
-//
+/**
+ * Indexes for scheduling, filtering, and search.
+ */
 emailCampaignSchema.index({ status: 1, scheduledFor: 1 });
+emailCampaignSchema.index({ createdBy: 1, createdAt: -1 });
 emailCampaignSchema.index({ createdAt: -1 });
 emailCampaignSchema.index({ name: "text", subject: "text" });
 

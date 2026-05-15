@@ -6,6 +6,7 @@ import {
   updateTestimonial,
   deleteTestimonial,
 } from "../controllers/testimonialController.js";
+import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
 import {
   testimonialCreateLimiter,
@@ -22,11 +23,14 @@ const router = express.Router();
 router.get("/", testimonialsReadLimiter, getAllTestimonials);
 
 /**
- * CREATE (Logged-in user)
+ * Public testimonial creation
+ * ✅ Real customers only
+ * ❌ Admins blocked
  */
 router.post(
   "/",
   authRequired,
+  preventAdminPurchase,
   testimonialCreateLimiter,
   antiBot({ honeypotField: "website" }),
   createTestimonial

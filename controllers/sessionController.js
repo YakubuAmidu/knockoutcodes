@@ -167,8 +167,8 @@ export async function listSessions(req, res) {
     revokedAt: null,
   }).sort({ lastActiveAt: -1 });
 
-  const currentRefreshToken = getRefreshCookie(req);
-const currentSessionHash = currentRefreshToken ? hashKey(currentRefreshToken) : "";
+  const currentJti = getCurrentJti(req);
+const currentSessionHash = currentJti ? hashKey(currentJti) : "";
 
 let currentSessionId = null;
 
@@ -315,10 +315,8 @@ export async function revokeOtherSessions(req, res) {
       });
     }
 
-    const currentRefreshToken = getRefreshCookie(req);
-    const currentSessionHash = currentRefreshToken
-      ? hashKey(currentRefreshToken)
-      : "";
+    const currentJti = getCurrentJti(req);
+const currentSessionHash = currentJti ? hashKey(currentJti) : "";
 
     if (!currentSessionHash) {
       return res.status(400).json({
@@ -353,6 +351,208 @@ export async function revokeOtherSessions(req, res) {
     return res.status(500).json({
       success: false,
       message: "Failed to sign out other devices.",
+    });
+  }
+}
+
+function adminSessionToClient(doc) {
+  return {
+    id: doc._id?.toString(),
+    user: doc.user
+      ? {
+          id: doc.user._id?.toString(),
+          name: doc.user.name || "Unknown",
+          email: doc.user.email || "",
+          role: doc.user.role || "user",
+          isActive: doc.user.isActive !== false,
+        }
+      : null,
+    deviceName: doc.deviceName || "Device",
+    browser: doc.browser || "Unknown",
+    os: doc.os || "Unknown",
+    ip: doc.ip || "",
+    approxLocation: doc.approxLocation || "",
+    userAgent: doc.userAgent || "",
+    isTrusted: !!doc.isTrusted,
+    lastActiveAt: doc.lastActiveAt,
+    createdAt: doc.createdAt,
+    revokedAt: doc.revokedAt,
+    revokedReason: doc.revokedReason || "",
+    status: doc.revokedAt ? "revoked" : "active",
+  };
+}
+
+export async function listAllSessionsAdmin(req, res) {
+  try {
+    const page = Math.max(Number(req.query.page || 1), 1);
+    const limit = Math.min(Math.max(Number(req.query.limit || 20), 1), 100);
+
+    const status = String(req.query.status || "all").trim();
+    const trusted = String(req.query.trusted || "").trim();
+    const email = String(req.query.email || "").trim().toLowerCase();
+
+    const filter = {};
+
+    if (status === "active") {
+      filter.revokedAt = null;
+    }
+
+    if (status === "revoked") {
+      filter.revokedAt = { $ne: null };
+    }
+
+    if (trusted === "true") {
+      filter.isTrusted = true;
+    }
+
+    if (trusted === "false") {
+      filter.isTrusted = false;
+    }
+
+    const allSessions = await Session.find(filter)
+      .sort({ lastActiveAt: -1 })
+      .populate("user", "name email role isActive")
+      .lean();
+
+    const filteredSessions = email
+      ? allSessions.filter((session) =>
+          String(session.user?.email || "").toLowerCase().includes(email)
+        )
+      : allSessions;
+
+    const total = filteredSessions.length;
+    const skip = (page - 1) * limit;
+
+    const items = filteredSessions
+      .slice(skip, skip + limit)
+      .map(adminSessionToClient);
+
+    return res.status(200).json({
+      success: true,
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+      items,
+    });
+  } catch (error) {
+    console.error("listAllSessionsAdmin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch admin sessions.",
+    });
+  }
+}
+
+export async function updateSessionTrustAdmin(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid session id.",
+      });
+    }
+
+    const isTrusted = Boolean(req.body?.isTrusted);
+
+    const updated = await Session.findByIdAndUpdate(
+      id,
+      { $set: { isTrusted } },
+      { new: true, runValidators: true }
+    ).populate("user", "name email role isActive");
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: isTrusted ? "Session marked trusted." : "Session marked untrusted.",
+      item: adminSessionToClient(updated),
+    });
+  } catch (error) {
+    console.error("updateSessionTrustAdmin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update session trust.",
+    });
+  }
+}
+
+export async function revokeSessionAdmin(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid session id.",
+      });
+    }
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found.",
+      });
+    }
+
+    if (session.revokedAt) {
+      return res.status(400).json({
+        success: false,
+        message: "Session is already revoked.",
+      });
+    }
+
+    session.revokedAt = new Date();
+    session.revokedReason = "admin_revoked_session";
+    await session.save();
+
+    const populated = await Session.findById(id).populate(
+      "user",
+      "name email role isActive"
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Session revoked by admin.",
+      item: adminSessionToClient(populated),
+    });
+  } catch (error) {
+    console.error("revokeSessionAdmin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to revoke session.",
+    });
+  }
+}
+
+export async function cleanupOldSessionsAdmin(req, res) {
+  try {
+    const days = Math.max(Number(req.body?.days || 1), 1);
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const result = await Session.deleteMany({
+      revokedAt: { $ne: null, $lt: cutoffDate },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Revoked sessions older than ${days} day(s) deleted.`,
+      deletedCount: result.deletedCount || 0,
+    });
+  } catch (error) {
+    console.error("cleanupOldSessionsAdmin error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cleanup old sessions.",
     });
   }
 }

@@ -168,7 +168,7 @@ export async function authRequired(req, res, next) {
  * attaches req.user when token is valid,
  * but does not block request when token is missing/invalid.
  */
-export function optionalAuth(req, _res, next) {
+export async function optionalAuth(req, _res, next) {
   try {
     const token = getAccessToken(req);
 
@@ -177,7 +177,29 @@ export function optionalAuth(req, _res, next) {
       return next();
     }
 
-    req.user = verifyAccessToken(token);
+    const decoded = verifyAccessToken(token);
+
+    const user = await User.findById(decoded._id)
+      .select("_id role isActive tokenVersion")
+      .lean();
+
+    if (!user || user.isActive === false) {
+      req.user = null;
+      return next();
+    }
+
+    if (Number(user.tokenVersion || 0) !== Number(decoded.tokenVersion || 0)) {
+      req.user = null;
+      return next();
+    }
+
+    req.user = buildSafeRequestUser({
+      _id: user._id,
+      role: user.role,
+      isActive: user.isActive,
+      tokenVersion: user.tokenVersion,
+    });
+
     return next();
   } catch (err) {
     logDevError("optionalAuth error", err);

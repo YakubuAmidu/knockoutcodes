@@ -1,9 +1,8 @@
 // src/pages/Contact.jsx
-import { useState, useRef, useEffect } from "react";
-import styled, { keyframes } from "styled-components";
+import { useState, useRef, useEffect, useCallback } from "react";
+import styled, { keyframes, css } from "styled-components";
 import { useToast } from "../components/Toast";
 
-// ✅ Redux
 import { useDispatch, useSelector } from "react-redux";
 import {
   updateContactField,
@@ -12,96 +11,83 @@ import {
   hydrateContactFromStorage,
 } from "../reducers/contact/contactActions";
 
-// ✅ ADDED: reuse axiosInstance (global 401 handling etc.)
 import axiosInstance from "../../utils/axiosInstance";
 
-/* ===================== PoW HELPERS (no 3rd party) ===================== */
 async function sha256Hex(str) {
+  if (!window?.crypto?.subtle) {
+    throw new Error("Security check is not supported in this browser.");
+  }
+
   const enc = new TextEncoder().encode(str);
   const buf = await crypto.subtle.digest("SHA-256", enc);
+
   return [...new Uint8Array(buf)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
 function meetsDifficulty(hex, difficultyBits) {
-  const zeroHexChars = Math.floor(difficultyBits / 4);
-  const leftoverBits = difficultyBits % 4;
+  const zeroHexChars = Math.floor(Number(difficultyBits) / 4);
+  const leftoverBits = Number(difficultyBits) % 4;
 
-  for (let i = 0; i < zeroHexChars; i++) {
+  for (let i = 0; i < zeroHexChars; i += 1) {
     if (hex[i] !== "0") return false;
   }
+
   if (leftoverBits === 0) return true;
 
   const nibble = parseInt(hex[zeroHexChars], 16);
   const threshold = 1 << (4 - leftoverBits);
+
   return nibble < threshold;
 }
 
 export default function Contact() {
   const dispatch = useDispatch();
-  const form = useSelector((state) => state?.contact?.form);
-  const status = useSelector((state) => state?.contact?.status);
+
+  const form = useSelector((state) => state?.contact?.form || {});
+  const status = useSelector(
+    (state) => state?.contact?.status || { state: "idle", message: "" }
+  );
 
   const [errors, setErrors] = useState({});
-  const { push } = useToast() || {};
+  const toast = useToast();
+  const push = toast?.push;
 
-  // ------------------ PoW challenge state ------------------
   const [powChallenge, setPowChallenge] = useState(null);
   const [powReady, setPowReady] = useState(false);
   const [powBusy, setPowBusy] = useState(false);
+
   const powLoadingRef = useRef(false);
-
-  // ✅ Client-side cooldown (anti-spam, no UI changes)
   const lastSubmitAtRef = useRef(0);
-  const COOLDOWN_MS = 12_000;
-
-  // ✅ Cancel token for PoW solving to prevent long loops if user changes email / re-submits
   const powSolveIdRef = useRef(0);
 
-  // ✅ Draft storage key (pro UX: don’t lose message)
+  const COOLDOWN_MS = 12_000;
   const DRAFT_KEY = "kc_contact_draft";
 
-  // ✅ Hydrate safe draft fields on mount (subject/message only)
   useEffect(() => {
     try {
       const raw =
         typeof window !== "undefined" ? localStorage.getItem(DRAFT_KEY) : null;
+
       const parsed = raw ? JSON.parse(raw) : null;
+
       if (parsed && typeof parsed === "object") {
-        dispatch(hydrateContactFromStorage(parsed));
+        dispatch(
+          hydrateContactFromStorage({
+            subject: String(parsed.subject || ""),
+            message: String(parsed.message || ""),
+          })
+        );
       }
     } catch {
-      // ignore
+      // ignore broken localStorage draft
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dispatch]);
 
-  // ✅ Persist safe drafts (subject/message only) as user types
-  useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-      const subject = String(form?.subject || "");
-      const message = String(form?.message || "");
+  const loadPowChallenge = useCallback(async () => {
+    if (powLoadingRef.current) return null;
 
-      // only store when user has started typing (avoid writing empty drafts)
-      if (!subject && !message) return;
-
-      localStorage.setItem(
-        DRAFT_KEY,
-        JSON.stringify({
-          subject,
-          message,
-        })
-      );
-    } catch {
-      // ignore
-    }
-  }, [form?.subject, form?.message]);
-
-  // Fetch a new PoW challenge from server
-  async function loadPowChallenge() {
-    if (powLoadingRef.current) return;
     powLoadingRef.current = true;
 
     try {
@@ -111,90 +97,103 @@ export default function Contact() {
       if (data?.success && data?.pow) {
         setPowChallenge(data.pow);
         setPowReady(true);
-      } else {
-        setPowChallenge(null);
-        setPowReady(false);
+        return data.pow;
       }
+
+      setPowChallenge(null);
+      setPowReady(false);
+      return null;
     } catch {
       setPowChallenge(null);
       setPowReady(false);
+      return null;
     } finally {
       powLoadingRef.current = false;
     }
-  }
-
-  // Load challenge on mount
-  useEffect(() => {
-    loadPowChallenge();
   }, []);
 
-  // Solve PoW: find integer answer where sha256(`${nonce}.${email}.${answer}`) meets difficulty
+  useEffect(() => {
+    loadPowChallenge();
+  }, [loadPowChallenge]);
+
   async function solvePow(email) {
     const solveId = ++powSolveIdRef.current;
 
-    // If no challenge loaded yet, try once
-    if (!powChallenge) {
-      await loadPowChallenge();
-      if (!powChallenge) return null;
+    let challenge = powChallenge;
+
+    if (!challenge) {
+      challenge = await loadPowChallenge();
+      if (!challenge) return null;
     }
 
-    const { nonce, ts, difficulty, sig, ttlMs } = powChallenge;
+    const { nonce, ts, difficulty, sig, ttlMs } = challenge;
 
-    const e = String(email || "").trim().toLowerCase();
-    if (!e) return null;
+    const cleanEmail = String(email || "").trim().toLowerCase();
+    if (!cleanEmail) return null;
 
-    const tsNum = parseInt(String(ts), 10);
-    const ttlNum = parseInt(String(ttlMs), 10);
+    const tsNum = Number(ts);
+    const ttlNum = Number(ttlMs);
 
-    // Basic expiration guard (client-side)
     if (!Number.isFinite(tsNum) || !Number.isFinite(ttlNum)) return null;
+
     if (Date.now() - tsNum > ttlNum) {
-      await loadPowChallenge();
-      return null;
+      const freshChallenge = await loadPowChallenge();
+      if (!freshChallenge) return null;
+
+      return solvePow(cleanEmail);
     }
 
     const MAX_TRIES = 500000;
 
     setPowBusy(true);
+
     try {
-      for (let answer = 0; answer < MAX_TRIES; answer++) {
-        // ✅ Cancel if a newer solve started
+      for (let answer = 0; answer < MAX_TRIES; answer += 1) {
         if (solveId !== powSolveIdRef.current) return null;
 
-        const digest = await sha256Hex(`${nonce}.${e}.${answer}`);
+        const digest = await sha256Hex(`${nonce}.${cleanEmail}.${answer}`);
+
         if (meetsDifficulty(digest, difficulty)) {
           return { nonce, ts, difficulty, sig, ttlMs, answer };
         }
 
-        // yield occasionally to keep UI responsive
         if (answer > 0 && answer % 2000 === 0) {
-          await new Promise((r) => setTimeout(r, 0));
+          await new Promise((resolve) => setTimeout(resolve, 0));
         }
       }
+
       return null;
     } finally {
-      // only clear busy if THIS solve is still the active one
-      if (solveId === powSolveIdRef.current) setPowBusy(false);
+      if (solveId === powSolveIdRef.current) {
+        setPowBusy(false);
+      }
+    }
+  }
+
+  function notify(title, description, variant = "default") {
+    if (typeof push === "function") {
+      push({ title, description, variant });
     }
   }
 
   function handleChange(e) {
     const { name, value } = e.target;
 
-    // ✅ Tighten phone: digits only + max 10
     if (name === "phone") {
-      const digits = String(value || "")
-        .replace(/\D/g, "")
-        .slice(0, 10);
+      const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
       dispatch(updateContactField(name, digits));
     } else {
       dispatch(updateContactField(name, value));
     }
 
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
-    if (status?.message) dispatch(setContactStatus("idle", ""));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
 
-    // ✅ If user edits email while PoW running, cancel current solve loop
+    if (status?.message) {
+      dispatch(setContactStatus("idle", ""));
+    }
+
     if (name === "email") {
       powSolveIdRef.current += 1;
       setPowBusy(false);
@@ -205,11 +204,15 @@ export default function Contact() {
     const next = {};
 
     const name = String(form?.name || "").trim();
+    const email = String(form?.email || "").trim();
+    const phone = String(form?.phone || "").trim();
+    const subject = String(form?.subject || "").trim();
+    const message = String(form?.message || "").trim();
+
     if (name.length < 2 || name.length > 60) {
       next.name = "Name must be 2–60 characters.";
     }
 
-    const email = String(form?.email || "").trim();
     if (
       !email ||
       email.length > 70 ||
@@ -218,18 +221,14 @@ export default function Contact() {
       next.email = "Email must be valid and max 70 characters.";
     }
 
-    // ✅ Phone required: exactly 10 digits
-    const phone = String(form?.phone || "").trim();
     if (!/^\d{10}$/.test(phone)) {
       next.phone = "Phone must be exactly 10 digits.";
     }
 
-    const subject = String(form?.subject || "").trim();
     if (subject.length < 2 || subject.length > 300) {
       next.subject = "Subject must be 2–300 characters.";
     }
 
-    const message = String(form?.message || "").trim();
     if (message.length < 10 || message.length > 2500) {
       next.message = "Message must be 10–2500 characters.";
     }
@@ -240,78 +239,66 @@ export default function Contact() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (status?.state === "submitting") return;
+    if (status?.state === "submitting" || powBusy) return;
 
-    // Honeypot
     if (form?.company && String(form.company).trim().length > 0) return;
 
-    // ✅ Client cooldown
     const now = Date.now();
+
     if (now - lastSubmitAtRef.current < COOLDOWN_MS) {
       const waitMs = COOLDOWN_MS - (now - lastSubmitAtRef.current);
       const msg = `Please wait ${Math.ceil(
         waitMs / 1000
       )}s before sending another message.`;
+
       dispatch(setContactStatus("error", msg));
-      if (typeof push === "function") {
-        push({ title: "Slow down", description: msg, variant: "error" });
-      }
+      notify("Slow down", msg, "error");
       return;
     }
 
-    const v = validate();
-    if (Object.keys(v).length > 0) {
-      setErrors(v);
+    const validationErrors = validate();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      dispatch(setContactStatus("error", "Please fix the highlighted fields."));
       return;
     }
 
-    if (!powReady) {
-      await loadPowChallenge();
-    }
-
-    const pow = await solvePow(form.email);
-    if (!pow) {
-      const msg = "Security check failed. Please refresh and try again.";
-      dispatch(setContactStatus("error", msg));
-      if (typeof push === "function") {
-        push({ title: "Security check", description: msg, variant: "error" });
-      }
-      return;
-    }
-
-    let submitted = false;
+    dispatch(setContactStatus("submitting", ""));
 
     try {
-      dispatch(setContactStatus("submitting", ""));
+      const pow = await solvePow(form.email);
 
-      // ✅ uses axiosInstance baseURL (already includes /api/v1)
-      const url = "/contacts";
+      if (!pow) {
+        throw new Error("Security check failed. Please refresh and try again.");
+      }
 
       const res = await axiosInstance.post(
-        url,
+        "/contacts",
         {
           name: String(form.name || "").trim(),
           email: String(form.email || "").trim(),
           phone: String(form.phone || "").trim(),
           subject: String(form.subject || "").trim(),
           message: String(form.message || "").trim(),
-          company: form.company,
+          company: String(form.company || ""),
           pow,
         },
         { headers: { "Content-Type": "application/json" } }
       );
 
       if (!res?.data?.success) {
-        throw new Error(res?.data?.message || "Failed to submit message");
+        throw new Error(res?.data?.message || "Failed to submit message.");
       }
 
-      submitted = true;
       lastSubmitAtRef.current = Date.now();
 
-      // ✅ clear redux + clear local draft (pro workflow)
       dispatch(resetContactAfterSuccess());
+
       try {
-        if (typeof window !== "undefined") localStorage.removeItem(DRAFT_KEY);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(DRAFT_KEY);
+        }
       } catch {
         // ignore
       }
@@ -320,14 +307,11 @@ export default function Contact() {
       setPowChallenge(null);
       await loadPowChallenge();
 
-      // ✅ more professional “ticket received” style message
       const msg =
-        "Message received ✅ Our team will reply by email as soon as possible (usually within 24 hours).";
-      dispatch(setContactStatus("success", msg));
+        "Message received ✅ Our team will reply by email as soon as possible, usually within 24 hours.";
 
-      if (typeof push === "function") {
-        push({ title: "Request received", description: msg, variant: "success" });
-      }
+      dispatch(setContactStatus("success", msg));
+      notify("Request received", msg, "success");
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -342,14 +326,7 @@ export default function Contact() {
         await loadPowChallenge();
       }
 
-      if (typeof push === "function") {
-        push({ title: "Submission failed", description: msg, variant: "error" });
-      }
-    } finally {
-      // ✅ don't rely on stale `status` from closure — always end submitting safely
-      if (!submitted) {
-        dispatch(setContactStatus("idle", ""));
-      }
+      notify("Submission failed", msg, "error");
     }
   }
 
@@ -358,36 +335,29 @@ export default function Contact() {
   return (
     <Wrap className="Contact">
       <Glow />
+
       <Inner>
-        <HookBar aria-hidden>
+        <HookBar aria-hidden="true">
           <HookBadge>VIP ACCESS</HookBadge>
           <HookText>
-            <b>APPLY • CONTACT • ENROLL</b> — Luxury support for serious builders.
+            <b>APPLY • CONTACT • ENROLL</b> — Premium support for serious
+            builders.
           </HookText>
         </HookBar>
 
         <Header>
+          <Eyebrow>KnockoutCodes Support Desk</Eyebrow>
           <Title>
             <SpanFlash>Talk to the Admin.</SpanFlash> Get Priority Access.
           </Title>
           <Subtitle>
-            Pitch your idea, get help, or lock your enrollment—{" "}
-            <Accent>first come, first served</Accent>.
+            Pitch your idea, request help, ask about enrollment, or contact the
+            team directly. <Accent>Complete requests get faster replies.</Accent>
           </Subtitle>
         </Header>
 
         <Card onSubmit={handleSubmit} noValidate>
-          {/* Honeypot */}
-          <div
-            style={{
-              position: "absolute",
-              left: "-9999px",
-              top: "auto",
-              width: "1px",
-              height: "1px",
-              overflow: "hidden",
-            }}
-          >
+          <BotTrap aria-hidden="true">
             <label htmlFor="company">Company</label>
             <input
               id="company"
@@ -398,10 +368,10 @@ export default function Contact() {
               tabIndex={-1}
               autoComplete="off"
             />
-          </div>
+          </BotTrap>
 
           {!!status?.message && (
-            <Alert role="status" aria-live="polite">
+            <Alert $state={status?.state} role="status" aria-live="polite">
               {status.message}
             </Alert>
           )}
@@ -426,7 +396,7 @@ export default function Contact() {
             </Field>
 
             <Field>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 name="email"
@@ -445,12 +415,12 @@ export default function Contact() {
 
           <Row>
             <Field>
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 name="phone"
                 type="tel"
-                placeholder="10-digit number (e.g., 3105551234)"
+                placeholder="3105551234"
                 value={form?.phone || ""}
                 onChange={handleChange}
                 inputMode="numeric"
@@ -470,7 +440,7 @@ export default function Contact() {
                 id="subject"
                 name="subject"
                 type="text"
-                placeholder="I want to enroll / partnership / support"
+                placeholder="Enrollment / Partnership / Support"
                 value={form?.subject || ""}
                 onChange={handleChange}
                 aria-invalid={!!errors.subject}
@@ -491,7 +461,7 @@ export default function Contact() {
               id="message"
               name="message"
               rows="6"
-              placeholder="Tell us exactly what you need. The more details, the faster we can help."
+              placeholder="Tell us exactly what you need. The more detail you give, the faster we can help."
               value={form?.message || ""}
               onChange={handleChange}
               aria-invalid={!!errors.message}
@@ -500,23 +470,26 @@ export default function Contact() {
               maxLength={2500}
               required
             />
+            <Counter>{String(form?.message || "").length}/2500</Counter>
             {errors.message && <Error id="err-message">{errors.message}</Error>}
           </Field>
 
-          <div style={{ marginTop: "0.75rem", opacity: 0.75, fontSize: "0.92rem" }}>
+          <SecurityLine>
+            <SecurityDot $ready={powReady && !powBusy} />
             {powBusy
-              ? "Running security check…"
+              ? "Running premium security check…"
               : powReady
-              ? "Security: Ready"
-              : "Security: Loading…"}
-          </div>
+              ? "Security ready"
+              : "Preparing security check…"}
+          </SecurityLine>
 
           <Actions>
-            <Submit disabled={isBusy} type="submit" aria-label="Send message to admin">
+            <Submit disabled={isBusy} type="submit">
               {isBusy ? "Sending…" : "Send Message"}
               <Shimmer />
             </Submit>
-            <Note>Response priority goes to complete requests.</Note>
+
+            <Note>Priority goes to complete, clear requests.</Note>
           </Actions>
         </Card>
       </Inner>
@@ -524,11 +497,9 @@ export default function Contact() {
   );
 }
 
-/* ===================== STYLES ===================== */
-
 const rise = keyframes`
-  from { opacity: 0; transform: translateY(10px) scale(.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(14px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
 const pulseRing = keyframes`
@@ -553,14 +524,24 @@ const Wrap = styled.section`
   display: grid;
   place-items: center;
   padding: 6rem 1.25rem;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, ${({ theme }) =>
-        theme.colors.lightBrown}14, transparent 60%),
-    radial-gradient(900px 600px at 90% 110%, ${({ theme }) =>
-        theme.colors.ivory}10, transparent 55%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown}, ${({ theme }) =>
-        theme.colors.cocoa});
+  overflow: hidden;
   color: ${({ theme }) => theme.colors.white};
+  background:
+    radial-gradient(
+      1000px 520px at 12% -10%,
+      ${({ theme }) => theme.colors.lightBrown}18,
+      transparent 60%
+    ),
+    radial-gradient(
+      850px 520px at 90% 105%,
+      ${({ theme }) => theme.colors.ivory}12,
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown},
+      ${({ theme }) => theme.colors.cocoa}
+    );
 `;
 
 const Glow = styled.div`
@@ -568,10 +549,12 @@ const Glow = styled.div`
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(600px 200px at 50% 0%, ${({ theme }) =>
-        theme.colors.lightBrown}18, transparent 55%),
-    radial-gradient(520px 320px at 20% 80%, ${({ theme }) =>
-        theme.colors.lightBrown}10, transparent 60%);
+    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 35%),
+    radial-gradient(
+      600px 220px at 50% 0%,
+      ${({ theme }) => theme.colors.lightBrown}18,
+      transparent 58%
+    );
   mix-blend-mode: screen;
 `;
 
@@ -579,40 +562,51 @@ const Inner = styled.div`
   width: 100%;
   max-width: ${({ theme }) => theme.layout.max};
   z-index: 1;
-  animation: ${rise} .7s ease both;
+  animation: ${rise} 0.7s ease both;
 `;
 
 const HookBar = styled.div`
   display: flex;
   align-items: center;
-  gap: .8rem;
-  padding: .6rem .8rem;
+  gap: 0.8rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 1.2rem;
+  padding: 0.6rem 0.8rem;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  width: fit-content;
-  margin: 0 auto 1.2rem;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+
+  @media (max-width: 560px) {
+    align-items: flex-start;
+    border-radius: ${({ theme }) => theme.radius.lg};
+  }
 `;
 
 const HookBadge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: .35rem .7rem;
+  white-space: nowrap;
+  padding: 0.35rem 0.7rem;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(120deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) =>
-        theme.colors.ivory});
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 800;
-  letter-spacing: .4px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
   animation: ${pulseRing} 2.4s infinite;
 `;
 
 const HookText = styled.span`
-  opacity: .9;
-  font-size: .9rem;
+  opacity: 0.92;
+  font-size: 0.9rem;
+  line-height: 1.45;
 `;
 
 const Header = styled.header`
@@ -620,17 +614,29 @@ const Header = styled.header`
   margin-bottom: 2rem;
 `;
 
+const Eyebrow = styled.p`
+  margin: 0 0 0.7rem;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+`;
+
 const Title = styled.h1`
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  line-height: 1.1;
-  margin: 0 0 .6rem;
-  letter-spacing: .2px;
-  text-shadow: 0 10px 22px rgba(0,0,0,.35);
+  font-size: clamp(2rem, 5vw, 3.45rem);
+  line-height: 1.06;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.04em;
+  text-shadow: 0 18px 32px rgba(0, 0, 0, 0.38);
 `;
 
 const SpanFlash = styled.span`
-  background: linear-gradient(120deg, ${({ theme }) => theme.colors.ivory}, ${({ theme }) =>
-        theme.colors.lightBrown});
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.ivory},
+    ${({ theme }) => theme.colors.lightBrown}
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -639,30 +645,58 @@ const SpanFlash = styled.span`
 
 const Subtitle = styled.p`
   margin: 0 auto;
-  max-width: 760px;
-  opacity: .85;
+  max-width: 780px;
+  opacity: 0.86;
   font-size: 1.05rem;
+  line-height: 1.65;
 `;
 
 const Accent = styled.em`
   color: ${({ theme }) => theme.colors.lightBrown};
   font-style: normal;
-  font-weight: 700;
+  font-weight: 800;
 `;
 
 const Card = styled.form`
   margin: 2rem auto 0;
-  background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: ${({ theme }) => theme.shadow.glow};
-  border-radius: ${({ theme }) => theme.radius.xl};
-  padding: 1.2rem;
-  backdrop-filter: blur(10px);
   position: relative;
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+    ${({ theme }) => theme.colors.glass};
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  backdrop-filter: blur(14px);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.14),
+      transparent 35%,
+      rgba(214, 182, 159, 0.08)
+    );
+  }
 
   @media (min-width: 720px) {
     padding: 2rem;
   }
+`;
+
+const BotTrap = styled.div`
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 `;
 
 const Row = styled.div`
@@ -676,45 +710,105 @@ const Row = styled.div`
 
 const Field = styled.div`
   display: grid;
-  gap: .45rem;
-  ${(props) => props.$full && `grid-column: 1 / -1;`}
+  gap: 0.45rem;
+  ${({ $full }) =>
+    $full &&
+    css`
+      grid-column: 1 / -1;
+    `}
 `;
 
 const Label = styled.label`
-  font-size: .95rem;
-  opacity: .9;
+  font-size: 0.94rem;
+  opacity: 0.92;
+  font-weight: 800;
 `;
 
-const baseField = `
+const fieldStyles = css`
   width: 100%;
-  border-radius: 14px;
-  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  padding: 0.98rem 1rem;
   outline: none;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.25);
-  color: #fff;
-  transition: .25s ease;
-  box-shadow: inset 0 -20px 40px rgba(255,255,255,.02);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(0, 0, 0, 0.28);
+  color: ${({ theme }) => theme.colors.white};
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease,
+    background 0.22s ease;
+  box-shadow:
+    inset 0 -20px 40px rgba(255, 255, 255, 0.02),
+    0 10px 24px rgba(0, 0, 0, 0.1);
 
-  &::placeholder { color: rgba(255,255,255,.45); }
-  &:hover { border-color: rgba(255,255,255,.22); }
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.24);
+    background: rgba(0, 0, 0, 0.34);
+  }
+
   &:focus {
     border-color: ${({ theme }) => theme.colors.lightBrown};
     box-shadow:
-      0 0 0 4px rgba(214,182,159,.18),
-      inset 0 -20px 40px rgba(255,255,255,.04);
+      0 0 0 4px rgba(214, 182, 159, 0.18),
+      inset 0 -20px 40px rgba(255, 255, 255, 0.04);
     transform: translateY(-1px);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: rgba(255, 120, 120, 0.8);
+    box-shadow: 0 0 0 4px rgba(255, 120, 120, 0.12);
   }
 `;
 
-const Input = styled.input`${baseField}`;
-const Textarea = styled.textarea`${baseField}; resize: vertical; min-height: 160px;`;
+const Input = styled.input`
+  ${fieldStyles}
+`;
+
+const Textarea = styled.textarea`
+  ${fieldStyles}
+  resize: vertical;
+  min-height: 170px;
+  line-height: 1.65;
+`;
+
+const Counter = styled.span`
+  justify-self: end;
+  opacity: 0.58;
+  font-size: 0.8rem;
+`;
+
+const SecurityLine = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: fit-content;
+  margin-top: 0.25rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0.86;
+  font-size: 0.92rem;
+`;
+
+const SecurityDot = styled.span`
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 999px;
+  background: ${({ $ready }) => ($ready ? "#65ff9a" : "#ffd166")};
+  box-shadow: ${({ $ready }) =>
+    $ready ? "0 0 18px rgba(101,255,154,.65)" : "0 0 18px rgba(255,209,102,.55)"};
+`;
 
 const Actions = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-top: 1.2rem;
+  margin-top: 0.4rem;
   flex-wrap: wrap;
 `;
 
@@ -724,56 +818,94 @@ const Submit = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .6rem;
+  min-height: 48px;
+  gap: 0.6rem;
   border: none;
   cursor: pointer;
-  padding: .95rem 1.3rem;
+  padding: 0.98rem 1.45rem;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(120deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) =>
-        theme.colors.ivory});
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 900;
-  letter-spacing: .2px;
+  font-weight: 950;
+  letter-spacing: 0.2px;
   box-shadow: ${({ theme }) => theme.shadow.hard};
-  transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease,
+    opacity 0.18s ease;
 
-  &:hover { transform: translateY(-2px) rotate(-.4deg); }
-  &:active { transform: translateY(0) scale(.98); filter: brightness(.95); }
-  &:disabled { cursor: not-allowed; opacity: .75; transform: none; }
+  &:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.03);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+    filter: brightness(0.95);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+    transform: none;
+  }
 `;
 
 const Shimmer = styled.i`
   position: absolute;
   inset: 0;
   pointer-events: none;
-  &:before {
-    content: '';
+
+  &::before {
+    content: "";
     position: absolute;
-    top: 0; bottom: 0;
+    top: 0;
+    bottom: 0;
     width: 40%;
     transform: translateX(-120%);
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.55),
+      transparent
+    );
     filter: blur(2px);
-    animation: ${sheen} 1.6s ease-in-out .3s forwards;
+    animation: ${sheen} 1.8s ease-in-out 0.3s forwards;
   }
 `;
 
 const Note = styled.span`
-  opacity: .7;
-  font-size: .92rem;
+  opacity: 0.72;
+  font-size: 0.92rem;
 `;
 
 const Error = styled.span`
   color: #ffb3b3;
-  font-size: .85rem;
+  font-size: 0.85rem;
+  font-weight: 700;
 `;
 
 const Alert = styled.div`
-  margin-bottom: 1rem;
-  border-radius: 12px;
-  padding: .9rem 1rem;
-  background: rgba(0,0,0,.35);
-  border: 1px solid rgba(255,255,255,.12);
-  font-size: .95rem;
-  line-height: 1.35;
+  margin-bottom: 0.2rem;
+  border-radius: 16px;
+  padding: 0.95rem 1rem;
+  background: ${({ $state }) =>
+    $state === "success"
+      ? "rgba(70, 255, 150, 0.1)"
+      : $state === "error"
+      ? "rgba(255, 100, 100, 0.1)"
+      : "rgba(0, 0, 0, 0.35)"};
+  border: 1px solid
+    ${({ $state }) =>
+      $state === "success"
+        ? "rgba(70, 255, 150, 0.24)"
+        : $state === "error"
+        ? "rgba(255, 100, 100, 0.24)"
+        : "rgba(255,255,255,.12)"};
+  font-size: 0.95rem;
+  line-height: 1.45;
 `;

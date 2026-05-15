@@ -30,7 +30,7 @@ const uiDraft =
 
 export const adminCoachingsInitialState = {
   ui: {
-    q: typeof uiDraft.q === "string" ? uiDraft.q : "",
+    q: "",
     page: Number.isFinite(Number(uiDraft.page)) ? Math.max(1, Number(uiDraft.page)) : 1,
     limit: Number.isFinite(Number(uiDraft.limit)) ? Math.min(100, Math.max(10, Number(uiDraft.limit))) : 20,
     // "-createdAt" or "createdAt"

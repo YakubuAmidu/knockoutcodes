@@ -472,12 +472,20 @@ export default function ManageDevices() {
 
 const Page = styled.main`
   min-height: 100vh;
-  padding: 96px 18px 90px;
+  height: auto;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 120px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
     radial-gradient(circle at 18% 8%, rgba(214,182,159,0.20) 0%, rgba(0,0,0,0) 45%),
     radial-gradient(circle at 82% 16%, rgba(90,56,37,0.30) 0%, rgba(0,0,0,0) 46%),
     linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
+
+  @media (max-width: 720px) {
+    padding: 100px 14px 70px;
+  }
 `;
 
 const Inner = styled.section`

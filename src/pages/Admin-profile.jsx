@@ -515,7 +515,7 @@ async function ensureCsrf() {
   }
 
   // 3) request CSRF cookie from backend
-  const res = await fetch(`${API_BASE_URL}/api/v1/auth/csrf`, {
+  const res = await fetch(`${API_BASE_URL}/auth/csrf`, {
     method: "GET",
     credentials: "include",
   });
@@ -750,18 +750,23 @@ async function ensureCsrf() {
   }, [me, form]);
 
   // ✅ Preview URL priority: redux preview > backend image > fallback image
-  const previewUrl = useMemo(() => {
-    if (avatarPreview) return avatarPreview;
+const previewUrl = useMemo(() => {
+  if (avatarPreview) return avatarPreview;
 
-    const a = String(profile.avatarField || "");
-    if (!a) {
-      return "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=512&auto=format&fit=crop";
-    }
+  const a = String(profile.avatarField || "");
 
-    if (a.startsWith("http")) return a;
-    const normalized = a.startsWith("/") ? a : `/${a}`;
-    return `${API_BASE_URL}${normalized}`;
-  }, [avatarPreview, profile.avatarField]);
+  if (!a) {
+    return "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=512&auto=format&fit=crop";
+  }
+
+  const BASE = import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:5000";
+
+  const imageUrl = a.startsWith("http")
+    ? a
+    : `${BASE}${a.startsWith("/") ? a : `/${a}`}`;
+
+  return `${imageUrl}?v=${me?.updatedAt || Date.now()}`;
+}, [avatarPreview, profile.avatarField, me?.updatedAt]);
 
   // ✅ Update Redux form on input change
   function handleChange(e) {
@@ -980,7 +985,7 @@ async function handleLogout() {
       csrf = null;
     }
 
-    await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
       method: "POST",
       credentials: "include",
       headers: {

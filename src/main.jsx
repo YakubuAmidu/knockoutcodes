@@ -7,6 +7,7 @@ import { Provider } from "react-redux";
 
 import App from "./App.jsx";
 import GlobalStyles from "./Styles/GlobalStyles.js";
+import MaintenanceGate from "./components/MaintenanceGate.jsx";
 import theme from "./Styles/theme.js";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -23,9 +24,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <BrowserRouter>
           <AuthProvider>
             <ToastProvider placement="top-right" max={6} defaultDuration={4500}>
-              <I18nProvider>
-                <App />
-              </I18nProvider>
+     <I18nProvider>
+  <MaintenanceGate>
+    <App />
+  </MaintenanceGate>
+</I18nProvider>
             </ToastProvider>
           </AuthProvider>
         </BrowserRouter>

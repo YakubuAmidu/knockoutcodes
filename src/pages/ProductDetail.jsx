@@ -1,27 +1,44 @@
 // src/pages/ProductDetail.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { useDispatch } from "react-redux";
+
+import axiosInstance from "../../utils/axiosInstance";
 import { useToast } from "../components/Toast";
 import { createProductCheckoutSession } from "../lib/apiClient";
-
-// ✅ CHANGED: axios import (named export to avoid default import errors)
-import axiosInstance from "../../utils/axiosInstance";
-
-// ✅ ADDED: redux hooks + cart actions
-import { useDispatch } from "react-redux";
 import { CART_ACTIONS } from "../reducers/cart/cartActionTypes";
 
-export default function ProductDetail() {
-  const { id } = useParams();
-  const toast = useToast();
+function formatMoney(value) {
+  const n = Number(value || 0);
+  return `$${n.toFixed(2)}`;
+}
 
-  // ✅ ADDED: redux dispatch
+function clampQty(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(1, Math.min(99, Math.floor(n)));
+}
+
+function getProductId(product) {
+  return product?._id || product?.id || "";
+}
+
+function getImages(product) {
+  const images = Array.isArray(product?.images) ? product.images : [];
+  const fallback = product?.imageUrl || product?.image || "";
+  return [...images, fallback].filter(Boolean);
+}
+
+export default function ProductDetail() {
+  const { id, slug } = useParams();
+  const productIdOrSlug = id || slug;
+
+  const toast = useToast();
   const dispatch = useDispatch();
 
   const [product, setProduct] = useState(null);
-
   const [activeImg, setActiveImg] = useState("");
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
@@ -29,198 +46,204 @@ export default function ProductDetail() {
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
-  // ✅ ADDED: Buy Now loading (spinner + fade)
+  const [busy, setBusy] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
 
-  const [busy, setBusy] = useState(false);
-
-    async function safeAction(fn) {
-  if (busy) return;
-  setBusy(true);
-  try {
-    await fn();
-  } finally {
-    setBusy(false);
-  }
-  };
-
-  const images = useMemo(() => {
-    const list =
-      product?.images ||
-      (product?.imageUrl ? [product.imageUrl] : []) ||
-      (product?.image ? [product.image] : []);
-    return Array.isArray(list) ? list.filter(Boolean) : [];
-  }, [product]);
+  const images = useMemo(() => getImages(product), [product]);
 
   const sizes = useMemo(() => {
     const list = product?.sizes || product?.variants?.sizes || [];
-    return Array.isArray(list) ? list : [];
+    return Array.isArray(list) ? list.filter(Boolean) : [];
   }, [product]);
 
   const colors = useMemo(() => {
     const list = product?.colors || product?.variants?.colors || [];
-    return Array.isArray(list) ? list : [];
+    return Array.isArray(list) ? list.filter(Boolean) : [];
   }, [product]);
 
-  const price = useMemo(() => {
-    const v = product?.price;
-    // ✅ CHANGED: allow string price too (safer)
-    const n = typeof v === "number" ? v : Number(v);
-    return Number.isFinite(n) ? n : null;
-  }, [product]);
+  const price = Number(product?.price || 0);
+  const compareAtPrice = Number(product?.compareAtPrice || 0);
+  const hasDiscount = compareAtPrice > price;
+  const stock = Number(product?.stock || 0);
+  const outOfStock = stock <= 0;
+  const productId = getProductId(product);
 
-  async function fetchProduct() {
+  const fetchProduct = useCallback(async () => {
     setLoading(true);
     setErr("");
 
-    // ✅ Tiny guard: prevent pointless request
-    if (!id || String(id).length < 10) {
-      setErr("Invalid product Link...");
+    if (!productIdOrSlug) {
+      setErr("Invalid product link.");
       setProduct(null);
       setLoading(false);
       return;
     }
 
     try {
-      // ✅ CHANGED: keep your route, but make it consistent with your API style.
-      // If your backend is /api/v1/products/:id, change this ONE line:
-      // const { data } = await axiosInstance.get(`/api/v1/products/${id}`);
-      const { data } = await axiosInstance.get(`/products/${id}`);
+      const { data } = await axiosInstance.get(`/products/${productIdOrSlug}`);
+      const nextProduct = data?.product || data?.data || data;
 
-      const p = data?.product ?? data?.data ?? data;
-
-      if (!p || (!p?._id && !p?.id)) {
-        setProduct(null);
-        setErr("Product not found.");
-      } else {
-        setProduct(p);
-
-        const firstImg =
-          p?.imageUrl ||
-          p?.image ||
-          (Array.isArray(p?.images) && p.images[0]) ||
-          "";
-        setActiveImg(firstImg || "");
+      if (!nextProduct || !getProductId(nextProduct)) {
+        throw new Error("Product not found.");
       }
-    } catch (e) {
+
+      setProduct(nextProduct);
+
+      const firstImg = getImages(nextProduct)[0] || "";
+      setActiveImg(firstImg);
+    } catch (error) {
       const msg =
-        e?.response?.data?.message ||
-        e?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
         "Failed to load product.";
+
       setErr(msg);
       setProduct(null);
     } finally {
       setLoading(false);
     }
-  }
+  }, [productIdOrSlug]);
 
   useEffect(() => {
     fetchProduct();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [fetchProduct]);
 
   useEffect(() => {
     if (!product) return;
     if (!size && sizes.length) setSize(String(sizes[0]));
     if (!color && colors.length) setColor(String(colors[0]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product, sizes.length, colors.length]);
+  }, [product, sizes, colors, size, color]);
 
-  function clampQty(n) {
-    const safe = Number.isFinite(n) ? n : 1;
-    return Math.max(1, Math.min(99, safe));
+  function pushToast(payload) {
+    toast?.push?.(payload);
   }
 
-  // ✅ CHANGED: keep toast helpers
-  function toastSuccess(title, description = "") {
-    toast?.push?.({ variant: "success", title, description });
-  }
-
-  function toastError(title, description = "") {
-    toast?.push?.({ variant: "error", title, description });
-  }
-
-  // ✅ CHANGED: addToCart now uses Redux (no localStorage functions)
-  function addToCart() {
-    if (!product) return toastError("Product not ready.");
-    if (buyingNow) return; // prevent double actions during checkout
-
-    if (sizes.length && !size) return toastError("Select a size.");
-    if (colors.length && !color) return toastError("Select a color.");
-
-    const pid = product?._id || product?.id;
-    const title = product?.title || product?.name || "Untitled Product";
-    const desc = product?.description || product?.shortDescription || "";
-    const img =
-      activeImg ||
-      product?.imageUrl ||
-      product?.image ||
-      (Array.isArray(product?.images) && product.images[0]) ||
-      "";
-
-    const safeQty = clampQty(Number(qty));
-
-    // ✅ CHANGED: match the cart reducer’s item shape used everywhere
-    const payload = {
-      cartItemId: `${pid}::${size || "no-size"}::${color || "no-color"}`, // stable merge key
-      productId: pid,
-      title,
-      description: desc,
-      image: img,
-      price: price ?? 0,
+  function buildCartPayload() {
+    return {
+      cartItemId: `${productId}::${size || "no-size"}::${color || "no-color"}`,
+      productId,
+      title: product?.title || "Product",
+      description: product?.shortDescription || product?.description || "",
+      image: activeImg || images[0] || "",
+      price,
       size: size || "",
       color: color || "",
-      qty: safeQty,
-      brand: "knockoutcodes",
-      updatedAt: new Date().toISOString(),
+      qty: clampQty(qty),
+      brand: product?.brand || "knockoutcodes",
       addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-
-    // ✅ ADDED: single dispatch (your reducer handles merge + persist)
-    dispatch({ type: CART_ACTIONS.ADD_ITEM, payload });
-
-    toastSuccess("Added to cart ✅", "Go to cart when you’re ready.");
   }
 
-  // ✅ UPDATED: Buy Now shows spinner + fades while redirecting
+  function validateSelection() {
+    if (!product) {
+      pushToast({
+        title: "Product not ready",
+        description: "Please wait for the product to load.",
+        variant: "error",
+      });
+      return false;
+    }
+
+    if (!productId) {
+      pushToast({
+        title: "Product error",
+        description: "This product is missing an ID.",
+        variant: "error",
+      });
+      return false;
+    }
+
+    if (outOfStock) {
+      pushToast({
+        title: "Out of stock",
+        description: "This product is not available right now.",
+        variant: "warning",
+      });
+      return false;
+    }
+
+    if (sizes.length && !size) {
+      pushToast({
+        title: "Select a size",
+        description: "Choose your size before adding this product.",
+        variant: "warning",
+      });
+      return false;
+    }
+
+    if (colors.length && !color) {
+      pushToast({
+        title: "Select a color",
+        description: "Choose your color before adding this product.",
+        variant: "warning",
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  function addToCart() {
+    if (busy || buyingNow) return;
+    if (!validateSelection()) return;
+
+    setBusy(true);
+
+    dispatch({
+      type: CART_ACTIONS.ADD_ITEM,
+      payload: buildCartPayload(),
+    });
+
+    pushToast({
+      title: "Added to cart",
+      description: `${product?.title || "Product"} is ready in your cart.`,
+      variant: "success",
+    });
+
+    setBusy(false);
+  }
+
   async function buyNow() {
-    if (!product) return toastError("Product not ready.");
     if (buyingNow) return;
-
-    // optional: enforce variant selection for consistency
-    if (sizes.length && !size) return toastError("Select a size.");
-    if (colors.length && !color) return toastError("Select a color.");
-
-    setBuyingNow(true);
+    if (!validateSelection()) return;
 
     try {
-      const pid = product?._id || product?.id;
-      const safeQty = clampQty(Number(qty));
+      setBuyingNow(true);
 
       const data = await createProductCheckoutSession([
-        { productId: pid, qty: safeQty },
+        {
+          productId,
+          qty: clampQty(qty),
+        },
       ]);
 
-      // keep UI in "loading" state while redirect happens
+      if (!data?.url) {
+        throw new Error("Stripe checkout URL was not returned.");
+      }
+
       window.location.href = data.url;
-    } catch (e) {
+    } catch (error) {
       const msg =
-        e?.response?.data?.message ||
-        e?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
         "Checkout failed. Please try again.";
 
-      toastError("Checkout failed", msg);
+      pushToast({
+        title: "Checkout failed",
+        description: msg,
+        variant: "error",
+      });
+
       setBuyingNow(false);
     }
   }
 
-  const title = product?.title || product?.name || "Product";
-  const desc = product?.description || product?.shortDescription || "";
-  const stock = typeof product?.stock === "number" ? product.stock : null;
-  const sku = product?.sku || null;
-
-  const outOfStock = stock === 0;
+  const title = product?.title || "Premium Product";
+  const description =
+    product?.description ||
+    product?.shortDescription ||
+    "This premium KnockoutCodes product is built for training, confidence, and performance.";
 
   return (
     <Page>
@@ -230,22 +253,13 @@ export default function ProductDetail() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <Crumb>
-            <BackLink to="/products">← Back to Shop</BackLink>
+          <Crumbs>
+            <BackLink to="/products">← Back To Shop</BackLink>
             <Dot />
-            <Small>KO • Product</Small>
-          </Crumb>
+            <Small>🥊 KNOCKOUTCODES PRODUCT</Small>
+          </Crumbs>
 
-          <RightNav>
-            <CartLink to="/cart">
-              Cart <CartDot />
-            </CartLink>
-          </RightNav>
-
-          <Hook>
-            ⚡ <b>1–3s HOOK:</b> This isn’t “gear” — it’s your{" "}
-            <span>advantage</span>.
-          </Hook>
+          <CartLink to="/cart">View Cart</CartLink>
         </TopNav>
 
         {loading ? (
@@ -253,47 +267,30 @@ export default function ProductDetail() {
             <Media>
               <SkelBig />
               <ThumbRow>
-                {Array.from({ length: 4 }).map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <SkelThumb key={i} />
                 ))}
               </ThumbRow>
             </Media>
+
             <Info>
               <SkelLine style={{ width: "70%" }} />
               <SkelLine style={{ width: "95%" }} />
-              <SkelLine style={{ width: "86%" }} />
-              <SkelLine style={{ width: "64%" }} />
+              <SkelLine style={{ width: "82%" }} />
+              <SkelLine style={{ width: "60%" }} />
               <SkelBtn />
             </Info>
           </Shell>
         ) : err ? (
-          <ErrorBox
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <ErrorBox>
             <b>Couldn’t load product.</b>
-            <div style={{ marginTop: 8, opacity: 0.9 }}>{err}</div>
-            <ErrorRow>
+            <p>{err}</p>
+            <ErrorActions>
               <RetryBtn type="button" onClick={fetchProduct}>
                 Retry
               </RetryBtn>
-              <GhostLink to="/products">Go to Shop</GhostLink>
-            </ErrorRow>
-          </ErrorBox>
-        ) : !product ? (
-          <ErrorBox
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <b>Product not found.</b>
-            <div style={{ marginTop: 8, opacity: 0.9 }}>
-              It may have been removed or the link is wrong.
-            </div>
-            <ErrorRow>
-              <GhostLink to="/products">Go to Shop</GhostLink>
-            </ErrorRow>
+              <GhostLink to="/products">Go To Shop</GhostLink>
+            </ErrorActions>
           </ErrorBox>
         ) : (
           <Shell
@@ -302,171 +299,188 @@ export default function ProductDetail() {
             transition={{ duration: 0.35 }}
           >
             <Media>
-              <BigImageWrap>
+              <ImageStage>
                 {activeImg ? (
                   <BigImg src={activeImg} alt={title} />
                 ) : (
-                  <ImgFallback>No Image</ImgFallback>
+                  <ImageFallback>No Image</ImageFallback>
                 )}
 
-                <MetaPills>
-                  {sku ? <Pill>SKU: {sku}</Pill> : null}
-                  {stock !== null ? (
-                    <Pill>
-                      {stock > 0 ? `In Stock: ${stock}` : "Out of Stock"}
-                    </Pill>
-                  ) : (
-                    <Pill>Quality Checked</Pill>
-                  )}
-                </MetaPills>
-              </BigImageWrap>
+                <ImageBadges>
+                  {product?.isFeatured ? <Pill>Featured</Pill> : null}
+                  <Pill>{outOfStock ? "Out Of Stock" : `${stock} In Stock`}</Pill>
+                </ImageBadges>
+              </ImageStage>
 
               <ThumbRow>
-                {(images.length ? images : [""]).slice(0, 6).map((src, i) => {
-                  const isActive = src && src === activeImg;
-                  return (
-                    <ThumbBtn
-                      key={`${src}_${i}`}
-                      type="button"
-                      $active={isActive}
-                      onClick={() => src && setActiveImg(src)}
-                      aria-label={`Select image ${i + 1}`}
-                      disabled={!src}
-                    >
-                      {src ? (
-                        <ThumbImg src={src} alt="" />
-                      ) : (
-                        <ThumbFallback>—</ThumbFallback>
-                      )}
-                    </ThumbBtn>
-                  );
-                })}
+                {(images.length ? images : [""]).slice(0, 6).map((src, index) => (
+                  <ThumbBtn
+                    key={`${src}_${index}`}
+                    type="button"
+                    $active={src === activeImg}
+                    onClick={() => src && setActiveImg(src)}
+                    disabled={!src}
+                  >
+                    {src ? <ThumbImg src={src} alt="" /> : <ThumbFallback>—</ThumbFallback>}
+                  </ThumbBtn>
+                ))}
               </ThumbRow>
             </Media>
 
             <Info>
-              <TitleRow>
-                <H1 title={title}>{title}</H1>
-                {price !== null ? (
-                  <Price>${price.toFixed(2)}</Price>
-                ) : (
-                  <Price>—</Price>
-                )}
-              </TitleRow>
+              <HookBadge>1–2 SECOND HOOK</HookBadge>
 
-              <Desc>{desc || "No description yet — this will be updated soon."}</Desc>
+              <Title>
+                This is not just gear. <span>It is your training advantage.</span>
+              </Title>
+
+              <ProductName>{title}</ProductName>
+
+              <PriceRow>
+                <Price>{formatMoney(price)}</Price>
+                {hasDiscount ? <Compare>{formatMoney(compareAtPrice)}</Compare> : null}
+              </PriceRow>
+
+              <Description>{description}</Description>
+
+              <DetailGrid>
+                <DetailCard>
+                  <DetailLabel>Brand</DetailLabel>
+                  <DetailValue>{product?.brand || "KnockoutCodes"}</DetailValue>
+                </DetailCard>
+
+                <DetailCard>
+                  <DetailLabel>Category</DetailLabel>
+                  <DetailValue>{product?.category || "Premium Gear"}</DetailValue>
+                </DetailCard>
+
+                <DetailCard>
+                  <DetailLabel>SKU</DetailLabel>
+                  <DetailValue>{product?.sku || "Not listed"}</DetailValue>
+                </DetailCard>
+
+                <DetailCard>
+                  <DetailLabel>Status</DetailLabel>
+                  <DetailValue>{outOfStock ? "Sold Out" : "Ready To Ship"}</DetailValue>
+                </DetailCard>
+              </DetailGrid>
 
               <Divider />
 
-              <Selectors>
-                <SelectGroup>
-                  <Label>Size</Label>
-                  {sizes.length ? (
-                    <Chips>
-                      {sizes.map((s) => (
-                        <ChipBtn
-                          key={String(s)}
-                          type="button"
-                          $active={String(size) === String(s)}
-                          onClick={() => setSize(String(s))}
-                          disabled={buyingNow}
-                        >
-                          {String(s)}
-                        </ChipBtn>
-                      ))}
-                    </Chips>
-                  ) : (
-                    <Muted>One-size / no size options</Muted>
-                  )}
-                </SelectGroup>
+              <OptionBlock>
+                <Label>Choose Size</Label>
+                {sizes.length ? (
+                  <ChipRow>
+                    {sizes.map((item) => (
+                      <ChipBtn
+                        key={String(item)}
+                        type="button"
+                        $active={String(size) === String(item)}
+                        onClick={() => setSize(String(item))}
+                        disabled={buyingNow}
+                      >
+                        {String(item)}
+                      </ChipBtn>
+                    ))}
+                  </ChipRow>
+                ) : (
+                  <Muted>No size selection required.</Muted>
+                )}
+              </OptionBlock>
 
-                <SelectGroup>
-                  <Label>Color</Label>
-                  {colors.length ? (
-                    <Chips>
-                      {colors.map((c) => (
-                        <ChipBtn
-                          key={String(c)}
-                          type="button"
-                          $active={String(color) === String(c)}
-                          onClick={() => setColor(String(c))}
-                          disabled={buyingNow}
-                        >
-                          {String(c)}
-                        </ChipBtn>
-                      ))}
-                    </Chips>
-                  ) : (
-                    <Muted>No color variants</Muted>
-                  )}
-                </SelectGroup>
+              <OptionBlock>
+                <Label>Choose Color</Label>
+                {colors.length ? (
+                  <ChipRow>
+                    {colors.map((item) => (
+                      <ChipBtn
+                        key={String(item)}
+                        type="button"
+                        $active={String(color) === String(item)}
+                        onClick={() => setColor(String(item))}
+                        disabled={buyingNow}
+                      >
+                        {String(item)}
+                      </ChipBtn>
+                    ))}
+                  </ChipRow>
+                ) : (
+                  <Muted>No color selection required.</Muted>
+                )}
+              </OptionBlock>
 
-                <SelectGroup>
-                  <Label>Quantity</Label>
-                  <QtyRow>
-                    <QtyBtn
-                      type="button"
-                      onClick={() => setQty((q) => clampQty(q - 1))}
-                      disabled={buyingNow}
-                    >
-                      −
-                    </QtyBtn>
-                    <QtyValue
-                      value={qty}
-                      onChange={(e) => setQty(clampQty(Number(e.target.value)))}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      aria-label="Quantity"
-                      disabled={buyingNow}
-                    />
-                    <QtyBtn
-                      type="button"
-                      onClick={() => setQty((q) => clampQty(q + 1))}
-                      disabled={buyingNow}
-                    >
-                      +
-                    </QtyBtn>
-                  </QtyRow>
-                </SelectGroup>
-              </Selectors>
+              <OptionBlock>
+                <Label>Quantity</Label>
+                <QtyRow>
+                  <QtyBtn
+                    type="button"
+                    onClick={() => setQty((q) => clampQty(q - 1))}
+                    disabled={buyingNow || qty <= 1}
+                  >
+                    −
+                  </QtyBtn>
+
+                  <QtyInput
+                    value={qty}
+                    onChange={(e) => setQty(clampQty(e.target.value))}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    disabled={buyingNow}
+                  />
+
+                  <QtyBtn
+                    type="button"
+                    onClick={() => setQty((q) => clampQty(q + 1))}
+                    disabled={buyingNow}
+                  >
+                    +
+                  </QtyBtn>
+                </QtyRow>
+              </OptionBlock>
+
+              {Array.isArray(product?.tags) && product.tags.length ? (
+                <TagRow>
+                  {product.tags.slice(0, 8).map((tag) => (
+                    <Tag key={tag}>#{tag}</Tag>
+                  ))}
+                </TagRow>
+              ) : null}
 
               <Actions>
-                <BuyBtn
+                <PrimaryBtn
                   type="button"
-                  onClick={() => safeAction(addToCart)}
-                  disabled={outOfStock || buyingNow || busy }
+                  onClick={addToCart}
+                  disabled={outOfStock || busy || buyingNow}
                 >
-                  {outOfStock ? "Out of Stock" :  busy ? "Adding..." : "Add To Cart"}
-                </BuyBtn>
+                  {outOfStock ? "Out Of Stock" : busy ? "Adding..." : "Add To Cart"}
+                </PrimaryBtn>
 
                 <BuyNowBtn
                   type="button"
                   onClick={buyNow}
                   disabled={outOfStock || buyingNow}
-                  $loading={buyingNow}
-                  aria-busy={buyingNow}
                 >
-                  {outOfStock ? (
-                    "Out of Stock"
-                  ) : buyingNow ? (
+                  {buyingNow ? (
                     <>
                       <Spin />
                       Redirecting…
                     </>
+                  ) : outOfStock ? (
+                    "Out Of Stock"
                   ) : (
                     "Buy Now"
                   )}
                 </BuyNowBtn>
 
-                <GhostBtn as={Link} to="/cart">
+                <GhostButton as={Link} to="/cart">
                   View Cart
-                </GhostBtn>
+                </GhostButton>
               </Actions>
 
-              <Note>
-                Pro tip: if you train 3–5 days/week, upgrade your gear first.
-                Technique + quality = confidence.
-              </Note>
+              <TrustNote>
+                The cart shows your estimate. Checkout verifies the real product
+                price from the backend before Stripe payment.
+              </TrustNote>
             </Info>
           </Shell>
         )}
@@ -475,18 +489,15 @@ export default function ProductDetail() {
   );
 }
 
-/* ------------------------- STYLES (unchanged) ------------------------- */
-/* Keep all your styled-components exactly as you already have them below */
-
-/* ------------------------- STYLES (your theme colors) ------------------------- */
+/* ------------------------- styles ------------------------- */
 
 const Page = styled.main`
   min-height: 100vh;
   padding: 96px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214,182,159,0.20) 0%, rgba(0,0,0,0) 45%),
-    radial-gradient(circle at 82% 16%, rgba(90,56,37,0.30) 0%, rgba(0,0,0,0) 46%),
+    radial-gradient(circle at 18% 8%, rgba(214, 182, 159, 0.22) 0%, rgba(0, 0, 0, 0) 42%),
+    radial-gradient(circle at 82% 16%, rgba(90, 56, 37, 0.34) 0%, rgba(0, 0, 0, 0) 46%),
     linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
 `;
 
@@ -497,166 +508,124 @@ const Inner = styled.section`
 `;
 
 const TopNav = styled(motion.div)`
-  display: grid;
-  gap: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 14px;
 `;
 
-const Crumb = styled.div`
-  display: inline-flex;
+const Crumbs = styled.div`
+  display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 `;
 
-const RightNav = styled.div`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const CartLink = styled(Link)`
-  color: ${({ theme }) => theme.colors.ivory};
-  text-decoration: none;
-  font-weight: 1000;
-  padding: 10px 12px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.14);
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: transform 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(0,0,0,0.5);
-  }
-`;
-
-const CartDot = styled.span`
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: ${({ theme }) => theme.colors.lightBrown};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-`;
-
 const BackLink = styled(Link)`
   color: ${({ theme }) => theme.colors.ivory};
   text-decoration: none;
-  font-weight: 900;
+  font-weight: 950;
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.14);
-  transition: transform 0.15s ease, background 0.15s ease;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+`;
 
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(0,0,0,0.5);
-  }
+const CartLink = styled(Link)`
+  color: ${({ theme }) => theme.colors.black};
+  text-decoration: none;
+  font-weight: 950;
+  padding: 11px 14px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
 `;
 
 const Dot = styled.span`
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: ${({ theme }) => theme.colors.lightBrown};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
 `;
 
 const Small = styled.div`
-  font-weight: 900;
-  letter-spacing: 0.18em;
   font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.9;
-`;
-
-const Hook = styled.div`
-  border-radius: ${({ theme }) => theme.radius.xl};
-  background: ${({ theme }) => theme.colors.glass};
-  box-shadow: ${({ theme }) => theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.12);
-  padding: 14px 16px;
-  backdrop-filter: blur(16px);
-  color: ${({ theme }) => theme.colors.ivory};
-
-  span {
-    color: ${({ theme }) => theme.colors.lightBrown};
-  }
 `;
 
 const Shell = styled(motion.section)`
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1.08fr 0.92fr;
   gap: 16px;
-  margin-top: 12px;
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const Media = styled.div`
+const Media = styled.section`
+  padding: 14px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  backdrop-filter: blur(16px);
-  padding: 14px;
+  backdrop-filter: blur(18px);
 `;
 
-const BigImageWrap = styled.div`
+const ImageStage = styled.div`
   position: relative;
+  aspect-ratio: 16 / 10;
   border-radius: ${({ theme }) => theme.radius.lg};
   overflow: hidden;
-  background: rgba(0,0,0,0.45);
-  border: 1px solid rgba(255,255,255,0.12);
-  aspect-ratio: 16 / 10;
   display: grid;
   place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const BigImg = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 `;
 
-const ImgFallback = styled.div`
-  font-weight: 900;
-  letter-spacing: 0.12em;
+const ImageFallback = styled.div`
   font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.85;
+  opacity: 0.8;
 `;
 
-const MetaPills = styled.div`
+const ImageBadges = styled.div`
   position: absolute;
-  left: 10px;
   top: 10px;
+  left: 10px;
+  right: 10px;
   display: flex;
   gap: 8px;
+  justify-content: space-between;
   flex-wrap: wrap;
 `;
 
 const Pill = styled.div`
   padding: 8px 10px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.65);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0, 0, 0, 0.64);
   color: ${({ theme }) => theme.colors.lightBrown};
-  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 12px;
+  font-weight: 950;
 `;
 
 const ThumbRow = styled.div`
+  margin-top: 12px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 12px;
 
   @media (max-width: 700px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -665,26 +634,18 @@ const ThumbRow = styled.div`
 
 const ThumbBtn = styled.button`
   padding: 0;
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid
-    ${({ $active }) => ($active ? "rgba(214,182,159,0.65)" : "rgba(255,255,255,0.12)")};
-  background: rgba(0,0,0,0.35);
-  overflow: hidden;
-  cursor: pointer;
   aspect-ratio: 1 / 1;
-  display: grid;
-  place-items: center;
-  transition: transform 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: rgba(214,182,159,0.55);
-  }
+  border-radius: ${({ theme }) => theme.radius.md};
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(214, 182, 159, 0.72)" : "rgba(255, 255, 255, 0.12)"};
+  cursor: pointer;
 
   &:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
@@ -692,80 +653,132 @@ const ThumbImg = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 `;
 
 const ThumbFallback = styled.div`
   color: ${({ theme }) => theme.colors.ivory};
   opacity: 0.75;
-  font-weight: 900;
+  font-weight: 950;
 `;
 
-const Info = styled.div`
+const Info = styled.section`
+  padding: 18px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  backdrop-filter: blur(16px);
-  padding: 18px;
+  backdrop-filter: blur(18px);
 `;
 
-const TitleRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+const HookBadge = styled.div`
+  display: inline-flex;
+  padding: 9px 11px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.36);
+  color: ${({ theme }) => theme.colors.lightBrown};
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 950;
+  font-size: 12px;
+  letter-spacing: 0.13em;
 `;
 
-const H1 = styled.h1`
+const Title = styled.h1`
+  margin: 12px 0 10px;
+  font-size: clamp(28px, 3.6vw, 52px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+
+  span {
+    color: ${({ theme }) => theme.colors.lightBrown};
+  }
+`;
+
+const ProductName = styled.h2`
   margin: 0;
-  font-size: clamp(22px, 2.4vw, 34px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  font-size: 20px;
+  color: ${({ theme }) => theme.colors.ivory};
+`;
+
+const PriceRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 10px;
 `;
 
 const Price = styled.div`
-  padding: 10px 12px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,0.12);
   color: ${({ theme }) => theme.colors.lightBrown};
-  font-weight: 1000;
-  white-space: nowrap;
+  font-size: 28px;
+  font-weight: 950;
 `;
 
-const Desc = styled.p`
-  margin: 10px 0 0;
-  opacity: 0.92;
+const Compare = styled.div`
   color: ${({ theme }) => theme.colors.ivory};
-  line-height: 1.55;
+  opacity: 0.58;
+  text-decoration: line-through;
+  font-weight: 850;
+`;
+
+const Description = styled.p`
+  margin: 12px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.92;
+  line-height: 1.65;
+`;
+
+const DetailGrid = styled.div`
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const DetailCard = styled.div`
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.27);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+`;
+
+const DetailLabel = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+`;
+
+const DetailValue = styled.div`
+  margin-top: 5px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-weight: 850;
 `;
 
 const Divider = styled.div`
   height: 1px;
-  background: rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.12);
   margin: 14px 0;
 `;
 
-const Selectors = styled.div`
-  display: grid;
-  gap: 14px;
-`;
-
-const SelectGroup = styled.div`
+const OptionBlock = styled.div`
   display: grid;
   gap: 8px;
+  margin-top: 12px;
 `;
 
 const Label = styled.div`
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  font-size: 12px;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.92;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 `;
 
-const Chips = styled.div`
+const ChipRow = styled.div`
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -775,17 +788,13 @@ const ChipBtn = styled.button`
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: 1px solid
-    ${({ $active }) => ($active ? "rgba(214,182,159,0.65)" : "rgba(255,255,255,0.14)")};
-  background: ${({ $active }) => ($active ? "rgba(214,182,159,0.18)" : "rgba(0,0,0,0.35)")};
+    ${({ $active }) =>
+      $active ? "rgba(214, 182, 159, 0.7)" : "rgba(255, 255, 255, 0.14)"};
+  background: ${({ $active }) =>
+    $active ? "rgba(214, 182, 159, 0.18)" : "rgba(0, 0, 0, 0.35)"};
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 900;
+  font-weight: 950;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: rgba(214,182,159,0.55);
-  }
 `;
 
 const Muted = styled.div`
@@ -798,102 +807,104 @@ const QtyRow = styled.div`
   display: grid;
   grid-template-columns: 44px 1fr 44px;
   gap: 10px;
-  align-items: center;
 `;
 
 const QtyBtn = styled.button`
   height: 44px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
+  border: 1px solid rgba(255, 255, 255, 0.14);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 950;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(0,0,0,0.55);
-  }
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.55;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
-const QtyValue = styled.input`
+const QtyInput = styled.input`
   height: 44px;
+  text-align: center;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.30);
+  background: rgba(0, 0, 0, 0.28);
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 900;
-  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
   outline: none;
+`;
 
-  &:focus {
-    border-color: rgba(214,182,159,0.55);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.10);
-  }
+const TagRow = styled.div`
+  margin-top: 14px;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+`;
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+const Tag = styled.span`
+  padding: 7px 9px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.3);
+  color: ${({ theme }) => theme.colors.ivory};
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-weight: 850;
 `;
 
 const Actions = styled.div`
+  margin-top: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 14px;
 
   @media (max-width: 520px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const BuyBtn = styled.button`
-  padding: 12px 14px;
+const PrimaryBtn = styled.button`
+  padding: 13px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: linear-gradient(90deg, rgba(214,182,159,0.95), rgba(90,56,37,0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 1000;
+  font-weight: 950;
   cursor: pointer;
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-  transition: transform 0.15s ease, opacity 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.58;
     cursor: not-allowed;
-    transform: none;
   }
 `;
 
-// ✅ NEW: Buy Now button with fade + inline spinner
-const BuyNowBtn = styled(BuyBtn)`
+const BuyNowBtn = styled(PrimaryBtn)`
   display: inline-flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 10px;
-  opacity: ${({ $loading }) => ($loading ? 0.72 : 1)};
+`;
+
+const GhostButton = styled(Link)`
+  grid-column: 1 / -1;
+  padding: 13px 14px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
+  color: ${({ theme }) => theme.colors.ivory};
+  font-weight: 950;
+  text-decoration: none;
+  text-align: center;
 `;
 
 const Spin = styled.span`
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 999px;
   border: 2px solid rgba(0, 0, 0, 0.25);
   border-top-color: rgba(0, 0, 0, 0.85);
-  animation: spin 0.7s linear infinite;
+  animation: spin 0.8s linear infinite;
 
   @keyframes spin {
     to {
@@ -902,121 +913,80 @@ const Spin = styled.span`
   }
 `;
 
-const GhostBtn = styled(Link)`
-  padding: 12px 14px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
-  color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 1000;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    background: rgba(0,0,0,0.55);
-  }
-`;
-
-const Note = styled.div`
+const TrustNote = styled.div`
   margin-top: 14px;
-  padding: 12px 14px;
+  padding: 12px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
+  background: rgba(0, 0, 0, 0.27);
   color: ${({ theme }) => theme.colors.ivory};
+  border: 1px solid rgba(255, 255, 255, 0.12);
   opacity: 0.9;
   line-height: 1.5;
 `;
 
 const ErrorBox = styled(motion.div)`
-  border-radius: ${({ theme }) => theme.radius.xl};
-  background: rgba(90,56,37,0.22);
-  border: 1px solid rgba(214,182,159,0.22);
-  box-shadow: ${({ theme }) => theme.shadow.soft};
   padding: 16px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background: rgba(90, 56, 37, 0.22);
+  border: 1px solid rgba(214, 182, 159, 0.22);
   color: ${({ theme }) => theme.colors.ivory};
+
+  p {
+    margin: 8px 0 0;
+    opacity: 0.9;
+  }
 `;
 
-const ErrorRow = styled.div`
+const ErrorActions = styled.div`
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
   margin-top: 12px;
+  flex-wrap: wrap;
 `;
 
 const RetryBtn = styled.button`
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
   cursor: pointer;
-
-  &:hover {
-    background: rgba(0,0,0,0.55);
-  }
 `;
 
 const GhostLink = styled(Link)`
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.25);
+  background: rgba(0, 0, 0, 0.25);
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 950;
   text-decoration: none;
-
-  &:hover {
-    background: rgba(0,0,0,0.45);
-  }
 `;
 
-/* Skeletons */
 const SkelBig = styled.div`
   width: 100%;
-  aspect-ratio: 16/10;
+  aspect-ratio: 16 / 10;
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0.04),
-    rgba(255,255,255,0.10),
-    rgba(255,255,255,0.04)
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.1s infinite linear;
-
-  @keyframes shimmer {
-    0% {
-      background-position: 0% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
+  background: rgba(255, 255, 255, 0.08);
 `;
 
 const SkelThumb = styled.div`
-  aspect-ratio: 1/1;
+  aspect-ratio: 1 / 1;
   border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255, 255, 255, 0.07);
 `;
 
 const SkelLine = styled.div`
   height: 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   margin: 10px 0;
 `;
 
 const SkelBtn = styled.div`
   height: 44px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(255,255,255,0.07);
+  background: rgba(255, 255, 255, 0.07);
   margin-top: 14px;
 `;

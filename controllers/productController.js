@@ -68,18 +68,36 @@ export const createProduct = asyncHandler(async (req, res) => {
   res.status(201).json({ message: "Product created.", product });
 });
 
-// GET /api/v1/products/:id (public)
+// GET /api/v1/products/:idOrSlug (public)
 export const getProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id).lean();
-  
-  if (!product) return res.status(404).json({ message: "Product not found." });
+  const raw = String(req.params.idOrSlug || req.params.id || "").trim();
 
-  // ✅ Public should not see inactive item
-  if (product.isActive === false) {
-    return res.status(404).json({ message: "Product not found..." });
-  };
+  if (!raw) {
+    return res.status(400).json({
+      success: false,
+      message: "Product identifier is required.",
+    });
+  }
 
-  res.json({ product });
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(raw);
+
+  const product = await Product.findOne({
+    ...(isObjectId ? { _id: raw } : { slug: raw.toLowerCase() }),
+    isDeleted: { $ne: true },
+    isActive: true,
+  }).lean();
+
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      message: "Product not found.",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    product,
+  });
 });
 
 // GET /api/v1/products (public) ?brand&search&category&minPrice&maxPrice&sort&page&limit&active
@@ -98,7 +116,9 @@ export const getProducts = asyncHandler(async (req, res) => {
   const limit = clampInt(req.query.limit, 1, 50, 8);
   const skip = (page - 1) * limit;
 
-  const filter = {};
+ const filter = {
+  isDeleted: { $ne: true },
+};
 
   // Brand filter (ex: knockoutcodes)
   if (brand) filter.brand = String(brand).toLowerCase();
@@ -204,7 +224,20 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
 // DELETE /api/v1/products/:id (admin)
 export const deleteProduct = asyncHandler(async (req, res) => {
-  const deleted = await Product.findByIdAndDelete(req.params.id).lean();
-  if (!deleted) return res.status(404).json({ message: "Product not found." });
-  res.json({ message: "Product deleted." });
+  const deleted = await Product.findOneAndUpdate(
+    { _id: req.params.id, isDeleted: false },
+    {
+      $set: {
+        isDeleted: true,
+        isActive: false,
+      },
+    },
+    { new: true }
+  ).lean();
+
+  if (!deleted) {
+    return res.status(404).json({ message: "Product not found." });
+  }
+
+  res.json({ message: "Product deleted.", product: deleted });
 });

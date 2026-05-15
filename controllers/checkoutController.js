@@ -3,55 +3,39 @@ import Stripe from "stripe";
 import mongoose from "mongoose";
 import Product from "../models/ProductModel.js";
 import Course from "../models/CourseModel.js";
+import Enrollment from "../models/EnrollmentModel.js";
+import UserSubscription from "../models/UserSubscriptionModel.js";
 
-/**
- * ✅ Local asyncHandler (prevents circular imports)
- */
-const asyncHandler =
-  (fn) =>
-  async (req, res, next) => {
-    try {
-      await fn(req, res, next);
-    } catch (err) {
-      next(err);
-    }
-  };
+const asyncHandler = (fn) => async (req, res, next) => {
+  try {
+    await fn(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+};
 
-/**
- * ✅ Stripe init (guarded)
- */
 // eslint-disable-next-line no-undef
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
 
 if (!STRIPE_KEY) {
-  // This prevents silent failures that turn into confusing 500s
   console.error("❌ STRIPE_SECRET_KEY is missing in your .env");
 }
 
-const stripe = new Stripe(STRIPE_KEY || ""); // still created, but we guard before use
+const stripe = new Stripe(STRIPE_KEY || "");
 
-/**
- * ✅ Make absolute URL for Stripe images
- * Stripe requires full URLs (http/https).
- *
- * Your stored image might be:
- *  - "uploads/avatar/xyz.png"
- *  - "/uploads/avatar/xyz.png"
- *
- * We convert it to:
- *  - "http://localhost:5000/uploads/avatar/xyz.png" (dev)
- */
+function normalizeLevel(value) {
+  const level = String(value || "").trim().toLowerCase();
+  if (level === "advanced") return "advance";
+  return level;
+}
+
 function toAbsoluteUrl(req, maybeUrl) {
   const val = String(maybeUrl || "").trim();
   if (!val) return null;
 
-  // already absolute
   if (/^https?:\/\//i.test(val)) return val;
 
-  // normalize "uploads/..." -> "/uploads/..."
   const normalized = val.startsWith("/") ? val : `/${val}`;
-
-  // Prefer env BACKEND_URL if provided
   // eslint-disable-next-line no-undef
   const BACKEND_URL = process.env.BACKEND_URL?.trim();
 
@@ -59,20 +43,26 @@ function toAbsoluteUrl(req, maybeUrl) {
     return `${BACKEND_URL.replace(/\/$/, "")}${normalized}`;
   }
 
-  // fallback: build from request host
   const origin = `${req.protocol}://${req.get("host")}`;
   return `${origin}${normalized}`;
 }
 
-/* ============================================================
-   ✅ CreateProductCheckoutSession
-============================================================ */
 export const createProductCheckoutSession = asyncHandler(async (req, res) => {
   // eslint-disable-next-line no-undef
   const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
+  const userId = req.user?._id || req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: "You must be logged in to checkout.",
+    });
+  }
+
   if (!STRIPE_KEY) {
     return res.status(500).json({
+      success: false,
       message: "Stripe is not configured. Missing STRIPE_SECRET_KEY in .env",
     });
   }
@@ -80,19 +70,32 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
   const items = Array.isArray(req.body?.items) ? req.body.items : [];
 
   if (!items.length) {
-    return res.status(400).json({ message: "No items provided for checkout." });
+    return res.status(400).json({
+      success: false,
+      message: "No items provided for checkout.",
+    });
   }
 
-  // sanitize qty + collect ids
   const normalized = items.map((it) => ({
     productId: String(it.productId || ""),
     qty: Math.max(1, Math.min(99, parseInt(it.qty || 1, 10) || 1)),
   }));
 
-  const ids = normalized.map((x) => x.productId);
+  const ids = normalized
+    .map((x) => x.productId)
+    .filter((id) => mongoose.Types.ObjectId.isValid(id));
 
-  // Load products from DB (prevents client price tampering)
-  const products = await Product.find({ _id: { $in: ids }, isActive: true })
+  if (!ids.length) {
+    return res.status(400).json({
+      success: false,
+      message: "No valid products provided for checkout.",
+    });
+  }
+
+  const products = await Product.find({
+    _id: { $in: ids },
+    isActive: true,
+  })
     .select("title price images brand stock")
     .lean();
 
@@ -114,7 +117,8 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     }
 
     const unitAmount = Math.round(Number(p.price || 0) * 100);
-    if (!Number.isFinite(unitAmount) || unitAmount < 0) {
+
+    if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
       const err = new Error(`Invalid price for ${p.title}`);
       err.statusCode = 400;
       throw err;
@@ -142,31 +146,52 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     };
   });
 
+  const orderItemsForMetadata = normalized.map((it) => ({
+    productId: it.productId,
+    qty: it.qty,
+  }));
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    client_reference_id: String(userId),
     line_items,
-    success_url: `${FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+
+    // ✅ Collect customer shipping address for physical products
+    shipping_address_collection: {
+      allowed_countries: [
+        "US", "CA", "GB", "AU", "DE", "FR", "IT", "ES", "NL", "BE",
+        "CH", "SE", "NO", "DK", "FI", "IE", "PT", "AT", "PL", "CZ",
+        "JP", "KR", "SG", "NZ", "MX", "BR", "ZA", "AE", "GH", "NG",
+      ],
+    },
+
+    // ✅ Collect phone number for delivery contact
+    phone_number_collection: {
+      enabled: true,
+    },
+
+    // ✅ Helps Stripe show shipping-related customer info
+    billing_address_collection: "auto",
+
+    success_url: `${FRONTEND_URL}/product/success?session_id={CHECKOUT_SESSION_ID}&kind=products`,
     cancel_url: `${FRONTEND_URL}/cart`,
+
     metadata: {
       type: "products",
+      kind: "products",
+      userId: String(userId),
       itemCount: String(items.length),
+      requiresShipping: "true",
+      items: JSON.stringify(orderItemsForMetadata),
     },
   });
 
-  return res.json({ url: session.url, id: session.id });
+  return res.json({
+    success: true,
+    url: session.url,
+    id: session.id,
+  });
 });
-
-/* ============================================================
-   ✅ CreateCourseCheckoutSession
-   POST /api/v1/checkout/courses
-   body: { courseId, billingPlan: "one_time" | "monthly" | "yearly" }
-============================================================ */
-// POST /api/v1/checkout/courses
-// body: { courseId, billingPlan: "one_time" | "monthly" | "yearly" }
-
-// ✅ CreateCourseCheckoutSession
-// POST /api/v1/checkout/courses
-// body: { courseId, billingPlan: "one_time" | "monthly" | "yearly" }
 
 export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
   // eslint-disable-next-line no-undef
@@ -174,86 +199,153 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
 
   if (!STRIPE_KEY) {
     return res.status(500).json({
+      success: false,
       message: "Stripe is not configured. Missing STRIPE_SECRET_KEY in .env",
     });
   }
 
+  const userId = req.user?._id || req.user?.id;
   const courseId = String(req.body?.courseId || "").trim();
   const billingPlan = String(req.body?.billingPlan || "one_time").trim();
 
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      message: "You must be logged in to purchase this course.",
+    });
+  }
+
   if (!courseId) {
-    return res.status(400).json({ message: "courseId is required." });
+    return res.status(400).json({
+      success: false,
+      message: "courseId is required.",
+    });
   }
 
   let course = null;
 
+  const courseSelect =
+    "title price salePrice isFree isPublished thumbnail slug stripePriceId level requiredMembershipLevel";
+
   if (mongoose.Types.ObjectId.isValid(courseId)) {
-    course = await Course.findById(courseId)
-      .select("title price salePrice isFree isPublished thumbnail slug stripePriceId")
-      .lean();
+    course = await Course.findById(courseId).select(courseSelect).lean();
   }
 
   if (!course) {
-    course = await Course.findOne({ slug: courseId })
-      .select("title price salePrice isFree isPublished thumbnail slug stripePriceId")
-      .lean();
+    course = await Course.findOne({ slug: courseId }).select(courseSelect).lean();
   }
 
   if (!course) {
-    return res.status(404).json({ message: `Course not found: ${courseId}` });
+    return res.status(404).json({
+      success: false,
+      message: `Course not found: ${courseId}`,
+    });
   }
 
   if (course.isPublished === false) {
-    return res.status(403).json({ message: "This course is not published yet." });
+    return res.status(403).json({
+      success: false,
+      message: "This course is not published yet.",
+    });
+  }
+
+  if (course.isFree) {
+    return res.status(409).json({
+      success: false,
+      alreadyAccessible: true,
+      message: "This course is free. You do not need to purchase it.",
+      courseId: String(course._id),
+    });
+  }
+
+  const existingEnrollment = await Enrollment.findOne({
+    user: userId,
+    course: course._id,
+    paymentStatus: "paid",
+    status: { $in: ["active", "completed"] },
+  }).lean();
+
+  if (existingEnrollment) {
+    return res.status(409).json({
+      success: false,
+      alreadyPurchased: true,
+      message: "You already purchased this course. Open it from My Courses.",
+      courseId: String(course._id),
+      enrollmentId: String(existingEnrollment._id),
+    });
+  }
+
+  const existingSubscription = await UserSubscription.findOne({
+    user: userId,
+    status: { $in: ["active", "trialing"] },
+  }).lean();
+
+  if (existingSubscription) {
+    const userLevel = normalizeLevel(
+      existingSubscription.accessLevel || existingSubscription.membershipId
+    );
+
+    const requiredLevel = normalizeLevel(
+      course.requiredMembershipLevel || course.level || "beginner"
+    );
+
+    if (userLevel && requiredLevel && userLevel === requiredLevel) {
+      return res.status(409).json({
+        success: false,
+        alreadyAccessible: true,
+        message: "This course is already included in your active membership.",
+        courseId: String(course._id),
+      });
+    }
   }
 
   if (billingPlan !== "one_time") {
     return res.status(400).json({
+      success: false,
       message:
-        "Monthly/yearly not configured yet. Use one_time for now (we’ll add recurring Stripe Prices next).",
+        "Monthly/yearly course checkout is not configured here. Use one_time for single course purchase.",
     });
   }
 
-  const kind = "membership"; // ✅ your success/failed pages treat non-cart as "membership"
-
-  // ✅ IMPORTANT CHANGE:
-  // success_url goes to your success page
-  // cancel_url goes to your failed page (with canceled=true)
   const successUrl =
     `${FRONTEND_URL}/subscription/success` +
     `?session_id={CHECKOUT_SESSION_ID}` +
-    `&kind=${encodeURIComponent(kind)}` +
+    `&kind=course` +
     `&courseId=${encodeURIComponent(String(course._id))}`;
 
   const cancelUrl =
     `${FRONTEND_URL}/subscription/failed` +
     `?canceled=true` +
-    `&kind=${encodeURIComponent(kind)}`;
+    `&kind=course`;
 
-  // ✅ Stripe price-id path (best)
+  const metadata = {
+    type: "course",
+    kind: "course",
+    courseId: String(course._id),
+    billingPlan: "one_time",
+    paymentPlan: "one-time",
+    userId: String(userId),
+  };
+
   const stripePriceId = String(course.stripePriceId || "").trim();
 
   if (stripePriceId) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      client_reference_id: String(userId),
       line_items: [{ price: stripePriceId, quantity: 1 }],
-
-      // ✅ changed here
       success_url: successUrl,
       cancel_url: cancelUrl,
-
-      metadata: {
-        type: "course",
-        courseId: String(course._id),
-        billingPlan: "one_time",
-        userId: req.user?._id ? String(req.user._id) : "",
-      },
+      metadata,
     });
 
-    return res.json({ url: session.url, id: session.id });
+    return res.json({
+      success: true,
+      url: session.url,
+      id: session.id,
+    });
   }
 
-  // ✅ fallback: dynamic price_data
   const rawPrice =
     course.salePrice != null && Number(course.salePrice) > 0
       ? Number(course.salePrice)
@@ -261,14 +353,18 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
 
   const unitAmount = Math.round(rawPrice * 100);
 
-  if (!Number.isFinite(unitAmount) || unitAmount < 0) {
-    return res.status(400).json({ message: "Invalid course price." });
+  if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid course price.",
+    });
   }
 
   const courseImageAbs = toAbsoluteUrl(req, course.thumbnail);
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    client_reference_id: String(userId),
     line_items: [
       {
         quantity: 1,
@@ -281,27 +377,19 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
               courseImageAbs && /^https?:\/\//i.test(courseImageAbs)
                 ? [courseImageAbs]
                 : undefined,
-            metadata: {
-              type: "course",
-              courseId: String(course._id),
-              slug: course.slug || "",
-            },
+            metadata,
           },
         },
       },
     ],
-
-    // ✅ changed here
     success_url: successUrl,
     cancel_url: cancelUrl,
-
-    metadata: {
-      type: "course",
-      courseId: String(course._id),
-      billingPlan: "one_time",
-      userId: req.user?._id ? String(req.user._id) : "",
-    },
+    metadata,
   });
 
-  return res.json({ url: session.url, id: session.id });
+  return res.json({
+    success: true,
+    url: session.url,
+    id: session.id,
+  });
 });

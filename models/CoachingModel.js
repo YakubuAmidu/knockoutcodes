@@ -1,16 +1,9 @@
 // models/CoachingModel.js
 import mongoose from "mongoose";
 
-const SourceSchema = new mongoose.Schema(
-  {
-    channel: { type: String, default: "web" },
-    pageUrl: { type: String, default: null },
-    userAgent: { type: String, default: null },
-    ip: { type: String, default: null },
-  },
-  { _id: false }
-);
-
+/**
+ * Allowed coaching session types shown on the coaching form.
+ */
 export const BOXING_COACHING_TYPES = [
   "Power Punch Mechanics",
   "Speed + Combination Flow",
@@ -22,11 +15,54 @@ export const BOXING_COACHING_TYPES = [
   "Conditioning + Fight Pace",
 ];
 
-const CoachingSchema = new mongoose.Schema(
+/**
+ * Captures where the coaching request came from.
+ * Useful for security, analytics, and admin review.
+ */
+const sourceSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
+    channel: {
+      type: String,
+      trim: true,
+      default: "web",
+    },
 
-    fullName: { type: String, required: true, trim: true, maxlength: 80 },
+    pageUrl: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    userAgent: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    ip: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
+const coachingSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 80,
+    },
 
     email: {
       type: String,
@@ -37,7 +73,12 @@ const CoachingSchema = new mongoose.Schema(
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
 
-    phone: { type: String, required: true, trim: true, maxlength: 25 },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 25,
+    },
 
     coachingType: {
       type: String,
@@ -45,26 +86,79 @@ const CoachingSchema = new mongoose.Schema(
       enum: BOXING_COACHING_TYPES,
     },
 
-    duration: { type: Number, required: true, enum: [30, 60, 90] },
-    timeZone: { type: String, required: true, trim: true, maxlength: 60 },
+    duration: {
+      type: Number,
+      required: true,
+      enum: [30, 60, 90],
+    },
 
-    preferredDate: { type: String, required: true }, // YYYY-MM-DD
-    preferredTime: { type: String, required: true }, // HH:mm
-    preferredStartISO: { type: String, default: null },
+    timeZone: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 60,
+    },
 
-    preferGoogleMeet: { type: Boolean, required: true, default: true },
+    preferredDate: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-    goals: { type: String, required: true, trim: true, maxlength: 1200 },
+    preferredTime: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-    marketingOptIn: { type: Boolean, required: true, default: false },
+    preferredStartISO: {
+      type: String,
+      trim: true,
+      default: null,
+    },
 
-    emailSubject: { type: String, default: null },
-    emailSummary: { type: String, default: null },
+    preferGoogleMeet: {
+      type: Boolean,
+      default: true,
+    },
 
-    source: { type: SourceSchema, default: () => ({}) },
+    goals: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 1200,
+    },
 
-    // Admin-only fields
-    adminNote: { type: String, trim: true, default: "", maxlength: 500 },
+    marketingOptIn: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailSubject: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    emailSummary: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    source: {
+      type: sourceSchema,
+      default: () => ({}),
+    },
+
+    // Admin-only fields.
+    adminNote: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: "",
+    },
+
     status: {
       type: String,
       enum: ["pending", "confirmed", "completed", "cancelled"],
@@ -74,9 +168,12 @@ const CoachingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-CoachingSchema.index({ createdAt: -1 });
-CoachingSchema.index({ email: 1, createdAt: -1 });
+coachingSchema.index({ createdAt: -1 });
+coachingSchema.index({ email: 1, createdAt: -1 });
+coachingSchema.index({ status: 1, createdAt: -1 });
 
-const Coaching = mongoose.model("Coaching", CoachingSchema);
+const Coaching =
+  mongoose.models.Coaching ||
+  mongoose.model("Coaching", coachingSchema, "coachings");
 
 export default Coaching;

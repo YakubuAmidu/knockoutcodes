@@ -1,11 +1,11 @@
 // src/pages/Blog.jsx
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import axiosInstance from "../../utils/axiosInstance";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 const PageWrap = styled.main`
   min-height: 100vh;
@@ -568,7 +568,7 @@ const Blog = () => {
 
       if (selectedCategory) params.category = selectedCategory;
 
-      const res = await axios.get(`${API_BASE_URL}/blogs`, {
+      const res = await axiosInstance.get("/blogs", {
         params,
         withCredentials: false,
       });

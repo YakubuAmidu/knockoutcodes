@@ -16,6 +16,25 @@ function normalizeEmail(value = "") {
   return String(value).trim().toLowerCase();
 }
 
+function safeGetLocalStorage(key) {
+  try {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function safeRemoveLocalStorage(key) {
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage errors safely.
+  }
+}
+
 function getSafeRedirectTarget(from, fallback = "/user-profile") {
   if (typeof from !== "string") return fallback;
 
@@ -70,7 +89,10 @@ export default function Login() {
     [toast]
   );
 
-  const [email, setEmail] = React.useState("");
+  const [email, setEmail] = React.useState(() => {
+    return normalizeEmail(location.state?.registeredEmail || "");
+  });
+
   const [password, setPassword] = React.useState("");
   const [remember, setRemember] = React.useState(true);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -79,6 +101,24 @@ export default function Login() {
 
   const didRoute = React.useRef(false);
   const submitLockRef = React.useRef(false);
+
+  const registeredEmail = React.useMemo(() => {
+    return normalizeEmail(
+      location.state?.registeredEmail || safeGetLocalStorage("lastRegisteredEmail")
+    );
+  }, [location.state?.registeredEmail]);
+
+  const needsEmailVerification = Boolean(location.state?.needsEmailVerification);
+
+  const verificationNotice = React.useMemo(() => {
+    if (!needsEmailVerification) return "";
+
+    if (registeredEmail) {
+      return `Account created successfully. Please verify your email using the link sent to ${registeredEmail} before logging in.`;
+    }
+
+    return "Account created successfully. Please verify your email using the link sent to your email before logging in.";
+  }, [needsEmailVerification, registeredEmail]);
 
   React.useEffect(() => {
     if (didRoute.current) return;
@@ -93,16 +133,24 @@ export default function Login() {
       didRoute.current = true;
       navigate(target, { replace: true });
     }
-  }, [isAuthenticated, isAdmin, user, navigate, location, initializing]);
+  }, [
+    isAuthenticated,
+    isAdmin,
+    user?.role,
+    navigate,
+    location?.state?.from,
+    initializing,
+  ]);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
 
     if (submitLockRef.current || submitting) return;
 
+    setError("");
+
     const cleanEmail = normalizeEmail(email);
-    const cleanPassword = String(password);
+    const cleanPassword = String(password || "");
 
     if (!cleanEmail || !cleanPassword) {
       const msg = "Please enter both email and password.";
@@ -111,11 +159,19 @@ export default function Login() {
       return;
     }
 
-    submitLockRef.current = true;
-    setSubmitting(true);
-    pushToast({ type: "info", message: "Signing you in…" });
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      const msg = "Please enter a valid email address.";
+      setError(msg);
+      pushToast({ type: "warning", message: msg });
+      return;
+    }
 
     try {
+      submitLockRef.current = true;
+      setSubmitting(true);
+
+      pushToast({ type: "info", message: "Signing you in…" });
+
       const result = await login(
         { email: cleanEmail, password: cleanPassword },
         { remember }
@@ -123,9 +179,13 @@ export default function Login() {
 
       if (!result?.ok) {
         const msg =
-          result?.error && !/not found|no user/i.test(result.error)
-            ? result.error
-            : "Invalid email or password.";
+  result?.code === "ACCOUNT_LOCKED"
+    ? "Your account is temporarily locked because of too many failed attempts. Please wait and try again later."
+    : result?.code === "EMAIL_NOT_VERIFIED"
+    ? "Please verify your email before logging in."
+    : result?.error && !/not found|no user/i.test(result.error)
+    ? result.error
+    : "Invalid email or password.";
 
         setError(msg);
         pushToast({ type: "error", message: msg });
@@ -137,10 +197,13 @@ export default function Login() {
       if (loggedInUser && loggedInUser.isActive === false) {
         const msg =
           "Your account is currently inactive. Please contact support for assistance.";
+
         setError(msg);
         pushToast({ type: "warning", message: msg });
         return;
       }
+
+      safeRemoveLocalStorage("lastRegisteredEmail");
 
       pushToast({
         type: "success",
@@ -164,7 +227,7 @@ export default function Login() {
   }
 
   const isBusy = submitting;
-  const canSubmit = !!normalizeEmail(email) && !!password && !isBusy;
+  const canSubmit = Boolean(normalizeEmail(email) && password && !isBusy);
 
   return (
     <Wrap>
@@ -173,9 +236,11 @@ export default function Login() {
       <Shell>
         <HeroPanel>
           <Kicker>KnockoutCodes Access</Kicker>
+
           <HeroTitle>
             Step into your private training and business command center.
           </HeroTitle>
+
           <HeroText>
             Login to manage your courses, profile, progress, orders, and admin
             tools with a secure premium dashboard experience.
@@ -186,10 +251,12 @@ export default function Login() {
               <strong>Secure</strong>
               <span>Protected account access</span>
             </Stat>
+
             <Stat>
               <strong>Fast</strong>
               <span>Clean dashboard routing</span>
             </Stat>
+
             <Stat>
               <strong>Elite</strong>
               <span>Built for serious winners</span>
@@ -206,6 +273,13 @@ export default function Login() {
                 Sign in and continue where winners separate from average.
               </SubHeading>
             </FormTop>
+
+            {verificationNotice ? (
+              <VerifyNotice role="status" aria-live="polite">
+                <strong>Verify your email first</strong>
+                <p>{verificationNotice}</p>
+              </VerifyNotice>
+            ) : null}
 
             {error ? <ErrorBox role="alert">{error}</ErrorBox> : null}
 
@@ -241,7 +315,7 @@ export default function Login() {
 
                 <ToggleButton
                   type="button"
-                  onClick={() => setShowPassword((s) => !s)}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
                 >
@@ -360,11 +434,7 @@ const HeroPanel = styled.aside`
   justify-content: flex-end;
 
   background:
-    linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.1),
-      rgba(0, 0, 0, 0.82)
-    ),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.82)),
     radial-gradient(
       circle at 20% 10%,
       rgba(214, 182, 159, 0.28),
@@ -497,11 +567,7 @@ const Form = styled.form`
       rgba(214, 182, 159, 0.16),
       transparent 34%
     ),
-    linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.52),
-      rgba(0, 0, 0, 0.28)
-    );
+    linear-gradient(180deg, rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.28));
 
   border: 1px solid rgba(255, 255, 255, 0.08);
 
@@ -569,6 +635,32 @@ const SubHeading = styled.p`
   font-size: 0.92rem;
   line-height: 1.65;
   color: rgba(255, 249, 242, 0.72);
+`;
+
+const VerifyNotice = styled.div`
+  background: rgba(214, 182, 159, 0.13);
+  border: 1px solid rgba(214, 182, 159, 0.4);
+  color: ${({ theme }) => theme.colors.ivory};
+  padding: 13px 14px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+
+  strong {
+    display: block;
+    margin-bottom: 5px;
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 0.82rem;
+    font-weight: 950;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(255, 249, 242, 0.78);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
 `;
 
 const ErrorBox = styled.div`

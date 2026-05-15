@@ -34,6 +34,10 @@ const adminSidebarLinks = [
   { label: "Email Subscribers", to: "/admin/email-subscribers" },
   { label: "Email Templates", to: "/admin/email-templates" },
   { label: "Email Analytics", to: "/admin/email-analytics" },
+  { label: "Manage Lessons", to: "/admin/lessons" },
+  { label: "Maintenance", to: "/admin/maintenance" },
+  { label: "Security Events", to: "/admin/security-events" },
+  { label: "Manage Sessions", to: "/admin/sessions" },
 ];
 
 const MotionLink = motion.create(Link);

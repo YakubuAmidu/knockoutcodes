@@ -25,12 +25,16 @@ export const courseReducer = (state, action) => {
       };
 
     case T.COURSE_CHECKOUT_REQUEST:
-      return {
-        ...state,
-        checkoutLoading: true,
-        checkoutError: null,
-        checkoutUrl: null,
-      };
+  return {
+    ...state,
+    checkoutLoading: true,
+    checkoutError: null,
+    checkoutUrl: null,
+    alreadyPurchased: false,
+    purchasedCourseId: null,
+    purchasedEnrollmentId: null,
+    purchaseMessage: "",
+  };
 
     case T.COURSE_CHECKOUT_SUCCESS:
       return {
@@ -45,6 +49,19 @@ export const courseReducer = (state, action) => {
         checkoutLoading: false,
         checkoutError: action.payload,
       };
+    
+    case T.COURSE_ALREADY_PURCHASED:
+  return {
+    ...state,
+    checkoutLoading: false,
+    checkoutError: null,
+    checkoutUrl: null,
+    alreadyPurchased: true,
+    purchasedCourseId: action.payload?.courseId || null,
+    purchasedEnrollmentId: action.payload?.enrollmentId || null,
+    purchaseMessage:
+      action.payload?.message || "You already purchased this course.",
+  };
 
     case T.COURSE_FAIL:
       return {
@@ -55,13 +72,17 @@ export const courseReducer = (state, action) => {
       };
 
     case T.COURSE_RESET:
-      return {
-        ...state,
-        checkoutLoading: false,
-        checkoutError: null,
-        checkoutUrl: null,
-        enrollSuccess: false,
-      };
+  return {
+    ...state,
+    checkoutLoading: false,
+    checkoutError: null,
+    checkoutUrl: null,
+    enrollSuccess: false,
+    alreadyPurchased: false,
+    purchasedCourseId: null,
+    purchasedEnrollmentId: null,
+    purchaseMessage: "",
+  };
 
     default:
       return state;

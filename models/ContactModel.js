@@ -1,6 +1,10 @@
 // models/contactModel.js
 import mongoose from "mongoose";
 
+/**
+ * Contact conversation message schema
+ * Stores each message inside a contact thread.
+ */
 const messageSchema = new mongoose.Schema(
   {
     sender: {
@@ -8,6 +12,7 @@ const messageSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       required: true,
     },
+
     text: {
       type: String,
       required: true,
@@ -19,9 +24,12 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/**
+ * Contact schema
+ * Stores user contact requests and admin/user conversation history.
+ */
 const contactSchema = new mongoose.Schema(
   {
-    // ✅ Link ticket to a real logged-in user
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -29,44 +37,129 @@ const contactSchema = new mongoose.Schema(
       index: true,
     },
 
-    name: { type: String, required: true, trim: true, maxlength: 60 },
-    email: { type: String, required: true, trim: true, lowercase: true, maxlength: 70 },
-    phone: { type: String, required: true, trim: true, maxlength: 20 },
-    subject: { type: String, required: true, trim: true, maxlength: 300 },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 60,
+    },
 
-    // backward compat (kept)
-    message: { type: String, trim: true, maxlength: 2500 },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      maxlength: 70,
+      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email."],
+      index: true,
+    },
 
-    // ✅ Threaded messages (source of truth)
-    messages: { type: [messageSchema], default: [] },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 20,
+    },
 
-    // ✅ Fast "new message" detection fields
-    lastSender: { type: String, enum: ["user", "admin"], default: "user", index: true },
-    lastMessageAt: { type: Date, default: Date.now, index: true },
+    subject: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 300,
+    },
 
-    // ✅ Separate "seen" timestamps per side (this fixes your exact issue)
-    userLastSeenAt: { type: Date, default: null },
-    adminLastSeenAt: { type: Date, default: null },
+    message: {
+      type: String,
+      trim: true,
+      maxlength: 2500,
+      default: "",
+    },
+
+    messages: {
+      type: [messageSchema],
+      default: [],
+    },
+
+    lastSender: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+
+    lastMessageAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+
+    userLastSeenAt: {
+      type: Date,
+      default: null,
+    },
+
+    adminLastSeenAt: {
+      type: Date,
+      default: null,
+    },
 
     status: {
       type: String,
       enum: ["new", "open", "pending", "resolved", "closed"],
       default: "new",
+    },
+
+    isSeen: {
+      type: Boolean,
+      default: false,
       index: true,
     },
 
-    // ✅ admin has seen latest user message?
-    isSeen: { type: Boolean, default: false },
+    replied: {
+      type: Boolean,
+      default: false,
+    },
 
-    // ✅ admin has replied at least once?
-    replied: { type: Boolean, default: false },
-
-    replyNote: { type: String, default: "", trim: true, maxlength: 2000 },
+    replyNote: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+      default: "",
+    },
   },
   { timestamps: true }
 );
 
-// ✅ Helpful compound index for user inbox sorting
-contactSchema.index({ user: 1, updatedAt: -1 });
+/**
+ * Keep thread status updated before saving.
+ */
+contactSchema.pre("save", function (next) {
+  if (this.messages?.length) {
+    const lastMessage = this.messages[this.messages.length - 1];
 
-export default mongoose.model("Contact", contactSchema);
+    if (lastMessage?.sender) {
+      this.lastSender = lastMessage.sender;
+    }
+
+    if (lastMessage?.createdAt) {
+      this.lastMessageAt = lastMessage.createdAt;
+    }
+  }
+
+  if (this.lastSender === "admin") {
+    this.replied = true;
+  }
+
+  next();
+});
+
+/**
+ * Indexes for admin inbox, user inbox, and message filtering.
+ */
+contactSchema.index({ user: 1, updatedAt: -1 });
+contactSchema.index({ status: 1, isSeen: 1, updatedAt: -1 });
+contactSchema.index({ lastSender: 1, lastMessageAt: -1 });
+
+const Contact =
+  mongoose.models.Contact || mongoose.model("Contact", contactSchema);
+
+export default Contact;

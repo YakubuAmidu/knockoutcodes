@@ -9,6 +9,7 @@ import {
   getAdminReviews,
   approveReview,
 } from "../controllers/reviewController.js";
+import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
 
 import { reviewCreateLimiter } from "../middleware/rateLimiters.js";
@@ -24,8 +25,18 @@ router.get("/admin/all", authRequired, adminOnly, getAdminReviews);
 // Admin must approve it before it shows
 router.patch("/admin/:id/approve", authRequired, adminOnly, approveReview);
 
-// Create review (user), get single, update, delete
-router.post("/", authRequired, reviewCreateLimiter, createReview);
+/**
+ * Create review
+ * ✅ Real users only
+ * ❌ Admins blocked
+ */
+router.post(
+  "/",
+  authRequired,
+  preventAdminPurchase,
+  reviewCreateLimiter,
+  createReview
+);
 
 router
   .route("/:id")

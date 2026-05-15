@@ -1,67 +1,79 @@
-// models/enrollmentModel.js
+// models/EnrollmentModel.js
 import mongoose from "mongoose";
 
+/**
+ * Enrollment Model
+ * ----------------
+ * Stores course access for a user after a successful purchase
+ * or after membership-based access is verified.
+ */
 const enrollmentSchema = new mongoose.Schema(
   {
-    // Who owns this enrollment
+    // User who owns this course enrollment
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: [true, "Enrollment must belong to a user"],
     },
 
-    // Which course they enrolled in
+    // Course connected to this enrollment
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
-      required: true,
+      required: [true, "Enrollment must belong to a course"],
     },
 
+    // Stripe checkout session used for payment verification
     stripeSessionId: {
       type: String,
-      trime: true,
+      trim: true,
       unique: true,
-      sparse: true, 
+      sparse: true,
+      default: undefined,
     },
 
-    // What they actually paid at checkout
+    // Amount paid during checkout
     pricePaid: {
       type: Number,
       required: true,
       default: 0,
-      min: [0, "pricePaid cannot be negative"],
+      min: [0, "Price paid cannot be negative"],
     },
 
-    // Currency for the payment (for future Stripe integration)
+    // Payment currency
     currency: {
       type: String,
       trim: true,
       uppercase: true,
       default: "USD",
+      maxlength: 10,
     },
 
-    // Payment plan: one-time, subscription, etc.
+    // How the course access was granted
     paymentPlan: {
       type: String,
       enum: ["one-time", "monthly", "yearly", "lifetime"],
       default: "one-time",
+      index: true,
     },
 
-    // Payment status from your payment provider
+    // Payment verification status
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
       default: "paid",
+      index: true,
     },
 
-    // Enrollment lifecycle status
+    // Enrollment access status
     status: {
       type: String,
       enum: ["active", "completed", "cancelled", "expired"],
       default: "active",
+      index: true,
     },
 
-    // "5 star enrollment" rating (can later be used for reviews/analytics)
+    // Optional rating attached to the enrollment
     rating: {
       type: Number,
       min: [1, "Rating must be at least 1"],
@@ -69,14 +81,15 @@ const enrollmentSchema = new mongoose.Schema(
       default: 5,
     },
 
-    // Optional short review/comment on the course
+    // Optional review/comment
     review: {
       type: String,
       trim: true,
       maxlength: [1000, "Review cannot be longer than 1000 characters"],
+      default: "",
     },
 
-    // Progress tracking
+    // Course progress percentage
     progressPercent: {
       type: Number,
       min: [0, "Progress cannot be negative"],
@@ -84,28 +97,49 @@ const enrollmentSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Timeline fields
+    // Enrollment timeline
     startedAt: {
       type: Date,
       default: Date.now,
     },
+
     completedAt: {
       type: Date,
+      default: null,
     },
+
     expiresAt: {
       type: Date,
+      default: null,
+      index: true,
     },
+
     lastAccessedAt: {
       type: Date,
+      default: null,
     },
   },
   {
-    timestamps: true, // createdAt / updatedAt
+    timestamps: true,
   }
 );
 
-enrollmentSchema.index({ user: 1, course: 1, }, { unique: true });
+/**
+ * Prevent duplicate course enrollments for the same user.
+ */
+enrollmentSchema.index({ user: 1, course: 1 }, { unique: true });
 
-const Enrollment = mongoose.model("Enrollment", enrollmentSchema);
+/**
+ * Speed up dashboard and "My Courses" queries.
+ */
+enrollmentSchema.index({ user: 1, status: 1, createdAt: -1 });
+enrollmentSchema.index({ course: 1, status: 1 });
+
+/**
+ * Prevent model overwrite errors during development/hot reload.
+ */
+const Enrollment =
+  mongoose.models.Enrollment ||
+  mongoose.model("Enrollment", enrollmentSchema);
 
 export default Enrollment;

@@ -219,37 +219,41 @@ export const deleteCourse = async (req, res) => {
 };
 
 // Protected course data for coursePlayer
+// Protected course data for CoursePlayer
 export const getCoursePlayer = async (req, res) => {
- try {
-   const courseId = req.params;
+  try {
+    const courseId = req.params.courseId || req.params.id;
 
-   if (!courseId) {
-     return res.statust(404).json({
-       success: false,
-       message: "Course ID is required.."
-     });
-   };
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid course ID is required.",
+      });
+    }
 
-   const course = await Course.findById(courseId)
-     .select("title description thumbnail level modules lessons duration instructor")
-     .lean();
-   
-   if (!course) {
-     return res.status(404).json({
-       success: false,
-       message: "Course not found...",
-     });
-   };
+    const course = await Course.findById(courseId)
+      .select(
+        "title description thumbnail level category focusArea promoVideo durationInMinutes totalLessons language equipmentNeeded requirements whatYouWillLearn tags ratingAverage ratingCount studentsCount isPublished"
+      )
+      .lean();
 
-   res.status(200).json({
-     success: true,
-     data: course,
-   });
- } catch (error) {
-   console.error("getCoursePlayer error", error);
-   return res.status(500).json({
-     success: false,
-     message: "Failed to fetch course player data..."
-   });
- }
-}
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: course,
+    });
+  } catch (error) {
+    console.error("getCoursePlayer error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch course player data.",
+    });
+  }
+};

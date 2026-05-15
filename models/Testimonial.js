@@ -1,82 +1,113 @@
 // models/Testimonial.js
 import mongoose from "mongoose";
 
-function sanitizeText(v) {
-  if (v == null) return "";
-  return String(v).replace(/\s+/g, " ").trim();
+/* =========================
+   Helpers
+========================= */
+function sanitizeText(value) {
+  if (value == null) return "";
+
+  return String(value)
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function countLinks(text) {
-  const t = String(text || "");
-  const links = t.match(/https?:\/\/|www\./gi);
+  const content = String(text || "");
+
+  const links = content.match(/https?:\/\/|www\./gi);
+
   return links ? links.length : 0;
 }
 
-const TestimonialSchema = new mongoose.Schema(
+/* =========================
+   Testimonial Schema
+========================= */
+const testimonialSchema = new mongoose.Schema(
   {
+    // Optional user image
     imageUrl: {
       type: String,
       trim: true,
       default: "",
-      maxlength: 500, // ✅ prevent huge strings
+      maxlength: 500,
     },
 
+    // Main testimonial message
     message: {
       type: String,
       required: [true, "Message is required"],
       trim: true,
       minlength: [3, "Message must be at least 3 characters"],
       maxlength: [1200, "Message must be at most 1200 characters"],
-      set: sanitizeText, // ✅ normalize whitespace safely
+      set: sanitizeText,
+
       validate: [
         {
-          validator: function (v) {
-            // ✅ block obvious spam: too many links
-            return countLinks(v) < 2; // allow 0-1 links
+          validator(value) {
+            // Prevent spam-style link flooding
+            return countLinks(value) < 2;
           },
+
           message: "Message looks like spam (too many links).",
         },
       ],
     },
 
+    // Rating score
     rating: {
       type: Number,
       min: 1,
       max: 5,
       default: 5,
-      set: (v) => {
-        const x = Number(v);
-        if (!Number.isFinite(x)) return 5;
-        // ✅ clamp without crashing
-        return Math.max(1, Math.min(5, x));
+
+      set(value) {
+        const num = Number(value);
+
+        if (!Number.isFinite(num)) return 5;
+
+        return Math.max(1, Math.min(5, num));
       },
+
       validate: {
         validator: Number.isFinite,
         message: "Rating must be a number between 1 and 5",
       },
     },
 
+    // Optional linked user
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false, // ✅ keep optional
-      index: true,     // ✅ faster filtering
+      required: false,
+      index: true,
     },
 
+    // Public display name
     name: {
       type: String,
       trim: true,
       default: "",
-      maxlength: 80,     // ✅ prevent junk payloads
-      set: sanitizeText, // ✅ normalize whitespace safely
+      maxlength: 80,
+      set: sanitizeText,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-// ✅ Helpful indexes for admin listings
-TestimonialSchema.index({ createdAt: -1 });
-TestimonialSchema.index({ rating: -1, createdAt: -1 });
+/* =========================
+   Indexes
+========================= */
+testimonialSchema.index({ createdAt: -1 });
+testimonialSchema.index({ rating: -1, createdAt: -1 });
 
-const Testimonial = mongoose.model("Testimonial", TestimonialSchema);
+/* =========================
+   Model Export
+========================= */
+const Testimonial =
+  mongoose.models.Testimonial ||
+  mongoose.model("Testimonial", testimonialSchema);
+
 export default Testimonial;

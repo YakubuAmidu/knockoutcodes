@@ -2,15 +2,23 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+/* =========================
+   Constants
+========================= */
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_HISTORY_LIMIT = 5;
+
 // eslint-disable-next-line no-undef
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS || 12);
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/* =========================
+   User Schema
+========================= */
 const userSchema = new mongoose.Schema(
   {
+    // Basic profile
     name: {
       type: String,
       required: [true, "Name is required."],
@@ -30,7 +38,6 @@ const userSchema = new mongoose.Schema(
         validator: (value) => emailRegex.test(String(value || "")),
         message: "Please provide a valid email address.",
       },
-      index: true,
     },
 
     password: {
@@ -40,6 +47,7 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    // Authorization
     role: {
       type: String,
       enum: ["user", "admin"],
@@ -53,11 +61,108 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Email verification
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    emailVerificationToken: {
+      type: String,
+      select: false,
+      default: "",
+      index: true,
+    },
+
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
+    // MFA
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+      select: false,
+    },
+
+    mfaSecret: {
+      type: String,
+      select: false,
+      default: "",
+    },
+
+    mfaBackupCodes: [
+      {
+        codeHash: {
+          type: String,
+          select: false,
+        },
+        usedAt: {
+          type: Date,
+          default: null,
+          select: false,
+        },
+      },
+    ],
+
+    // Login security
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+      select: false,
+      index: true,
+    },
+
+    lastFailedLoginAt: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
+    lockUntil: {
+      type: Date,
+      select: false,
+      default: null,
+      index: true,
+    },
+
+    lastLoginAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    loginCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    lastLoginIp: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      default: "",
+    },
+
+    lastLoginUserAgent: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: "",
+    },
+
+    // Token/session versioning
     tokenVersion: {
       type: Number,
       default: 0,
       min: 0,
       select: false,
+      index: true,
     },
 
     refreshTokenHash: {
@@ -70,6 +175,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
       default: "",
+      index: true,
     },
 
     refreshTokenExpiresAt: {
@@ -78,20 +184,27 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    failedLoginAttempts: {
-      type: Number,
-      default: 0,
-      select: false,
-      min: 0,
-    },
-
-    lockUntil: {
+    // Password reset/change tracking
+    passwordChangedAt: {
       type: Date,
       select: false,
       default: null,
     },
 
-    passwordChangedAt: {
+    lastPasswordResetAt: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
+    passwordResetToken: {
+      type: String,
+      select: false,
+      default: "",
+      index: true,
+    },
+
+    passwordResetExpires: {
       type: Date,
       select: false,
       default: null,
@@ -112,6 +225,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
+    // Public profile fields
     avatar: { type: String, trim: true, maxlength: 500, default: "" },
     phone: { type: String, trim: true, maxlength: 30, default: "" },
     location: { type: String, trim: true, maxlength: 120, default: "" },
@@ -123,20 +237,10 @@ const userSchema = new mongoose.Schema(
     bio: { type: String, trim: true, maxlength: 1000, default: "" },
     headline: { type: String, trim: true, maxlength: 200, default: "" },
 
+    // Preferences
     notifications: {
       type: Boolean,
       default: true,
-    },
-
-    lastLoginAt: {
-      type: Date,
-      default: null,
-    },
-
-    loginCount: {
-      type: Number,
-      default: 0,
-      min: 0,
     },
   },
   {
@@ -145,10 +249,16 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.index({ email: 1 }, { unique: true });
+/* =========================
+   Indexes
+   Note: email already has unique: true above.
+========================= */
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ createdAt: -1 });
 
+/* =========================
+   Middleware
+========================= */
 userSchema.pre("save", async function hashPassword(next) {
   try {
     if (!this.isModified("password")) return next();
@@ -178,6 +288,9 @@ userSchema.pre("save", async function hashPassword(next) {
   }
 });
 
+/* =========================
+   Instance Methods
+========================= */
 userSchema.methods.comparePassword = async function comparePassword(
   candidatePassword
 ) {
@@ -212,10 +325,20 @@ userSchema.methods.toJSON = function toJSON() {
   delete obj.passwordHistory;
   delete obj.tokenVersion;
   delete obj.__v;
+  delete obj.emailVerificationToken;
+  delete obj.emailVerificationExpires;
+  delete obj.mfaEnabled;
+  delete obj.mfaSecret;
+  delete obj.mfaBackupCodes;
+  delete obj.lastPasswordResetAt;
+  delete obj.lastFailedLoginAt;
 
   return obj;
 };
 
+/* =========================
+   Model Export
+========================= */
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;

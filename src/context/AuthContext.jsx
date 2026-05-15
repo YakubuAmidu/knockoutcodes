@@ -187,7 +187,10 @@ export function AuthProvider({ children }) {
   const clearAuthState = useCallback(() => {
   setUser(null);
   clearClientAuth();
-  dispatch({ type: AUTH_ACTIONS.AUTH_LOGOUT });
+
+  dispatch({
+    type: AUTH_ACTIONS.AUTH_LOGOUT,
+  });
 }, [dispatch]);
 
   const forceLogout = useCallback(
@@ -346,6 +349,45 @@ if (freshUser.isActive === false) {
       window.removeEventListener("kc:auth-expired", handleAuthExpired);
     };
   }, [forceLogout]);
+
+  useEffect(() => {
+  if (!user) return;
+
+  const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+
+  let inactivityTimer;
+
+  const resetTimer = () => {
+    clearTimeout(inactivityTimer);
+
+    inactivityTimer = setTimeout(() => {
+      forceLogout("You were logged out due to inactivity.");
+    }, INACTIVITY_LIMIT);
+  };
+
+  const events = [
+    "mousemove",
+    "mousedown",
+    "keydown",
+    "scroll",
+    "touchstart",
+    "click",
+  ];
+
+  events.forEach((event) => {
+    window.addEventListener(event, resetTimer);
+  });
+
+  resetTimer();
+
+  return () => {
+    clearTimeout(inactivityTimer);
+
+    events.forEach((event) => {
+      window.removeEventListener(event, resetTimer);
+    });
+  };
+}, [user, forceLogout]);
 
   const login = useCallback(
     async (credentials, options = {}) => {

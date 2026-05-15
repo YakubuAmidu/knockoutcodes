@@ -71,14 +71,30 @@ export const createCourseCheckout =
         payload: url,
       });
     } catch (error) {
-      dispatch({
-        type: types.COURSE_CHECKOUT_FAIL,
-        payload:
-          error?.response?.data?.message ||
-          error?.message ||
-          "Unable to start checkout. Try again.",
-      });
-    }
+  const data = error?.response?.data;
+
+  if (error?.response?.status === 409 && data?.alreadyPurchased) {
+    dispatch({
+      type: types.COURSE_ALREADY_PURCHASED,
+      payload: {
+        courseId: data.courseId,
+        enrollmentId: data.enrollmentId,
+        message:
+          data.message ||
+          "You already purchased this course. Open it from My Courses.",
+      },
+    });
+    return;
+  }
+
+  dispatch({
+    type: types.COURSE_CHECKOUT_FAIL,
+    payload:
+      data?.message ||
+      error?.message ||
+      "Unable to start checkout. Try again.",
+  });
+}
   };
 
 /* =========================

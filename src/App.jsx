@@ -39,17 +39,24 @@ const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess.jsx")
 const SubscriptionFailed = lazy(() => import("./pages/SubscriptionFailed.jsx"));
 const MembershipDetails = lazy(() => import("./pages/MembershipDetails.jsx"));
 const RefundPolicy = lazy(() => import("./pages/refundPolicy.jsx"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
+const ProductSuccess = lazy(() => import("./pages/ProductSusccess.jsx"));
+const Session = lazy(() => import("./pages/Session.jsx"));
 
 /* =========================
    Lazy-loaded user pages
 ========================= */
 const UserProfile = lazy(() => import("./pages/User-profile.jsx"));
 const MyCourses = lazy(() => import("./pages/MyCourses.jsx"));
+const MyCourseDetail = lazy(() => import("./pages/MyCourseDetail.jsx"));
 const MyOrders = lazy(() => import("./pages/MyOrders.jsx"));
 const MyMessages = lazy(() => import("./pages/MyMessages.jsx"));
 const UserDashboard = lazy(() => import("./pages/User-dashboard.jsx"));
 const CoursePlayer = lazy(() => import("./pages/CoursePlayer.jsx"));
 const ManageDevices = lazy(() => import("./pages/ManageDevice.jsx"));
+const Enrollment = lazy(() => import("./pages/Enrollment.jsx"));
 
 /* =========================
    Lazy-loaded admin pages
@@ -79,6 +86,9 @@ const AdminEmailAnalyticsDetail = lazy(() =>
   import("./pages/AdminEmailAnalyticsDetail.jsx")
 );
 const AdminEmailSegment = lazy(() => import("./pages/AdminEmailSegments.jsx"));
+const ManageLesson = lazy(() => import("./pages/ManageLesson.jsx"));
+const AdminMaintenance = lazy(() => import("./pages/AdminMaintenance.jsx"));
+const AdminSecurityEvents = lazy(() => import("./pages/AdminSecurityEvents.jsx"));
 
 function PageLoader() {
   return (
@@ -181,6 +191,9 @@ function AppShell() {
           <Route path="/subscription/failed" element={<SubscriptionFailed />} />
           <Route path="/memberships/:id" element={<MembershipDetails />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
           {/* =========================
              Auth-only public routes
@@ -197,13 +210,16 @@ function AppShell() {
              - Requires logged-in user session
           ========================= */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/product/success" element={<ProductSuccess />} />
             <Route path="/user-profile" element={<UserProfile />} />
             <Route path="/course-player/:courseId" element={<CoursePlayer />} />
             <Route path="/dashboard/orders" element={<MyOrders />} />
             <Route path="/my-courses" element={<MyCourses />} />
+            <Route path="/my-courses/:courseId" element={<MyCourseDetail />} />
             <Route path="/my-messages" element={<MyMessages />} />
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/manage-devices" element={<ManageDevices />} />
+            <Route path="enrollment" element={<Enrollment />} />
           </Route>
 
           {/* =========================
@@ -222,7 +238,7 @@ function AppShell() {
             <Route path="/admin/orders" element={<ManageOrders />} />
             <Route path="/admin/revenues" element={<ManageRevenues />} />
             <Route path="/admin/users" element={<ManageUsers />} />
-            <Route path="/admin/coachings" element={<ManageCoaching />} />
+            <Route path="/admin/coachings" element={<ManageCoaching />} /> 
             <Route path="/admin/products" element={<ManageProducts />} />
             <Route
               path="/admin/email-campaigns"
@@ -245,7 +261,22 @@ function AppShell() {
               element={<AdminEmailAnalyticsDetail />}
             />
             <Route path="/admin/email-segments" element={<AdminEmailSegment />} />
+            <Route 
+              path="/admin/lessons" element={<ManageLesson />
+              }
+            />
+            <Route
+            path="/admin/maintenance"
+            element={<AdminMaintenance />}
+            />
+            
+            <Route
+            path="/admin/security-events"
+            element={<AdminSecurityEvents />}
+          />
           </Route>
+
+          <Route path="/admin/sessions" element={<Session />} />
 
           {/* =========================
              Fallback

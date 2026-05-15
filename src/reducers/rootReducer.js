@@ -5,6 +5,34 @@ import { combineReducers } from "@reduxjs/toolkit";
 import { authReducer } from "./auth/authReducer";
 import { authInitialState } from "./auth/authInitialState";
 
+// ✅ ForgotPassword
+import { forgotPasswordReducer } from "./forgotPassword/forgotPasswordReducer";
+import { forgotPasswordInitialState } from "./forgotPassword/forgotPasswordInitialState";
+
+// ✅ ResetPassword
+import { resetPasswordReducer } from "./resetPassword/resetPasswordReducer";
+import { resetPasswordInitialState } from "./resetPassword/resetPasswordInitialState";
+
+// ✅ SecurityEvent
+import { securityEventReducer } from "./securityEvents/securityEventReducer";
+import { securityEventInitialState } from "./securityEvents/securityEventInitialState";
+
+// ✅ SystemSetting
+import { systemSettingReducer } from "./systemSettings/systemSettingReducer";
+import { systemSettingInitialState } from "./systemSettings/systemSettingInitialState";
+
+// ✅ ManageCourses
+import { manageCoursesReducer } from "./manageCourses/manageCoursesReducer";
+import { manageCoursesInitialState } from "./manageCourses/manageCoursesInitialState";
+
+// ✅ Manage Products
+import { manageProductReducer } from "./manageProducts/manageProductReducer";
+import { manageProductInitialState } from "./manageProducts/manageProductInitialState";
+
+// ✅ MyCourseDetail
+import { myCourseDetailReducer } from "./myCourseDetail/myCourseDetailReducer";
+import { myCourseDetailInitialState } from "./myCourseDetail/myCourseDetailInitialState";
+
 // ✅ Register
 import registerReducer from "./register/registerReducer";
 import { registerInitialState } from "./register/registerInitialState";
@@ -12,6 +40,14 @@ import { registerInitialState } from "./register/registerInitialState";
 // Cart
 import { cartReducer } from "./cart/cartReducer";
 import { cartInitialState } from "./cart/cartInitialState";
+
+// ✅ Testimonials
+import { testimonialReducer } from "./testimonial/testimonialReducer";
+import { testimonialInitialState } from "./testimonial/testimonialInitialState";
+
+// ✅ MyCourses
+import { myCoursesReducer } from "./myCourses/myCoursesReducer";
+import { myCoursesInitialState } from "./myCourses/myCoursesInitialState";
 
 // Product
 import { productReducer } from "./products/productReducer";
@@ -49,6 +85,10 @@ import { manageNewsletterInitialState } from "./manageNewsletter/manageNewslette
 import manageContactReducer from "./manageContact/manageContactReducer";
 import { manageContactInitialState } from "./manageContact/manageContactInitialState";
 
+// ✅ Manage Lessons
+import { manageLessonReducer } from "./manageLesson/manageLessonReducer";
+import { manageLessonInitialState } from "./manageLesson/manageLessonInitialState";
+
 // ✅ Manage MyMessages
 import { myMessagesReducer } from "./myMessages/myMessagesReducer";
 import { myMessagesInitialState } from "./myMessages/myMessagesInitialState";
@@ -64,6 +104,10 @@ import { userInitialState } from "./user/userInitialState";
 // ✅ Courses
 import { courseReducer } from "./courses/courseReducer";
 import { courseInitialState } from "./courses/courseInitialState";
+
+// ✅ CourseDetail
+import { courseDetailReducer } from "./courseDetail/courseDetailReducer";
+import { courseDetailInitialState } from "./courseDetail/courseDetailInitialState";
 
 // ✅ Enrollment
 import { enrollmentReducer } from "./enrollment/enrollmentReducer";
@@ -93,10 +137,49 @@ import { emailTemplateInitialState } from "./emailTemplate/emailTemplateInitialS
 import { emailAnalyticsReducer } from "./emailAnalytics/emailAnalyticsReducer";
 import { emailAnalyticsInitialState } from "./emailAnalytics/emailAnalyticsInitialState";
 
+// ✅ Manage Orders
+import { manageOrderReducer } from "./manageOrders/manageOrderReducer";
+import { manageOrderInitialState } from "./manageOrders/manageOrderInitialState";
+
 // ✅ Auth
 function auth(state = authInitialState, action) {
   return authReducer(state, action);
 };
+
+// ✅ ForgotPassword
+function forgotPassword(state = forgotPasswordInitialState, action) {
+  return forgotPasswordReducer(state, action);
+}
+
+// ✅ ResetPassword
+function resetPassword(state = resetPasswordInitialState, action) {
+  return resetPasswordReducer(state, action);
+}
+
+// ✅ SecurityEvent
+function securityEvent(state = securityEventInitialState, action) {
+  return securityEventReducer(state, action);
+}
+
+// ✅ SystemSetting
+function systemSettings(state = systemSettingInitialState, action) {
+  return systemSettingReducer(state, action);
+}
+
+// ✅ Manage Courses
+function manageCourses(state = manageCoursesInitialState, action) {
+  return manageCoursesReducer(state, action);
+}
+
+// ✅ MyCourseDetail
+function myCourseDetail(state = myCourseDetailInitialState, action) {
+  return myCourseDetailReducer(state, action);
+}
+
+// ✅ Manage Products
+function manageProducts(state = manageProductInitialState, action) {
+  return manageProductReducer(state, action);
+}
 
 function register(state = registerInitialState, action) {
   return registerReducer(state, action);
@@ -110,6 +193,16 @@ function products(state = productInitialState, action) {
 // Cart
 function cart(state = cartInitialState, action) {
   return cartReducer(state, action);
+}
+
+// Testimonials
+function testimonials(state = testimonialInitialState, action) {
+  return testimonialReducer(state, action);
+}
+
+// MyCourses
+function myCourses(state = myCoursesInitialState, action) {
+  return myCoursesReducer(state, action);
 }
 
 // Checkout
@@ -130,6 +223,11 @@ function coaching(state = coachingInitialState, action) {
 // AdminCoaching
 function adminCoachings(state = adminCoachingsInitialState, action) {
   return adminCoachingsReducer(state, action);
+}
+
+// ✅ Manage Lessons
+function manageLessons(state = manageLessonInitialState, action) {
+  return manageLessonReducer(state, action);
 }
 
 // Contact
@@ -172,6 +270,11 @@ function courses(state = courseInitialState, action) {
   return courseReducer(state, action);
 }
 
+// Course Detail
+function courseDetail(state = courseDetailInitialState, action) {
+  return courseDetailReducer(state, action);
+}
+
 // Enrollment
 function enrollment(state = enrollmentInitialState, action) {
   return enrollmentReducer(state, action);
@@ -202,9 +305,17 @@ function emailAnalytics(state = emailAnalyticsInitialState, action) {
   return emailAnalyticsReducer(state, action);
 }
 
+// ✅ Manage Orders
+function manageOrders(state = manageOrderInitialState, action) {
+  return manageOrderReducer(state, action);
+}
+
 export const rootReducer = combineReducers({
   auth,
   register,
+  forgotPassword,
+  resetPassword,
+
   products,
   cart,
   checkout,
@@ -219,7 +330,20 @@ export const rootReducer = combineReducers({
   users,
   userDashboard,
   courses,
+  myCourses,
+  courseDetail,
   enrollment,
+  myCourseDetail,
+  systemSettings,
+  manageCourses,
+  manageProducts,
+  manageOrders,
+
+   // ✅ Security Events
+  securityEvent,
+
+  // ✅ Lessons
+  manageLessons,
 
   // ✅ Email system
   emailDashboard,
@@ -228,4 +352,6 @@ export const rootReducer = combineReducers({
   emailSubscribers,
   emailTemplate,
   emailAnalytics,
+
+  testimonials,
 });

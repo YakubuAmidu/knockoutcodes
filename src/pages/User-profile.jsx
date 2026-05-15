@@ -1,7 +1,7 @@
 // src/pages/UserProfile.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled, { useTheme } from "styled-components";
-// src/pages/UserProfile.jsx
+import axiosInstance from "../../utils/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -27,8 +27,9 @@ import {
 
 // -----------------------------
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api/v1";
+  axiosInstance.defaults.baseURL || "http://localhost:5000/api/v1";
+
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 const ME_ENDPOINT = "/users/me";
 const LOGOUT_ENDPOINT = "/auth/logout";
@@ -489,21 +490,31 @@ export default function UserProfile() {
   }, [me]);
 
   // ✅ Avatar handling: preview > backend url > initials avatar (no email leakage)
-  const avatarUrl = useMemo(() => {
-    if (avatarPreview) return avatarPreview;
+const avatarUrl = useMemo(() => {
+  if (avatarPreview) return avatarPreview;
 
-    const avatarField = me?.avatar || me?.avatarUrl || me?.profileImage || me?.image || "";
-    if (avatarField) {
-      const bust = avatarBust || (me?.updatedAt ? new Date(me.updatedAt).getTime() : 0) || 0;
-      const qs = bust ? `?v=${encodeURIComponent(String(bust))}` : "";
+  const avatarField =
+    me?.avatar || me?.avatarUrl || me?.profileImage || me?.image || "";
 
-      if (String(avatarField).startsWith("http")) return `${avatarField}${qs}`;
-      const normalized = String(avatarField).startsWith("/") ? avatarField : `/${avatarField}`;
-      return `${API_BASE_URL}${normalized}${qs}`;
+  if (avatarField) {
+    const bust =
+      avatarBust || (me?.updatedAt ? new Date(me.updatedAt).getTime() : 0) || 0;
+
+    const qs = bust ? `?v=${encodeURIComponent(String(bust))}` : "";
+
+    if (String(avatarField).startsWith("http")) {
+      return `${avatarField}${qs}`;
     }
 
-    return initialsAvatarDataUrl(me?.name || me?.email || "User");
-  }, [me, avatarPreview, avatarBust]);
+    const normalized = String(avatarField).startsWith("/")
+      ? avatarField
+      : `/${avatarField}`;
+
+    return `${API_ORIGIN}${normalized}${qs}`;
+  }
+
+  return initialsAvatarDataUrl(me?.name || me?.email || "User");
+}, [me, avatarPreview, avatarBust]);
 
   const socialLinks = useMemo(() => {
     if (!me) return [];
@@ -1295,6 +1306,20 @@ export default function UserProfile() {
           {/* SECURITY / ACCOUNT CARD */}
           <Card $t={t}>
             <SectionTitle $t={t}>Account</SectionTitle>
+            <GhostButton
+  $t={t}
+  type="button"
+  onClick={() => navigate("/my-courses")}
+>
+  My Purchased Courses
+            </GhostButton>
+            <GhostButton
+  $t={t}
+  type="button"
+  onClick={() => navigate("/dashboard/orders")}
+>
+  My Orders
+</GhostButton>
             <Rows>
               <Row>
                 <RowLabel $t={t}>Account Status</RowLabel>

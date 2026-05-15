@@ -1,29 +1,35 @@
 import express from "express";
 import {
   createLesson,
+  getAllLessons,
   getLessonsByCourse,
   getLesson,
   updateLesson,
   deleteLesson,
 } from "../controllers/lessonController.js";
-import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
+
+import {
+  authRequired,
+  adminOnly,
+  optionalAuth,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Admin: create a new lesson
-router.post("/", authRequired, adminOnly, createLesson);
+// Admin only: get all lessons + create lesson
+router
+  .route("/")
+  .get(authRequired, adminOnly, getAllLessons)
+  .post(authRequired, adminOnly, createLesson);
 
-// Get lessons for a specific course
-// Optional: allow previews for logged-out users by leaving it public,
-// BUT we still read req.user if provided (middleware below makes it better).
-router.get("/by-course/:courseId", getLessonsByCourse);
+// Public previews + paid-user full access
+router.get("/by-course/:courseId", optionalAuth, getLessonsByCourse);
 
-// Single lesson CRUD by id or slug
+// Single lesson
 router
   .route("/:id")
-  .get(getLesson)
+  .get(optionalAuth, getLesson)
   .put(authRequired, adminOnly, updateLesson)
   .delete(authRequired, adminOnly, deleteLesson);
 
 export default router;
-

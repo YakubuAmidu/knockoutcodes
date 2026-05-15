@@ -142,6 +142,10 @@ async function refreshSession() {
   if (!refreshPromise) {
     refreshPromise = axiosInstance
       .post("/auth/refresh", {})
+      .then((res) => {
+        didBroadcastAuthFail = false;
+        return res;
+      })
       .finally(() => {
         refreshPromise = null;
       });
@@ -155,7 +159,14 @@ function isPublicPage() {
 
   const p = window.location.pathname;
 
-  return ["/login", "/register", "/home", "/"].includes(p);
+  return [
+    "/",
+    "/home",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+  ].includes(p);
 }
 
 axiosInstance.interceptors.request.use(
@@ -236,23 +247,23 @@ axiosInstance.interceptors.response.use(
       !isLogoutEndpoint(url);
 
     if (shouldTryRefresh) {
-      try {
-        await refreshSession();
+  try {
+    await refreshSession();
 
-        return axiosInstance.request({
-          ...originalConfig,
-          _retry: true,
-        });
-      } catch (refreshError) {
-        broadcastAuthExpired(
-          refreshError?.response?.status || 401,
-          refreshError?.response?.data?.message ||
-            "Session expired. Please login again."
-        );
+    return axiosInstance.request({
+      ...originalConfig,
+      _retry: true,
+    });
+  } catch (refreshError) {
+    broadcastAuthExpired(
+      refreshError?.response?.status || 401,
+      refreshError?.response?.data?.message ||
+        "Session expired. Please login again."
+    );
 
-        return Promise.reject(refreshError);
-      }
-    }
+    return Promise.reject(error);
+  }
+}
 
     const shouldBroadcast =
       (status === 401 || status === 419) &&

@@ -5,9 +5,10 @@ import bcrypt from "bcryptjs";
 import User from "../models/UserModel.js";
 import Session from "../models/SessionModel.js";
 import { parseDeviceInfo } from "../utils/deviceInfo.js";
+import { logSecurityEvent } from "../utils/securityLogger.js";
 
 const LOGIN_MAX_ATTEMPTS = 5;
-const LOCK_TIME_MS = 15 * 60 * 1000; // 15 minutes
+const LOCK_TIME_MS = 15 * 60 * 1000;
 
 // eslint-disable-next-line no-undef
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
@@ -18,15 +19,37 @@ const JWT_ISSUER = process.env.JWT_ISSUER || "knockoutcodes-api";
 // eslint-disable-next-line no-undef
 const JWT_AUDIENCE = process.env.JWT_AUDIENCE || "knockoutcodes-web";
 
-// -------------------- helpers --------------------
+function getClientUrl() {
+  // eslint-disable-next-line no-undef
+  return process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
+}
 
-function getRefreshTokenFromRequest(req) {
-  return req.cookies?.refreshToken || "";
+function hashToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+
+function createPasswordResetToken() {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  return { rawToken, hashedToken: hashToken(rawToken) };
+}
+
+function createEmailVerificationToken() {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  return { rawToken, hashedToken: hashToken(rawToken) };
+}
+
+function isStrongPassword(password = "") {
+  const value = String(password || "");
+  return value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value);
 }
 
 function isProd() {
   // eslint-disable-next-line no-undef
   return process.env.NODE_ENV === "production";
+}
+
+function getRefreshTokenFromRequest(req) {
+  return req.cookies?.refreshToken || "";
 }
 
 function accessCookieOptions() {
@@ -35,7 +58,7 @@ function accessCookieOptions() {
     sameSite: isProd() ? "none" : "lax",
     secure: isProd(),
     path: "/",
-    maxAge: 15 * 60 * 1000, // 15 min
+    maxAge: 15 * 60 * 1000,
   };
 }
 
@@ -45,7 +68,7 @@ function refreshCookieOptions() {
     sameSite: isProd() ? "none" : "lax",
     secure: isProd(),
     path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 }
 
@@ -59,6 +82,8 @@ function clearCookieOptions() {
 }
 
 function signAccessToken(user) {
+  if (!JWT_ACCESS_SECRET) throw new Error("JWT_ACCESS_SECRET is not configured.");
+
   return jwt.sign(
     {
       sub: String(user._id),
@@ -77,6 +102,8 @@ function signAccessToken(user) {
 }
 
 function signRefreshToken(user, refreshTokenId) {
+  if (!JWT_REFRESH_SECRET) throw new Error("JWT_REFRESH_SECRET is not configured.");
+
   return jwt.sign(
     {
       sub: String(user._id),
@@ -94,10 +121,6 @@ function signRefreshToken(user, refreshTokenId) {
   );
 }
 
-function hashToken(token) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
 function safeUser(user) {
   return {
     _id: user._id,
@@ -105,6 +128,7 @@ function safeUser(user) {
     email: user.email,
     role: user.role,
     isActive: user.isActive,
+    isEmailVerified: !!user.isEmailVerified,
     avatar: user.avatar || "",
     phone: user.phone || "",
     location: user.location || "",
@@ -137,7 +161,21 @@ function isLocked(user) {
   return !!(user.lockUntil && new Date(user.lockUntil).getTime() > Date.now());
 }
 
-// -------------------- controllers --------------------
+function getClientIp(req) {
+  return (
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.headers["x-real-ip"] ||
+    req.socket?.remoteAddress ||
+    req.ip ||
+    ""
+  );
+}
+
+function getApproxLocation(ip) {
+  return ip === "::1" || ip === "127.0.0.1"
+    ? "Localhost / Your computer"
+    : "Location lookup not connected yet";
+}
 
 /**
  * POST /api/v1/auth/register
@@ -147,14 +185,37 @@ export async function register(req, res) {
     const name = String(req.body?.name || "").trim();
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
+    const confirmPassword = String(req.body?.confirmPassword || password);
+
+    if (!name || name.length < 2) {
+      return res.status(400).json({ success: false, message: "Name must be at least 2 characters." });
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: "Please provide a valid email address." });
+    }
+
+    if (!password || !confirmPassword) {
+      return res.status(400).json({ success: false, message: "Password and confirm password are required." });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match." });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+      });
+    }
 
     const existingUser = await User.findOne({ email }).select("_id");
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "An account with that email already exists.",
-      });
+      return res.status(409).json({ success: false, message: "An account with that email already exists." });
     }
+
+    const { rawToken, hashedToken } = createEmailVerificationToken();
 
     const user = await User.create({
       name,
@@ -162,23 +223,40 @@ export async function register(req, res) {
       password,
       role: "user",
       isActive: true,
+      isEmailVerified: false,
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
+
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "REGISTER_SUCCESS",
+    });
+
+    const verificationUrl = `${getClientUrl()}/verify-email/${rawToken}`;
+
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") {
+      console.log("EMAIL VERIFICATION URL:", verificationUrl);
+    }
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful.",
+      message: "Registration successful. Please check your email to verify your account.",
       user: safeUser(user),
+      // eslint-disable-next-line no-undef
+      verificationUrl: process.env.NODE_ENV !== "production" ? verificationUrl : undefined,
     });
   } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("register error:", error);
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: "An account with that email already exists." });
     }
 
-    return res.status(500).json({
-      success: false,
-      message: "Registration failed.",
-    });
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") console.error("register error:", error);
+
+    return res.status(500).json({ success: false, message: "Registration failed." });
   }
 }
 
@@ -190,22 +268,33 @@ export async function login(req, res) {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
 
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required." });
+    }
+
     const user = await User.findOne({ email }).select(
-      "+password +failedLoginAttempts +lockUntil +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "+password +failedLoginAttempts +lockUntil +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +emailVerificationToken +emailVerificationExpires"
     );
 
-    // Keep message generic
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
+      await logSecurityEvent(req, {
+        email,
+        type: "LOGIN_FAILED",
+        meta: { reason: "USER_NOT_FOUND" },
       });
+
+      return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
     if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: "Account is disabled. Please contact support." });
+    }
+
+    if (user.isEmailVerified === false && user.emailVerificationToken && user.emailVerificationExpires) {
       return res.status(403).json({
         success: false,
-        message: "Account is disabled. Please contact support.",
+        message: "Please verify your email before logging in.",
+        code: "EMAIL_NOT_VERIFIED",
       });
     }
 
@@ -219,64 +308,79 @@ export async function login(req, res) {
     const passwordOk = await bcrypt.compare(password, user.password);
 
     if (!passwordOk) {
-      user.failedLoginAttempts = Number(user.failedLoginAttempts || 0) + 1;
+  user.failedLoginAttempts = Number(user.failedLoginAttempts || 0) + 1;
+  user.lastFailedLoginAt = new Date();
 
-      if (user.failedLoginAttempts >= LOGIN_MAX_ATTEMPTS) {
-        user.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
-      }
+  const shouldLock = user.failedLoginAttempts >= LOGIN_MAX_ATTEMPTS;
 
-      await user.save();
+  if (shouldLock) {
+    user.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
+  }
 
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-      });
-    }
+  await user.save({ validateBeforeSave: false });
 
-    // Success -> reset lock counters
-    user.failedLoginAttempts = 0;
-    user.lockUntil = null;
-    user.lastLoginAt = new Date();
-    user.loginCount = Number(user.loginCount || 0) + 1;
+  await logSecurityEvent(req, {
+    user: user._id,
+    email: user.email,
+    type: shouldLock ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
+    meta: {
+      failedLoginAttempts: user.failedLoginAttempts,
+      lockUntil: shouldLock ? user.lockUntil : null,
+    },
+  });
+
+  if (shouldLock) {
+    return res.status(423).json({
+      success: false,
+      message:
+        "Account temporarily locked because of too many failed login attempts. Please try again later.",
+      code: "ACCOUNT_LOCKED",
+    });
+  }
+
+  return res.status(401).json({
+    success: false,
+    message: "Invalid email or password.",
+  });
+}
 
     const refreshTokenId = crypto.randomUUID();
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user, refreshTokenId);
-    const sessionKeyHash = hashToken(refreshToken);
 
-// Extract basic device info
-const userAgent = req.headers["user-agent"] || "";
-const device = parseDeviceInfo(userAgent);
+    const userAgent = req.headers["user-agent"] || "";
+    const device = parseDeviceInfo(userAgent);
+    const clientIp = getClientIp(req);
 
-const clientIp =
-  req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-  req.headers["x-real-ip"] ||
-  req.socket?.remoteAddress ||
-  req.ip ||
-  "";
+    await Session.create({
+      user: user._id,
+      sessionKeyHash: hashToken(refreshToken),
+      userAgent: device.userAgent,
+      ip: clientIp,
+      approxLocation: getApproxLocation(clientIp),
+      browser: device.browser,
+      os: device.os,
+      deviceName: device.deviceName,
+      lastActiveAt: new Date(),
+    });
 
-const approxLocation =
-  clientIp === "::1" || clientIp === "127.0.0.1"
-    ? "Localhost / Your computer"
-    : "Location lookup not connected yet";
-
-await Session.create({
-  user: user._id,
-  sessionKeyHash,
-  userAgent: device.userAgent,
-  ip: clientIp,
-  approxLocation,
-  browser: device.browser,
-  os: device.os,
-  deviceName: device.deviceName,
-  lastActiveAt: new Date(),
-});
-
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    user.lastLoginAt = new Date();
+    user.loginCount = Number(user.loginCount || 0) + 1;
+    user.lastLoginIp = clientIp;
+    user.lastLoginUserAgent = userAgent;
     user.refreshTokenId = refreshTokenId;
     user.refreshTokenHash = hashToken(refreshToken);
     user.refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await user.save();
+    await user.save({ validateBeforeSave: false });
+
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "LOGIN_SUCCESS",
+    });
 
     setAuthCookies(res, accessToken, refreshToken);
 
@@ -287,14 +391,9 @@ await Session.create({
     });
   } catch (error) {
     // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("login error:", error);
-    }
+    if (process.env.NODE_ENV !== "production") console.error("login error:", error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Login failed.",
-    });
+    return res.status(500).json({ success: false, message: "Login failed." });
   }
 }
 
@@ -306,10 +405,7 @@ export async function refresh(req, res) {
     const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required.",
-      });
+      return res.status(401).json({ success: false, message: "Authentication required." });
     }
 
     const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
@@ -319,20 +415,14 @@ export async function refresh(req, res) {
     });
 
     if (payload?.typ !== "refresh") {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid refresh token.",
-      });
+      return res.status(401).json({ success: false, message: "Invalid refresh token." });
     }
 
     const userId = payload.sub;
     const refreshTokenId = payload.rid;
 
     if (!userId || !refreshTokenId) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid refresh token.",
-      });
+      return res.status(401).json({ success: false, message: "Invalid refresh token." });
     }
 
     const user = await User.findById(userId).select(
@@ -341,130 +431,150 @@ export async function refresh(req, res) {
 
     if (!user || user.isActive === false) {
       clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required.",
-      });
+      return res.status(401).json({ success: false, message: "Authentication required." });
     }
 
     if ((payload.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
       clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: "Session is no longer valid.",
-      });
+      return res.status(401).json({ success: false, message: "Session is no longer valid." });
     }
 
     if (!user.refreshTokenHash || !user.refreshTokenId || !user.refreshTokenExpiresAt) {
       clearAuthCookies(res);
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required.",
-      });
+      return res.status(401).json({ success: false, message: "Authentication required." });
     }
 
-    if (user.refreshTokenId !== refreshTokenId) {
-      clearAuthCookies(res);
+   if (user.refreshTokenId !== refreshTokenId) {
+  clearAuthCookies(res);
 
-      // Optional hard kill for suspicious session reuse
-      user.tokenVersion = Number(user.tokenVersion || 0) + 1;
-      user.refreshTokenHash = "";
-      user.refreshTokenId = "";
-      user.refreshTokenExpiresAt = null;
-      await user.save();
+  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+  user.refreshTokenHash = "";
+  user.refreshTokenId = "";
+  user.refreshTokenExpiresAt = null;
 
-      return res.status(401).json({
-        success: false,
-        message: "Session is no longer valid.",
-      });
+  await Session.updateMany(
+    { user: user._id, revokedAt: null },
+    {
+      $set: {
+        revokedAt: new Date(),
+        revokedReason: "refresh_token_reuse_detected",
+        lastActiveAt: new Date(),
+      },
     }
+  );
+
+  await user.save({ validateBeforeSave: false });
+
+  await logSecurityEvent(req, {
+    user: user._id,
+    email: user.email,
+    type: "REFRESH_TOKEN_REUSE_DETECTED",
+    meta: {
+      reason: "REFRESH_TOKEN_ID_MISMATCH",
+    },
+  });
+
+  return res.status(401).json({
+    success: false,
+    message: "Session security issue detected. Please log in again.",
+    code: "REFRESH_TOKEN_REUSE_DETECTED",
+  });
+}
 
     if (new Date(user.refreshTokenExpiresAt).getTime() <= Date.now()) {
       clearAuthCookies(res);
+
       user.refreshTokenHash = "";
       user.refreshTokenId = "";
       user.refreshTokenExpiresAt = null;
-      await user.save();
+      await user.save({ validateBeforeSave: false });
 
-      return res.status(401).json({
-        success: false,
-        message: "Session expired. Please log in again.",
-      });
+      return res.status(401).json({ success: false, message: "Session expired. Please log in again." });
     }
 
-    const incomingHash = hashToken(refreshToken);
-    if (incomingHash !== user.refreshTokenHash) {
-      clearAuthCookies(res);
+    if (hashToken(refreshToken) !== user.refreshTokenHash) {
+  clearAuthCookies(res);
 
-      // Strong response to suspected token tampering/reuse
-      user.tokenVersion = Number(user.tokenVersion || 0) + 1;
-      user.refreshTokenHash = "";
-      user.refreshTokenId = "";
-      user.refreshTokenExpiresAt = null;
-      await user.save();
+  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+  user.refreshTokenHash = "";
+  user.refreshTokenId = "";
+  user.refreshTokenExpiresAt = null;
 
-      return res.status(401).json({
-        success: false,
-        message: "Session is no longer valid.",
-      });
+  await Session.updateMany(
+    { user: user._id, revokedAt: null },
+    {
+      $set: {
+        revokedAt: new Date(),
+        revokedReason: "refresh_token_hash_mismatch",
+        lastActiveAt: new Date(),
+      },
     }
+  );
 
-    // Rotate refresh token
+  await user.save({ validateBeforeSave: false });
+
+  await logSecurityEvent(req, {
+    user: user._id,
+    email: user.email,
+    type: "REFRESH_TOKEN_REUSE_DETECTED",
+    meta: {
+      reason: "REFRESH_TOKEN_HASH_MISMATCH",
+    },
+  });
+
+  return res.status(401).json({
+    success: false,
+    message: "Session security issue detected. Please log in again.",
+    code: "REFRESH_TOKEN_REUSE_DETECTED",
+  });
+}
+
     const nextRefreshTokenId = crypto.randomUUID();
     const nextAccessToken = signAccessToken(user);
     const nextRefreshToken = signRefreshToken(user, nextRefreshTokenId);
+
+    await Session.findOneAndUpdate(
+      {
+        user: user._id,
+        sessionKeyHash: hashToken(refreshToken),
+        revokedAt: null,
+      },
+      {
+        $set: {
+          revokedAt: new Date(),
+          revokedReason: "rotated",
+          lastActiveAt: new Date(),
+        },
+      }
+    );
+
+    const nextUserAgent = req.headers["user-agent"] || "";
+    const nextDevice = parseDeviceInfo(nextUserAgent);
+    const nextClientIp = getClientIp(req);
+
+    await Session.create({
+      user: user._id,
+      sessionKeyHash: hashToken(nextRefreshToken),
+      userAgent: nextDevice.userAgent,
+      ip: nextClientIp,
+      approxLocation: getApproxLocation(nextClientIp),
+      browser: nextDevice.browser,
+      os: nextDevice.os,
+      deviceName: nextDevice.deviceName,
+      lastActiveAt: new Date(),
+    });
 
     user.refreshTokenId = nextRefreshTokenId;
     user.refreshTokenHash = hashToken(nextRefreshToken);
     user.refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // Revoke old session
-// Revoke old session
-await Session.findOneAndUpdate(
-  {
-    user: user._id,
-    sessionKeyHash: hashToken(refreshToken),
-    revokedAt: null,
-  },
-  {
-    $set: {
-      revokedAt: new Date(),
-      revokedReason: "rotated",
-      lastActiveAt: new Date(),
-    },
-  }
-);
+    await user.save({ validateBeforeSave: false });
 
-// Build clean device info for the NEW rotated session
-const nextUserAgent = req.headers["user-agent"] || "";
-const nextDevice = parseDeviceInfo(nextUserAgent);
-
-// Create new rotated session
-const nextClientIp =
-  req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-  req.headers["x-real-ip"] ||
-  req.socket?.remoteAddress ||
-  req.ip ||
-  "";
-
-const nextApproxLocation =
-  nextClientIp === "::1" || nextClientIp === "127.0.0.1"
-    ? "Localhost / Your computer"
-    : "Location lookup not connected yet";
-
-await Session.create({
-  user: user._id,
-  sessionKeyHash: hashToken(nextRefreshToken),
-  userAgent: nextDevice.userAgent,
-  ip: nextClientIp,
-  approxLocation: nextApproxLocation,
-  browser: nextDevice.browser,
-  os: nextDevice.os,
-  deviceName: nextDevice.deviceName,
-  lastActiveAt: new Date(),
-});
-
-    await user.save();
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "REFRESH_SUCCESS",
+    });
 
     setAuthCookies(res, nextAccessToken, nextRefreshToken);
 
@@ -477,9 +587,7 @@ await Session.create({
 
     if (error?.name !== "JsonWebTokenError" && error?.name !== "TokenExpiredError") {
       // eslint-disable-next-line no-undef
-      if (process.env.NODE_ENV !== "production") {
-        console.error("refresh error:", error);
-      }
+      if (process.env.NODE_ENV !== "production") console.error("refresh error:", error);
     }
 
     return res.status(401).json({
@@ -492,22 +600,15 @@ await Session.create({
 /**
  * POST /api/v1/auth/logout
  */
-// controllers/authController.js
 export async function logoutUser(req, res) {
   try {
     const refreshToken = req.cookies?.refreshToken || "";
 
-    const cookieOptions = clearCookieOptions();
-
     if (refreshToken) {
       const refreshHash = hashToken(refreshToken);
 
-      // Revoke matching session record
       await Session.findOneAndUpdate(
-        {
-          sessionKeyHash: refreshHash,
-          revokedAt: null,
-        },
+        { sessionKeyHash: refreshHash, revokedAt: null },
         {
           $set: {
             revokedAt: new Date(),
@@ -517,7 +618,6 @@ export async function logoutUser(req, res) {
         }
       );
 
-      // If token is valid enough to identify user, clear stored refresh fields
       try {
         const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
           algorithms: ["HS256"],
@@ -525,15 +625,18 @@ export async function logoutUser(req, res) {
           audience: JWT_AUDIENCE,
         });
 
-        const userId = payload?.sub;
-
-        if (userId) {
-          await User.findByIdAndUpdate(userId, {
+        if (payload?.sub) {
+          await User.findByIdAndUpdate(payload.sub, {
             $set: {
               refreshTokenHash: "",
               refreshTokenId: "",
               refreshTokenExpiresAt: null,
             },
+          });
+
+          await logSecurityEvent(req, {
+            user: payload.sub,
+            type: "LOGOUT",
           });
         }
       } catch {
@@ -541,8 +644,7 @@ export async function logoutUser(req, res) {
       }
     }
 
-    res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", cookieOptions);
+    clearAuthCookies(res);
 
     return res.status(200).json({
       success: true,
@@ -550,19 +652,16 @@ export async function logoutUser(req, res) {
     });
   } catch (error) {
     // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("logout error:", error);
-    }
+    if (process.env.NODE_ENV !== "production") console.error("logout error:", error);
 
-    res.clearCookie("accessToken", clearCookieOptions());
-    res.clearCookie("refreshToken", clearCookieOptions());
+    clearAuthCookies(res);
 
     return res.status(200).json({
       success: true,
       message: "Logged out successfully.",
     });
   }
-};
+}
 
 /**
  * GET /api/v1/auth/me
@@ -573,11 +672,8 @@ export async function me(req, res) {
 
     const user = await User.findById(userId);
     if (!user || user.isActive === false) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found.",
-      });
-    };
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
 
     return res.status(200).json({
       success: true,
@@ -585,112 +681,83 @@ export async function me(req, res) {
     });
   } catch (error) {
     // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("getMe error:", error);
-    }
+    if (process.env.NODE_ENV !== "production") console.error("getMe error:", error);
 
     return res.status(500).json({
       success: false,
       message: "Failed to load user profile.",
     });
   }
-};
+}
 
-// Get Sessions
+/**
+ * GET sessions
+ */
 export async function getSessions(req, res) {
   try {
     const userId = req.user?._id || req.user?.id;
     const currentRefreshToken = getRefreshTokenFromRequest(req);
     const currentSessionHash = currentRefreshToken ? hashToken(currentRefreshToken) : "";
 
-    const sessions = await Session.find({
-      user: userId,
-      revokedAt: null,
-    })
+    const sessions = await Session.find({ user: userId, revokedAt: null })
       .sort({ lastActiveAt: -1, createdAt: -1 })
-      .select("_id deviceName browser os ip approxLocation createdAt lastActiveAt sessionKeyHash")
+      .select("_id deviceName browser os ip approxLocation createdAt lastActiveAt sessionKeyHash isTrusted")
       .lean();
 
     const items = sessions.map((session) => {
-  const isCurrent =
-    !!currentSessionHash &&
-    String(session.sessionKeyHash) === String(currentSessionHash);
+      const isCurrent =
+        !!currentSessionHash && String(session.sessionKeyHash) === String(currentSessionHash);
 
-  return {
-    // Main ID used by frontend buttons
-    id: session._id.toString(),
-    _id: session._id,
-
-    // Device display
-    device: session.deviceName || "Device",
-    deviceName: session.deviceName || "Device",
-    browser: session.browser || "Unknown",
-    os: session.os || "Unknown",
-
-    // Security details
-    ip: session.ip || "Not available",
-    location: session.approxLocation || "Not available",
-    approxLocation: session.approxLocation || "Not available",
-
-    // Time details
-    createdAt: session.createdAt || null,
-    lastActiveAt: session.lastActiveAt || null,
-
-    // Status flags
-    isCurrent,
-    isTrusted: !!session.isTrusted,
-  };
-});
-
-    return res.status(200).json({
-      success: true,
-      items,
+      return {
+        id: session._id.toString(),
+        _id: session._id,
+        device: session.deviceName || "Device",
+        deviceName: session.deviceName || "Device",
+        browser: session.browser || "Unknown",
+        os: session.os || "Unknown",
+        ip: session.ip || "Not available",
+        location: session.approxLocation || "Not available",
+        approxLocation: session.approxLocation || "Not available",
+        createdAt: session.createdAt || null,
+        lastActiveAt: session.lastActiveAt || null,
+        isCurrent,
+        isTrusted: !!session.isTrusted,
+      };
     });
+
+    return res.status(200).json({ success: true, items });
   } catch (error) {
     // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("getSessions error:", error);
-    }
+    if (process.env.NODE_ENV !== "production") console.error("getSessions error:", error);
 
     return res.status(500).json({
       success: false,
       message: "Failed to fetch sessions.",
     });
   }
-};
+}
 
-// Revoke Session
+/**
+ * Revoke one session
+ */
 export async function revokeSession(req, res) {
   try {
     const userId = req.user?._id || req.user?.id;
     const sessionId = req.params.id;
-
     const currentRefreshToken = getRefreshTokenFromRequest(req);
     const currentSessionHash = currentRefreshToken ? hashToken(currentRefreshToken) : "";
 
-    const session = await Session.findOne({
-      _id: sessionId,
-      user: userId,
-    });
+    const session = await Session.findOne({ _id: sessionId, user: userId });
 
     if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: "Session not found.",
-      });
+      return res.status(404).json({ success: false, message: "Session not found." });
     }
 
     if (session.revokedAt) {
-      return res.status(400).json({
-        success: false,
-        message: "Session has already been revoked.",
-      });
+      return res.status(400).json({ success: false, message: "Session has already been revoked." });
     }
 
-    if (
-      currentSessionHash &&
-      String(session.sessionKeyHash) === String(currentSessionHash)
-    ) {
+    if (currentSessionHash && String(session.sessionKeyHash) === String(currentSessionHash)) {
       return res.status(400).json({
         success: false,
         message: "Use logout to end your current session.",
@@ -709,9 +776,7 @@ export async function revokeSession(req, res) {
     });
   } catch (error) {
     // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("revokeSession error:", error);
-    }
+    if (process.env.NODE_ENV !== "production") console.error("revokeSession error:", error);
 
     return res.status(500).json({
       success: false,
@@ -720,11 +785,12 @@ export async function revokeSession(req, res) {
   }
 }
 
-// Revode Other Session
+/**
+ * Revoke other sessions
+ */
 export async function revokeOtherSessions(req, res) {
   try {
     const userId = req.user?._id || req.user?.id;
-
     const currentRefreshToken = getRefreshTokenFromRequest(req);
     const currentSessionHash = currentRefreshToken ? hashToken(currentRefreshToken) : "";
 
@@ -757,13 +823,291 @@ export async function revokeOtherSessions(req, res) {
     });
   } catch (error) {
     // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("revokeOtherSessions error:", error);
-    }
+    if (process.env.NODE_ENV !== "production") console.error("revokeOtherSessions error:", error);
 
     return res.status(500).json({
       success: false,
       message: "Failed to revoke other sessions.",
     });
   }
-};
+}
+
+/**
+ * POST /api/v1/auth/forgot-password
+ */
+export async function forgotPassword(req, res) {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const genericMessage = "If that email exists, a password reset link has been sent.";
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    const user = await User.findOne({ email }).select("+passwordResetToken +passwordResetExpires");
+
+    if (!user || user.isActive === false) {
+      return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    const { rawToken, hashedToken } = createPasswordResetToken();
+
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    await user.save({ validateBeforeSave: false });
+
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "FORGOT_PASSWORD_REQUEST",
+    });
+
+    const resetUrl = `${getClientUrl()}/reset-password/${rawToken}`;
+
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") {
+      console.log("PASSWORD RESET URL:", resetUrl);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: genericMessage,
+      // eslint-disable-next-line no-undef
+      resetUrl: process.env.NODE_ENV !== "production" ? resetUrl : undefined,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") console.error("forgotPassword error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to process password reset request.",
+    });
+  }
+}
+
+/**
+ * PATCH /api/v1/auth/reset-password/:token
+ */
+export async function resetPassword(req, res) {
+  try {
+    const rawToken = String(req.params?.token || "").trim();
+    const password = String(req.body?.password || "");
+    const confirmPassword = String(req.body?.confirmPassword || "");
+
+    if (!rawToken || rawToken.length < 32) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset link is invalid, expired, or already used.",
+      });
+    }
+
+    if (!password || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Password and confirm password are required.",
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match." });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+      });
+    }
+
+    const hashedToken = hashToken(rawToken);
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: new Date() },
+    }).select(
+      "+password +passwordHistory +passwordResetToken +passwordResetExpires +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +failedLoginAttempts +lockUntil"
+    );
+
+    if (!user || user.isActive === false) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset link is invalid, expired, or already used.",
+      });
+    }
+
+    if (user.password && (await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from your current password.",
+      });
+    }
+
+    for (const oldPassword of user.passwordHistory || []) {
+      if (oldPassword?.hash && (await bcrypt.compare(password, oldPassword.hash))) {
+        return res.status(400).json({
+          success: false,
+          message: "New password must be different from previous passwords.",
+        });
+      }
+    }
+
+    if (user.password) {
+      user.passwordHistory = [
+        { hash: user.password, changedAt: new Date() },
+        ...(user.passwordHistory || []),
+      ].slice(0, 5);
+    }
+
+    user.password = password;
+    user.passwordResetToken = "";
+    user.passwordResetExpires = null;
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    user.lastPasswordResetAt = new Date();
+
+    user.bumpTokenVersion?.();
+    user.clearRefreshToken?.();
+
+    await Session.deleteMany({ user: user._id });
+    await user.save();
+
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "PASSWORD_RESET_SUCCESS",
+    });
+
+    clearAuthCookies(res);
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful. Please log in again.",
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") console.error("resetPassword error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to reset password.",
+    });
+  }
+}
+
+/**
+ * GET /api/v1/auth/verify-email/:token
+ */
+export async function verifyEmail(req, res) {
+  try {
+    const rawToken = String(req.params?.token || "").trim();
+
+    if (!rawToken || rawToken.length < 32) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification link is invalid or expired.",
+      });
+    }
+
+    const hashedToken = hashToken(rawToken);
+
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() },
+    }).select("+emailVerificationToken +emailVerificationExpires");
+
+    if (!user || user.isActive === false) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification link is invalid or expired.",
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = "";
+    user.emailVerificationExpires = null;
+
+    await user.save({ validateBeforeSave: false });
+
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "EMAIL_VERIFIED",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Email verified successfully. You can now log in.",
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") console.error("verifyEmail error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to verify email.",
+    });
+  }
+}
+
+/**
+ * POST /api/v1/auth/resend-verification
+ */
+export async function resendVerificationEmail(req, res) {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+
+    const genericMessage =
+      "If that account exists and is not verified, a new verification link has been sent.";
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    const user = await User.findOne({ email }).select(
+      "+emailVerificationToken +emailVerificationExpires"
+    );
+
+    if (!user || user.isActive === false || user.isEmailVerified === true) {
+      return res.status(200).json({ success: true, message: genericMessage });
+    }
+
+    const { rawToken, hashedToken } = createEmailVerificationToken();
+
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await user.save({ validateBeforeSave: false });
+
+    await logSecurityEvent(req, {
+      user: user._id,
+      email: user.email,
+      type: "EMAIL_VERIFICATION_RESENT",
+    });
+
+    const verificationUrl = `${getClientUrl()}/verify-email/${rawToken}`;
+
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") {
+      console.log("RESEND EMAIL VERIFICATION URL:", verificationUrl);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: genericMessage,
+      // eslint-disable-next-line no-undef
+      verificationUrl: process.env.NODE_ENV !== "production" ? verificationUrl : undefined,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") {
+      console.error("resendVerificationEmail error:", error);
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to process verification request.",
+    });
+  }
+}

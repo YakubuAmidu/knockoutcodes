@@ -1,31 +1,28 @@
-// routes/sessionRoutes.js
 import express from "express";
 import {
   listSessions,
   upsertCurrentSession,
   revokeSessionById,
   revokeOtherSessions,
+  listAllSessionsAdmin,
+  updateSessionTrustAdmin,
+  revokeSessionAdmin,
+  cleanupOldSessionsAdmin,
 } from "../controllers/sessionController.js";
 
-import { authRequired } from "../middleware/authMiddleware.js";
+import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
 import { csrfRequired } from "../middleware/csrfMiddleware.js";
-
-import {
-  publicShield,
-  writeShield,
-} from "../middleware/securityShield.js";
+import { publicShield, writeShield } from "../middleware/securityShield.js";
 
 const router = express.Router();
 
 /**
- * USER SESSION ROUTES
  * Mounted at: /api/v1/auth/sessions
+ * USER ROUTES ONLY
  */
 
-// Get my active devices/sessions
 router.get("/", ...publicShield, authRequired, listSessions);
 
-// Create/update current session after login or refresh
 router.post(
   "/upsert",
   ...writeShield,
@@ -34,18 +31,68 @@ router.post(
   upsertCurrentSession
 );
 
-// Revoke all other devices except current one
-// ✅ this MUST come first
-router.delete(
-  "/others",
+/**
+ * Keep BOTH routes so your current frontend does not break.
+ */
+router.post(
+  "/revoke-others",
+  ...writeShield,
   csrfRequired,
   authRequired,
   revokeOtherSessions
 );
 
-// ✅ this MUST come after /others
+router.delete(
+  "/others",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  revokeOtherSessions
+);
+
+/**
+ * ADMIN SESSION ROUTES
+ * Mounted at: /api/v1/auth/sessions/admin
+ */
+
+router.get(
+  "/admin",
+  ...publicShield,
+  authRequired,
+  adminOnly,
+  listAllSessionsAdmin
+);
+
+router.patch(
+  "/admin/:id/trust",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  updateSessionTrustAdmin
+);
+
+router.delete(
+  "/admin/cleanup",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  cleanupOldSessionsAdmin
+);
+
+router.delete(
+  "/admin/:id/revoke",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  revokeSessionAdmin
+);
+
 router.delete(
   "/:id",
+  ...writeShield,
   csrfRequired,
   authRequired,
   revokeSessionById

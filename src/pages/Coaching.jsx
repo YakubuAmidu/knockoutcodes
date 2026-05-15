@@ -2,36 +2,20 @@
 import { useMemo } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+
 import { useToast } from "../components/Toast";
 import { getCsrfToken } from "../../utils/csrf";
-
-// ✅ redux hooks
-import { useDispatch, useSelector } from "react-redux";
 import { COACHING_ACTIONS } from "../reducers/coaching/coachingActionTypes";
 
-/**
- * KnockoutCodes — Elite 1-on-1 BOXING Coaching (Backend-Ready, Clean)
- * - Saves requests to /api/v1/coachings
- * - Strong validation + deterministic error handling
- * - Bot hardening (headers + honeypot)
- * - Toast only (no inline message at bottom of form)
- * - Clears form on success
- */
-
-// ✅ env base URL (empty means same origin)
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
-
-// ✅ Admin email via env (safe fallback)
-const ADMIN_EMAIL =
-  import.meta.env.VITE_BOOKING_ADMIN_EMAIL || "coaching@yourdomain.com";
 
 const COACHING_ENDPOINT = "/coachings";
 
 const CAL_URL =
   "https://cal.com/knockoutcodes/1-on-1-coaching-session?overlayCalendar=true";
 
-// ✅ Coaching types (single source of truth)
 const COACHING_TYPES = [
   "Power Punch Mechanics",
   "Speed + Combination Flow",
@@ -45,43 +29,48 @@ const COACHING_TYPES = [
 
 const DEFAULT_COACHING_TYPE = COACHING_TYPES[0];
 
-// ✅ length rules (tight + consistent)
 const LIMITS = {
   fullName: { min: 2, max: 80 },
   email: { min: 6, max: 120 },
-  phone: { min: 7, max: 25 }, // ✅ phone length min/max = 10 (US digits)
+  phone: { min: 7, max: 25 },
   coachingType: { min: 3, max: 80 },
   timeZone: { min: 3, max: 60 },
   goals: { min: 20, max: 1200 },
 };
 
-// --------- helpers ---------
+function getTodayYYYYMMDD() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isValidDateYYYYMMDD(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function isValidTimeHHMM(value) {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(value || ""));
+}
+
+function isValidTimeZone(value) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function toISOFromLocalDateTime(dateStr, timeStr, timeZone) {
   try {
-    if (!dateStr || !timeStr) return null;
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const [hh, mm] = timeStr.split(":").map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d, hh, mm, 0, 0));
+    if (!dateStr || !timeStr || !timeZone) return null;
+    if (!isValidDateYYYYMMDD(dateStr) || !isValidTimeHHMM(timeStr)) return null;
+    if (!isValidTimeZone(timeZone)) return null;
 
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const [hour, minute] = timeStr.split(":").map(Number);
 
-    const parts = fmt
-      .formatToParts(dt)
-      .reduce((acc, p) => ((acc[p.type] = p.value), acc), {});
-    const localISO = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:00`;
-    const guess = new Date(localISO);
-    const utcISO = new Date(
-      guess.getTime() - guess.getTimezoneOffset() * 60 * 1000
-    ).toISOString();
-    return utcISO;
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+
+    return utcDate.toISOString();
   } catch {
     return null;
   }
@@ -108,6 +97,15 @@ function onlyDigitsPlus(str) {
   return String(str || "").replace(/[^\d+]/g, "");
 }
 
+function hasSpamPattern(str) {
+  const value = String(str || "");
+  const links = value.match(/https?:\/\/|www\./gi);
+  const hasTooManyLinks = (links?.length || 0) >= 2;
+  const hasRepeatingChars = /([a-zA-Z0-9!?.])\1{9,}/.test(value);
+
+  return hasTooManyLinks || hasRepeatingChars;
+}
+
 function normalizeCoachingType(value) {
   const v = normalizeSpaces(stripAngleBrackets(value));
   return COACHING_TYPES.includes(v) ? v : DEFAULT_COACHING_TYPE;
@@ -127,7 +125,6 @@ export default function Coaching() {
   const form = useSelector((s) => s.coaching?.form);
   const status = useSelector((s) => s.coaching?.status);
 
-  // ✅ safe fallback so UI never crashes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeForm = form || {
     fullName: "",
@@ -145,29 +142,34 @@ export default function Coaching() {
     nickName: "",
   };
 
+  const today = useMemo(() => getTodayYYYYMMDD(), []);
+
   const selectedCoachingType = useMemo(
     () => normalizeCoachingType(safeForm.coachingType),
     [safeForm.coachingType]
   );
 
   const emailSubject = useMemo(
-    () => `KnockoutCodes Boxing Coaching — ${safeForm.fullName || "(no name)"}`,
+    () =>
+      `KnockoutCodes Boxing Coaching — ${
+        normalizeSpaces(stripAngleBrackets(safeForm.fullName)) || "(no name)"
+      }`,
     [safeForm.fullName]
   );
 
   const emailSummary = useMemo(
     () =>
       [
-        `Name: ${safeForm.fullName}`,
-        `Email: ${safeForm.email}`,
-        `Phone: ${safeForm.phone || "—"}`,
+        `Name: ${normalizeSpaces(stripAngleBrackets(safeForm.fullName))}`,
+        `Email: ${normalizeSpaces(stripAngleBrackets(safeForm.email))}`,
+        `Phone: ${onlyDigitsPlus(safeForm.phone) || "—"}`,
         `Coaching Type: ${selectedCoachingType}`,
         `Duration: ${safeForm.duration} mins`,
-        `Time Zone: ${safeForm.timeZone}`,
+        `Time Zone: ${normalizeSpaces(stripAngleBrackets(safeForm.timeZone))}`,
         `Preferred: ${safeForm.date || "—"} at ${safeForm.time || "—"}`,
         `Google Meet: ${safeForm.preferGoogleMeet ? "Yes" : "No"}`,
         `Marketing Opt-In: ${safeForm.marketingOptIn ? "Yes" : "No"}`,
-        `Goals: ${safeForm.goals || "—"}`,
+        `Goals: ${normalizeSpaces(stripAngleBrackets(safeForm.goals)) || "—"}`,
       ].join("\n"),
     [safeForm, selectedCoachingType]
   );
@@ -179,6 +181,10 @@ export default function Coaching() {
     });
   }
 
+  function setStatus(next) {
+    dispatch({ type: COACHING_ACTIONS.SET_STATUS, payload: next });
+  }
+
   function onChange(e) {
     const { name, value, type, checked } = e.target;
 
@@ -187,17 +193,18 @@ export default function Coaching() {
       return;
     }
 
-    // ✅ auto-normalize phone as digits only (keeps UX clean + matches backend)
-   if (name === "phone") {
-  setField(name, onlyDigitsPlus(value).slice(0, LIMITS.phone.max));
-  return;
-}
+    if (name === "phone") {
+      setField(name, onlyDigitsPlus(value).slice(0, LIMITS.phone.max));
+      return;
+    }
+
+    if (name === "duration") {
+      const safeDuration = ["30", "60", "90"].includes(value) ? value : "60";
+      setField(name, safeDuration);
+      return;
+    }
 
     setField(name, type === "checkbox" ? checked : value);
-  }
-
-  function setStatus(next) {
-    dispatch({ type: COACHING_ACTIONS.SET_STATUS, payload: next });
   }
 
   function validate() {
@@ -207,14 +214,15 @@ export default function Coaching() {
       normalizeSpaces(stripAngleBrackets(safeForm.fullName)),
       LIMITS.fullName.max
     );
+
     const email = clampLen(
       normalizeSpaces(stripAngleBrackets(safeForm.email)).toLowerCase(),
       LIMITS.email.max
     );
 
-   const phone = onlyDigitsPlus(
-  clampLen(normalizeSpaces(stripAngleBrackets(safeForm.phone)), 40)
-).slice(0, LIMITS.phone.max);
+    const phone = onlyDigitsPlus(
+      clampLen(normalizeSpaces(stripAngleBrackets(safeForm.phone)), 40)
+    ).slice(0, LIMITS.phone.max);
 
     const goals = clampLen(
       normalizeSpaces(stripAngleBrackets(safeForm.goals)),
@@ -228,7 +236,10 @@ export default function Coaching() {
       LIMITS.timeZone.max
     );
 
+    const duration = Number(safeForm.duration);
+
     if (!fullName) return { ok: false, msg: "Please enter your full name." };
+
     const nameLenErr = validateLen(
       "Full name",
       fullName,
@@ -237,7 +248,12 @@ export default function Coaching() {
     );
     if (nameLenErr) return { ok: false, msg: nameLenErr };
 
+    if (hasSpamPattern(fullName)) {
+      return { ok: false, msg: "Name looks invalid. Please rewrite it." };
+    }
+
     if (!email) return { ok: false, msg: "Email is required." };
+
     const emailLenErr = validateLen(
       "Email",
       email,
@@ -245,9 +261,11 @@ export default function Coaching() {
       LIMITS.email.max
     );
     if (emailLenErr) return { ok: false, msg: emailLenErr };
+
     if (!isEmailLike(email)) return { ok: false, msg: "Enter a valid email." };
 
     if (!phone) return { ok: false, msg: "Phone number is required." };
+
     const phoneLenErr = validateLen(
       "Phone number",
       phone,
@@ -256,14 +274,16 @@ export default function Coaching() {
     );
     if (phoneLenErr) return { ok: false, msg: phoneLenErr };
 
-    if (!coachingType)
-      return { ok: false, msg: "Please choose a coaching type." };
-    if (!COACHING_TYPES.includes(coachingType))
+    if (!COACHING_TYPES.includes(coachingType)) {
       return { ok: false, msg: "Invalid coaching type selected." };
+    }
 
-    if (!safeForm.duration) return { ok: false, msg: "Duration is required." };
+    if (![30, 60, 90].includes(duration)) {
+      return { ok: false, msg: "Invalid duration selected." };
+    }
 
     if (!timeZone) return { ok: false, msg: "Time zone is required." };
+
     const tzLenErr = validateLen(
       "Time zone",
       timeZone,
@@ -272,14 +292,33 @@ export default function Coaching() {
     );
     if (tzLenErr) return { ok: false, msg: tzLenErr };
 
+    if (!isValidTimeZone(timeZone)) {
+      return { ok: false, msg: "Please enter a valid time zone." };
+    }
+
     if (!safeForm.date) return { ok: false, msg: "Pick a preferred date." };
+
+    if (!isValidDateYYYYMMDD(safeForm.date)) {
+      return { ok: false, msg: "Invalid date format." };
+    }
+
+    if (safeForm.date < today) {
+      return { ok: false, msg: "Preferred date cannot be in the past." };
+    }
+
     if (!safeForm.time) return { ok: false, msg: "Pick a preferred time." };
 
-    if (!goals)
+    if (!isValidTimeHHMM(safeForm.time)) {
+      return { ok: false, msg: "Invalid time selected." };
+    }
+
+    if (!goals) {
       return {
         ok: false,
-        msg: "Please write what you want from this session (your goals).",
+        msg: "Please write what you want from this session.",
       };
+    }
+
     const goalsLenErr = validateLen(
       "Message",
       goals,
@@ -288,19 +327,38 @@ export default function Coaching() {
     );
     if (goalsLenErr) return { ok: false, msg: goalsLenErr };
 
-    if (!safeForm.acceptPolicies)
+    if (hasSpamPattern(goals)) {
+      return {
+        ok: false,
+        msg: "Message looks like spam. Please rewrite and try again.",
+      };
+    }
+
+    if (!safeForm.acceptPolicies) {
       return { ok: false, msg: "Please accept the coaching policies." };
+    }
 
     return {
       ok: true,
-      cleaned: { fullName, email, phone, goals, coachingType, timeZone },
+      cleaned: {
+        fullName,
+        email,
+        phone,
+        goals,
+        coachingType,
+        timeZone,
+        duration,
+      },
     };
   }
 
   async function onSubmit(e) {
     e.preventDefault();
 
+    if (status?.state === "loading") return;
+
     const v = validate();
+
     if (!v.ok) {
       setStatus({ state: "error", message: v.msg });
       if (typeof showToast === "function") showToast(v.msg, "error");
@@ -320,7 +378,7 @@ export default function Coaching() {
       email: v.cleaned.email,
       phone: v.cleaned.phone,
       coachingType: v.cleaned.coachingType,
-      duration: Number(safeForm.duration),
+      duration: v.cleaned.duration,
       timeZone: v.cleaned.timeZone,
       preferredDate: safeForm.date,
       preferredTime: safeForm.time,
@@ -330,6 +388,7 @@ export default function Coaching() {
       marketingOptIn: !!safeForm.marketingOptIn,
       emailSubject,
       emailSummary,
+      nickName: safeForm.nickName || "",
       source: {
         channel: "web",
         pageUrl: typeof window !== "undefined" ? window.location.href : null,
@@ -341,82 +400,82 @@ export default function Coaching() {
     const timeout = setTimeout(() => controller.abort(), 12000);
 
     try {
-  const csrfToken = await getCsrfToken();
+      const csrfToken = await getCsrfToken();
 
-  const res = await fetch(`${API_BASE_URL}${COACHING_ENDPOINT}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Requested-With": "fetch",
-      "X-Form-TS": String(Date.now()),
-      "X-Honey": "",
-      "X-CSRF-Token": csrfToken,
-    },
-    body: JSON.stringify(payload),
-    credentials: "include",
-    signal: controller.signal,
-  });
+      const res = await fetch(`${API_BASE_URL}${COACHING_ENDPOINT}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-Requested-With": "fetch",
+          "X-Form-TS": String(Date.now()),
+          "X-Honey": "",
+          "X-CSRF-Token": csrfToken,
+        },
+        body: JSON.stringify(payload),
+        credentials: "include",
+        signal: controller.signal,
+      });
 
-  let data = {};
-  const text = await res.text();
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { message: text };
+      let data = {};
+      const text = await res.text();
+
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+      }
+
+      if (!res.ok) {
+        const msg = data?.message || `Request failed (${res.status})`;
+        setStatus({ state: "error", message: msg });
+        if (typeof showToast === "function") showToast(msg, "error");
+        return;
+      }
+
+      const successMsg =
+        data?.message || "Request received! We’ll email you shortly.";
+
+      setStatus({ state: "success", message: successMsg });
+      if (typeof showToast === "function") showToast(successMsg, "success");
+
+      dispatch({ type: COACHING_ACTIONS.RESET_AFTER_SUCCESS });
+    } catch (err) {
+      const msg =
+        err?.name === "AbortError"
+          ? "Request timed out. Please try again or book instantly through Cal.com."
+          : "Network issue. Your request was not sent. Please try again or use Cal.com.";
+
+      setStatus({
+        state: err?.name === "AbortError" ? "warning" : "error",
+        message: msg,
+      });
+
+      if (typeof showToast === "function") {
+        showToast(msg, err?.name === "AbortError" ? "warning" : "error");
+      }
+    } finally {
+      clearTimeout(timeout);
     }
-  }
-
-  if (!res.ok) {
-    const msg = data?.message || `Request failed (${res.status})`;
-    setStatus({ state: "error", message: msg });
-    if (typeof showToast === "function") showToast(msg, "error");
-    return;
-  }
-
-  const successMsg =
-    data?.message || "Request received! We’ll email you shortly.";
-
-  setStatus({ state: "success", message: successMsg });
-  if (typeof showToast === "function") showToast(successMsg, "success");
-
-  dispatch({ type: COACHING_ACTIONS.RESET_AFTER_SUCCESS });
-} catch (err) {
-  if (err?.name === "AbortError") {
-    const msg = "Request timed out. Please try again (or book via Cal.com).";
-    setStatus({ state: "warning", message: msg });
-    if (typeof showToast === "function") showToast(msg, "warning");
-    return;
-  }
-
-  const fallbackMsg =
-  "Network issue. Your request was not sent. Please try again or use Cal.com.";
-
-setStatus({ state: "warning", message: fallbackMsg });
-if (typeof showToast === "function") showToast(fallbackMsg, "warning");
-
-  setStatus({ state: "warning", message: fallbackMsg });
-  if (typeof showToast === "function") showToast(fallbackMsg, "warning");
-} finally {
-  clearTimeout(timeout);
-}
   }
 
   return (
     <Page initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <Hero>
         <Badge as={motion.div} initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          SHARPEN YOUR HANDS FAST
+          PRIVATE BOXING COACHING
         </Badge>
 
         <Title as={motion.h1} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          KnockoutCodes — Elite 1-on-1 Boxing Coaching
+          One Mistake Can Make Your Punches Weak — Let’s Fix It Fast.
         </Title>
 
         <Sub>
-          Cleaner technique. Faster combos. Better defense. Real fight IQ. Leave
-          this session with a drill plan you can run every day — built for your
-          style.
+          Premium 1-on-1 boxing coaching built to sharpen your power, defense,
+          footwork, combinations, conditioning, and fight IQ — even if you train
+          without a gym.
         </Sub>
 
         {CAL_URL && (
@@ -439,7 +498,7 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.08, type: "spring", stiffness: 120, damping: 18 }}
         >
-          <CardTitle>Request Your Boxing Session</CardTitle>
+          <CardTitle>Request Your Private Boxing Session</CardTitle>
 
           <Form id="book-form" onSubmit={onSubmit} noValidate>
             <Row>
@@ -536,6 +595,7 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
                   required
                   minLength={LIMITS.timeZone.min}
                   maxLength={LIMITS.timeZone.max}
+                  placeholder="America/Los_Angeles"
                 />
               </Field>
             </Row>
@@ -543,18 +603,33 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
             <Row>
               <Field>
                 <Label htmlFor="date">Preferred date</Label>
-                <Input id="date" type="date" name="date" value={safeForm.date} onChange={onChange} required />
+                <Input
+                  id="date"
+                  type="date"
+                  name="date"
+                  value={safeForm.date}
+                  onChange={onChange}
+                  required
+                  min={today}
+                />
               </Field>
 
               <Field>
                 <Label htmlFor="time">Preferred time</Label>
-                <Input id="time" type="time" name="time" value={safeForm.time} onChange={onChange} required />
+                <Input
+                  id="time"
+                  type="time"
+                  name="time"
+                  value={safeForm.time}
+                  onChange={onChange}
+                  required
+                />
               </Field>
             </Row>
 
             <Row $columns="1">
               <Field>
-                <Label htmlFor="goals">What do you want from this boxing session?</Label>
+                <Label htmlFor="goals">What do you want to fix first?</Label>
                 <Textarea
                   id="goals"
                   name="goals"
@@ -564,16 +639,22 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
                   required
                   minLength={LIMITS.goals.min}
                   maxLength={LIMITS.goals.max}
-                  placeholder="Tell me your level, stance (orthodox/southpaw), what you struggle with (power, speed, defense, gas tank), and what you want to fix first…"
+                  placeholder="Tell me your level, stance, biggest weakness, training setup, and what you want to improve first..."
                 />
               </Field>
             </Row>
 
-            {/* Honeypot (hidden) */}
-            <div style={{ position: "absolute", left: -9999, opacity: 0 }} aria-hidden={true}>
+            <Honeypot aria-hidden="true">
               <label htmlFor="nickName">Nickname</label>
-              <input id="nickName" name="nickName" value={safeForm.nickName} onChange={onChange} />
-            </div>
+              <input
+                id="nickName"
+                name="nickName"
+                value={safeForm.nickName}
+                onChange={onChange}
+                tabIndex="-1"
+                autoComplete="off"
+              />
+            </Honeypot>
 
             <Row $columns="1">
               <Checks>
@@ -584,7 +665,7 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
                     checked={!!safeForm.preferGoogleMeet}
                     onChange={onChange}
                   />
-                  <span>Use Google Meet (default)</span>
+                  <span>Use Google Meet</span>
                 </label>
 
                 <label className="check">
@@ -595,7 +676,7 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
                     onChange={onChange}
                   />
                   <span>
-                    Send me occasional discounts & KnockoutCodes updates (I can unsubscribe anytime)
+                    Send me occasional KnockoutCodes updates and discounts.
                   </span>
                 </label>
 
@@ -618,8 +699,14 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
             </Row>
 
             <Actions>
-              <Primary type="submit" disabled={status?.state === "loading"}>
-                {status?.state === "loading" ? "Submitting…" : "Request 1-on-1 Boxing Coaching"}
+              <Primary
+                type="submit"
+                disabled={status?.state === "loading"}
+                aria-busy={status?.state === "loading"}
+              >
+                {status?.state === "loading"
+                  ? "Submitting…"
+                  : "Request Private Coaching"}
               </Primary>
 
               {CAL_URL && (
@@ -637,28 +724,29 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.12, type: "spring", stiffness: 120, damping: 18 }}
         >
-          <PolicyTitle>Read this before you book</PolicyTitle>
+          <PolicyTitle>What You Get Inside</PolicyTitle>
 
           <HooksList>
             <li>
-              <strong>1–3s HOOK:</strong> Fix one mistake… and your punches feel illegal.
+              <strong>Power:</strong> Clean mechanics so your punches feel heavier.
             </li>
             <li>
-              <strong>Hit harder:</strong> We sharpen your mechanics so every shot lands clean — no wasted motion.
+              <strong>Speed:</strong> Better rhythm, sharper combinations, less wasted motion.
             </li>
             <li>
-              <strong>Fight IQ:</strong> Learn what to throw, when to throw it, and why it works.
+              <strong>Defense:</strong> Slips, counters, guard discipline, and distance control.
             </li>
             <li>
-              <strong>Real plan:</strong> Leave with a drill schedule you can run daily (even no gym).
+              <strong>Footwork:</strong> Angles, balance, exits, and ring IQ.
             </li>
             <li>
-              <strong>Fast feedback:</strong> Live corrections — stance, balance, timing, distance, defense.
+              <strong>Plan:</strong> A simple drill structure you can repeat daily.
             </li>
           </HooksList>
 
           <small>
-            Book via Cal.com for instant scheduling, or request here and we confirm within 24 hours.
+            Book instantly through Cal.com or submit the form and we’ll confirm
+            your session details.
           </small>
         </PolicyCard>
       </Shell>
@@ -666,9 +754,6 @@ if (typeof showToast === "function") showToast(fallbackMsg, "warning");
   );
 }
 
-// =========================
-// styled
-// =========================
 const Page = styled(motion.main)`
   --bg: ${({ theme }) => theme.colors.darkBrown};
   --card: ${({ theme }) => theme.colors.brown};
@@ -679,8 +764,9 @@ const Page = styled(motion.main)`
 
   min-height: 100svh;
   background:
-    radial-gradient(1200px 600px at 10% 0%, rgba(214, 182, 159, 0.12), transparent 60%),
+    radial-gradient(1200px 600px at 10% 0%, rgba(214, 182, 159, 0.16), transparent 60%),
     radial-gradient(900px 500px at 90% 10%, rgba(214, 182, 159, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 30%),
     var(--bg);
   color: var(--ink);
 `;
@@ -688,58 +774,66 @@ const Page = styled(motion.main)`
 const Hero = styled.header`
   max-width: ${({ theme }) => theme.layout.max};
   margin: 0 auto;
-  padding: 72px 20px 28px;
+  padding: 78px 20px 32px;
   text-align: center;
 `;
 
 const Badge = styled.div`
   display: inline-block;
-  padding: 8px 14px;
+  padding: 9px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const Title = styled.h1`
-  margin: 18px auto 8px;
-  font-size: clamp(38px, 6vw, 64px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  margin: 18px auto 12px;
+  max-width: 950px;
+  font-size: clamp(38px, 6vw, 72px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
 `;
 
 const Sub = styled.p`
-  opacity: 0.9;
-  max-width: 780px;
+  opacity: 0.92;
+  max-width: 820px;
   margin: 0 auto;
-  font-size: clamp(16px, 1.8vw, 18px);
+  font-size: clamp(16px, 1.8vw, 19px);
+  line-height: 1.75;
 `;
 
 const CalBar = styled.div`
-  margin-top: 20px;
+  margin-top: 24px;
   display: inline-flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 
-  .cal-btn, .form-btn {
-    padding: 12px 16px;
+  .cal-btn,
+  .form-btn {
+    padding: 13px 17px;
     border-radius: ${({ theme }) => theme.radius.pill};
     background: ${({ theme }) => theme.colors.lightBrown};
     color: ${({ theme }) => theme.colors.black};
-    font-weight: 700;
+    font-weight: 800;
     border: none;
     cursor: pointer;
     text-decoration: none;
+    box-shadow: 0 14px 28px rgba(214, 182, 159, 0.2);
   }
 
   .form-btn {
     background: transparent;
     color: ${({ theme }) => theme.colors.white};
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
   }
 
   .or {
@@ -750,11 +844,11 @@ const CalBar = styled.div`
 
 const Shell = styled.section`
   max-width: ${({ theme }) => theme.layout.max};
-  margin: 12px auto 80px;
+  margin: 12px auto 90px;
   padding: 0 20px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 18px;
+  gap: 20px;
 
   @media (min-width: 980px) {
     grid-template-columns: 1.2fr 0.8fr;
@@ -762,15 +856,17 @@ const Shell = styled.section`
 `;
 
 const Card = styled.div`
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.0) 22%), var(--card);
-  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 30%),
+    var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: var(--shadow);
-  padding: 24px;
+  padding: 26px;
 `;
 
 const CardTitle = styled.h2`
-  font-size: 22px;
+  font-size: 23px;
   margin: 4px 0 18px;
 `;
 
@@ -799,28 +895,53 @@ const Field = styled.div`
 
 const Label = styled.label`
   font-size: 13px;
-  opacity: 0.9;
+  opacity: 0.92;
+  font-weight: 700;
 `;
 
 const inputBase = `
   width: 100%;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.045);
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 14px;
   color: #fff;
-  padding: 12px 14px;
+  padding: 13px 14px;
   outline: none;
   transition: 180ms ease;
-  box-shadow: inset 0 1px 0 rgba(0,0,0,0.2);
+  box-shadow: inset 0 1px 0 rgba(0,0,0,0.22);
+
+  &::placeholder {
+    color: rgba(255,255,255,0.48);
+  }
+
   &:focus {
-    border-color: rgba(255,255,255,0.45);
+    border-color: rgba(255,255,255,0.48);
     box-shadow: 0 0 0 4px rgba(214,182,159,0.16);
   }
 `;
 
 const Input = styled.input`${inputBase}`;
-const Select = styled.select`${inputBase}`;
-const Textarea = styled.textarea`${inputBase}`;
+
+const Select = styled.select`
+  ${inputBase}
+
+  option {
+    color: #111;
+    background: #fff;
+  }
+`;
+
+const Textarea = styled.textarea`
+  ${inputBase}
+  resize: vertical;
+`;
+
+const Honeypot = styled.div`
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+`;
 
 const Checks = styled.div`
   display: grid;
@@ -828,17 +949,19 @@ const Checks = styled.div`
 
   .check {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     user-select: none;
+    line-height: 1.55;
 
     input[type="checkbox"] {
-      transform: translateY(1px);
+      margin-top: 4px;
       accent-color: ${({ theme }) => theme.colors.lightBrown};
     }
 
     a {
       color: ${({ theme }) => theme.colors.lightBrown};
+      font-weight: 800;
     }
   }
 `;
@@ -852,52 +975,67 @@ const Actions = styled.div`
 const Primary = styled.button`
   background: ${({ theme }) => theme.colors.lightBrown};
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 800;
-  padding: 14px 18px;
+  font-weight: 900;
+  padding: 14px 19px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: none;
   cursor: pointer;
-  box-shadow: 0 12px 26px rgba(214,182,159,0.25);
+  box-shadow: 0 14px 30px rgba(214, 182, 159, 0.26);
   transition: 200ms ease;
 
-  &:hover { transform: translateY(-1px) scale(1.01); }
-  &:active { transform: translateY(0); }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:hover {
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 const Ghost = styled.a`
   background: transparent;
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
   padding: 14px 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: 200ms ease;
   text-decoration: none;
 
-  &:hover { background: rgba(255,255,255,0.06); }
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
 `;
 
 const PolicyCard = styled(Card)`
   small {
     display: block;
-    opacity: 0.75;
-    margin-top: 12px;
-    line-height: 1.6;
+    opacity: 0.76;
+    margin-top: 14px;
+    line-height: 1.65;
   }
 `;
 
 const PolicyTitle = styled.h3`
-  margin: 2px 0 12px;
+  margin: 2px 0 14px;
+  font-size: 22px;
 `;
 
 const HooksList = styled.ul`
   margin: 0;
   padding-left: 18px;
   display: grid;
-  gap: 10px;
-  line-height: 1.55;
+  gap: 11px;
+  line-height: 1.6;
 
-  strong { color: ${({ theme }) => theme.colors.lightBrown}; }
+  strong {
+    color: ${({ theme }) => theme.colors.lightBrown};
+  }
 `;

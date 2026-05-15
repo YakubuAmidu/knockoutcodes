@@ -14,14 +14,19 @@ import { subscriptionRequired } from "../middleware/subscriptionRequired.js";
 
 const router = express.Router();
 
-router.use(membershipShield()); // ✅ protects only this router
+router.use(membershipShield());
 
 router
   .route("/")
   .get(getMemberships)
   .post(authRequired, adminOnly, createMembership);
 
-router.get("/:id/lessons", authRequired, subscriptionRequired, getMembershipLessons);
+router.get(
+  "/:id/lessons",
+  authRequired,
+  subscriptionRequired,
+  getMembershipLessons
+);
 
 router
   .route("/:id")

@@ -63,7 +63,7 @@ export default function ManageUsers() {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await api.get("/api/v1/users");
+        const response = await api.get("/users");
         const responseData = response.data;
 
         // Expected backend shape:
@@ -197,7 +197,7 @@ export default function ManageUsers() {
       };
 
       const response = await api.patch(
-        `/api/v1/users/${selected._id}`,
+        `/users/${selected._id}`,
         payload
       );
       const responseData = response.data;
@@ -286,7 +286,7 @@ export default function ManageUsers() {
     const id = user._id || user.id;
     setDeletingId(id);
     try {
-      await api.delete(`/api/v1/users/${id}`);
+      await api.delete(`/users/${id}`);
 
       setUsers((prev) =>
         prev.filter((u) => (u._id || u.id) !== id)

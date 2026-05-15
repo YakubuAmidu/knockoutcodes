@@ -208,17 +208,53 @@ export function ToastProvider({
    * This guarantees it exists and never breaks.
    */
   const showToast = useCallback(
-    (message, variant = "neutral", duration) => {
-      const v = normalizeVariant(variant) || inferVariant(message, "");
+  (messageOrOptions, variant = "neutral", duration) => {
+    // Supports:
+    // showToast("Saved", "success")
+    // showToast({ type: "success", message: "Saved" })
+    // showToast({ variant: "success", title: "Saved", description: "Done" })
+
+    if (
+      messageOrOptions &&
+      typeof messageOrOptions === "object" &&
+      !Array.isArray(messageOrOptions)
+    ) {
+      const title =
+        messageOrOptions.title ||
+        messageOrOptions.message ||
+        messageOrOptions.text ||
+        "Notification";
+
+      const description =
+        messageOrOptions.description ||
+        messageOrOptions.desc ||
+        "";
+
+      const v =
+        normalizeVariant(messageOrOptions.variant) ||
+        normalizeVariant(messageOrOptions.type) ||
+        inferVariant(title, description);
+
       return push({
-        title: cleanText(message, MAX_TITLE_LEN),
-        description: "",
+        title: cleanText(title, MAX_TITLE_LEN),
+        description: cleanText(description, MAX_DESC_LEN),
         variant: v,
-        duration,
+        duration: messageOrOptions.duration ?? duration,
       });
-    },
-    [push]
-  );
+    }
+
+    const safeMessage = cleanText(messageOrOptions, MAX_TITLE_LEN);
+    const v = normalizeVariant(variant) || inferVariant(safeMessage, "");
+
+    return push({
+      title: safeMessage,
+      description: "",
+      variant: v,
+      duration,
+    });
+  },
+  [push]
+);
 
   const value = useMemo(
     () => ({ push, dismiss, dismissAll, showToast }),

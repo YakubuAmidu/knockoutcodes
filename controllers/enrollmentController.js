@@ -1,12 +1,41 @@
 // controllers/enrollmentController.js
+import Stripe from "stripe";
 import Course from "../models/CourseModel.js";
 import Enrollment from "../models/EnrollmentModel.js";
-import Stripe from "stripe";
+import UserSubscription from "../models/UserSubscriptionModel.js";
 
 // eslint-disable-next-line no-undef
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create a single enrollment (for checkout / seeding / admin)
+function normalizeLevel(value) {
+  const level = String(value || "").trim().toLowerCase();
+  if (level === "advanced") return "advance";
+  return level || "beginner";
+}
+
+function isSubscriptionActive(sub) {
+  if (!sub) return false;
+  if (!["active", "trialing"].includes(sub.status)) return false;
+
+  if (
+    sub.currentPeriodEnd &&
+    new Date(sub.currentPeriodEnd).getTime() < Date.now()
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function hasMembershipExactAccess(userLevel, requiredLevel) {
+  const cleanUserLevel = normalizeLevel(userLevel);
+  const cleanRequiredLevel = normalizeLevel(requiredLevel);
+
+  if (!cleanUserLevel || !cleanRequiredLevel) return false;
+
+  return cleanUserLevel === cleanRequiredLevel;
+}
+
 export const createEnrollment = async (req, res) => {
   try {
     const {
@@ -18,30 +47,25 @@ export const createEnrollment = async (req, res) => {
       status,
       rating,
       review,
-      user: bodyUser, // keep reading it, but we will restrict it
+      user: bodyUser,
     } = req.body;
 
-    const isAdmin = req.user.role === "admin";
-
-    if (!isAdmin) {
+    if (req.user?.role !== "admin") {
       return res.status(403).json({
         success: false,
-        message: "Forbidden. Only admins can create enrollments manually..."
+        message: "Forbidden. Only admins can create enrollments manually.",
       });
     }
 
-    // Admin must specify which user to to enroll
-    const userId = bodyUser;
-
-    if (!userId || !course) {
+    if (!bodyUser || !course) {
       return res.status(400).json({
         success: false,
-        message: "Admin must provide both user and course...",
+        message: "Admin must provide both user and course.",
       });
     }
 
-    // Ensure course exists
     const courseDoc = await Course.findById(course);
+
     if (!courseDoc) {
       return res.status(404).json({
         success: false,
@@ -49,41 +73,40 @@ export const createEnrollment = async (req, res) => {
       });
     }
 
-    // ✅ prevent duplicates
-    const existing = await Enrollment.findOne({
-      user: userId,
-      course,
-      status: { $ne: "cancelled" },
-    });
-
-    if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: "You are already enrolled in this course.",
-        enrollmentId: existing._id,
-      });
-    }
-
-    // ✅ safer defaults (pro)
-    // If you're not using Stripe webhook yet, keep "paid" for now.
-    // Later we will enforce: only webhook can set paid.
-    const enrollment = await Enrollment.create({
-      user: userId,
-      course,
-      pricePaid:
-        typeof pricePaid === "number" ? pricePaid : courseDoc.price ?? 0,
-      currency: currency || "USD",
-      paymentPlan: paymentPlan || "one-time",
-      paymentStatus: paymentStatus || "paid",
-      status: status || "active",
-      rating: rating ?? 5,
-      review: review || undefined,
-    });
+    const enrollment = await Enrollment.findOneAndUpdate(
+      {
+        user: bodyUser,
+        course,
+      },
+      {
+        $setOnInsert: {
+          user: bodyUser,
+          course,
+          startedAt: new Date(),
+        },
+        $set: {
+          pricePaid: typeof pricePaid === "number" ? pricePaid : courseDoc.price ?? 0,
+          currency: currency || "USD",
+          paymentPlan: paymentPlan || "one-time",
+          paymentStatus: paymentStatus || "paid",
+          status: status || "active",
+          rating: rating ?? 5,
+          review: review || "",
+          lastAccessedAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      }
+    );
 
     return res.status(201).json({
       success: true,
       message: "Enrollment created successfully.",
       data: enrollment,
+      enrollment,
     });
   } catch (error) {
     console.error("createEnrollment error:", error);
@@ -95,11 +118,9 @@ export const createEnrollment = async (req, res) => {
   }
 };
 
-// Get enrollments for the current user (for "My Courses" page)
 export const getMyEnrollments = async (req, res) => {
   try {
-    // ✅ Only allow the authenticated user
-    const userId = req.user?._id;
+    const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
@@ -110,7 +131,7 @@ export const getMyEnrollments = async (req, res) => {
 
     const enrollments = await Enrollment.find({
       user: userId,
-      status: { $ne: "cancelled" }, // ✅ optional: hide cancelled
+      status: { $ne: "cancelled" },
     })
       .populate("course", "title thumbnail level price salePrice isFree slug")
       .sort({ createdAt: -1 });
@@ -130,10 +151,9 @@ export const getMyEnrollments = async (req, res) => {
   }
 };
 
-// Check if the current user is enrolled in a given course
 export const getEnrollmentStatus = async (req, res) => {
   try {
-    const userId = req.user?._id;
+    const userId = req.user?._id || req.user?.id;
     const { courseId } = req.params;
 
     if (!userId || !courseId) {
@@ -143,19 +163,99 @@ export const getEnrollmentStatus = async (req, res) => {
       });
     }
 
+    const course = await Course.findById(courseId).select(
+      "_id title level requiredMembershipLevel isFree"
+    );
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found.",
+      });
+    }
+
+    if (course.isFree) {
+      return res.status(200).json({
+        success: true,
+        hasAccess: true,
+        accessType: "free",
+        isEnrolled: true,
+        status: "active",
+        paymentStatus: "paid",
+      });
+    }
+
     const enrollment = await Enrollment.findOne({
       user: userId,
-      course: courseId,
-      status: { $ne: "cancelled" },
+      course: course._id,
+      paymentStatus: "paid",
+      status: { $in: ["active", "completed"] },
     });
+
+    if (enrollment) {
+      return res.status(200).json({
+        success: true,
+        hasAccess: true,
+        accessType: "single-course",
+        isEnrolled: true,
+        enrollmentId: enrollment._id,
+        enrollment,
+        status: enrollment.status,
+        paymentStatus: enrollment.paymentStatus,
+        progressPercent: enrollment.progressPercent || 0,
+      });
+    }
+
+    const subscription = await UserSubscription.findOne({ user: userId }).select(
+      "_id membershipId accessLevel status currentPeriodEnd billingPeriod"
+    );
+
+    if (isSubscriptionActive(subscription)) {
+      const requiredLevel = normalizeLevel(
+        course.requiredMembershipLevel || course.level || "beginner"
+      );
+
+      const userLevel = normalizeLevel(
+        subscription.accessLevel || subscription.membershipId
+      );
+
+      if (hasMembershipExactAccess(userLevel, requiredLevel)) {
+        return res.status(200).json({
+          success: true,
+          hasAccess: true,
+          accessType: "membership",
+          isEnrolled: true,
+          status: "active",
+          paymentStatus: "paid",
+          requiredMembershipLevel: requiredLevel,
+          membershipAccess: {
+            membershipId: subscription.membershipId,
+            accessLevel: subscription.accessLevel,
+            subscriptionStatus: subscription.status,
+            billingPeriod: subscription.billingPeriod,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+          },
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        hasAccess: false,
+        isEnrolled: false,
+        accessType: null,
+        reason: "membership_level_too_low",
+        requiredMembershipLevel: requiredLevel,
+        userMembershipLevel: userLevel,
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      isEnrolled: !!enrollment,
-      enrollmentId: enrollment?._id,
-      status: enrollment?.status,
-      paymentStatus: enrollment?.paymentStatus,
-      progressPercent: enrollment?.progressPercent,
+      hasAccess: false,
+      isEnrolled: false,
+      accessType: null,
+      requiredMembershipLevel:
+        course.requiredMembershipLevel || course.level || "beginner",
     });
   } catch (error) {
     console.error("getEnrollmentStatus error:", error);
@@ -167,13 +267,12 @@ export const getEnrollmentStatus = async (req, res) => {
   }
 };
 
-// Update enrollment progress for the current user
 export const updateEnrollmentProgress = async (req, res) => {
   try {
-    const { id } = req.params; // enrollmentId
+    const { id } = req.params;
     const { progressPercent, markCompleted } = req.body;
-
     const userId = req.user?._id || req.user?.id;
+
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -182,6 +281,7 @@ export const updateEnrollmentProgress = async (req, res) => {
     }
 
     const numericProgress = Number(progressPercent);
+
     if (
       Number.isNaN(numericProgress) ||
       numericProgress < 0 ||
@@ -191,42 +291,39 @@ export const updateEnrollmentProgress = async (req, res) => {
         success: false,
         message: "progressPercent must be a number between 0 and 100.",
       });
-    };
-    
+    }
+
     const enrollment = await Enrollment.findOne({ _id: id, user: userId });
 
-if (!enrollment) {
-  return res.status(404).json({
-    success: false,
-    message: "Enrollment not found for this user.",
-  });
-}
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: "Enrollment not found for this user.",
+      });
+    }
 
-// ✅ Block progress updates on cancelled/refunded/unpaid enrollments (pro)
-if (
-  enrollment.status === "cancelled" ||
-  enrollment.paymentStatus === "refunded" ||
-  enrollment.paymentStatus !== "paid"
-) {
-  return res.status(403).json({
-    success: false,
-    message: "Access denied. Enrollment is not active/paid.",
-  });
-}
+    if (
+      enrollment.status === "cancelled" ||
+      enrollment.paymentStatus === "refunded" ||
+      enrollment.paymentStatus !== "paid"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Enrollment is not active/paid.",
+      });
+    }
 
-// ✅ update startedAt/lastAccessedAt cleanly
-if (!enrollment.startedAt) enrollment.startedAt = new Date();
+    if (!enrollment.startedAt) enrollment.startedAt = new Date();
 
-    // Mark completed if requested or if >= 99.5%
+    enrollment.progressPercent = numericProgress;
+    enrollment.lastAccessedAt = new Date();
+
     if (markCompleted || numericProgress >= 99.5) {
       enrollment.status = "completed";
-      if (!enrollment.completedAt) {
-        enrollment.completedAt = new Date();
-      }
+      enrollment.completedAt = enrollment.completedAt || new Date();
     } else if (enrollment.status === "completed" && numericProgress < 99.5) {
-      // Optional: allow going back from completed to active
       enrollment.status = "active";
-      enrollment.completedAt = enrollment.completedAt || null;
+      enrollment.completedAt = null;
     }
 
     await enrollment.save();
@@ -235,6 +332,7 @@ if (!enrollment.startedAt) enrollment.startedAt = new Date();
       success: true,
       message: "Enrollment progress updated.",
       data: enrollment,
+      enrollment,
     });
   } catch (error) {
     console.error("updateEnrollmentProgress error:", error);
@@ -246,7 +344,6 @@ if (!enrollment.startedAt) enrollment.startedAt = new Date();
   }
 };
 
-// Top courses by number of enrollments + revenue + avg rating
 export const getTopCoursesByEnrollments = async (req, res) => {
   try {
     const limit = Number(req.query.limit) || 3;
@@ -278,16 +375,13 @@ export const getTopCoursesByEnrollments = async (req, res) => {
       .lean();
 
     const courseMap = new Map();
-    courses.forEach((c) => {
-      courseMap.set(c._id.toString(), c);
+
+    courses.forEach((course) => {
+      courseMap.set(course._id.toString(), course);
     });
 
     const result = aggregation.map((item) => {
       const courseDoc = courseMap.get(item._id.toString());
-      const avgRating =
-        typeof item.avgRating === "number"
-          ? Number(item.avgRating.toFixed(1))
-          : 5;
 
       return {
         courseId: item._id,
@@ -297,7 +391,10 @@ export const getTopCoursesByEnrollments = async (req, res) => {
         salePrice: courseDoc?.salePrice ?? null,
         isFree: courseDoc?.isFree ?? false,
         enrollments: item.enrollments,
-        avgRating,
+        avgRating:
+          typeof item.avgRating === "number"
+            ? Number(item.avgRating.toFixed(1))
+            : 5,
         totalRevenue: item.totalRevenue || 0,
       };
     });
@@ -323,7 +420,7 @@ export const stripeWebhookHandler = async (req, res) => {
     const signature = req.headers["stripe-signature"];
 
     event = stripe.webhooks.constructEvent(
-      req.body, // ⚠️ must be RAW body
+      req.body,
       signature,
       // eslint-disable-next-line no-undef
       process.env.STRIPE_WEBHOOK_SECRET
@@ -334,50 +431,229 @@ export const stripeWebhookHandler = async (req, res) => {
   }
 
   try {
-    // ✅ Most common + correct event to create enrollment
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
-      // ✅ you MUST set these when creating checkout session:
-      // metadata: { userId, courseId, paymentPlan }
       const userId = session?.metadata?.userId;
       const courseId = session?.metadata?.courseId;
 
-
-      const billingPlan = session.metadata.billingPlan || "one_time";
-
-      const paymentPlan = billingPlan === "one_time" ? "one_time" : billingPlan;
-
       if (!userId || !courseId) {
-        console.error("Missing metadata userId/courseId on session:", session.id);
-        return res.status(200).json({ received: true }); // don't retry forever
+        return res.status(200).json({ received: true });
       }
 
-      // ✅ Stripe sends cents
-      const amount = typeof session.amount_total === "number" ? session.amount_total / 100 : 0;
+      const amount =
+        typeof session.amount_total === "number" ? session.amount_total / 100 : 0;
+
       const currency = (session.currency || "usd").toUpperCase();
 
-      // ✅ Idempotent create: if already created, do nothing
-      const existing = await Enrollment.findOne({ stripeSessionId: session.id });
-      if (!existing) {
-        await Enrollment.create({
+      const rawPlan =
+        session.metadata?.paymentPlan ||
+        session.metadata?.billingPlan ||
+        session.metadata?.plan ||
+        "one-time";
+
+      const paymentPlan = rawPlan === "one_time" ? "one-time" : rawPlan;
+
+      await Enrollment.findOneAndUpdate(
+        {
           user: userId,
           course: courseId,
-          pricePaid: amount,
-          currency,
-          paymentPlan,
-          paymentStatus: "paid",
-          status: "active",
-          stripeSessionId: session.id,
-        });
-      }
+        },
+        {
+          $setOnInsert: {
+            user: userId,
+            course: courseId,
+            pricePaid: amount,
+            currency,
+            paymentPlan,
+            stripeSessionId: session.id,
+            startedAt: new Date(),
+          },
+          $set: {
+            paymentStatus: "paid",
+            status: "active",
+            lastAccessedAt: new Date(),
+          },
+        },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+        }
+      );
     }
 
-    // ✅ Always respond 200 quickly or Stripe retries
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error("stripeWebhookHandler error:", error);
-    // Stripe will retry if non-2xx, but keep this visible
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const verifyStripeEnrollment = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const { courseId, session_id } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User is not authenticated.",
+      });
+    }
+
+    if (!courseId || !session_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Course ID and Stripe session ID are required.",
+      });
+    }
+
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found.",
+      });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(session_id, {
+      expand: ["payment_intent", "subscription"],
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Stripe session not found.",
+      });
+    }
+
+    const isPaid =
+  session.payment_status === "paid" &&
+  session.status === "complete";
+
+    if (!isPaid) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment is not fully verified yet.",
+      });
+    }
+
+    const sessionUserId = session.metadata?.userId;
+
+    if (sessionUserId && String(sessionUserId) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "Payment does not belong to this user.",
+      });
+    }
+
+    const sessionCourseId = session.metadata?.courseId;
+
+    if (sessionCourseId && String(sessionCourseId) !== String(courseId)) {
+      return res.status(403).json({
+        success: false,
+        message: "Payment does not match this course.",
+      });
+    }
+
+    const checkoutKind = String(
+  session.metadata?.kind || session.metadata?.type || ""
+)
+  .trim()
+  .toLowerCase();
+
+if (checkoutKind === "membership") {
+  return res.status(403).json({
+    success: false,
+    message:
+      "Membership subscriptions cannot create permanent enrollments.",
+  });
+}
+
+    const amount =
+      typeof session.amount_total === "number" ? session.amount_total / 100 : 0;
+
+    const rawPlan =
+      session.metadata?.paymentPlan ||
+      session.metadata?.billingPlan ||
+      session.metadata?.plan ||
+      "one-time";
+
+    const paymentPlan = rawPlan === "one_time" ? "one-time" : rawPlan;
+
+    const existingEnrollment = await Enrollment.findOne({
+  user: userId,
+  course: courseId,
+  paymentStatus: "paid",
+  status: { $in: ["active", "completed"] },
+});
+
+if (existingEnrollment) {
+  return res.status(200).json({
+    success: true,
+    message: "Enrollment already exists.",
+    enrollment: existingEnrollment,
+    data: {
+      enrollment: existingEnrollment,
+    },
+    isEnrolled: true,
+    hasAccess: true,
+    status: existingEnrollment.status,
+    paymentStatus: existingEnrollment.paymentStatus,
+  });
+}
+
+    const enrollment = await Enrollment.findOneAndUpdate(
+      {
+        user: userId,
+        course: courseId,
+      },
+      {
+        $setOnInsert: {
+          user: userId,
+          course: courseId,
+          stripeSessionId: session.id,
+          pricePaid: amount,
+          currency: session.currency?.toUpperCase() || "USD",
+          paymentPlan,
+          startedAt: new Date(),
+        },
+        $set: {
+          paymentStatus: "paid",
+          status: "active",
+          lastAccessedAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Enrollment verified successfully.",
+      enrollment,
+      data: {
+        enrollment,
+      },
+      isEnrolled: true,
+      hasAccess: true,
+      status: enrollment.status,
+      paymentStatus: enrollment.paymentStatus,
+    });
+  } catch (error) {
+    console.error("VERIFY STRIPE ENROLLMENT ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to verify enrollment right now.",
+      error: error.message,
+    });
   }
 };

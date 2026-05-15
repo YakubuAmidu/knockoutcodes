@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Product from "../models/ProductModel.js"; // ✅ ADD THIS
 
 async function connectDB() {
   // eslint-disable-next-line no-undef
