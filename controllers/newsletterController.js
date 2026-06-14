@@ -2,7 +2,7 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
 import Newsletter from "../models/NewsletterModel.js";
-import EmailSubscriber from "../models/emailSubscriberModel.js";
+import EmailSubscriber from "../models/EmailSubscriberModel.js";
 import { getIO } from "../config/socket.js";
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
