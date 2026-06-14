@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import EmailCampaign from "../models/EmailCampaignModel.js";
 import EmailCampaignLog from "../models/EmailCampaignLogModel.js";
-import EmailUnsubscribe from "../models/EmailUnsubscribeModel.js";
+import EmailUnsubscribe from "../models/EmailUnsubScribeModel.js";
 import EmailSubscriber from "../models/EmailSubscriberModel.js";
 import { renderCampaignEmail } from "../utils/emailTemplates/renderEmailTemplate.js";
 import { sendMail } from "../utils/mailer.js";
