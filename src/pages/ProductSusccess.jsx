@@ -20,64 +20,70 @@ export default function ProductSuccess() {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    let cancelled = false;
+  let cancelled = false;
+  const controller = new AbortController();
 
-    async function verifyOrder() {
-      const sessionId = params.get("session_id");
+  async function verifyOrder() {
+    const sessionId = params.get("session_id");
 
-      if (!sessionId) {
-        setStatus("error");
-        setMessage("Missing checkout session. Please contact support.");
-        return;
-      }
-
-      try {
-        for (let attempt = 1; attempt <= 14; attempt += 1) {
-          if (cancelled) return;
-
-          const data = await confirmProductCheckoutSession(sessionId);
-
-          if (data?.success && data?.paid && data?.orderReady) {
-            dispatch({ type: CART_ACTIONS.CLEAR });
-
-            setOrder(data.order);
-            setStatus("success");
-            setMessage("Order confirmed. Your purchase is officially locked in.");
-
-            return;
-          }
-
-          setMessage(
-            data?.message ||
-              `Payment received. Preparing your order… (${attempt}/14)`
-          );
-
-          await sleep(1100);
-        }
-
-        if (!cancelled) {
-          setStatus("processing");
-          setMessage(
-            "Payment is confirmed, but your order is still processing. Check My Orders shortly."
-          );
-        }
-      } catch (err) {
-        console.error("ProductSuccess verification error:", err);
-        setStatus("error");
-        setMessage(
-          err?.response?.data?.message ||
-            err?.message ||
-            "We could not verify your order right now."
-        );
-      }
+    if (!sessionId) {
+      setStatus("error");
+      setMessage("Missing checkout session. Please contact support.");
+      return;
     }
 
-    verifyOrder();
+    try {
+      for (let attempt = 1; attempt <= 14; attempt += 1) {
+        if (cancelled) return;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [params, dispatch]);
+        const data = await confirmProductCheckoutSession(sessionId, {
+          signal: controller.signal,
+        });
+
+        if (data?.success && data?.paid && data?.orderReady) {
+          dispatch({ type: CART_ACTIONS.CLEAR });
+
+          setOrder(data.order);
+          setStatus("success");
+          setMessage("Order confirmed. Your purchase is officially locked in.");
+
+          return;
+        }
+
+        setMessage(
+          data?.message ||
+            `Payment received. Preparing your order… (${attempt}/14)`
+        );
+
+        await sleep(1100);
+      }
+
+      if (!cancelled) {
+        setStatus("processing");
+        setMessage(
+          "Payment is confirmed, but your order is still processing. Check My Orders shortly."
+        );
+      }
+    } catch (err) {
+      if (err?.name === "CanceledError" || err?.name === "AbortError") return;
+
+      console.error("ProductSuccess verification error:", err);
+      setStatus("error");
+      setMessage(
+        err?.response?.data?.message ||
+          err?.message ||
+          "We could not verify your order right now."
+      );
+    }
+  }
+
+  verifyOrder();
+
+  return () => {
+    cancelled = true;
+    controller.abort();
+  };
+}, [params, dispatch]);
 
   const isLoading = status === "checking";
   const isSuccess = status === "success";
@@ -155,7 +161,7 @@ export default function ProductSuccess() {
             ) : null}
 
             <ActionRow>
-              <PrimaryButton to="/dashboard/orders">View My Orders</PrimaryButton>
+              <PrimaryButton to="/dashboard/my-orders">View My Orders</PrimaryButton>
               <GhostButton to="/products">Continue Shopping</GhostButton>
             </ActionRow>
 

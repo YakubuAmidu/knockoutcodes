@@ -15,34 +15,77 @@ function formatMoney(value) {
   return `$${n.toFixed(2)}`;
 }
 
-function clampQty(q) {
+function getCartItemId(item) {
+  return item?.cartItemId || item?._id || item?.productId || item?.id || null;
+}
+
+function getProductId(item) {
+  return item?.productId || item?._id || item?.id || null;
+}
+
+function getStock(item) {
+  const stock = Number(item?.stock);
+  return Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : null;
+}
+
+function clampQty(q, stock = null) {
   const n = Number(q);
-  if (!Number.isFinite(n)) return 1;
-  return Math.max(1, Math.floor(n));
+  const clean = Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 1;
+
+  if (stock !== null) {
+    return Math.min(clean, Math.max(1, stock));
+  }
+
+  return clean;
+}
+
+function normalizeCartItem(item) {
+  const productId = getProductId(item);
+  const cartItemId = getCartItemId(item);
+  const stock = getStock(item);
+  const qty = clampQty(item?.qty, stock);
+
+  return {
+    ...item,
+    productId,
+    cartItemId,
+    qty,
+    stock,
+    title: item?.title || item?.name || "Product",
+    image:
+      item?.image ||
+      item?.thumbnail ||
+      (Array.isArray(item?.images) ? item.images[0] : ""),
+    price: Number(item?.price || 0),
+    size: item?.size || "",
+    color: item?.color || "",
+    description: item?.shortDescription || item?.description || "",
+  };
 }
 
 export default function Cart() {
   const toast = useToast();
   const dispatch = useDispatch();
 
-  const items = useSelector((state) => state?.cart?.items || []);
+  const rawItems = useSelector((state) => state?.cart?.items || []);
   const [redirecting, setRedirecting] = useState(false);
+
+  const items = useMemo(() => {
+    return Array.isArray(rawItems) ? rawItems.map(normalizeCartItem) : [];
+  }, [rawItems]);
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.price || 0) * clampQty(item.qty),
+      (sum, item) => sum + Number(item.price || 0) * clampQty(item.qty, item.stock),
       0
     );
 
     const itemCount = items.reduce(
-      (sum, item) => sum + clampQty(item.qty),
+      (sum, item) => sum + clampQty(item.qty, item.stock),
       0
     );
 
-    return {
-      subtotal,
-      itemCount,
-    };
+    return { subtotal, itemCount };
   }, [items]);
 
   function pushToast(payload) {
@@ -52,17 +95,22 @@ export default function Cart() {
   function updateQty(cartItemId, nextQty) {
     if (!cartItemId || redirecting) return;
 
-    const qty = clampQty(nextQty);
+    const item = items.find((p) => getCartItemId(p) === cartItemId);
+    const stock = getStock(item);
+    const qty = clampQty(nextQty, stock);
+
+    if (stock !== null && stock <= 0) {
+      pushToast({
+        title: "Out of stock",
+        description: "This product is currently out of stock.",
+        variant: "warning",
+      });
+      return;
+    }
 
     dispatch({
       type: CART_ACTIONS.UPDATE_QTY,
       payload: { cartItemId, qty },
-    });
-
-    pushToast({
-      title: "Cart updated",
-      description: "Quantity updated successfully.",
-      variant: "success",
     });
   }
 
@@ -110,7 +158,9 @@ export default function Cart() {
 
     const payloadItems = items.map((item) => ({
       productId: item.productId,
-      qty: clampQty(item.qty),
+      qty: clampQty(item.qty, item.stock),
+      size: item.size || undefined,
+      color: item.color || undefined,
     }));
 
     const hasBadItem = payloadItems.some(
@@ -128,7 +178,6 @@ export default function Cart() {
 
     try {
       setRedirecting(true);
-
       dispatch({ type: CHECKOUT_ACTIONS.START });
 
       const data = await createProductCheckoutSession(payloadItems);
@@ -180,8 +229,8 @@ export default function Cart() {
 
           <Sub>
             Review your KnockoutCodes products, adjust quantities, and continue
-            to secure checkout. Final taxes, shipping, and verified product
-            totals are handled during checkout.
+            to secure checkout. Final totals are verified by the backend before
+            payment.
           </Sub>
 
           <HeroStats>
@@ -236,43 +285,41 @@ export default function Cart() {
               <EmptyBox>
                 <EmptyTitle>Your cart is empty.</EmptyTitle>
                 <EmptyText>
-                  Choose premium KnockoutCodes gear and your cart will appear
-                  here.
+                  Choose premium KnockoutCodes gear and your cart will appear here.
                 </EmptyText>
                 <EmptyButton to="/products">Shop Products →</EmptyButton>
               </EmptyBox>
             ) : (
               <ItemList>
                 {items.map((item) => {
-                  const qty = clampQty(item.qty);
+                  const key = getCartItemId(item);
+                  const qty = clampQty(item.qty, item.stock);
+                  const stock = getStock(item);
                   const lineTotal = Number(item.price || 0) * qty;
-                  const key = item.cartItemId || item.productId;
+                  const outOfStock = stock !== null && stock <= 0;
 
                   return (
                     <CartRow key={key}>
                       <Thumb>
                         {item.image ? (
-                          <ThumbImg src={item.image} alt={item.title || "Product"} />
+                          <ThumbImg src={item.image} alt={item.title} />
                         ) : (
                           <ThumbFallback>No Image</ThumbFallback>
                         )}
                       </Thumb>
 
                       <ItemInfo>
-                        <ItemName title={item.title || "Product"}>
-                          {item.title || "Product"}
-                        </ItemName>
+                        <ItemName title={item.title}>{item.title}</ItemName>
 
                         <ItemMeta>
                           <MiniPill>{item.size ? `Size: ${item.size}` : "No size"}</MiniPill>
-                          <MiniPill>
-                            {item.color ? `Color: ${item.color}` : "No color"}
-                          </MiniPill>
+                          <MiniPill>{item.color ? `Color: ${item.color}` : "No color"}</MiniPill>
+                          {stock !== null ? (
+                            <MiniPill>{outOfStock ? "Out of stock" : `Stock: ${stock}`}</MiniPill>
+                          ) : null}
                         </ItemMeta>
 
-                        {item.description ? (
-                          <MiniDesc>{item.description}</MiniDesc>
-                        ) : null}
+                        {item.description ? <MiniDesc>{item.description}</MiniDesc> : null}
 
                         <MobilePrice>{formatMoney(lineTotal)}</MobilePrice>
 
@@ -281,8 +328,7 @@ export default function Cart() {
                             <QtyBtn
                               type="button"
                               onClick={() => updateQty(key, qty - 1)}
-                              disabled={redirecting || qty <= 1}
-                              aria-label="Decrease quantity"
+                              disabled={redirecting || qty <= 1 || outOfStock}
                             >
                               −
                             </QtyBtn>
@@ -292,15 +338,17 @@ export default function Cart() {
                               onChange={(e) => updateQty(key, e.target.value)}
                               inputMode="numeric"
                               pattern="[0-9]*"
-                              disabled={redirecting}
-                              aria-label="Quantity"
+                              disabled={redirecting || outOfStock}
                             />
 
                             <QtyBtn
                               type="button"
                               onClick={() => updateQty(key, qty + 1)}
-                              disabled={redirecting}
-                              aria-label="Increase quantity"
+                              disabled={
+                                redirecting ||
+                                outOfStock ||
+                                (stock !== null && qty >= stock)
+                              }
                             >
                               +
                             </QtyBtn>
@@ -317,7 +365,7 @@ export default function Cart() {
                       </ItemInfo>
 
                       <PriceBlock>
-                        <UnitPrice>{formatMoney(item.price)}</UnitPrice>
+                        <UnitPrice>{formatMoney(item.price)} each</UnitPrice>
                         <LineTotal>{formatMoney(lineTotal)}</LineTotal>
                       </PriceBlock>
                     </CartRow>
@@ -378,15 +426,10 @@ export default function Cart() {
             <TrustBox>
               <TrustTitle>Checkout Protection</TrustTitle>
               <TrustText>
-                The cart shows your estimate, but the backend verifies products
-                and calculates the real Stripe price before payment.
+                Your cart is only the estimate. The backend verifies every product,
+                quantity, stock, and Stripe price before payment.
               </TrustText>
             </TrustBox>
-
-            <FinePrint>
-              Admin accounts should be blocked from product checkout on the
-              backend using `preventAdminPurchase`.
-            </FinePrint>
           </SummaryPanel>
         </Grid>
       </Inner>
@@ -442,7 +485,6 @@ const Title = styled.h1`
 
   span {
     color: ${({ theme }) => theme.colors.lightBrown};
-    text-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
   }
 `;
 
@@ -497,21 +539,15 @@ const TopActions = styled.div`
 
 const PrimaryLink = styled(Link)`
   display: inline-flex;
-  justify-content: center;
-  align-items: center;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
   color: ${({ theme }) => theme.colors.black};
   text-decoration: none;
   font-weight: 950;
-  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const GhostBtn = styled.button`
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: rgba(0, 0, 0, 0.35);
@@ -543,7 +579,6 @@ const CartPanel = styled(motion.section)`
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.glow};
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
 `;
 
 const SummaryPanel = styled(motion.aside)`
@@ -553,7 +588,6 @@ const SummaryPanel = styled(motion.aside)`
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.glow};
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
 `;
 
 const PanelHeader = styled.div`
@@ -568,7 +602,6 @@ const PanelHeader = styled.div`
 const PanelTitle = styled.h2`
   margin: 0;
   font-size: 20px;
-  letter-spacing: -0.01em;
 `;
 
 const PanelSub = styled.p`
@@ -592,7 +625,6 @@ const EmptyBox = styled.div`
   padding: 20px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const EmptyTitle = styled.h3`
@@ -602,7 +634,6 @@ const EmptyTitle = styled.h3`
 const EmptyText = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.88;
 `;
 
 const EmptyButton = styled(Link)`
@@ -628,7 +659,6 @@ const CartRow = styled.div`
   padding: 12px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: rgba(0, 0, 0, 0.26);
-  border: 1px solid rgba(255, 255, 255, 0.12);
 
   @media (max-width: 680px) {
     grid-template-columns: 88px 1fr;
@@ -641,7 +671,6 @@ const Thumb = styled.div`
   border-radius: ${({ theme }) => theme.radius.md};
   overflow: hidden;
   background: rgba(0, 0, 0, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.12);
   display: grid;
   place-items: center;
 
@@ -655,12 +684,10 @@ const ThumbImg = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 `;
 
 const ThumbFallback = styled.div`
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.72;
   font-size: 11px;
   font-weight: 950;
 `;
@@ -690,7 +717,6 @@ const MiniPill = styled.span`
   border-radius: ${({ theme }) => theme.radius.pill};
   background: rgba(0, 0, 0, 0.4);
   color: ${({ theme }) => theme.colors.lightBrown};
-  border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 11px;
   font-weight: 900;
 `;
@@ -700,19 +726,12 @@ const MiniDesc = styled.p`
   color: ${({ theme }) => theme.colors.ivory};
   opacity: 0.85;
   font-size: 13px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 `;
 
 const Controls = styled.div`
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 4px;
   flex-wrap: wrap;
 `;
 
@@ -720,7 +739,6 @@ const QtyBox = styled.div`
   display: grid;
   grid-template-columns: 42px 58px 42px;
   gap: 8px;
-  align-items: center;
 `;
 
 const QtyBtn = styled.button`
@@ -746,7 +764,6 @@ const QtyInput = styled.input`
   color: ${({ theme }) => theme.colors.ivory};
   border: 1px solid rgba(255, 255, 255, 0.14);
   font-weight: 950;
-  outline: none;
 `;
 
 const RemoveBtn = styled.button`
@@ -757,11 +774,6 @@ const RemoveBtn = styled.button`
   border: 1px solid rgba(255, 255, 255, 0.14);
   font-weight: 950;
   cursor: pointer;
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
 `;
 
 const PriceBlock = styled.div`
@@ -811,7 +823,6 @@ const SummaryRow = styled.div`
 
 const SummaryLabel = styled.div`
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.86;
 `;
 
 const SummaryValue = styled.div`
@@ -845,12 +856,11 @@ const CheckoutBtn = styled.button`
   margin-top: 16px;
   padding: 13px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: none;
   background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   cursor: pointer;
-  box-shadow: ${({ theme }) => theme.shadow.soft};
 
   &:disabled {
     opacity: 0.58;
@@ -859,7 +869,6 @@ const CheckoutBtn = styled.button`
 `;
 
 const BtnRow = styled.span`
-  width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -872,7 +881,6 @@ const Spinner = styled.span`
   border-radius: 999px;
   border: 2px solid rgba(0, 0, 0, 0.18);
   border-top-color: rgba(0, 0, 0, 0.65);
-  display: inline-block;
   animation: spin 0.8s linear infinite;
 
   @keyframes spin {
@@ -887,7 +895,6 @@ const TrustBox = styled.div`
   padding: 12px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: rgba(0, 0, 0, 0.26);
-  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const TrustTitle = styled.div`
@@ -899,15 +906,5 @@ const TrustTitle = styled.div`
 const TrustText = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.86;
   font-size: 13px;
-  line-height: 1.5;
-`;
-
-const FinePrint = styled.p`
-  margin: 12px 0 0;
-  color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.72;
-  font-size: 12px;
-  line-height: 1.5;
 `;

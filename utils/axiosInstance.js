@@ -175,6 +175,22 @@ axiosInstance.interceptors.request.use(
     const isUnsafe = unsafeMethods.has(method);
 
     config.headers = config.headers || {};
+
+    const storedUser =
+  JSON.parse(localStorage.getItem("user") || "null") ||
+  JSON.parse(localStorage.getItem("userInfo") || "null") ||
+  JSON.parse(localStorage.getItem("adminInfo") || "null");
+
+const token =
+  storedUser?.token ||
+  storedUser?.accessToken ||
+  localStorage.getItem("token") ||
+  localStorage.getItem("accessToken");
+
+if (token) {
+  config.headers.Authorization = `Bearer ${token}`;
+}
+    
     config.headers["X-Client-Fingerprint"] = getFingerprint();
 
     if (isUnsafe) {

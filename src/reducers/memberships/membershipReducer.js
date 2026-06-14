@@ -14,7 +14,7 @@ export function membershipReducer(state = membershipInitialState, action) {
       return {
         ...state,
         loading: false,
-        items: action.payload || [],
+        items: Array.isArray(action.payload) ? action.payload : [],
         error: "",
       };
 
@@ -38,7 +38,7 @@ export function membershipReducer(state = membershipInitialState, action) {
         mySubscriptionLoading: false,
         mySubscriptionError: "",
         mySubscription: {
-          ...state.mySubscription,
+          ...membershipInitialState.mySubscription,
           ...(action.payload || {}),
         },
       };
@@ -96,6 +96,9 @@ export function membershipReducer(state = membershipInitialState, action) {
         error: "",
         mySubscriptionError: "",
       };
+    
+    case MEMBERSHIP_ACTIONS.RESET:
+  return membershipInitialState;
 
     default:
       return state;

@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useDispatch } from "react-redux";
+import ReviewForm from "../components/ReviewForm";
 
 import axiosInstance from "../../utils/axiosInstance";
 import { useToast } from "../components/Toast";
@@ -13,6 +14,36 @@ import { CART_ACTIONS } from "../reducers/cart/cartActionTypes";
 function formatMoney(value) {
   const n = Number(value || 0);
   return `$${n.toFixed(2)}`;
+}
+
+function getRatingAverage(product) {
+  return Number(
+    product?.ratingAverage ??
+      product?.averageRating ??
+      product?.avgRating ??
+      product?.rating ??
+      0
+  );
+}
+
+function getReviewCount(product) {
+  return Number(
+    product?.ratingCount ??
+      product?.reviewCount ??
+      product?.reviewsCount ??
+      product?.totalReviews ??
+      product?.numReviews ??
+      0
+  );
+}
+
+function renderStars(ratingAverage) {
+  const rating = Number(ratingAverage) || 0;
+  const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
+
+  return Array.from({ length: 5 }, (_, index) =>
+    index + 1 <= fullStars ? "★" : "☆"
+  ).join("");
 }
 
 function clampQty(value) {
@@ -32,8 +63,8 @@ function getImages(product) {
 }
 
 export default function ProductDetail() {
-  const { id, slug } = useParams();
-  const productIdOrSlug = id || slug;
+  const { idOrSlug, id, slug } = useParams();
+const productIdOrSlug = idOrSlug || id || slug;
 
   const toast = useToast();
   const dispatch = useDispatch();
@@ -48,6 +79,12 @@ export default function ProductDetail() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+
+  const ratingAverage = getRatingAverage(product);
+const reviewCount = getReviewCount(product);
+
+const isBestSeller =
+  Boolean(product?.isFeatured) || (ratingAverage >= 4.7 && reviewCount >= 20);
 
   const images = useMemo(() => getImages(product), [product]);
 
@@ -307,9 +344,10 @@ export default function ProductDetail() {
                 )}
 
                 <ImageBadges>
-                  {product?.isFeatured ? <Pill>Featured</Pill> : null}
-                  <Pill>{outOfStock ? "Out Of Stock" : `${stock} In Stock`}</Pill>
-                </ImageBadges>
+  {isBestSeller ? <Pill>Best Seller</Pill> : null}
+
+  <Pill>{outOfStock ? "Out Of Stock" : `${stock} In Stock`}</Pill>
+</ImageBadges>
               </ImageStage>
 
               <ThumbRow>
@@ -334,7 +372,18 @@ export default function ProductDetail() {
                 This is not just gear. <span>It is your training advantage.</span>
               </Title>
 
-              <ProductName>{title}</ProductName>
+                  <ProductName>{title}</ProductName>
+
+<RatingRow>
+  <Stars>{renderStars(ratingAverage)}</Stars>
+
+  <RatingText>
+    {ratingAverage > 0 ? `${ratingAverage.toFixed(1)}/5` : "New Product"}
+    {reviewCount > 0
+      ? ` • ${reviewCount} reviews`
+      : " • No reviews yet"}
+  </RatingText>
+</RatingRow>
 
               <PriceRow>
                 <Price>{formatMoney(price)}</Price>
@@ -362,7 +411,19 @@ export default function ProductDetail() {
                 <DetailCard>
                   <DetailLabel>Status</DetailLabel>
                   <DetailValue>{outOfStock ? "Sold Out" : "Ready To Ship"}</DetailValue>
-                </DetailCard>
+                    </DetailCard>
+                    
+                   <DetailCard>
+  <DetailLabel>Rating</DetailLabel>
+  <DetailValue>
+    {ratingAverage > 0 ? `${ratingAverage.toFixed(1)} / 5` : "New"}
+  </DetailValue>
+</DetailCard>
+
+<DetailCard>
+  <DetailLabel>Reviews</DetailLabel>
+  <DetailValue>{reviewCount}</DetailValue>
+</DetailCard>
               </DetailGrid>
 
               <Divider />
@@ -480,7 +541,26 @@ export default function ProductDetail() {
               <TrustNote>
                 The cart shows your estimate. Checkout verifies the real product
                 price from the backend before Stripe payment.
-              </TrustNote>
+                  </TrustNote>
+                  
+                  <ReviewSection>
+  <ReviewHeader>
+    <ReviewEyebrow>Verified Product Review</ReviewEyebrow>
+    <ReviewTitle>Purchased this product? Share your experience.</ReviewTitle>
+    <ReviewText>
+      Only logged-in customers who purchased this product should be allowed to
+      leave a review. The backend must verify the user, purchase record, and
+      prevent duplicate reviews.
+    </ReviewText>
+  </ReviewHeader>
+
+  <ReviewForm
+    type="product"
+    productId={productId}
+    productTitle={title}
+    onSuccess={fetchProduct}
+  />
+</ReviewSection>
             </Info>
           </Shell>
         )}
@@ -704,6 +784,27 @@ const PriceRow = styled.div`
   align-items: baseline;
   gap: 10px;
   margin-top: 10px;
+`;
+
+const RatingRow = styled.div`
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const Stars = styled.span`
+  color: #ffd97a;
+  font-size: 17px;
+  letter-spacing: 1px;
+`;
+
+const RatingText = styled.span`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.84;
+  font-size: 13px;
+  font-weight: 850;
 `;
 
 const Price = styled.div`
@@ -989,4 +1090,39 @@ const SkelBtn = styled.div`
   border-radius: ${({ theme }) => theme.radius.pill};
   background: rgba(255, 255, 255, 0.07);
   margin-top: 14px;
+`;
+
+const ReviewSection = styled.section`
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+`;
+
+const ReviewHeader = styled.div`
+  margin-bottom: 14px;
+`;
+
+const ReviewEyebrow = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+`;
+
+const ReviewTitle = styled.h3`
+  margin: 8px 0 6px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 22px;
+  line-height: 1.1;
+`;
+
+const ReviewText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  line-height: 1.55;
+  font-size: 13px;
 `;

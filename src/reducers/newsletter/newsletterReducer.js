@@ -1,13 +1,14 @@
-// src/reducers/newsletter/newsletterReducer.js
-
 import { NEWSLETTER_ACTIONS } from "./newsletterActionTypes";
 import { newsletterInitialState } from "./newsletterInitialState";
 
+const safeString = (value, fallback = "") =>
+  typeof value === "string" ? value : fallback;
+
 export default function newsletterReducer(
   state = newsletterInitialState,
-  action
+  action = {}
 ) {
-  const { type, payload } = action;
+  const { type, payload = {} } = action;
 
   switch (type) {
     case NEWSLETTER_ACTIONS.SUBSCRIBE_REQUEST:
@@ -16,10 +17,11 @@ export default function newsletterReducer(
         loading: true,
         success: false,
         error: "",
-        message: payload?.message || "Locking you in…",
-        lastEmail: payload?.email || "",
+        message: safeString(payload.message, "Securing your spot…"),
+        lastEmail: safeString(payload.email),
         status: null,
         raw: null,
+        updatedAt: Date.now(),
       };
 
     case NEWSLETTER_ACTIONS.SUBSCRIBE_SUCCESS:
@@ -28,10 +30,11 @@ export default function newsletterReducer(
         loading: false,
         success: true,
         error: "",
-        message: payload?.message || "You’re in.",
-        lastEmail: payload?.email || state.lastEmail,
-        status: payload?.status ?? 201,
-        raw: payload?.raw || null,
+        message: safeString(payload.message, "You’re in."),
+        lastEmail: safeString(payload.email) || state.lastEmail,
+        status: typeof payload.status === "number" ? payload.status : 201,
+        raw: payload.raw || null,
+        updatedAt: Date.now(),
       };
 
     case NEWSLETTER_ACTIONS.SUBSCRIBE_FAIL:
@@ -39,16 +42,17 @@ export default function newsletterReducer(
         ...state,
         loading: false,
         success: false,
-        error: payload?.error || "Subscription failed.",
-        message: payload?.message || "Subscription failed.",
-        lastEmail: state.lastEmail,
-        status: payload?.status ?? 0,
-        raw: payload?.raw || null,
+        error: safeString(payload.error, "Subscription failed."),
+        message: safeString(payload.message, "Subscription failed."),
+        status: typeof payload.status === "number" ? payload.status : 0,
+        raw: payload.raw || null,
+        updatedAt: Date.now(),
       };
 
     case NEWSLETTER_ACTIONS.SUBSCRIBE_RESET:
       return {
         ...newsletterInitialState,
+        updatedAt: Date.now(),
       };
 
     default:

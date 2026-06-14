@@ -10,33 +10,132 @@ import Blog from "../models/BlogModel.js";
 import Order from "../models/OrderModel.js";
 import Product from "../models/ProductModel.js";
 import Review from "../models/ReviewModel.js";
+import Membership from "../models/MembershipModel.js";
+import Enrollment from "../models/EnrollmentModel.js";
+import Lesson from "../models/LessonModel.js";
+import EmailCampaign from "../models/EmailCampaignModel.js";
+import EmailSegment from "../models/EmailSegmentModel.js";
+import EmailSubscriber from "../models/EmailSubscriberModel.js";
+import EmailTemplate from "../models/EmailTemplateModel.js";
 
-// @desc    Get overall admin stats for dashboard
-// @route   GET /api/v1/admin/stats
-// @access  Private/Admin
-export const getAdminStats = async (req, res) => {
+const paidOrderMatch = {
+  paymentStatus: { $in: ["paid", "succeeded", "success"] },
+};
+
+const paidEnrollmentMatch = {
+  paymentStatus: "paid",
+  status: { $in: ["active", "completed"] },
+};
+
+const toNumber = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
+const getMonthLabel = (date) =>
+  `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+
+const buildLastSixMonths = () => {
+  const now = new Date();
+  const months = [];
+
+  for (let i = 5; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+
+    months.push({
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      label: getMonthLabel(d),
+    });
+  }
+
+  return months;
+};
+
+const getAggRevenue = (agg) => toNumber(agg?.[0]?.totalRevenue);
+
+const mergeMonthlyRevenue = ({
+  lastSixMonths,
+  orderRevenueByMonthAgg,
+  enrollmentRevenueByMonthAgg,
+}) =>
+  lastSixMonths.map((m) => {
+    const orderFound = orderRevenueByMonthAgg.find(
+      (x) => x?._id?.year === m.year && x?._id?.month === m.month
+    );
+
+    const enrollmentFound = enrollmentRevenueByMonthAgg.find(
+      (x) => x?._id?.year === m.year && x?._id?.month === m.month
+    );
+
+    return {
+      ...m,
+      totalRevenue:
+        toNumber(orderFound?.totalRevenue) +
+        toNumber(enrollmentFound?.totalRevenue),
+      orders: toNumber(orderFound?.orders) + toNumber(enrollmentFound?.orders),
+    };
+  });
+
+const mergeMonthlyUsers = ({ lastSixMonths, newUsersByMonthAgg }) =>
+  lastSixMonths.map((m) => {
+    const found = newUsersByMonthAgg.find(
+      (x) => x?._id?.year === m.year && x?._id?.month === m.month
+    );
+
+    return {
+      ...m,
+      count: toNumber(found?.count),
+    };
+  });
+
+export const getAdminStats = async (_req, res) => {
   try {
     const now = new Date();
 
-    // Dates
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const startOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999
+    );
 
     const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const lastSixMonths = buildLastSixMonths();
 
-    // ===== Basic Totals (run in parallel) =====
     const [
       totalUsers,
       newUsersLast7Days,
+
       totalCourses,
+      publishedCourses,
 
       totalSubscriptions,
       activeSubscriptions,
+      trialingSubscriptions,
+      pastDueSubscriptions,
+      canceledSubscriptions,
 
       totalBookings,
       upcomingBookings,
@@ -52,26 +151,53 @@ export const getAdminStats = async (req, res) => {
 
       totalOrders,
       paidOrders,
+      pendingOrders,
+      failedOrders,
 
-      // ✅ Products
       totalProducts,
       activeProducts,
 
-      // ✅ Reviews
       totalReviews,
       approvedReviews,
+      pendingReviews,
+
+      totalMemberships,
+      activeMemberships,
+
+      totalEnrollments,
+      activeEnrollments,
+
+      totalLessons,
+      publishedLessons,
+
+      totalCampaigns,
+      sentCampaigns,
+      scheduledCampaigns,
+      draftCampaigns,
+
+      totalSegments,
+      totalSubscribers,
+      activeSubscribers,
+      totalTemplates,
     ] = await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+
       Course.countDocuments({}),
+      Course.countDocuments({
+        $or: [{ isPublished: true }, { status: "published" }],
+      }),
 
       Subscription.countDocuments({}),
       Subscription.countDocuments({ status: "active" }),
+      Subscription.countDocuments({ status: "trialing" }),
+      Subscription.countDocuments({ status: "past_due" }),
+      Subscription.countDocuments({ status: "canceled" }),
 
       Booking.countDocuments({}),
       Booking.countDocuments({
         date: { $gte: startOfToday },
-        status: { $ne: "cancelled" },
+        status: { $nin: ["cancelled", "canceled"] },
       }),
 
       Contact.countDocuments({}),
@@ -84,186 +210,397 @@ export const getAdminStats = async (req, res) => {
       Blog.countDocuments({ isPublished: true }),
 
       Order.countDocuments({}),
-      Order.countDocuments({ paymentStatus: "paid" }),
+      Order.countDocuments(paidOrderMatch),
+      Order.countDocuments({ paymentStatus: "pending" }),
+      Order.countDocuments({
+        paymentStatus: { $in: ["failed", "canceled", "cancelled", "refunded"] },
+      }),
 
-      // ✅ Products
       Product.countDocuments({}),
       Product.countDocuments({ isActive: true }),
 
-      // ✅ Reviews
       Review.countDocuments({}),
       Review.countDocuments({ isApproved: true }),
+      Review.countDocuments({ isApproved: false }),
+
+      Membership.countDocuments({}),
+      Membership.countDocuments({
+        $or: [{ isActive: true }, { isPublished: true }],
+      }),
+
+      Enrollment.countDocuments({}),
+      Enrollment.countDocuments({
+        status: { $in: ["active", "paid", "completed"] },
+      }),
+
+      Lesson.countDocuments({}),
+      Lesson.countDocuments({
+        $or: [{ isPublished: true }, { status: "published" }],
+      }),
+
+      EmailCampaign.countDocuments({}),
+      EmailCampaign.countDocuments({ status: "sent" }),
+      EmailCampaign.countDocuments({ status: "scheduled" }),
+      EmailCampaign.countDocuments({ status: "draft" }),
+
+      EmailSegment.countDocuments({}),
+      EmailSubscriber.countDocuments({}),
+      EmailSubscriber.countDocuments({
+        status: { $in: ["active", "subscribed"] },
+      }),
+      EmailTemplate.countDocuments({}),
     ]);
 
-    // ===== Revenue Stats (all in one endpoint; no /admin/revenue needed) =====
+    const revenueGroupStage = (field) => ({
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: { $ifNull: [`$${field}`, 0] } },
+      },
+    });
+
     const [
-      totalRevenueAgg,
-      monthRevenueAgg,
-      yearRevenueAgg,
-      todayRevenueAgg,
-      lastMonthRevenueAgg,
+      totalOrderRevenueAgg,
+      monthOrderRevenueAgg,
+      yearOrderRevenueAgg,
+      todayOrderRevenueAgg,
+      lastMonthOrderRevenueAgg,
+
+      totalEnrollmentRevenueAgg,
+      monthEnrollmentRevenueAgg,
+      yearEnrollmentRevenueAgg,
+      todayEnrollmentRevenueAgg,
+      lastMonthEnrollmentRevenueAgg,
     ] = await Promise.all([
-      // total revenue (all time)
+      Order.aggregate([{ $match: paidOrderMatch }, revenueGroupStage("total")]),
+
       Order.aggregate([
-        { $match: { paymentStatus: "paid" } },
-        { $group: { _id: null, totalRevenue: { $sum: "$total" } } },
+        { $match: { ...paidOrderMatch, createdAt: { $gte: startOfMonth } } },
+        revenueGroupStage("total"),
       ]),
-      // month revenue
+
       Order.aggregate([
-        { $match: { paymentStatus: "paid", createdAt: { $gte: startOfMonth } } },
-        { $group: { _id: null, totalRevenue: { $sum: "$total" } } },
+        { $match: { ...paidOrderMatch, createdAt: { $gte: startOfYear } } },
+        revenueGroupStage("total"),
       ]),
-      // year revenue
+
       Order.aggregate([
-        { $match: { paymentStatus: "paid", createdAt: { $gte: startOfYear } } },
-        { $group: { _id: null, totalRevenue: { $sum: "$total" } } },
+        { $match: { ...paidOrderMatch, createdAt: { $gte: startOfToday } } },
+        revenueGroupStage("total"),
       ]),
-      // today revenue
-      Order.aggregate([
-        { $match: { paymentStatus: "paid", createdAt: { $gte: startOfToday } } },
-        { $group: { _id: null, totalRevenue: { $sum: "$total" } } },
-      ]),
-      // last month revenue (for MoM %)
+
       Order.aggregate([
         {
           $match: {
-            paymentStatus: "paid",
+            ...paidOrderMatch,
             createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
           },
         },
-        { $group: { _id: null, totalRevenue: { $sum: "$total" } } },
+        revenueGroupStage("total"),
+      ]),
+
+      Enrollment.aggregate([
+        { $match: paidEnrollmentMatch },
+        revenueGroupStage("pricePaid"),
+      ]),
+
+      Enrollment.aggregate([
+        {
+          $match: {
+            ...paidEnrollmentMatch,
+            createdAt: { $gte: startOfMonth },
+          },
+        },
+        revenueGroupStage("pricePaid"),
+      ]),
+
+      Enrollment.aggregate([
+        {
+          $match: {
+            ...paidEnrollmentMatch,
+            createdAt: { $gte: startOfYear },
+          },
+        },
+        revenueGroupStage("pricePaid"),
+      ]),
+
+      Enrollment.aggregate([
+        {
+          $match: {
+            ...paidEnrollmentMatch,
+            createdAt: { $gte: startOfToday },
+          },
+        },
+        revenueGroupStage("pricePaid"),
+      ]),
+
+      Enrollment.aggregate([
+        {
+          $match: {
+            ...paidEnrollmentMatch,
+            createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+          },
+        },
+        revenueGroupStage("pricePaid"),
       ]),
     ]);
 
-    const totalRevenue = totalRevenueAgg?.[0]?.totalRevenue || 0;
-    const monthRevenue = monthRevenueAgg?.[0]?.totalRevenue || 0;
-    const yearRevenue = yearRevenueAgg?.[0]?.totalRevenue || 0;
-    const todayRevenue = todayRevenueAgg?.[0]?.totalRevenue || 0;
-    const revenueLastMonth = lastMonthRevenueAgg?.[0]?.totalRevenue || 0;
+    const totalRevenue =
+      getAggRevenue(totalOrderRevenueAgg) +
+      getAggRevenue(totalEnrollmentRevenueAgg);
 
-    // Month-over-month change (%)
-    let revenueChangePct = 0;
-    if (revenueLastMonth > 0) {
-      revenueChangePct = ((monthRevenue - revenueLastMonth) / revenueLastMonth) * 100;
-    }
+    const monthRevenue =
+      getAggRevenue(monthOrderRevenueAgg) +
+      getAggRevenue(monthEnrollmentRevenueAgg);
 
-    // ===== Charts: Revenue Last 6 Months =====
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const yearRevenue =
+      getAggRevenue(yearOrderRevenueAgg) +
+      getAggRevenue(yearEnrollmentRevenueAgg);
 
-    const revenueByMonthAgg = await Order.aggregate([
-      {
-        $match: {
-          paymentStatus: "paid",
-          createdAt: { $gte: sixMonthsAgo },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
+    const todayRevenue =
+      getAggRevenue(todayOrderRevenueAgg) +
+      getAggRevenue(todayEnrollmentRevenueAgg);
+
+    const revenueLastMonth =
+      getAggRevenue(lastMonthOrderRevenueAgg) +
+      getAggRevenue(lastMonthEnrollmentRevenueAgg);
+
+    const revenueChangePct =
+      revenueLastMonth > 0
+        ? ((monthRevenue - revenueLastMonth) / revenueLastMonth) * 100
+        : monthRevenue > 0
+        ? 100
+        : 0;
+
+    const [
+      orderRevenueByMonthAgg,
+      enrollmentRevenueByMonthAgg,
+      newUsersByMonthAgg,
+      ordersByStatusAgg,
+    ] = await Promise.all([
+      Order.aggregate([
+        { $match: { ...paidOrderMatch, createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            totalRevenue: { $sum: { $ifNull: ["$total", 0] } },
+            orders: { $sum: 1 },
           },
-          totalRevenue: { $sum: "$total" },
         },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+      ]),
+
+      Enrollment.aggregate([
+        {
+          $match: {
+            ...paidEnrollmentMatch,
+            createdAt: { $gte: sixMonthsAgo },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            totalRevenue: { $sum: { $ifNull: ["$pricePaid", 0] } },
+            orders: { $sum: 1 },
+          },
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+      ]),
+
+      User.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+      ]),
+
+      Order.aggregate([
+        {
+          $group: {
+            _id: "$paymentStatus",
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
     ]);
 
-    const revenueByMonth = revenueByMonthAgg.map((item) => {
-      const { year, month } = item._id;
-      return {
-        year,
-        month,
-        label: `${month.toString().padStart(2, "0")}/${year}`,
-        totalRevenue: item.totalRevenue,
-      };
+    const revenueByMonth = mergeMonthlyRevenue({
+      lastSixMonths,
+      orderRevenueByMonthAgg,
+      enrollmentRevenueByMonthAgg,
     });
 
-    // ===== Charts: New Users Last 6 Months =====
-    const newUsersByMonthAgg = await User.aggregate([
-      { $match: { createdAt: { $gte: sixMonthsAgo } } },
-      {
-        $group: {
-          _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]);
-
-    const newUsersByMonth = newUsersByMonthAgg.map((item) => {
-      const { year, month } = item._id;
-      return {
-        year,
-        month,
-        label: `${month.toString().padStart(2, "0")}/${year}`,
-        count: item.count,
-      };
+    const newUsersByMonth = mergeMonthlyUsers({
+      lastSixMonths,
+      newUsersByMonthAgg,
     });
 
-    // ===== Recent Activity =====
-    const [recentUsers, recentOrders, recentContacts, recentBookings] = await Promise.all([
+    const ordersByStatus = ordersByStatusAgg.map((item) => ({
+      status: item._id || "unknown",
+      count: toNumber(item.count),
+    }));
+
+    const [
+      recentUsers,
+      recentOrders,
+      recentContacts,
+      recentBookings,
+      recentReviews,
+    ] = await Promise.all([
       User.find({})
         .sort({ createdAt: -1 })
         .limit(5)
-        .select("name email role createdAt"),
+        .select("name fullName email role createdAt")
+        .lean(),
+
       Order.find({})
         .sort({ createdAt: -1 })
         .limit(5)
-        .populate("user", "name email")
-        .select("user total paymentStatus createdAt items"),
+        .populate("user", "name fullName email")
+        .select("user total paymentStatus status createdAt items")
+        .lean(),
+
       Contact.find({})
         .sort({ createdAt: -1 })
         .limit(5)
-        .select("name email subject status createdAt"),
+        .select("name email subject status createdAt")
+        .lean(),
+
       Booking.find({})
         .sort({ createdAt: -1 })
         .limit(5)
-        .populate("user", "name email")
-        .select("date type status createdAt"),
+        .populate("user", "name fullName email")
+        .select("date type status createdAt")
+        .lean(),
+
+      Review.find({})
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate("user", "name fullName email")
+        .select("user rating comment isApproved reviewType createdAt")
+        .lean(),
     ]);
 
-    // ===== Top Courses by Orders (simple aggregation) =====
-    const topCoursesAgg = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+    const topCoursesFromOrdersAgg = await Order.aggregate([
+      { $match: paidOrderMatch },
       { $unwind: "$items" },
       { $match: { "items.productType": "course" } },
       {
         $group: {
           _id: "$items.product",
-          enrollments: { $sum: "$items.quantity" },
-          // if unitPrice is per item, multiply by quantity for accuracy
-          revenue: { $sum: { $multiply: ["$items.unitPrice", "$items.quantity"] } },
+          enrollments: { $sum: { $ifNull: ["$items.quantity", 1] } },
+          revenue: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ["$items.unitPrice", 0] },
+                { $ifNull: ["$items.quantity", 1] },
+              ],
+            },
+          },
           title: { $first: "$items.title" },
         },
       },
-      { $sort: { enrollments: -1 } },
+      { $sort: { enrollments: -1, revenue: -1 } },
       { $limit: 5 },
     ]);
 
-    const topCourses = topCoursesAgg.map((c) => ({
-      courseId: c._id,
-      title: c.title,
-      enrollments: c.enrollments,
-      revenue: c.revenue,
-    }));
+    const topCoursesFromEnrollmentsAgg = await Enrollment.aggregate([
+      { $match: paidEnrollmentMatch },
+      {
+        $group: {
+          _id: "$course",
+          enrollments: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ["$pricePaid", 0] } },
+        },
+      },
+      { $sort: { enrollments: -1, revenue: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "courses",
+          localField: "_id",
+          foreignField: "_id",
+          as: "course",
+        },
+      },
+      { $unwind: { path: "$course", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          enrollments: 1,
+          revenue: 1,
+          title: "$course.title",
+        },
+      },
+    ]);
 
-    // ===== Final Response =====
+    const topCoursesMap = new Map();
+
+    for (const item of [
+      ...topCoursesFromOrdersAgg,
+      ...topCoursesFromEnrollmentsAgg,
+    ]) {
+      const key = String(item._id || item.title || "");
+      if (!key) continue;
+
+      const existing = topCoursesMap.get(key) || {
+        courseId: item._id,
+        title: item.title || "Untitled Course",
+        enrollments: 0,
+        revenue: 0,
+      };
+
+      existing.enrollments += toNumber(item.enrollments);
+      existing.revenue += toNumber(item.revenue);
+
+      topCoursesMap.set(key, existing);
+    }
+
+    const topCourses = Array.from(topCoursesMap.values())
+      .sort((a, b) => b.enrollments - a.enrollments || b.revenue - a.revenue)
+      .slice(0, 5);
+
+    const subscriptionStatusBreakdown = [
+      { status: "active", count: activeSubscriptions },
+      { status: "trialing", count: trialingSubscriptions },
+      { status: "past_due", count: pastDueSubscriptions },
+      { status: "canceled", count: canceledSubscriptions },
+    ];
+
     return res.status(200).json({
       success: true,
       message: "Admin stats fetched successfully",
       data: {
-        // Top stat cards
         cards: {
           totalUsers,
           newUsersLast7Days,
+
           totalCourses,
+          publishedCourses,
 
           totalSubscriptions,
           activeSubscriptions,
+          trialingSubscriptions,
+          pastDueSubscriptions,
+          canceledSubscriptions,
 
           totalBookings,
           upcomingBookings,
+          totalCoachings: totalBookings,
+          totalCoachingSessions: totalBookings,
 
           totalContacts,
           unreadContacts,
@@ -276,63 +613,71 @@ export const getAdminStats = async (req, res) => {
 
           totalOrders,
           paidOrders,
+          pendingOrders,
+          failedOrders,
 
-          // ✅ Products
           totalProducts,
           activeProducts,
 
-          // ✅ Reviews
           totalReviews,
           approvedReviews,
+          pendingReviews,
 
-          // ✅ compatibility aliases (prevents UI breaks)
-          totalCoachings: totalBookings,
-          totalCoachingSessions: totalBookings,
+          totalMemberships,
+          activeMemberships,
+
+          totalEnrollments,
+          activeEnrollments,
+
+          totalLessons,
+          publishedLessons,
+
+          totalCampaigns,
+          sentCampaigns,
+          scheduledCampaigns,
+          draftCampaigns,
+
+          totalSegments,
+          totalSubscribers,
+          activeSubscribers,
+          totalTemplates,
         },
 
-        // Revenue summary (includes fields your old /admin/revenue effect expected)
         revenue: {
-          // all-time
           totalRevenue,
-
-          // month + last month + MoM%
-          revenueThisMonth: monthRevenue,
-          revenueLastMonth,
-          revenueChangePct,
-
-          // fields your frontend normalizer supports
           todayRevenue,
           monthRevenue,
           yearRevenue,
+          revenueThisMonth: monthRevenue,
+          revenueLastMonth,
+          revenueChangePct,
         },
 
-        // Chart data
         charts: {
           revenueByMonth,
           newUsersByMonth,
+          ordersByStatus,
+          subscriptionStatusBreakdown,
         },
 
-        // Activity sections
         recent: {
           users: recentUsers,
           orders: recentOrders,
           contacts: recentContacts,
           bookings: recentBookings,
+          reviews: recentReviews,
         },
 
-        // Top lists
         top: {
           courses: topCourses,
         },
       },
     });
-  } catch (error) {
-    console.error("Error fetching admin stats:", error);
+  } catch {
     return res.status(500).json({
-      success: false,
-      message: "Failed to fetch admin stats",
-      error: error.message,
-    });
+  success: false,
+  message: "Failed to fetch admin stats",
+});
   }
 };
 

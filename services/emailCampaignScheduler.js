@@ -66,7 +66,10 @@ export function startEmailCampaignScheduler() {
   );
 
   schedulerStarted = true;
+  // eslint-disable-next-line no-undef
+ if (process.env.NODE_ENV !== "production") {
   console.log("[EMAIL CAMPAIGN SCHEDULER] Started");
+  }
 }
 
 export function stopEmailCampaignScheduler() {
@@ -76,7 +79,10 @@ export function stopEmailCampaignScheduler() {
   }
 
   schedulerStarted = false;
-  console.log("[EMAIL CAMPAIGN SCHEDULER] Stopped");
+  // eslint-disable-next-line no-undef
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[EMAIL CAMPAIGN SCHEDULER] Stopped");
+   }
 }
 
 export function getEmailCampaignSchedulerStatus() {

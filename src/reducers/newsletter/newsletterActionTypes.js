@@ -1,5 +1,3 @@
-// src/reducers/newsletter/newsletterActionTypes.js
-
 export const NEWSLETTER_ACTIONS = {
   SUBSCRIBE_REQUEST: "NEWSLETTER/SUBSCRIBE_REQUEST",
   SUBSCRIBE_SUCCESS: "NEWSLETTER/SUBSCRIBE_SUCCESS",

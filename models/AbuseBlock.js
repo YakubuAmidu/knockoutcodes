@@ -24,7 +24,10 @@ export const BOXING_COACHING_TYPES = [
 
 const CoachingSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", required: false
+    },
 
     fullName: { type: String, required: true, trim: true, maxlength: 80 },
 

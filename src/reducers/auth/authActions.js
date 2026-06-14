@@ -19,13 +19,34 @@ export const fetchAuthUser = () => async (dispatch) => {
 
     return { ok: true, user };
   } catch (error) {
+  const data = error?.response?.data;
+
+  if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+    localStorage.setItem("accountAccessMessage", data.message || "");
+    localStorage.setItem("accountStatus", data.accountStatus || "restricted");
+
     dispatch({
-      type: AUTH_ACTIONS.AUTH_FAIL,
-      payload: getErrorMessage(error, "Failed to fetch auth user"),
+      type: AUTH_ACTIONS.ACCOUNT_ACCESS_RESTRICTED,
+      payload: {
+        message: data.message,
+        accountStatus: data.accountStatus,
+      },
     });
 
-    return { ok: false };
+    return {
+      ok: false,
+      restricted: true,
+      redirectTo: data.redirectTo || "/account-access-notice",
+    };
   }
+
+  dispatch({
+    type: AUTH_ACTIONS.AUTH_FAIL,
+    payload: getErrorMessage(error, "Failed to fetch auth user"),
+  });
+
+  return { ok: false };
+}
 };
 
 export const clearAuthError = () => ({

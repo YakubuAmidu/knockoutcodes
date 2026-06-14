@@ -34,6 +34,36 @@ function formatMoney(value) {
   return `$${n.toFixed(2)}`;
 }
 
+function getRatingAverage(product) {
+  return Number(
+    product?.ratingAverage ??
+      product?.averageRating ??
+      product?.avgRating ??
+      product?.rating ??
+      0
+  );
+}
+
+function getReviewCount(product) {
+  return Number(
+    product?.ratingCount ??
+      product?.reviewCount ??
+      product?.reviewsCount ??
+      product?.totalReviews ??
+      product?.numReviews ??
+      0
+  );
+}
+
+function renderStars(ratingAverage) {
+  const rating = Number(ratingAverage) || 0;
+  const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
+
+  return Array.from({ length: 5 }, (_, index) =>
+    index + 1 <= fullStars ? "★" : "☆"
+  ).join("");
+}
+
 function normalizeProducts(data) {
   return data?.products || data?.data || data?.items || data?.results || [];
 }
@@ -116,7 +146,6 @@ export default function Product() {
           err?.message ||
           "Failed to load products.";
 
-        dispatch({ type: PRODUCT_ACTIONS.FETCH_SUCCESS, payload: [] });
         dispatch({ type: PRODUCT_ACTIONS.FETCH_ERROR, payload: msg });
 
         setMeta({
@@ -144,10 +173,15 @@ export default function Product() {
   }, [fetchProducts, page]);
 
   function handleSearchSubmit(e) {
-    e.preventDefault();
-    setPage(1);
+  e.preventDefault();
+
+  if (page === 1) {
     fetchProducts(1);
+    return;
   }
+
+  setPage(1);
+}
 
   function addToCart(product) {
     const id = getId(product);
@@ -329,6 +363,10 @@ function ProductCard({ product, onAddToCart }) {
   const compareAtPrice = Number(product?.compareAtPrice || 0);
   const stock = Number(product?.stock || 0);
   const hasDiscount = compareAtPrice > price && price >= 0;
+  const ratingAverage = getRatingAverage(product);
+const reviewCount = getReviewCount(product);
+const isBestSeller =
+  Boolean(product?.isFeatured) || (ratingAverage >= 4.7 && reviewCount >= 20);
   const productLink = `/products/${product?.slug || id}`;
 
   return (
@@ -345,8 +383,8 @@ function ProductCard({ product, onAddToCart }) {
         )}
 
         <FloatingBadges>
-          {product?.isFeatured ? <MiniBadge>Featured</MiniBadge> : null}
-          <MiniBadge>{stock > 0 ? `${stock} in stock` : "Out of stock"}</MiniBadge>
+          {isBestSeller ? <MiniBadge>Best Seller</MiniBadge> : null}
+<MiniBadge>{stock > 0 ? `${stock} in stock` : "Out of stock"}</MiniBadge>
         </FloatingBadges>
       </ImageWrap>
 
@@ -354,6 +392,17 @@ function ProductCard({ product, onAddToCart }) {
         <Category>{product?.category || "KnockoutCodes Gear"}</Category>
         <CardTitle title={title}>{title}</CardTitle>
         <CardDesc>{shortDescription}</CardDesc>
+
+        <RatingRow>
+  <Stars>{renderStars(ratingAverage)}</Stars>
+
+  <RatingText>
+    {ratingAverage > 0 ? `${ratingAverage.toFixed(1)}/5` : "New"}
+    {reviewCount > 0
+      ? ` • ${reviewCount} reviews`
+      : " • No reviews yet"}
+  </RatingText>
+</RatingRow>
 
         <PriceRow>
           <Price>{formatMoney(price)}</Price>
@@ -669,6 +718,27 @@ const CardDesc = styled.p`
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+`;
+
+const RatingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+`;
+
+const Stars = styled.span`
+  color: #ffd97a;
+  font-size: 14px;
+  letter-spacing: 1px;
+`;
+
+const RatingText = styled.span`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.82;
+  font-size: 12px;
+  font-weight: 850;
 `;
 
 const PriceRow = styled.div`

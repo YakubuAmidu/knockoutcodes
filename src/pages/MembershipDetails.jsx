@@ -10,13 +10,22 @@ import {
   getMySubscription,
   switchMembershipPlan,
   cancelMyMembership,
+  getReviews,
+  createReview,
 } from "../lib/apiClient";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 
 const normalizePlanSlug = (raw) => {
-  const s = String(raw || "").toLowerCase().trim();
-  if (s === "advanced") return "advance";
-  return s;
+  const value = String(raw || "").toLowerCase().trim();
+
+  if (value === "advanced") return "advance";
+  if (value.includes("beginner")) return "beginner";
+  if (value.includes("intermediate")) return "intermediate";
+  if (value.includes("advance") || value.includes("advanced")) return "advance";
+  if (value.includes("complete") || value.includes("elite")) return "complete";
+
+  return value;
 };
 
 const formatEnrolled = (n) => {
@@ -44,12 +53,35 @@ function resolveCheckoutUrl(res) {
   return "";
 }
 
+const getSubscriptionPayload = (payload) => {
+  if (payload?.data?.data) return payload.data.data;
+  if (payload?.data) return payload.data;
+  if (payload?.subscription) return payload.subscription;
+  return payload || {};
+};
+
 export default function MembershipDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+
+  const {
+  isAuthenticated,
+  loading: authLoading,
+  user,
+  currentUser,
+  authUser,
+} = useAuth();
+
+const toast = useToast();
+
+const loggedInUser = user || currentUser || authUser || {};
+
+const isAdmin =
+  ["admin", "superadmin"].includes(
+    String(loggedInUser?.role || loggedInUser?.user?.role || "").toLowerCase()
+  ) || loggedInUser?.isAdmin === true;
 
   const { startingId, switchingId, canceling, mySubscription, error } =
     useSelector((s) => s.membership);
@@ -60,6 +92,19 @@ export default function MembershipDetails() {
   const [membership, setMembership] = useState(stateMembership);
   const [loading, setLoading] = useState(!stateMembership);
   const [billingPeriod, setBillingPeriod] = useState(stateBillingPeriod);
+
+  const [reviews, setReviews] = useState([]);
+const [reviewStats, setReviewStats] = useState({
+  totalReviews: 0,
+  averageRating: 0,
+});
+const [reviewLoading, setReviewLoading] = useState(false);
+const [reviewSubmitting, setReviewSubmitting] = useState(false);
+const [reviewForm, setReviewForm] = useState({
+  rating: 5,
+  title: "",
+  comment: "",
+});
 
   const courseIdFromState = location?.state?.courseId || "";
   const requiredMembershipFromState = location?.state?.requiredMembershipId || "";
@@ -74,7 +119,7 @@ export default function MembershipDetails() {
 
       dispatch({
         type: MEMBERSHIP_ACTIONS.FETCH_MY_SUBSCRIPTION_SUCCESS,
-        payload: sub || {},
+        payload: getSubscriptionPayload(sub),
       });
     } catch (err) {
       dispatch({
@@ -86,6 +131,51 @@ export default function MembershipDetails() {
       });
     }
   }, [dispatch, isAuthenticated, authLoading]);
+
+  const fetchMembershipReviews = useCallback(async () => {
+  const membershipObjectId =
+  membership?._id ||
+  (String(membership?.id || "").match(/^[0-9a-fA-F]{24}$/)
+    ? membership.id
+    : "");
+
+  if (!membershipObjectId) return;
+
+  setReviewLoading(true);
+
+  try {
+    const result = await getReviews(
+      `membershipId=${encodeURIComponent(membershipObjectId)}&page=1&limit=10`
+    );
+
+    const payload = result?.data || {};
+    const list = Array.isArray(payload?.reviews) ? payload.reviews : [];
+
+    setReviews(list);
+    setReviewStats({
+      totalReviews: Number(payload?.totalReviews || 0),
+      averageRating: Number(payload?.averageRating || 0),
+    });
+  } catch (err) {
+    console.error("Membership reviews load error:", err);
+    setReviews([]);
+    setReviewStats({
+      totalReviews: 0,
+      averageRating: 0,
+    });
+  } finally {
+    setReviewLoading(false);
+  }
+  }, [membership?._id, membership?.id]);
+  
+  const handleReviewChange = useCallback((event) => {
+  const { name, value } = event.target;
+
+  setReviewForm((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -106,13 +196,17 @@ export default function MembershipDetails() {
       }
     }
 
-    loadMembership();
+   loadMembership();
     fetchMySubscription();
 
     return () => {
       ignore = true;
     };
   }, [id, stateMembership, fetchMySubscription]);
+
+  useEffect(() => {
+  fetchMembershipReviews();
+}, [fetchMembershipReviews]);
 
   const view = useMemo(() => {
     const m = membership || {};
@@ -166,9 +260,15 @@ export default function MembershipDetails() {
     };
   }, [membership, id, billingPeriod]);
 
-  const checkoutId = view.membershipDbId || view.membershipId || view.id;
-  const isStarting = !loading && String(startingId) === String(checkoutId);
-  const isSwitching = !loading && String(switchingId) === String(checkoutId);
+  const checkoutId = normalizePlanSlug(
+  view.membershipId || view.accessLevel || view.id
+  );
+  
+const isStarting =
+  !loading && normalizePlanSlug(startingId) === normalizePlanSlug(checkoutId);
+
+const isSwitching =
+  !loading && normalizePlanSlug(switchingId) === normalizePlanSlug(checkoutId);
 
   const isRequired =
     requiredMembershipFromState &&
@@ -188,6 +288,97 @@ export default function MembershipDetails() {
     hasActiveSubscription &&
     activeMembershipId === currentMembershipSlug &&
     activeBillingPeriod === billingPeriod;
+  
+    const handleSubmitReview = useCallback(
+  async (event) => {
+    event.preventDefault();
+
+    const membershipObjectId =
+  membership?._id ||
+  (String(membership?.id || "").match(/^[0-9a-fA-F]{24}$/)
+    ? membership.id
+    : "");
+
+    if (!membershipObjectId) {
+      toast?.push?.({
+        title: "Membership unavailable",
+        description: "This membership cannot be reviewed right now.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigate("/login", {
+        state: {
+          from: `/memberships/${id}`,
+          billingPeriod,
+        },
+      });
+      return;
+    }
+
+    if (!hasActiveSubscription || !isCurrentPlan) {
+      toast?.push?.({
+        title: "Review locked",
+        description:
+          "You must have this active membership before leaving a review.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    const cleanComment = String(reviewForm.comment || "").trim();
+
+    if (cleanComment.length < 10) {
+      toast?.push?.({
+        title: "Review too short",
+        description: "Please write at least 10 characters.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setReviewSubmitting(true);
+
+    try {
+      await createReview({
+        reviewType: "membership",
+        membershipId: membershipObjectId,
+        rating: Number(reviewForm.rating || 5),
+        title: String(reviewForm.title || "").trim(),
+        comment: cleanComment,
+      });
+
+      setReviewForm({
+        rating: 5,
+        title: "",
+        comment: "",
+      });
+
+      await fetchMembershipReviews();
+
+      toast?.push?.({
+        title: "Review submitted",
+        description:
+          "Your membership review was submitted and will appear after admin approval.",
+        variant: "success",
+      });
+    } catch (err) {
+      toast?.push?.({
+        title: "Review failed",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Could not submit your review.",
+        variant: "danger",
+      });
+    } finally {
+      setReviewSubmitting(false);
+    }
+  },
+  [membership?._id, membership?.id, isAuthenticated, hasActiveSubscription, isCurrentPlan, reviewForm.comment, reviewForm.rating, reviewForm.title, toast, navigate, id, billingPeriod, fetchMembershipReviews]
+);
 
   const startStripeCheckout = useCallback(async () => {
     try {
@@ -254,6 +445,16 @@ export default function MembershipDetails() {
       e?.preventDefault?.();
       e?.stopPropagation?.();
 
+      if (isAdmin) {
+  toast?.push?.({
+    title: "Admins cannot subscribe",
+    description:
+      "Admin accounts are blocked from buying courses, products, or memberships.",
+    variant: "danger",
+  });
+  return;
+}
+
       if (!isAuthenticated) {
         navigate("/login", {
           state: {
@@ -268,18 +469,20 @@ export default function MembershipDetails() {
 
       startStripeCheckout();
     },
-    [
-      isAuthenticated,
-      navigate,
-      startStripeCheckout,
-      view.id,
-      courseIdFromState,
-      requiredMembershipFromState,
-      billingPeriod,
-    ]
+    [isAdmin, isAuthenticated, startStripeCheckout, toast, navigate, view.id, courseIdFromState, requiredMembershipFromState, billingPeriod]
   );
 
   const handleSwitchPlan = useCallback(async () => {
+    if (isAdmin) {
+  toast?.push?.({
+    title: "Admins cannot manage subscriptions",
+    description:
+      "Admin accounts cannot subscribe, switch, or purchase memberships.",
+    variant: "danger",
+  });
+  return;
+    }
+    
     if (!isAuthenticated) {
       navigate("/login", {
         state: {
@@ -315,17 +518,7 @@ export default function MembershipDetails() {
     } finally {
       dispatch({ type: MEMBERSHIP_ACTIONS.STOP_SWITCH });
     }
-  }, [
-    isAuthenticated,
-    navigate,
-    view.id,
-    courseIdFromState,
-    requiredMembershipFromState,
-    billingPeriod,
-    dispatch,
-    checkoutId,
-    fetchMySubscription,
-  ]);
+  }, [isAdmin, isAuthenticated, toast, navigate, view.id, courseIdFromState, requiredMembershipFromState, billingPeriod, dispatch, checkoutId, fetchMySubscription]);
 
   const handleCancelMembership = useCallback(async () => {
     if (mySubscription?.cancelAtPeriodEnd) return;
@@ -495,7 +688,115 @@ export default function MembershipDetails() {
                       </FeatureItem>
                     ))}
                   </FeatureGrid>
-                </InfoCard>
+                    </InfoCard>
+                    
+                    <InfoCard>
+  <SectionLabel>Member Proof</SectionLabel>
+  <SectionTitle>Membership Reviews</SectionTitle>
+
+  <ReviewSummary>
+    <strong>
+      {reviewStats.averageRating > 0
+        ? `★ ${reviewStats.averageRating.toFixed(1)}`
+        : "New"}
+    </strong>
+    <span>
+      {reviewStats.totalReviews > 0
+        ? `${reviewStats.totalReviews} approved review${
+            reviewStats.totalReviews === 1 ? "" : "s"
+          }`
+        : "No approved reviews yet."}
+    </span>
+  </ReviewSummary>
+
+  {isCurrentPlan ? (
+    <ReviewForm onSubmit={handleSubmitReview}>
+      <ReviewGrid>
+        <ReviewField>
+          <label htmlFor="rating">Rating</label>
+          <select
+            id="rating"
+            name="rating"
+            value={reviewForm.rating}
+            onChange={handleReviewChange}
+            disabled={reviewSubmitting}
+          >
+            <option value="5">5 Stars</option>
+            <option value="4">4 Stars</option>
+            <option value="3">3 Stars</option>
+            <option value="2">2 Stars</option>
+            <option value="1">1 Star</option>
+          </select>
+        </ReviewField>
+
+        <ReviewField>
+          <label htmlFor="title">Title</label>
+          <input
+            id="title"
+            name="title"
+            value={reviewForm.title}
+            onChange={handleReviewChange}
+            maxLength={80}
+            placeholder="Example: Worth every dollar"
+            disabled={reviewSubmitting}
+          />
+        </ReviewField>
+      </ReviewGrid>
+
+      <ReviewField>
+        <label htmlFor="comment">Review</label>
+        <textarea
+          id="comment"
+          name="comment"
+          value={reviewForm.comment}
+          onChange={handleReviewChange}
+          minLength={10}
+          maxLength={1000}
+          placeholder="Share what this membership helped you improve..."
+          disabled={reviewSubmitting}
+          required
+        />
+      </ReviewField>
+
+      <PrimaryBtn type="submit" disabled={reviewSubmitting}>
+        {reviewSubmitting ? "Submitting..." : "Submit Review"}
+      </PrimaryBtn>
+
+      <ReviewNote>
+        Reviews appear publicly after admin approval.
+      </ReviewNote>
+    </ReviewForm>
+  ) : (
+    <ReviewLock>
+      You can review this membership after you become an active member of this
+      plan.
+    </ReviewLock>
+  )}
+
+  <ReviewList>
+    {reviewLoading ? (
+      <ReviewLock>Loading reviews...</ReviewLock>
+    ) : reviews.length > 0 ? (
+      reviews.map((review) => (
+        <ReviewCard key={review._id}>
+          <strong>
+            ★ {Number(review.rating || 0).toFixed(1)}{" "}
+            {review.title ? `— ${review.title}` : ""}
+          </strong>
+          <p>{review.comment}</p>
+          <span>
+            {review.user?.name || "Verified Member"} •{" "}
+            {review.createdAt
+              ? new Date(review.createdAt).toLocaleDateString()
+              : "Recent"}
+          </span>
+        </ReviewCard>
+      ))
+    ) : (
+      <ReviewLock>No approved reviews yet.</ReviewLock>
+    )}
+  </ReviewList>
+</InfoCard>
 
                 <InfoCard>
                   <SectionLabel>How It Works</SectionLabel>
@@ -1052,4 +1353,139 @@ const StateText = styled.p`
   margin: 0 0 16px;
   color: ${({ theme }) => theme.colors.ivory};
   opacity: 0.72;
+`;
+
+const ReviewSummary = styled.div`
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(214, 182, 159, 0.16);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  strong {
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 22px;
+    font-weight: 950;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.82;
+    font-weight: 800;
+  }
+`;
+
+const ReviewForm = styled.form`
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+`;
+
+const ReviewGrid = styled.div`
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ReviewField = styled.div`
+  display: grid;
+  gap: 7px;
+
+  label {
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    border-radius: ${({ theme }) => theme.radius.md};
+    border: 1px solid rgba(214, 182, 159, 0.24);
+    background: rgba(0, 0, 0, 0.32);
+    color: ${({ theme }) => theme.colors.ivory};
+    padding: 12px;
+    outline: none;
+  }
+
+  textarea {
+    min-height: 130px;
+    resize: vertical;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: rgba(214, 182, 159, 0.72);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+`;
+
+const ReviewNote = styled.p`
+  margin: -4px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.62;
+  font-size: 12px;
+`;
+
+const ReviewLock = styled.div`
+  padding: 13px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(214, 182, 159, 0.14);
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  font-size: 13px;
+  line-height: 1.55;
+`;
+
+const ReviewList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const ReviewCard = styled.article`
+  padding: 14px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(214, 182, 159, 0.14);
+
+  strong {
+    display: block;
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-weight: 950;
+    margin-bottom: 7px;
+  }
+
+  p {
+    margin: 0;
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.84;
+    line-height: 1.6;
+  }
+
+  span {
+    display: block;
+    margin-top: 9px;
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.54;
+    font-size: 12px;
+  }
 `;

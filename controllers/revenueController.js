@@ -101,12 +101,10 @@ export const getRevenueSummary = async (req, res) => {
         revenueByMonth,
       },
     });
-  } catch (error) {
-    console.error("Error fetching revenue summary:", error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch revenue summary",
-      error: error.message,
     });
   }
 };

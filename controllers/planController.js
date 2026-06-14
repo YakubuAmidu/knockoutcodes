@@ -64,12 +64,10 @@ export const createPlan = async (req, res) => {
       message: 'Plan created successfully',
       data: plan,
     });
-  } catch (error) {
-    console.error('createPlan error:', error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: 'Failed to create plan',
-      error: error.message,
     });
   }
 };
@@ -95,12 +93,10 @@ export const getPlans = async (req, res) => {
       count: plans.length,
       data: plans,
     });
-  } catch (error) {
-    console.error('getPlans error:', error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch plans',
-      error: error.message,
     });
   }
 };
@@ -133,12 +129,10 @@ export const getPlan = async (req, res) => {
       success: true,
       data: plan,
     });
-  } catch (error) {
-    console.error('getPlan error:', error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch plan',
-      error: error.message,
     });
   }
 };
@@ -173,12 +167,10 @@ export const updatePlan = async (req, res) => {
       message: 'Plan updated successfully',
       data: plan,
     });
-  } catch (error) {
-    console.error('updatePlan error:', error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: 'Failed to update plan',
-      error: error.message,
     });
   }
 };
@@ -203,12 +195,10 @@ export const deletePlan = async (req, res) => {
       success: true,
       message: 'Plan deleted successfully',
     });
-  } catch (error) {
-    console.error('deletePlan error:', error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: 'Failed to delete plan',
-      error: error.message,
     });
   }
 };

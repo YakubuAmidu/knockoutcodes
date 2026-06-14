@@ -1,357 +1,285 @@
-// CombineReducers
+// src/reducers/rootReducer.js
+
 import { combineReducers } from "@reduxjs/toolkit";
 
-// ✅ Auth
+/* =========================================================
+   AUTH / ACCOUNT
+========================================================= */
 import { authReducer } from "./auth/authReducer";
 import { authInitialState } from "./auth/authInitialState";
 
-// ✅ ForgotPassword
-import { forgotPasswordReducer } from "./forgotPassword/forgotPasswordReducer";
-import { forgotPasswordInitialState } from "./forgotPassword/forgotPasswordInitialState";
-
-// ✅ ResetPassword
-import { resetPasswordReducer } from "./resetPassword/resetPasswordReducer";
-import { resetPasswordInitialState } from "./resetPassword/resetPasswordInitialState";
-
-// ✅ SecurityEvent
-import { securityEventReducer } from "./securityEvents/securityEventReducer";
-import { securityEventInitialState } from "./securityEvents/securityEventInitialState";
-
-// ✅ SystemSetting
-import { systemSettingReducer } from "./systemSettings/systemSettingReducer";
-import { systemSettingInitialState } from "./systemSettings/systemSettingInitialState";
-
-// ✅ ManageCourses
-import { manageCoursesReducer } from "./manageCourses/manageCoursesReducer";
-import { manageCoursesInitialState } from "./manageCourses/manageCoursesInitialState";
-
-// ✅ Manage Products
-import { manageProductReducer } from "./manageProducts/manageProductReducer";
-import { manageProductInitialState } from "./manageProducts/manageProductInitialState";
-
-// ✅ MyCourseDetail
-import { myCourseDetailReducer } from "./myCourseDetail/myCourseDetailReducer";
-import { myCourseDetailInitialState } from "./myCourseDetail/myCourseDetailInitialState";
-
-// ✅ Register
 import registerReducer from "./register/registerReducer";
 import { registerInitialState } from "./register/registerInitialState";
 
-// Cart
-import { cartReducer } from "./cart/cartReducer";
-import { cartInitialState } from "./cart/cartInitialState";
+import { forgotPasswordReducer } from "./forgotPassword/forgotPasswordReducer";
+import { forgotPasswordInitialState } from "./forgotPassword/forgotPasswordInitialState";
 
-// ✅ Testimonials
-import { testimonialReducer } from "./testimonial/testimonialReducer";
-import { testimonialInitialState } from "./testimonial/testimonialInitialState";
+import { resetPasswordReducer } from "./resetPassword/resetPasswordReducer";
+import { resetPasswordInitialState } from "./resetPassword/resetPasswordInitialState";
 
-// ✅ MyCourses
-import { myCoursesReducer } from "./myCourses/myCoursesReducer";
-import { myCoursesInitialState } from "./myCourses/myCoursesInitialState";
-
-// Product
-import { productReducer } from "./products/productReducer";
-import { productInitialState } from "./products/productInitialState";
-
-// Checkout
-import { checkoutReducer } from "./checkout/checkoutReducer";
-import { checkoutInitialState } from "./checkout/checkoutInitialState";
-
-// Membership
-import { membershipReducer } from "./memberships/membershipReducer";
-import { membershipInitialState } from "./memberships/membershipInitialState";
-
-// Coaching (user form)
-import { coachingReducer } from "./coaching/coachingReducer";
-import { coachingInitialState } from "./coaching/coachingInitialState";
-
-// ✅ Admin Coachings
-import { adminCoachingsReducer } from "./adminCoaching/adminCoachingReducer";
-import { adminCoachingsInitialState } from "./adminCoaching/adminCoachingInitialState";
-
-// Contact (user form)
-import { contactReducer } from "./contact/contactReducer";
-import { contactInitialState } from "./contact/contactInitialState";
-
-// Newsletter (user)
-import newsletterReducer from "./newsletter/newsletterReducer";
-import { newsletterInitialState } from "./newsletter/newsletterInitialState";
-
-// Manage Newsletter (admin)
-import manageNewsletterReducer from "./manageNewsletter/manageNewsletterReducer";
-import { manageNewsletterInitialState } from "./manageNewsletter/manageNewsletterInitialState";
-
-// Manage Contacts (admin)
-import manageContactReducer from "./manageContact/manageContactReducer";
-import { manageContactInitialState } from "./manageContact/manageContactInitialState";
-
-// ✅ Manage Lessons
-import { manageLessonReducer } from "./manageLesson/manageLessonReducer";
-import { manageLessonInitialState } from "./manageLesson/manageLessonInitialState";
-
-// ✅ Manage MyMessages
-import { myMessagesReducer } from "./myMessages/myMessagesReducer";
-import { myMessagesInitialState } from "./myMessages/myMessagesInitialState";
-
-// ✅ User Dashboard
-import { userDashboardReducer } from "./userDashboard/userDashboardReducer";
-import { userDashboardInitialState } from "./userDashboard/userDashboardInitialState";
-
-// ✅ Users
+/* =========================================================
+   USERS / DASHBOARD
+========================================================= */
 import { userReducer } from "./user/userReducer";
 import { userInitialState } from "./user/userInitialState";
 
-// ✅ Courses
-import { courseReducer } from "./courses/courseReducer";
-import { courseInitialState } from "./courses/courseInitialState";
+import { manageUserReducer } from "./manageUsers/manageUserReducer";
+import { manageUserInitialState } from "./manageUsers/manageUserInitialState";
 
-// ✅ CourseDetail
-import { courseDetailReducer } from "./courseDetail/courseDetailReducer";
-import { courseDetailInitialState } from "./courseDetail/courseDetailInitialState";
+import { userDashboardReducer } from "./userDashboard/userDashboardReducer";
+import { userDashboardInitialState } from "./userDashboard/userDashboardInitialState";
 
-// ✅ Enrollment
-import { enrollmentReducer } from "./enrollment/enrollmentReducer";
-import { enrollmentInitialState } from "./enrollment/enrollmentInitialState";
+/* =========================================================
+   PRODUCTS / CART / ORDERS / CHECKOUT
+========================================================= */
+import { productReducer } from "./products/productReducer";
+import { productInitialState } from "./products/productInitialState";
 
-// ✅ Email Dashboard
-import { emailDashboardReducer } from "./emailDashboard/emailDashboardReducer";
-import { emailDashboardInitialState } from "./emailDashboard/emailDashboardInitialState";
+import { cartReducer } from "./cart/cartReducer";
+import { cartInitialState } from "./cart/cartInitialState";
 
-// ✅ Email Campaign
-import { emailCampaignReducer } from "./emailCampaign/emailCampaignReducer";
-import { emailCampaignInitialState } from "./emailCampaign/emailCampaignInitialState";
+import { checkoutReducer } from "./checkout/checkoutReducer";
+import { checkoutInitialState } from "./checkout/checkoutInitialState";
 
-// ✅ Email Segment
-import { emailSegmentReducer } from "./emailSegment/emailSegmentReducer";
-import { emailSegmentInitialState } from "./emailSegment/emailSegmentInitialState";
+import { manageProductReducer } from "./manageProducts/manageProductReducer";
+import { manageProductInitialState } from "./manageProducts/manageProductInitialState";
 
-// ✅ Email Subscriber
-import { emailSubscriberReducer } from "./emailSubscriber/emailSubscriberReducer";
-import { emailSubscriberInitialState } from "./emailSubscriber/emailSubscriberInitialState";
+import { myProductReducer } from "./myProducts/myProductReducer";
+import { myProductInitialState } from "./myProducts/myProductInitialState";
 
-// ✅ Email Template
-import { emailTemplateReducer } from "./emailTemplate/emailTemplateReducer";
-import { emailTemplateInitialState } from "./emailTemplate/emailTemplateInitialState";
-
-// ✅ Email Analytics
-import { emailAnalyticsReducer } from "./emailAnalytics/emailAnalyticsReducer";
-import { emailAnalyticsInitialState } from "./emailAnalytics/emailAnalyticsInitialState";
-
-// ✅ Manage Orders
 import { manageOrderReducer } from "./manageOrders/manageOrderReducer";
 import { manageOrderInitialState } from "./manageOrders/manageOrderInitialState";
 
-// ✅ Auth
-function auth(state = authInitialState, action) {
-  return authReducer(state, action);
+import { myOrderReducer } from "./myOrders/myOrderReducer";
+import { myOrderInitialState } from "./myOrders/myOrderInitialState";
+
+/* =========================================================
+   COURSES / LESSONS / ENROLLMENTS / MEMBERSHIPS
+========================================================= */
+import { courseReducer } from "./courses/courseReducer";
+import { courseInitialState } from "./courses/courseInitialState";
+
+import { courseDetailReducer } from "./courseDetail/courseDetailReducer";
+import { courseDetailInitialState } from "./courseDetail/courseDetailInitialState";
+
+import { myCoursesReducer } from "./myCourses/myCoursesReducer";
+import { myCoursesInitialState } from "./myCourses/myCoursesInitialState";
+
+import { myCourseDetailReducer } from "./myCourseDetail/myCourseDetailReducer";
+import { myCourseDetailInitialState } from "./myCourseDetail/myCourseDetailInitialState";
+
+import { manageCoursesReducer } from "./manageCourses/manageCoursesReducer";
+import { manageCoursesInitialState } from "./manageCourses/manageCoursesInitialState";
+
+import { manageLessonReducer } from "./manageLesson/manageLessonReducer";
+import { manageLessonInitialState } from "./manageLesson/manageLessonInitialState";
+
+import { enrollmentReducer } from "./enrollment/enrollmentReducer";
+import { enrollmentInitialState } from "./enrollment/enrollmentInitialState";
+
+import { membershipReducer } from "./memberships/membershipReducer";
+import { membershipInitialState } from "./memberships/membershipInitialState";
+
+/* =========================================================
+   CONTACT / COACHING / NEWSLETTER / MESSAGES
+========================================================= */
+import { contactReducer } from "./contact/contactReducer";
+import { contactInitialState } from "./contact/contactInitialState";
+
+import { coachingReducer } from "./coaching/coachingReducer";
+import { coachingInitialState } from "./coaching/coachingInitialState";
+
+import { adminCoachingsReducer } from "./adminCoaching/adminCoachingReducer";
+import { adminCoachingsInitialState } from "./adminCoaching/adminCoachingInitialState";
+
+import newsletterReducer from "./newsletter/newsletterReducer";
+import { newsletterInitialState } from "./newsletter/newsletterInitialState";
+
+import manageNewsletterReducer from "./manageNewsletter/manageNewsletterReducer";
+import { manageNewsletterInitialState } from "./manageNewsletter/manageNewsletterInitialState";
+
+import manageContactReducer from "./manageContact/manageContactReducer";
+import { manageContactInitialState } from "./manageContact/manageContactInitialState";
+
+import { myMessagesReducer } from "./myMessages/myMessagesReducer";
+import { myMessagesInitialState } from "./myMessages/myMessagesInitialState";
+
+/* =========================================================
+   REVIEWS / TESTIMONIALS
+========================================================= */
+import { reviewReducer } from "./review/reviewReducer";
+import { reviewInitialState } from "./review/reviewInitialState";
+
+import { manageReviewReducer } from "./manageReview/manageReviewReducer";
+import { manageReviewInitialState } from "./manageReview/manageReviewInitialState";
+
+import { testimonialReducer } from "./testimonial/testimonialReducer";
+import { testimonialInitialState } from "./testimonial/testimonialInitialState";
+
+import { manageTestimonialReducer } from "./manageTestimonials/manageTestimonialReducer";
+import { manageTestimonialInitialState } from "./manageTestimonials/manageTestimonialInitialState";
+
+/* =========================================================
+   SECURITY / SYSTEM SETTINGS
+========================================================= */
+import { securityEventReducer } from "./securityEvents/securityEventReducer";
+import { securityEventInitialState } from "./securityEvents/securityEventInitialState";
+
+import { systemSettingReducer } from "./systemSettings/systemSettingReducer";
+import { systemSettingInitialState } from "./systemSettings/systemSettingInitialState";
+
+/* =========================================================
+   EMAIL SYSTEM
+========================================================= */
+import { emailDashboardReducer } from "./emailDashboard/emailDashboardReducer";
+import { emailDashboardInitialState } from "./emailDashboard/emailDashboardInitialState";
+
+import { emailCampaignReducer } from "./emailCampaign/emailCampaignReducer";
+import { emailCampaignInitialState } from "./emailCampaign/emailCampaignInitialState";
+
+import { emailSegmentReducer } from "./emailSegment/emailSegmentReducer";
+import { emailSegmentInitialState } from "./emailSegment/emailSegmentInitialState";
+
+import { emailSubscriberReducer } from "./emailSubscriber/emailSubscriberReducer";
+import { emailSubscriberInitialState } from "./emailSubscriber/emailSubscriberInitialState";
+
+import { emailTemplateReducer } from "./emailTemplate/emailTemplateReducer";
+import { emailTemplateInitialState } from "./emailTemplate/emailTemplateInitialState";
+
+import { emailAnalyticsReducer } from "./emailAnalytics/emailAnalyticsReducer";
+import { emailAnalyticsInitialState } from "./emailAnalytics/emailAnalyticsInitialState";
+
+import { manageMembershipsReducer } from "./manageMembership/manageMembershipReducer";
+import { manageMembershipsInitialState } from "./manageMembership/manageMembershipInitialState";
+
+import { adminStatsReducer } from "./adminStats/adminStatsReducer";
+import { adminStatsInitialState } from "./adminStats/adminStatsInitialState";
+
+/* =========================================================
+   SAFE REDUCER WRAPPER
+   Keeps each reducer connected to its own initial state.
+========================================================= */
+const withInitialState = (reducer, initialState) => {
+  return function wrappedReducer(state = initialState, action) {
+    return reducer(state, action);
+  };
 };
 
-// ✅ ForgotPassword
-function forgotPassword(state = forgotPasswordInitialState, action) {
-  return forgotPasswordReducer(state, action);
-}
-
-// ✅ ResetPassword
-function resetPassword(state = resetPasswordInitialState, action) {
-  return resetPasswordReducer(state, action);
-}
-
-// ✅ SecurityEvent
-function securityEvent(state = securityEventInitialState, action) {
-  return securityEventReducer(state, action);
-}
-
-// ✅ SystemSetting
-function systemSettings(state = systemSettingInitialState, action) {
-  return systemSettingReducer(state, action);
-}
-
-// ✅ Manage Courses
-function manageCourses(state = manageCoursesInitialState, action) {
-  return manageCoursesReducer(state, action);
-}
-
-// ✅ MyCourseDetail
-function myCourseDetail(state = myCourseDetailInitialState, action) {
-  return myCourseDetailReducer(state, action);
-}
-
-// ✅ Manage Products
-function manageProducts(state = manageProductInitialState, action) {
-  return manageProductReducer(state, action);
-}
-
-function register(state = registerInitialState, action) {
-  return registerReducer(state, action);
-}
-
-// Product
-function products(state = productInitialState, action) {
-  return productReducer(state, action);
-}
-
-// Cart
-function cart(state = cartInitialState, action) {
-  return cartReducer(state, action);
-}
-
-// Testimonials
-function testimonials(state = testimonialInitialState, action) {
-  return testimonialReducer(state, action);
-}
-
-// MyCourses
-function myCourses(state = myCoursesInitialState, action) {
-  return myCoursesReducer(state, action);
-}
-
-// Checkout
-function checkout(state = checkoutInitialState, action) {
-  return checkoutReducer(state, action);
-}
-
-// Membership
-function membership(state = membershipInitialState, action) {
-  return membershipReducer(state, action);
-}
-
-// Coaching
-function coaching(state = coachingInitialState, action) {
-  return coachingReducer(state, action);
-}
-
-// AdminCoaching
-function adminCoachings(state = adminCoachingsInitialState, action) {
-  return adminCoachingsReducer(state, action);
-}
-
-// ✅ Manage Lessons
-function manageLessons(state = manageLessonInitialState, action) {
-  return manageLessonReducer(state, action);
-}
-
-// Contact
-function contact(state = contactInitialState, action) {
-  return contactReducer(state, action);
-}
-
-// Newsletter
-function newsletter(state = newsletterInitialState, action) {
-  return newsletterReducer(state, action);
-}
-
-// ManageNewsletter
-function manageNewsletter(state = manageNewsletterInitialState, action) {
-  return manageNewsletterReducer(state, action);
-}
-
-// ManageContacts
-function manageContacts(state = manageContactInitialState, action) {
-  return manageContactReducer(state, action);
-}
-
-// MyMessages
-function myMessages(state = myMessagesInitialState, action) {
-  return myMessagesReducer(state, action);
-}
-
-// Users
-function users(state = userInitialState, action) {
-  return userReducer(state, action);
-}
-
-// UserDashboard
-function userDashboard(state = userDashboardInitialState, action) {
-  return userDashboardReducer(state, action);
-}
-
-// Courses
-function courses(state = courseInitialState, action) {
-  return courseReducer(state, action);
-}
-
-// Course Detail
-function courseDetail(state = courseDetailInitialState, action) {
-  return courseDetailReducer(state, action);
-}
-
-// Enrollment
-function enrollment(state = enrollmentInitialState, action) {
-  return enrollmentReducer(state, action);
-}
-
-// ✅ Email Dashboard
-function emailDashboard(state = emailDashboardInitialState, action) {
-  return emailDashboardReducer(state, action);
-}
-
-function emailCampaign(state = emailCampaignInitialState, action) {
-  return emailCampaignReducer(state, action);
-}
-
-function emailSegment(state = emailSegmentInitialState, action) {
-  return emailSegmentReducer(state, action);
-}
-
-function emailSubscribers(state = emailSubscriberInitialState, action) {
-  return emailSubscriberReducer(state, action);
-}
-
-function emailTemplate(state = emailTemplateInitialState, action) {
-  return emailTemplateReducer(state, action);
-}
-
-function emailAnalytics(state = emailAnalyticsInitialState, action) {
-  return emailAnalyticsReducer(state, action);
-}
-
-// ✅ Manage Orders
-function manageOrders(state = manageOrderInitialState, action) {
-  return manageOrderReducer(state, action);
-}
-
+/* =========================================================
+   ROOT REDUCER
+========================================================= */
 export const rootReducer = combineReducers({
-  auth,
-  register,
-  forgotPassword,
-  resetPassword,
+  // Auth / Account
+  auth: withInitialState(authReducer, authInitialState),
+  register: withInitialState(registerReducer, registerInitialState),
+  forgotPassword: withInitialState(
+    forgotPasswordReducer,
+    forgotPasswordInitialState
+  ),
+  resetPassword: withInitialState(resetPasswordReducer, resetPasswordInitialState),
 
-  products,
-  cart,
-  checkout,
-  membership,
-  coaching,
-  adminCoachings,
-  contact,
-  newsletter,
-  manageNewsletter,
-  manageContacts,
-  myMessages,
-  users,
-  userDashboard,
-  courses,
-  myCourses,
-  courseDetail,
-  enrollment,
-  myCourseDetail,
-  systemSettings,
-  manageCourses,
-  manageProducts,
-  manageOrders,
+  // Users / Dashboard
+  users: withInitialState(userReducer, userInitialState),
+  manageUsers: withInitialState(manageUserReducer, manageUserInitialState),
+  userDashboard: withInitialState(
+    userDashboardReducer,
+    userDashboardInitialState
+  ),
 
-   // ✅ Security Events
-  securityEvent,
+  // Products / Orders
+  products: withInitialState(productReducer, productInitialState),
+  cart: withInitialState(cartReducer, cartInitialState),
+  checkout: withInitialState(checkoutReducer, checkoutInitialState),
+  manageProducts: withInitialState(
+    manageProductReducer,
+    manageProductInitialState
+  ),
+  myProducts: withInitialState(myProductReducer, myProductInitialState),
+  manageOrders: withInitialState(manageOrderReducer, manageOrderInitialState),
+  myOrders: withInitialState(myOrderReducer, myOrderInitialState),
 
-  // ✅ Lessons
-  manageLessons,
+  // Courses / Memberships
+  courses: withInitialState(courseReducer, courseInitialState),
+  courseDetail: withInitialState(courseDetailReducer, courseDetailInitialState),
+  myCourses: withInitialState(myCoursesReducer, myCoursesInitialState),
+  myCourseDetail: withInitialState(
+    myCourseDetailReducer,
+    myCourseDetailInitialState
+  ),
+  manageCourses: withInitialState(manageCoursesReducer, manageCoursesInitialState),
+  manageLessons: withInitialState(manageLessonReducer, manageLessonInitialState),
+  enrollment: withInitialState(enrollmentReducer, enrollmentInitialState),
+  membership: withInitialState(membershipReducer, membershipInitialState),
 
-  // ✅ Email system
-  emailDashboard,
-  emailCampaign,
-  emailSegment,
-  emailSubscribers,
-  emailTemplate,
-  emailAnalytics,
+  // Contact / Coaching / Newsletter / Messages
+  contact: withInitialState(contactReducer, contactInitialState),
+  coaching: withInitialState(coachingReducer, coachingInitialState),
+  adminCoachings: withInitialState(
+    adminCoachingsReducer,
+    adminCoachingsInitialState
+  ),
+  newsletter: withInitialState(newsletterReducer, newsletterInitialState),
+  manageNewsletter: withInitialState(
+    manageNewsletterReducer,
+    manageNewsletterInitialState
+  ),
+  manageContacts: withInitialState(
+    manageContactReducer,
+    manageContactInitialState
+  ),
+  myMessages: withInitialState(myMessagesReducer, myMessagesInitialState),
 
-  testimonials,
+  // Reviews / Testimonials
+  review: withInitialState(reviewReducer, reviewInitialState),
+  manageReview: withInitialState(manageReviewReducer, manageReviewInitialState),
+  testimonials: withInitialState(testimonialReducer, testimonialInitialState),
+  manageTestimonials: withInitialState(
+    manageTestimonialReducer,
+    manageTestimonialInitialState
+  ),
+
+  // Security / Settings
+  securityEvent: withInitialState(
+    securityEventReducer,
+    securityEventInitialState
+  ),
+  systemSettings: withInitialState(
+    systemSettingReducer,
+    systemSettingInitialState
+  ),
+
+  // Email System
+  emailDashboard: withInitialState(
+    emailDashboardReducer,
+    emailDashboardInitialState
+  ),
+  emailCampaign: withInitialState(
+    emailCampaignReducer,
+    emailCampaignInitialState
+  ),
+  emailSegment: withInitialState(emailSegmentReducer, emailSegmentInitialState),
+  emailSubscribers: withInitialState(
+    emailSubscriberReducer,
+    emailSubscriberInitialState
+  ),
+
+  emailTemplate: withInitialState(
+    emailTemplateReducer,
+    emailTemplateInitialState
+  ),
+
+  emailAnalytics: withInitialState(
+    emailAnalyticsReducer,
+    emailAnalyticsInitialState
+  ),
+
+  manageMemberships: withInitialState(
+  manageMembershipsReducer,
+  manageMembershipsInitialState
+  ),
+  
+  adminStats: withInitialState(
+  adminStatsReducer,
+  adminStatsInitialState
+),
 });

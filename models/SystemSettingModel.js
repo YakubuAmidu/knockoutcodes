@@ -1,42 +1,45 @@
-// models/SystemSettings.js
+// models/systemSettingModel.js
+
 import mongoose from "mongoose";
 
-/* =========================
-   System Settings Schema
-========================= */
-const systemSettingsSchema = new mongoose.Schema(
+const DEFAULT_MAINTENANCE_TITLE = "KnockoutCodes is upgrading";
+const DEFAULT_MAINTENANCE_MESSAGE =
+  "We are improving the training room. Please check back shortly.";
+
+function sanitizeText(value) {
+  if (value == null) return "";
+  return String(value).replace(/\s+/g, " ").trim();
+}
+
+const systemSettingSchema = new mongoose.Schema(
   {
-    // Global maintenance mode toggle
     maintenanceMode: {
       type: Boolean,
       default: false,
       index: true,
     },
 
-    // Public maintenance title
     maintenanceTitle: {
       type: String,
       trim: true,
-      default: "KnockoutCodes is upgrading",
-      maxlength: 120,
+      default: DEFAULT_MAINTENANCE_TITLE,
+      maxlength: [120, "Maintenance title cannot exceed 120 characters."],
+      set: sanitizeText,
     },
 
-    // Public maintenance message
     maintenanceMessage: {
       type: String,
       trim: true,
-      default:
-        "We are improving the training room. Please check back shortly.",
-      maxlength: 500,
+      default: DEFAULT_MAINTENANCE_MESSAGE,
+      maxlength: [500, "Maintenance message cannot exceed 500 characters."],
+      set: sanitizeText,
     },
 
-    // Allow admins to bypass maintenance mode
     allowAdminAccess: {
       type: Boolean,
       default: true,
     },
 
-    // Admin who last updated settings
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -44,16 +47,25 @@ const systemSettingsSchema = new mongoose.Schema(
       index: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-/* =========================
-   Model Export
-========================= */
-const SystemSettings =
-  mongoose.models.SystemSettings ||
-  mongoose.model("SystemSettings", systemSettingsSchema);
+systemSettingSchema.index({ updatedAt: -1 });
 
-export default SystemSettings;
+systemSettingSchema.pre("validate", function (next) {
+  this.maintenanceTitle =
+    sanitizeText(this.maintenanceTitle) || DEFAULT_MAINTENANCE_TITLE;
+
+  this.maintenanceMessage =
+    sanitizeText(this.maintenanceMessage) || DEFAULT_MAINTENANCE_MESSAGE;
+
+  this.allowAdminAccess = this.allowAdminAccess !== false;
+
+  next();
+});
+
+const SystemSetting =
+  mongoose.models.SystemSetting ||
+  mongoose.model("SystemSetting", systemSettingSchema);
+
+export default SystemSetting;

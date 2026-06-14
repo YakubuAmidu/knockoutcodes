@@ -1,52 +1,64 @@
 // controllers/emailCampaignTrackingController.js
+import mongoose from "mongoose";
 import EmailCampaignLog from "../models/EmailCampaignLogModel.js";
 
 function getTrackingId(req) {
-  return (req.query.logId || req.query.id || req.query.log || "")
-    .toString()
-    .trim();
+  return String(req.query.logId || req.query.id || req.query.log || "").trim();
+}
+
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
 }
 
 function getSafeRedirectUrl(rawUrl) {
   if (!rawUrl) return "/";
 
-  let decoded = rawUrl;
+  let decoded = "";
 
   try {
-    decoded = decodeURIComponent(rawUrl);
+    decoded = decodeURIComponent(String(rawUrl));
   } catch {
-    decoded = rawUrl;
+    decoded = String(rawUrl);
   }
 
-  const trimmed = String(decoded).trim();
+  const trimmed = decoded.trim();
 
   if (!trimmed) return "/";
 
-  if (
-    trimmed.startsWith("http://") ||
-    trimmed.startsWith("https://") ||
-    trimmed.startsWith("/")
-  ) {
-    return trimmed;
-  }
+  try {
+    const url = new URL(trimmed);
 
-  return "/";
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return "/";
+    }
+
+    return url.toString();
+  } catch {
+    if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+      return trimmed;
+    }
+
+    return "/";
+  }
 }
 
 async function updateOpenTracking(logId) {
-  if (!logId) return;
+  if (!isValidObjectId(logId)) return;
 
   const now = new Date();
+
+  await EmailCampaignLog.findByIdAndUpdate(logId, {
+    $inc: { openCount: 1 },
+    $set: {
+      lastOpenedAt: now,
+    },
+    $setOnInsert: {},
+  });
 
   const log = await EmailCampaignLog.findById(logId);
   if (!log) return;
 
-  log.openCount = Number(log.openCount || 0) + 1;
-  log.lastOpenedAt = now;
-
-  if (!log.openedAt) {
-    log.openedAt = now;
-  }
+  if (!log.openedAt) log.openedAt = now;
 
   if (log.status === "sent" || log.status === "pending") {
     log.status = "opened";
@@ -56,7 +68,7 @@ async function updateOpenTracking(logId) {
 }
 
 async function updateClickTracking(logId) {
-  if (!logId) return;
+  if (!isValidObjectId(logId)) return;
 
   const now = new Date();
 
@@ -66,15 +78,11 @@ async function updateClickTracking(logId) {
   log.clickCount = Number(log.clickCount || 0) + 1;
   log.lastClickedAt = now;
 
-  if (!log.clickedAt) {
-    log.clickedAt = now;
-  }
+  if (!log.clickedAt) log.clickedAt = now;
+  if (!log.openedAt) log.openedAt = now;
+  if (!log.lastOpenedAt) log.lastOpenedAt = now;
 
-  if (
-    log.status === "sent" ||
-    log.status === "pending" ||
-    log.status === "opened"
-  ) {
+  if (["sent", "pending", "opened"].includes(log.status)) {
     log.status = "clicked";
   }
 
@@ -94,14 +102,11 @@ export const trackEmailOpen = async (req, res) => {
     );
 
     res.set("Content-Type", "image/gif");
-    res.set(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.set("Pragma", "no-cache");
     res.set("Expires", "0");
 
-    return res.send(pixel);
+    return res.status(200).send(pixel);
   } catch {
     return res.status(200).end();
   }

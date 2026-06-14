@@ -20,7 +20,7 @@ function sanitizeUrl(value = "", fallback = "#") {
     clean.startsWith("https://") ||
     clean.startsWith("mailto:") ||
     clean.startsWith("tel:") ||
-    clean.startsWith("/")
+    (clean.startsWith("/") && !clean.startsWith("//"))
   ) {
     return clean;
   }
@@ -29,7 +29,9 @@ function sanitizeUrl(value = "", fallback = "#") {
 }
 
 function formatBodyHtml(value = "") {
-  return escapeHtml(value).replace(/\r\n|\r|\n/g, "<br />");
+  return escapeHtml(value)
+    .replace(/\r\n|\r|\n/g, "<br />")
+    .replace(/<br \/><br \/>/g, "<br /><br />");
 }
 
 export function campaignTemplate({
@@ -55,50 +57,51 @@ export function campaignTemplate({
 
   const unsubscribeBlock = safeUnsubscribeUrl
     ? `
-      <p style="margin:30px 0 0;font-size:12px;line-height:1.7;color:#9b9b9b;">
-        Don’t want these emails anymore?
-        <a
-          href="${safeUnsubscribeUrl}"
-          style="color:#c9a227;text-decoration:underline;"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Unsubscribe here
-        </a>
-      </p>
+      <div style="margin-top:34px;padding-top:22px;border-top:1px solid rgba(214,182,159,0.22);">
+        <p style="margin:0;font-size:12px;line-height:1.75;color:#D6B69F;">
+          You are receiving this because you joined ${safeBrandName} or purchased from our brand.
+        </p>
+        <p style="margin:10px 0 0;font-size:12px;line-height:1.75;color:#FFF9F2;opacity:.76;">
+          Don’t want these emails anymore?
+          <a
+            href="${safeUnsubscribeUrl}"
+            style="color:#D6B69F;text-decoration:underline;font-weight:700;"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Unsubscribe here
+          </a>
+        </p>
+      </div>
     `
     : "";
 
   const content = `
-    <div style="font-size:16px;line-height:1.8;color:#f5f5f5;">
-      <p style="margin:0 0 18px;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:#c9a227;font-weight:700;">
-        Exclusive Release
-      </p>
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#FFF9F2;">
+      <div style="margin:0 0 22px;padding:10px 14px;display:inline-block;border-radius:999px;background:rgba(214,182,159,0.13);border:1px solid rgba(214,182,159,0.28);color:#D6B69F;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:900;">
+        Private Premium Release
+      </div>
 
-      <h1 style="margin:0 0 14px;font-size:34px;line-height:1.25;color:#ffffff;">
+      <h1 style="margin:0 0 16px;font-size:38px;line-height:1.08;letter-spacing:-.035em;color:#FFFFFF;font-weight:900;">
         ${safeHeadline}
       </h1>
 
-      <p style="margin:0 0 24px;font-size:18px;line-height:1.7;color:#d6d6d6;">
+      <p style="margin:0 0 26px;font-size:18px;line-height:1.75;color:#D6B69F;font-weight:600;">
         ${safeSubheadline}
       </p>
 
-      <div style="margin:0 0 28px;font-size:16px;line-height:1.9;color:#eaeaea;">
-        ${safeBody}
+      <div style="margin:0 0 30px;padding:22px;border-radius:22px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);box-shadow:0 18px 44px rgba(0,0,0,0.28);">
+        <div style="font-size:16px;line-height:1.9;color:#FFF9F2;">
+          ${safeBody}
+        </div>
       </div>
 
-      <table
-        role="presentation"
-        cellspacing="0"
-        cellpadding="0"
-        border="0"
-        style="margin:28px 0;border-collapse:separate;"
-      >
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:30px 0;border-collapse:separate;">
         <tr>
-          <td align="center" bgcolor="#c9a227" style="border-radius:999px;">
+          <td align="center" bgcolor="#D6B69F" style="border-radius:999px;box-shadow:0 18px 44px rgba(0,0,0,0.28);">
             <a
               href="${safeCtaUrl}"
-              style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#111111;text-decoration:none;border-radius:999px;"
+              style="display:inline-block;padding:15px 32px;font-size:14px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#000000;text-decoration:none;border-radius:999px;"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -108,9 +111,12 @@ export function campaignTemplate({
         </tr>
       </table>
 
-      <p style="margin:30px 0 0;font-size:15px;line-height:1.8;color:#cccccc;">
-        ${safeSignature}
-      </p>
+      <div style="margin-top:30px;padding:18px 20px;border-radius:18px;background:#2F1B12;border:1px solid rgba(214,182,159,0.20);">
+        <p style="margin:0;font-size:14px;line-height:1.8;color:#FFF9F2;">
+          Respectfully,<br />
+          <strong style="color:#D6B69F;">${safeSignature}</strong>
+        </p>
+      </div>
 
       ${unsubscribeBlock}
     </div>
@@ -122,6 +128,6 @@ export function campaignTemplate({
     title: safeHeadline,
     content,
     footerNote:
-      "You are receiving this premium update because you joined our list or purchased from our brand.",
+      "Discipline creates champions. Precision creates legends.",
   });
 }

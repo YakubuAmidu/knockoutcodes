@@ -142,89 +142,145 @@ export default function Login() {
     initializing,
   ]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+ async function handleSubmit(e) {
+  e.preventDefault();
 
-    if (submitLockRef.current || submitting) return;
+  if (submitLockRef.current || submitting) return;
 
-    setError("");
+  setError("");
 
-    const cleanEmail = normalizeEmail(email);
-    const cleanPassword = String(password || "");
+  const cleanEmail = normalizeEmail(email);
+  const cleanPassword = String(password || "");
 
-    if (!cleanEmail || !cleanPassword) {
-      const msg = "Please enter both email and password.";
-      setError(msg);
-      pushToast({ type: "warning", message: msg });
-      return;
-    }
+  if (!cleanEmail || !cleanPassword) {
+    const msg = "Please enter both email and password.";
+    setError(msg);
+    pushToast({ type: "warning", message: msg });
+    return;
+  }
 
-    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
-      const msg = "Please enter a valid email address.";
-      setError(msg);
-      pushToast({ type: "warning", message: msg });
-      return;
-    }
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+    const msg = "Please enter a valid email address.";
+    setError(msg);
+    pushToast({ type: "warning", message: msg });
+    return;
+  }
 
-    try {
-      submitLockRef.current = true;
-      setSubmitting(true);
+  try {
+    submitLockRef.current = true;
+    setSubmitting(true);
 
-      pushToast({ type: "info", message: "Signing you in…" });
+    pushToast({ type: "info", message: "Signing you in…" });
 
-      const result = await login(
-        { email: cleanEmail, password: cleanPassword },
-        { remember }
-      );
+    const result = await login(
+      { email: cleanEmail, password: cleanPassword },
+      { remember }
+    );
 
-      if (!result?.ok) {
-        const msg =
-  result?.code === "ACCOUNT_LOCKED"
-    ? "Your account is temporarily locked because of too many failed attempts. Please wait and try again later."
-    : result?.code === "EMAIL_NOT_VERIFIED"
-    ? "Please verify your email before logging in."
-    : result?.error && !/not found|no user/i.test(result.error)
-    ? result.error
-    : "Invalid email or password.";
+    if (result?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+      const restrictedMessage =
+        result?.message ||
+        result?.error ||
+        "Your account access has been restricted. Please contact support.";
 
-        setError(msg);
-        pushToast({ type: "error", message: msg });
-        return;
-      }
+      const restrictedStatus = result?.accountStatus || "restricted";
 
-      const loggedInUser = result?.user;
+      localStorage.setItem("accountAccessMessage", restrictedMessage);
+      localStorage.setItem("accountStatus", restrictedStatus);
 
-      if (loggedInUser && loggedInUser.isActive === false) {
-        const msg =
-          "Your account is currently inactive. Please contact support for assistance.";
-
-        setError(msg);
-        pushToast({ type: "warning", message: msg });
-        return;
-      }
-
-      safeRemoveLocalStorage("lastRegisteredEmail");
-
-      pushToast({
-        type: "success",
-        message: "Login successful. Redirecting to your dashboard…",
+      navigate("/account-access-notice", {
+        replace: true,
+        state: {
+          message: restrictedMessage,
+          accountStatus: restrictedStatus,
+        },
       });
 
-      const role = result?.role || loggedInUser?.role || "user";
-      const fallback = role === "admin" ? "/admin/dashboard" : "/user-profile";
-      const target = getSafeRedirectTarget(location?.state?.from, fallback);
+      return;
+    }
 
-      didRoute.current = true;
-      navigate(target, { replace: true });
-    } catch {
-      const msg = "Login failed. Please try again.";
+    if (!result?.ok) {
+      const msg =
+        result?.code === "ACCOUNT_LOCKED"
+          ? "Your account is temporarily locked because of too many failed attempts. Please wait and try again later."
+          : result?.code === "EMAIL_NOT_VERIFIED"
+          ? "Please verify your email before logging in."
+          : result?.error && !/not found|no user/i.test(result.error)
+          ? result.error
+          : "Invalid email or password.";
+
       setError(msg);
       pushToast({ type: "error", message: msg });
-    } finally {
-      submitLockRef.current = false;
-      setSubmitting(false);
+      return;
     }
+
+    const loggedInUser = result?.user;
+
+    if (loggedInUser && loggedInUser.isActive === false) {
+      const msg =
+        "Your account is currently inactive. Please contact support for assistance.";
+
+      localStorage.setItem("accountAccessMessage", msg);
+      localStorage.setItem("accountStatus", "inactive");
+
+      navigate("/account-access-notice", {
+        replace: true,
+        state: {
+          message: msg,
+          accountStatus: "inactive",
+        },
+      });
+
+      return;
+    }
+
+    safeRemoveLocalStorage("lastRegisteredEmail");
+    safeRemoveLocalStorage("accountAccessMessage");
+    safeRemoveLocalStorage("accountStatus");
+
+    pushToast({
+      type: "success",
+      message: "Login successful. Redirecting to your dashboard…",
+    });
+
+    const role = result?.role || loggedInUser?.role || "user";
+    const fallback = role === "admin" ? "/admin/dashboard" : "/user-profile";
+    const target = getSafeRedirectTarget(location?.state?.from, fallback);
+
+    didRoute.current = true;
+    navigate(target, { replace: true });
+  } catch (error) {
+    const data = error?.response?.data;
+
+    if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+      const restrictedMessage =
+        data?.message ||
+        "Your account access has been restricted. Please contact support.";
+
+      const restrictedStatus = data?.accountStatus || "restricted";
+
+      localStorage.setItem("accountAccessMessage", restrictedMessage);
+      localStorage.setItem("accountStatus", restrictedStatus);
+
+      navigate("/account-access-notice", {
+        replace: true,
+        state: {
+          message: restrictedMessage,
+          accountStatus: restrictedStatus,
+        },
+      });
+
+      return;
+    }
+
+    const msg = "Login failed. Please try again.";
+    setError(msg);
+    pushToast({ type: "error", message: msg });
+  } finally {
+    submitLockRef.current = false;
+    setSubmitting(false);
   }
+  };
 
   const isBusy = submitting;
   const canSubmit = Boolean(normalizeEmail(email) && password && !isBusy);

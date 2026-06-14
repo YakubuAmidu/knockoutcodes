@@ -1,19 +1,11 @@
 // /src/lib/apiClient.js
 import axios from "axios";
 
-/**
- * ✅ Base URL rules:
- * 1) Use VITE_API_BASE_URL when provided
- * 2) Otherwise fall back to localhost in dev
- */
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL &&
     String(import.meta.env.VITE_API_BASE_URL).trim()) ||
   "http://localhost:5000/api/v1";
 
-/**
- * ✅ Read cookie helper for CSRF token
- */
 function getCookie(name) {
   if (typeof document === "undefined") return "";
 
@@ -22,6 +14,31 @@ function getCookie(name) {
 
   if (parts.length === 2) {
     return decodeURIComponent(parts.pop().split(";").shift());
+  }
+
+  return "";
+}
+
+function getStoredToken() {
+  if (typeof window === "undefined") return "";
+
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("token") ||
+    sessionStorage.getItem("authToken") ||
+    sessionStorage.getItem("accessToken") ||
+    "";
+
+  if (
+    token &&
+    typeof token === "string" &&
+    token !== "undefined" &&
+    token !== "null" &&
+    token.trim().length > 20
+  ) {
+    return token.trim();
   }
 
   return "";
@@ -37,13 +54,16 @@ export const api = axios.create({
   },
 });
 
-/**
- * ✅ Attach CSRF token automatically for unsafe requests
- */
 api.interceptors.request.use(
   (config) => {
     const method = String(config.method || "get").toUpperCase();
     const unsafeMethods = ["POST", "PUT", "PATCH", "DELETE"];
+
+    const token = getStoredToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
     if (unsafeMethods.includes(method)) {
       const csrfToken = getCookie("csrfToken");
@@ -58,9 +78,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/**
- * Optionally set/remove an Authorization header.
- */
 export function setAuthToken(token) {
   const t =
     token &&
@@ -72,15 +89,26 @@ export function setAuthToken(token) {
 
   if (t.length > 20) {
     api.defaults.headers.common.Authorization = `Bearer ${t}`;
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", t);
+    }
+
     return;
   }
 
   delete api.defaults.headers.common.Authorization;
+
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("accessToken");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("authToken");
+    sessionStorage.removeItem("accessToken");
+  }
 }
 
-/**
- * Attach a single global 401 handler.
- */
 let _unauthorizedInterceptorId = null;
 
 export function attach401Handler(onUnauthorized) {
@@ -107,7 +135,6 @@ export function attach401Handler(onUnauthorized) {
   );
 }
 
-/** GET /api/v1/testimonials */
 export async function getAllTestimonials() {
   const { data } = await api.get("/testimonials");
 
@@ -117,9 +144,6 @@ export async function getAllTestimonials() {
   return [];
 }
 
-/**
- * ✅ Checkout API helper
- */
 async function postCheckout(path, payload) {
   const { data } = await api.post(path, payload);
 
@@ -130,10 +154,6 @@ async function postCheckout(path, payload) {
   return data;
 }
 
-/**
- * Products checkout
- * POST /api/v1/checkout/products
- */
 export async function createProductCheckoutSession(items) {
   const safeItems = Array.isArray(items) ? items : [];
 
@@ -141,10 +161,6 @@ export async function createProductCheckoutSession(items) {
     items: safeItems,
   });
 }
-
-/* =========================
-   Memberships
-========================= */
 
 export async function getMemberships(params = "") {
   const q = String(params || "").trim();
@@ -172,9 +188,40 @@ export async function createMembershipCheckoutSession(payload) {
   return data;
 }
 
-export async function getMySubscription() {
-  const { data } = await api.get("/subscriptions/me");
+export async function getMySubscription(options = {}) {
+  const { signal } = options || {};
+
+  const { data } = await api.get("/subscriptions/me", {
+    signal,
+    params: {
+      t: Date.now(),
+    },
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+
   return data?.data ?? data?.subscription ?? data;
+}
+
+export async function confirmCheckoutSession(sessionId, options = {}) {
+  const safe = encodeURIComponent(String(sessionId || ""));
+  const bust = Date.now();
+  const { signal } = options || {};
+
+  const { data } = await api.get(
+    `/subscriptions/confirm?session_id=${safe}&t=${bust}`,
+    {
+      signal,
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    }
+  );
+
+  return data;
 }
 
 export async function switchMembershipPlan(payload) {
@@ -187,13 +234,15 @@ export async function cancelMyMembership() {
   return data?.data ?? data;
 }
 
-export async function confirmProductCheckoutSession(sessionId) {
+export async function confirmProductCheckoutSession(sessionId, options = {}) {
   const safe = encodeURIComponent(String(sessionId || ""));
   const bust = Date.now();
+  const { signal } = options;
 
   const { data } = await api.get(
     `/orders/confirm-product?session_id=${safe}&t=${bust}`,
     {
+      signal,
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
@@ -204,68 +253,71 @@ export async function confirmProductCheckoutSession(sessionId) {
   return data;
 }
 
-// ======================================================
-// 🏆 MANAGE ORDERS API
-// Premium enterprise admin order management system
-// Uses the secured global api instance with cookies + CSRF.
-// ======================================================
+export async function getMyOrders(params = {}) {
+  const { signal, ...safeParams } = params || {};
 
-// Get all orders — Admin only
+  const { data } = await api.get("/orders/my", {
+    signal,
+    params: {
+      ...safeParams,
+      t: Date.now(),
+    },
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+
+  return data;
+}
+
 export async function getAdminOrders(params = {}) {
   const { data } = await api.get("/orders", { params });
   return data;
 }
 
-// Get single order — Admin/User protected by backend
 export async function getAdminOrder(id) {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.get(`/orders/${safeId}`);
   return data;
 }
 
-// Update order — Admin only
 export async function updateAdminOrder(id, payload = {}) {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.put(`/orders/${safeId}`, payload);
   return data;
 }
 
-// Delete order — Admin only
 export async function deleteAdminOrder(id) {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.delete(`/orders/${safeId}`);
   return data;
 }
 
-// Mark order as seen — Admin only
 export async function markAdminOrderSeen(id) {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.patch(`/orders/${safeId}/seen`);
   return data;
 }
 
-// Fulfill order — Admin only
 export async function fulfillAdminOrder(id, note = "") {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.patch(`/orders/${safeId}/fulfill`, { note });
   return data;
 }
 
-// Cancel order — Admin only
 export async function cancelAdminOrder(id, note = "") {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.patch(`/orders/${safeId}/cancel`, { note });
   return data;
 }
 
-// Refund order — Admin only
 export async function refundAdminOrder(id, note = "") {
   const safeId = encodeURIComponent(String(id || ""));
   const { data } = await api.patch(`/orders/${safeId}/refund`, { note });
   return data;
 }
 
-// Update order tracking — Admin only
 export async function updateAdminOrderTracking(id, payload = {}) {
   const safeId = encodeURIComponent(String(id || ""));
 
@@ -277,5 +329,26 @@ export async function updateAdminOrderTracking(id, payload = {}) {
 
   return data;
 }
+
+export const getReviews = async (params = "") => {
+  const query = params ? `?${params}` : "";
+  const { data } = await api.get(`/reviews${query}`);
+  return data;
+};
+
+export const createReview = async (payload) => {
+  const { data } = await api.post("/reviews", payload);
+  return data;
+};
+
+export const updateReview = async (id, payload) => {
+  const { data } = await api.put(`/reviews/${id}`, payload);
+  return data;
+};
+
+export const deleteReview = async (id) => {
+  const { data } = await api.delete(`/reviews/${id}`);
+  return data;
+};
 
 export default api;

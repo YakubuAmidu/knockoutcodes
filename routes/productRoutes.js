@@ -1,4 +1,5 @@
 import express from "express";
+
 import {
   createProduct,
   deleteProduct,
@@ -7,40 +8,57 @@ import {
   updateProduct,
 } from "../controllers/productController.js";
 
-// Use your existing auth middleware names:
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
-import { productPublicShield, productAdminShield } from "../middleware/productShield.js";
+import {
+  productPublicShield,
+  productAdminWriteShield,
+  productAdminDeleteShield,
+} from "../middleware/productShield.js";
 import { productWriteFirewall } from "../middleware/productWriteFirewall.js";
 import validateObjectId from "../middleware/validateObjectId.js";
 import safeSort from "../middleware/safeSort.js";
 
 const router = express.Router();
 
-// Public shop routes
+router.get(
+  "/admin/manage",
+  ...productPublicShield,
+  authRequired,
+  adminOnly,
+  safeSort,
+  getProducts
+);
+
 router.get("/", ...productPublicShield, safeSort, getProducts);
 
-// Public product detail — supports MongoDB _id OR SEO slug
-router.get("/:idOrSlug", ...productPublicShield, getProduct);
+router.post(
+  "/",
+  ...productAdminWriteShield,
+  authRequired,
+  adminOnly,
+  productWriteFirewall,
+  createProduct
+);
 
-// Admin product management
-router.post("/",
-  ...productAdminShield,
+router.put(
+  "/:id",
+  ...productAdminWriteShield,
   authRequired,
   adminOnly,
-  productWriteFirewall,
-  createProduct);
-router.put("/:id",
-  ...productAdminShield,
   validateObjectId("id"),
-  authRequired,
-  adminOnly,
   productWriteFirewall,
-  updateProduct);
-router.delete("/:id",
-  ...productAdminShield,
-  validateObjectId("id"),
+  updateProduct
+);
+
+router.delete(
+  "/:id",
+  ...productAdminDeleteShield,
   authRequired,
   adminOnly,
-  deleteProduct);
+  validateObjectId("id"),
+  deleteProduct
+);
+
+router.get("/:idOrSlug", ...productPublicShield, getProduct);
 
 export default router;

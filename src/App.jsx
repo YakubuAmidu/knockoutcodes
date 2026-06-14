@@ -1,6 +1,13 @@
 // src/App.jsx
-import { Suspense, lazy } from "react";
-import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { Suspense, lazy, useEffect } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 
 import Navbar from "./components/Navbar.jsx";
 import AdminNavbar from "./components/AdminNavbar.jsx";
@@ -15,9 +22,18 @@ import PublicRoute from "./routes/PublicRoutes.jsx";
 
 import { useAuth } from "./context/AuthContext.jsx";
 
-/* =========================
-   Lazy-loaded public pages
-========================= */
+import {
+  fetchSystemStatus,
+  receiveMaintenanceSocketUpdate,
+} from "./reducers/systemSettings/systemSettingActions";
+
+import {
+  socket,
+  joinSystemSocketRoom,
+  leaveSystemSocketRoom,
+} from "../utils/socket.js";
+
+/* Public pages */
 const Home = lazy(() => import("./pages/Home.jsx"));
 const Coaching = lazy(() => import("./pages/Coaching.jsx"));
 const Courses = lazy(() => import("./pages/Courses.jsx"));
@@ -35,8 +51,12 @@ const ProductDetail = lazy(() => import("./pages/ProductDetail.jsx"));
 const Cart = lazy(() => import("./pages/Cart.jsx"));
 const Curriculum = lazy(() => import("./pages/Curriculum.jsx"));
 const Memberships = lazy(() => import("./components/Membership.jsx"));
-const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess.jsx"));
-const SubscriptionFailed = lazy(() => import("./pages/SubscriptionFailed.jsx"));
+const SubscriptionSuccess = lazy(() =>
+  import("./pages/SubscriptionSuccess.jsx")
+);
+const SubscriptionFailed = lazy(() =>
+  import("./pages/SubscriptionFailed.jsx")
+);
 const MembershipDetails = lazy(() => import("./pages/MembershipDetails.jsx"));
 const RefundPolicy = lazy(() => import("./pages/refundPolicy.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
@@ -44,10 +64,19 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const ProductSuccess = lazy(() => import("./pages/ProductSusccess.jsx"));
 const Session = lazy(() => import("./pages/Session.jsx"));
+const FightCamp = lazy(() => import("./pages/FightCamp.jsx"));
+const MyProducts = lazy(() => import("./pages/MyProduct.jsx"));
+const AccountAccessNotice = lazy(() =>
+  import("./pages/AccountAccessNotice.jsx")
+);
+const ProductFailed = lazy(() => import("./pages/ProductFailed.jsx"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess.jsx"));
+const OrderFailed = lazy(() => import("./pages/OrderFailed.jsx"));
+const MembershipSuccess = lazy(() => import("./pages/MembershipSuccess.jsx"));
+const MembershipFailed = lazy(() => import("./pages/MembershipFailed.jsx"));
+const Maintenance = lazy(() => import("./pages/Maintenance.jsx"));
 
-/* =========================
-   Lazy-loaded user pages
-========================= */
+/* User pages */
 const UserProfile = lazy(() => import("./pages/User-profile.jsx"));
 const MyCourses = lazy(() => import("./pages/MyCourses.jsx"));
 const MyCourseDetail = lazy(() => import("./pages/MyCourseDetail.jsx"));
@@ -58,9 +87,7 @@ const CoursePlayer = lazy(() => import("./pages/CoursePlayer.jsx"));
 const ManageDevices = lazy(() => import("./pages/ManageDevice.jsx"));
 const Enrollment = lazy(() => import("./pages/Enrollment.jsx"));
 
-/* =========================
-   Lazy-loaded admin pages
-========================= */
+/* Admin pages */
 const AdminDashboard = lazy(() => import("./pages/Admin-dashboard.jsx"));
 const AdminProfile = lazy(() => import("./pages/Admin-profile.jsx"));
 const ManageBlogs = lazy(() => import("./pages/ManageBlogs.jsx"));
@@ -72,23 +99,20 @@ const ManageRevenues = lazy(() => import("./pages/ManageRevenues.jsx"));
 const ManageUsers = lazy(() => import("./pages/ManageUsers.jsx"));
 const ManageCoaching = lazy(() => import("./pages/ManageCoaching.jsx"));
 const ManageProducts = lazy(() => import("./pages/ManageProducts.jsx"));
+const ManageReviews = lazy(() => import("./pages/ManageReviews.jsx"));
 const AdminEmailCampaign = lazy(() => import("./pages/AdminEmailCampaign.jsx"));
-const AdminEmailSubscribers = lazy(() =>
-  import("./pages/AdminEmailSubscribers.jsx")
-);
-const AdminEmailTemplates = lazy(() =>
-  import("./pages/AdminEmailTemplates.jsx")
-);
-const AdminEmailAnalytics = lazy(() =>
-  import("./pages/AdminEmailAnalytics.jsx")
-);
-const AdminEmailAnalyticsDetail = lazy(() =>
-  import("./pages/AdminEmailAnalyticsDetail.jsx")
-);
+const AdminEmailSubscribers = lazy(() => import("./pages/AdminEmailSubscribers.jsx"));
+const AdminEmailTemplates = lazy(() => import("./pages/AdminEmailTemplates.jsx"));
+const AdminEmailAnalytics = lazy(() => import("./pages/AdminEmailAnalytics.jsx"));
+const AdminEmailAnalyticsDetail = lazy(() => import("./pages/AdminEmailAnalyticsDetail.jsx"));
 const AdminEmailSegment = lazy(() => import("./pages/AdminEmailSegments.jsx"));
 const ManageLesson = lazy(() => import("./pages/ManageLesson.jsx"));
-const AdminMaintenance = lazy(() => import("./pages/AdminMaintenance.jsx"));
 const AdminSecurityEvents = lazy(() => import("./pages/AdminSecurityEvents.jsx"));
+const ManageTestimonial = lazy(() => import("./pages/ManageTestimonials.jsx"));
+const AdminSystemCleanup = lazy(() => import("./pages/AdminSystemCleanup.jsx"));
+const ManageMembership = lazy(() => import("./pages/ManageMembership.jsx"));
+const ManageEnrollment = lazy(() => import("./pages/ManageEnrollment.jsx"));
+const ManageUserSubscription = lazy(() => import("./pages/ManageUserSubscription.jsx"));
 
 function PageLoader() {
   return (
@@ -98,12 +122,6 @@ function PageLoader() {
   );
 }
 
-/* =========================
-   Root redirect
-   - If user is logged in and admin: admin dashboard
-   - If user is logged in and normal user: user dashboard
-   - If not logged in: home page
-========================= */
 function RootRedirect() {
   const { initializing, isAuthenticated, isAdmin } = useAuth();
 
@@ -125,32 +143,95 @@ function RootRedirect() {
 
 function AppShell() {
   const { user, isAdmin, isAuthenticated, logout } = useAuth();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const location = useLocation();
 
-  /* =========================
-     Auto logout
-     - Logs user out after 30 minutes of inactivity
-  ========================= */
+  const {
+    maintenanceMode,
+    maintenanceTitle,
+    maintenanceMessage,
+    allowAdminAccess,
+  } = useSelector((state) => state.systemSettings || {});
+
   useAutoLogout({
     isAuthenticated,
     logout,
     timeout: 30 * 60 * 1000,
   });
 
-  /* =========================
-     Admin section checker
-     - Used to hide Footer on admin pages
-  ========================= */
-  const inAdminSection = location.pathname.startsWith("/admin");
+  useEffect(() => {
+    dispatch(fetchSystemStatus({ force: true }));
+
+    joinSystemSocketRoom();
+
+    const handleMaintenanceUpdate = (payload) => {
+      dispatch(receiveMaintenanceSocketUpdate(payload));
+    };
+
+    socket.on("system:maintenance-updated", handleMaintenanceUpdate);
+
+    return () => {
+      socket.off("system:maintenance-updated", handleMaintenanceUpdate);
+      leaveSystemSocketRoom();
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    const path = location.pathname;
+    const isMaintenancePage = path === "/maintenance";
+    const isAdminPage = path.startsWith("/admin");
+    const isAuthPage =
+      path === "/login" ||
+      path === "/register" ||
+      path.startsWith("/forgot-password") ||
+      path.startsWith("/reset-password") ||
+      path.startsWith("/verify-email");
+
+    const adminCanBypass = Boolean(
+      isAuthenticated && isAdmin && allowAdminAccess
+    );
+
+    if (
+      maintenanceMode &&
+      !adminCanBypass &&
+      !isMaintenancePage &&
+      !isAuthPage
+    ) {
+      navigate("/maintenance", {
+        replace: true,
+        state: {
+          from: path,
+          maintenanceTitle,
+          maintenanceMessage,
+        },
+      });
+      return;
+    }
+
+    if (maintenanceMode && !adminCanBypass && isAdminPage) {
+      navigate("/maintenance", { replace: true });
+      return;
+    }
+
+    if (!maintenanceMode && isMaintenancePage) {
+      navigate("/", { replace: true });
+    }
+  }, [
+    maintenanceMode,
+    maintenanceTitle,
+    maintenanceMessage,
+    allowAdminAccess,
+    isAuthenticated,
+    isAdmin,
+    location.pathname,
+    navigate,
+  ]);
+
+  const hideFooter = location.pathname.startsWith("/admin");
 
   return (
     <>
-      {/* =========================
-         Navbar switch
-         - Admin gets AdminNavbar
-         - User gets UserNavbar
-         - Visitor gets normal Navbar
-      ========================= */}
       {isAuthenticated ? (
         isAdmin ? (
           <AdminNavbar currentUser={user} onLogout={logout} />
@@ -163,15 +244,10 @@ function AppShell() {
 
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* =========================
-             Root
-          ========================= */}
           <Route path="/" element={<RootRedirect />} />
 
-          {/* =========================
-             Public routes
-             - No login required
-          ========================= */}
+          <Route path="/maintenance" element={<Maintenance />} />
+
           <Route path="/home" element={<Home />} />
           <Route path="/coachings" element={<Coaching />} />
           <Route path="/ebooks" element={<Ebook />} />
@@ -194,40 +270,36 @@ function AppShell() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
+          <Route path="/fight-camp" element={<FightCamp />} />
+          <Route
+            path="/account-access-notice"
+            element={<AccountAccessNotice />}
+          />
+          <Route path="/product/failed" element={<ProductFailed />} />
 
-          {/* =========================
-             Auth-only public routes
-             - Login/Register pages
-             - PublicRoute redirects logged-in users away
-          ========================= */}
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
           </Route>
 
-          {/* =========================
-             Protected user routes
-             - Requires logged-in user session
-          ========================= */}
           <Route element={<ProtectedRoute />}>
             <Route path="/product/success" element={<ProductSuccess />} />
             <Route path="/user-profile" element={<UserProfile />} />
             <Route path="/course-player/:courseId" element={<CoursePlayer />} />
-            <Route path="/dashboard/orders" element={<MyOrders />} />
+            <Route path="/dashboard/my-orders" element={<MyOrders />} />
             <Route path="/my-courses" element={<MyCourses />} />
             <Route path="/my-courses/:courseId" element={<MyCourseDetail />} />
             <Route path="/my-messages" element={<MyMessages />} />
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/manage-devices" element={<ManageDevices />} />
-            <Route path="enrollment" element={<Enrollment />} />
+            <Route path="/enrollment" element={<Enrollment />} />
+            <Route path="/dashboard/products" element={<MyProducts />} />
+            <Route path="/order/success" element={<OrderSuccess />} />
+            <Route path="/order/failed" element={<OrderFailed />} />
+            <Route path="/membership-success" element={<MembershipSuccess />} />
+            <Route path="/membership-failed" element={<MembershipFailed />} />
           </Route>
 
-          {/* =========================
-             Protected admin routes
-             - Requires logged-in session
-             - Requires admin role
-             - Admin session is enforced by AdminRoute
-          ========================= */}
           <Route element={<AdminRoute />}>
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -238,16 +310,18 @@ function AppShell() {
             <Route path="/admin/orders" element={<ManageOrders />} />
             <Route path="/admin/revenues" element={<ManageRevenues />} />
             <Route path="/admin/users" element={<ManageUsers />} />
-            <Route path="/admin/coachings" element={<ManageCoaching />} /> 
+            <Route path="/admin/coachings" element={<ManageCoaching />} />
             <Route path="/admin/products" element={<ManageProducts />} />
+            <Route path="/admin/email-campaigns" element={<AdminEmailCampaign />} />
             <Route
-              path="/admin/email-campaigns"
+              path="/admin/email-campaigns/create"
               element={<AdminEmailCampaign />}
             />
             <Route
               path="/admin/email-subscribers"
               element={<AdminEmailSubscribers />}
             />
+            <Route path="/admin/reviews" element={<ManageReviews />} />
             <Route
               path="/admin/email-templates"
               element={<AdminEmailTemplates />}
@@ -260,33 +334,30 @@ function AppShell() {
               path="/admin/email-analytics/:id"
               element={<AdminEmailAnalyticsDetail />}
             />
+            <Route path="/admin/testimonials" element={<ManageTestimonial />} />
             <Route path="/admin/email-segments" element={<AdminEmailSegment />} />
-            <Route 
-              path="/admin/lessons" element={<ManageLesson />
-              }
-            />
+            <Route path="/admin/lessons" element={<ManageLesson />} />
             <Route
-            path="/admin/maintenance"
-            element={<AdminMaintenance />}
+              path="/admin/security-events"
+              element={<AdminSecurityEvents />}
             />
-            
+            <Route path="/admin/sessions" element={<Session />} />
             <Route
-            path="/admin/security-events"
-            element={<AdminSecurityEvents />}
-          />
+              path="/admin/system-cleanup"
+              element={<AdminSystemCleanup />}
+            />
+            <Route path="admin/memberships" element={<ManageMembership />} />
+
+            <Route path="admin/enrollments" element={<ManageEnrollment />} />
+
+            <Route path="admin/user-subscriptions" element={<ManageUserSubscription />} />
           </Route>
 
-          <Route path="/admin/sessions" element={<Session />} />
-
-          {/* =========================
-             Fallback
-          ========================= */}
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </Suspense>
 
-      {/* Hide Footer on admin pages */}
-      {!inAdminSection && <Footer />}
+      {!hideFooter ? <Footer /> : null}
     </>
   );
 }

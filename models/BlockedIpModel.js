@@ -1,10 +1,6 @@
 // models/BlockedIpModel.js
 import mongoose from "mongoose";
 
-/**
- * Stores manually or automatically blocked IP addresses.
- * Used by security middleware to prevent known abusive IPs from accessing the API.
- */
 const blockedIpSchema = new mongoose.Schema(
   {
     ip: {
@@ -12,7 +8,7 @@ const blockedIpSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
-      index: true,
+      maxlength: 80,
     },
 
     reason: {
@@ -34,6 +30,17 @@ const blockedIpSchema = new mongoose.Schema(
       default: null,
     },
 
+    unblockedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    unblockedAt: {
+      type: Date,
+      default: null,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -42,6 +49,8 @@ const blockedIpSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+blockedIpSchema.index({ ip: 1, isActive: 1 });
 
 const BlockedIp =
   mongoose.models.BlockedIp || mongoose.model("BlockedIp", blockedIpSchema);

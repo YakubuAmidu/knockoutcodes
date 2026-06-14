@@ -1,9 +1,6 @@
 // models/CoachingModel.js
 import mongoose from "mongoose";
 
-/**
- * Allowed coaching session types shown on the coaching form.
- */
 export const BOXING_COACHING_TYPES = [
   "Power Punch Mechanics",
   "Speed + Combination Flow",
@@ -15,10 +12,20 @@ export const BOXING_COACHING_TYPES = [
   "Conditioning + Fight Pace",
 ];
 
-/**
- * Captures where the coaching request came from.
- * Useful for security, analytics, and admin review.
- */
+export const COACHING_SESSION_METHODS = [
+  "Google Meet",
+  "Phone Call",
+  "Zoom",
+  "WhatsApp",
+];
+
+export const COACHING_STATUSES = [
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+];
+
 const sourceSchema = new mongoose.Schema(
   {
     channel: {
@@ -122,6 +129,34 @@ const coachingSchema = new mongoose.Schema(
       default: true,
     },
 
+    sessionMethod: {
+      type: String,
+      enum: COACHING_SESSION_METHODS,
+      default: "Google Meet",
+      trim: true,
+    },
+
+    sessionLink: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: "",
+    },
+
+    sessionPhone: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: "",
+    },
+
+    sessionInstructions: {
+      type: String,
+      trim: true,
+      maxlength: 800,
+      default: "",
+    },
+
     goals: {
       type: String,
       required: true,
@@ -151,7 +186,37 @@ const coachingSchema = new mongoose.Schema(
       default: () => ({}),
     },
 
-    // Admin-only fields.
+    viewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    adminViewedAt: {
+      type: Date,
+      default: null,
+    },
+
+    confirmedAt: {
+      type: Date,
+      default: null,
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastCustomerEmailSentAt: {
+      type: Date,
+      default: null,
+    },
+
     adminNote: {
       type: String,
       trim: true,
@@ -161,8 +226,9 @@ const coachingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "completed", "cancelled"],
+      enum: COACHING_STATUSES,
       default: "pending",
+      index: true,
     },
   },
   { timestamps: true }
@@ -171,6 +237,8 @@ const coachingSchema = new mongoose.Schema(
 coachingSchema.index({ createdAt: -1 });
 coachingSchema.index({ email: 1, createdAt: -1 });
 coachingSchema.index({ status: 1, createdAt: -1 });
+coachingSchema.index({ coachingType: 1, createdAt: -1 });
+coachingSchema.index({ sessionMethod: 1, createdAt: -1 });
 
 const Coaching =
   mongoose.models.Coaching ||

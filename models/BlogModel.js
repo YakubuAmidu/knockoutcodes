@@ -1,9 +1,5 @@
-// models/blogModel.js
 import mongoose from "mongoose";
 
-/**
- * Creates a clean URL slug from a blog title.
- */
 const makeSlug = (title = "") =>
   String(title)
     .toLowerCase()
@@ -11,12 +7,22 @@ const makeSlug = (title = "") =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 
-/**
- * Estimates read time using about 200 words per minute.
- */
 const estimateReadTime = (content = "") => {
   const words = String(content).trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.round(words / 200));
+  return Math.max(1, Math.ceil(words / 200));
+};
+
+const cleanTags = (tags = []) => {
+  if (!Array.isArray(tags)) return [];
+
+  return [
+    ...new Set(
+      tags
+        .map((tag) => String(tag || "").trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 12)
+    ),
+  ];
 };
 
 const blogSchema = new mongoose.Schema(
@@ -33,7 +39,7 @@ const blogSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
+      sparse: true,
     },
 
     excerpt: {
@@ -59,7 +65,6 @@ const blogSchema = new mongoose.Schema(
       type: String,
       enum: ["boxing", "mindset", "conditioning", "nutrition", "lifestyle", "other"],
       default: "boxing",
-      index: true,
     },
 
     tags: [
@@ -79,19 +84,16 @@ const blogSchema = new mongoose.Schema(
     isPublished: {
       type: Boolean,
       default: false,
-      index: true,
     },
 
     publishedAt: {
       type: Date,
       default: null,
-      index: true,
     },
 
     featured: {
       type: Boolean,
       default: false,
-      index: true,
     },
 
     views: {
@@ -106,22 +108,56 @@ const blogSchema = new mongoose.Schema(
       default: 0,
     },
 
+    unlikes: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+
+    likedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    unlikedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Author is required"],
-      index: true,
     },
   },
   { timestamps: true }
 );
 
-/**
- * Auto-generate slug, read time, and publish date before creating a blog.
- */
+/* No duplicate indexes */
+blogSchema.index({ isPublished: 1, publishedAt: -1 });
+blogSchema.index({ category: 1, isPublished: 1 });
+blogSchema.index({ featured: 1, isPublished: 1 });
+blogSchema.index({ author: 1, createdAt: -1 });
+blogSchema.index({ tags: 1 });
+
 blogSchema.pre("save", function (next) {
-  if (!this.slug && this.title) this.slug = makeSlug(this.title);
-  if (this.content) this.readTime = estimateReadTime(this.content);
+  if (!this.slug && this.title) {
+    this.slug = makeSlug(this.title);
+  }
+
+  if (this.slug) {
+    this.slug = makeSlug(this.slug);
+  }
+
+  if (this.content) {
+    this.readTime = estimateReadTime(this.content);
+  }
+
+  this.tags = cleanTags(this.tags);
 
   if (this.isPublished && !this.publishedAt) {
     this.publishedAt = new Date();
@@ -134,26 +170,42 @@ blogSchema.pre("save", function (next) {
   next();
 });
 
-/**
- * Keep slug/read time/publishedAt correct during admin updates.
- */
 blogSchema.pre("findOneAndUpdate", function (next) {
   const update = this.getUpdate() || {};
-  const $set = update.$set || update;
+  const $set = update.$set || {};
 
-  if ($set.title && !$set.slug) $set.slug = makeSlug($set.title);
-  if ($set.content) $set.readTime = estimateReadTime($set.content);
+  const finalSet = update.$set ? $set : update;
 
-  if ($set.isPublished === true && !$set.publishedAt) {
-    $set.publishedAt = new Date();
+  if (finalSet.title && !finalSet.slug) {
+    finalSet.slug = makeSlug(finalSet.title);
   }
 
-  if ($set.isPublished === false) {
-    $set.publishedAt = null;
+  if (finalSet.slug) {
+    finalSet.slug = makeSlug(finalSet.slug);
   }
 
-  if (update.$set) update.$set = $set;
-  else this.setUpdate($set);
+  if (finalSet.content) {
+    finalSet.readTime = estimateReadTime(finalSet.content);
+  }
+
+  if (finalSet.tags) {
+    finalSet.tags = cleanTags(finalSet.tags);
+  }
+
+  if (finalSet.isPublished === true && !finalSet.publishedAt) {
+    finalSet.publishedAt = new Date();
+  }
+
+  if (finalSet.isPublished === false) {
+    finalSet.publishedAt = null;
+  }
+
+  if (update.$set) {
+    update.$set = finalSet;
+    this.setUpdate(update);
+  } else {
+    this.setUpdate(finalSet);
+  }
 
   next();
 });

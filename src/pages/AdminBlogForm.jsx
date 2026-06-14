@@ -1,308 +1,20 @@
 // src/components/AdminBlogForm.jsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
-import axios from "axios";
+import axiosInstance from "../../utils/axiosInstance";
 import { useToast } from "../components/Toast";
 
-const Section = styled.section`
-  width: 100%;
-  min-height: 100vh;
-  background: radial-gradient(circle at top left, #5a3825 0%, #2f1b12 35%, #000000 100%);
-  padding: 48px 18px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-`;
+const makeSlug = (title = "") =>
+  String(title)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 
-const Shell = styled.div`
-  width: 100%;
-  max-width: ${(p) => p.theme.layout.max};
-  margin: 0 auto;
-  display: grid;
-  gap: 28px;
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  color: ${(p) => p.theme.colors.ivory};
-`;
-
-const HookBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: ${(p) => p.theme.radius.pill};
-  font-size: 0.85rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  background: rgba(214, 182, 159, 0.12);
-  border: 1px solid rgba(214, 182, 159, 0.4);
-  color: ${(p) => p.theme.colors.lightBrown};
-`;
-
-const Title = styled.h1`
-  font-size: clamp(2rem, 3vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: linear-gradient(
-    120deg,
-    ${(p) => p.theme.colors.ivory},
-    ${(p) => p.theme.colors.lightBrown}
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-`;
-
-const Subtitle = styled.p`
-  max-width: 640px;
-  font-size: 0.98rem;
-  line-height: 1.6;
-  color: rgba(255, 249, 242, 0.72);
-`;
-
-const FormCard = styled(motion.form)`
-  background: radial-gradient(circle at top left, rgba(214, 182, 159, 0.1), rgba(61, 38, 26, 0.96));
-  border-radius: ${(p) => p.theme.radius.xl};
-  padding: 26px 22px 24px;
-  box-shadow: ${(p) => p.theme.shadow.glow};
-  border: 1px solid rgba(255, 249, 242, 0.12);
-  display: grid;
-  gap: 22px;
-
-  @media (min-width: 900px) {
-    padding: 30px 28px 26px;
-    grid-template-columns: 3fr 2.1fr;
-    gap: 26px;
-  }
-`;
-
-const LeftColumn = styled.div`
-  display: grid;
-  gap: 18px;
-`;
-
-const RightColumn = styled.div`
-  display: grid;
-  gap: 18px;
-`;
-
-const Field = styled.div`
-  display: grid;
-  gap: 6px;
-`;
-
-const LabelRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-`;
-
-const Label = styled.label`
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: ${(p) => p.theme.colors.ivory};
-`;
-
-const Hint = styled.span`
-  font-size: 0.78rem;
-  color: rgba(214, 182, 159, 0.8);
-`;
-
-const Input = styled.input`
-  border-radius: ${(p) => p.theme.radius.md};
-  border: 1px solid rgba(255, 249, 242, 0.22);
-  background: rgba(0, 0, 0, 0.35);
-  color: ${(p) => p.theme.colors.ivory};
-  padding: 10px 12px;
-  font-size: 0.96rem;
-  outline: none;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.08s ease;
-
-  &:focus {
-    border-color: ${(p) => p.theme.colors.lightBrown};
-    box-shadow: 0 0 0 1px rgba(214, 182, 159, 0.5);
-    transform: translateY(-0.5px);
-  }
-
-  &::placeholder {
-    color: rgba(255, 249, 242, 0.4);
-  }
-`;
-
-const TextArea = styled.textarea`
-  border-radius: ${(p) => p.theme.radius.lg};
-  border: 1px solid rgba(255, 249, 242, 0.22);
-  background: rgba(0, 0, 0, 0.4);
-  color: ${(p) => p.theme.colors.ivory};
-  padding: 12px 12px;
-  min-height: 160px;
-  resize: vertical;
-  font-size: 0.96rem;
-  outline: none;
-  line-height: 1.6;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.08s ease;
-
-  &:focus {
-    border-color: ${(p) => p.theme.colors.lightBrown};
-    box-shadow: 0 0 0 1px rgba(214, 182, 159, 0.5);
-    transform: translateY(-0.5px);
-  }
-
-  &::placeholder {
-    color: rgba(255, 249, 242, 0.4);
-  }
-`;
-
-const Select = styled.select`
-  border-radius: ${(p) => p.theme.radius.md};
-  border: 1px solid rgba(255, 249, 242, 0.24);
-  background: rgba(0, 0, 0, 0.6);
-  color: ${(p) => p.theme.colors.ivory};
-  padding: 9px 11px;
-  font-size: 0.96rem;
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-
-  &:focus {
-    border-color: ${(p) => p.theme.colors.lightBrown};
-    box-shadow: 0 0 0 1px rgba(214, 182, 159, 0.5);
-  }
-`;
-
-const ToggleRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const Toggle = styled.label`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 11px;
-  border-radius: ${(p) => p.theme.radius.pill};
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 249, 242, 0.18);
-  color: rgba(255, 249, 242, 0.9);
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.08s ease;
-
-  input {
-    accent-color: ${(p) => p.theme.colors.lightBrown};
-    cursor: pointer;
-  }
-
-  &:hover {
-    border-color: ${(p) => p.theme.colors.lightBrown};
-    transform: translateY(-1px);
-  }
-`;
-
-const FooterRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 4px;
-`;
-
-const Actions = styled.div`
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-const PrimaryButton = styled.button`
-  border-radius: ${(p) => p.theme.radius.pill};
-  border: 0;
-  outline: 0;
-  padding: 10px 20px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  background: linear-gradient(
-    130deg,
-    ${(p) => p.theme.colors.lightBrown},
-    ${(p) => p.theme.colors.ivory}
-  );
-  color: ${(p) => p.theme.colors.black};
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: ${(p) => p.theme.shadow.soft};
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: ${(p) => p.theme.shadow.hard};
-  }
-
-  &:active {
-    transform: translateY(1px) scale(0.98);
-    box-shadow: ${(p) => p.theme.shadow.soft};
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: wait;
-  }
-`;
-
-const SecondaryButton = styled.button`
-  border-radius: ${(p) => p.theme.radius.pill};
-  border: 1px solid rgba(255, 249, 242, 0.4);
-  background: transparent;
-  color: ${(p) => p.theme.colors.ivory};
-  padding: 10px 18px;
-  font-size: 0.9rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.12s ease, transform 0.12s ease;
-
-  &:hover {
-    background: rgba(0, 0, 0, 0.4);
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(1px) scale(0.98);
-  }
-`;
-
-const StatusText = styled.span`
-  font-size: 0.8rem;
-  color: rgba(214, 182, 159, 0.86);
-`;
-
-const WordCount = styled.span`
-  font-size: 0.8rem;
-  color: rgba(255, 249, 242, 0.7);
-`;
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
-
-// Helper to estimate read time (same logic as backend – ~200 wpm)
 const estimateReadTime = (content) => {
   if (!content) return 0;
-  const words = content.trim().split(/\s+/).length;
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 };
 
@@ -320,14 +32,48 @@ const AdminBlogForm = () => {
     isPublished: true,
     featured: false,
   });
+
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const wordCount = form.content.trim()
-    ? form.content.trim().split(/\s+/).length
+    ? form.content.trim().split(/\s+/).filter(Boolean).length
     : 0;
+
+  const tagsArray = useMemo(
+  () => [
+    ...new Set(
+      form.tags
+        .split(",")
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 12)
+    ),
+  ],
+  [form.tags]
+);
+
+  const finalSlug = form.slug.trim()
+    ? makeSlug(form.slug)
+    : makeSlug(form.title);
+
+  const readTime = estimateReadTime(form.content);
+
+  const seoWarnings = useMemo(() => {
+    const warnings = [];
+
+    if (form.title.trim().length < 12) warnings.push("Title could be stronger.");
+    if (!form.excerpt.trim()) warnings.push("Add a short excerpt.");
+    if (wordCount < 250) warnings.push("Content is short for a premium article.");
+    if (!form.coverImage.trim()) warnings.push("Add a cover image URL.");
+    if (tagsArray.length < 2) warnings.push("Add at least 2 tags.");
+
+    return warnings;
+  }, [form.title, form.excerpt, form.coverImage, tagsArray.length, wordCount]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -349,139 +95,155 @@ const AdminBlogForm = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (loading) return;
+    e.preventDefault();
 
-  if (!form.title.trim() || !form.content.trim()) {
-    push({
-      title: "Missing required fields",
-      description: "Title and content are required to create a blog.",
-      variant: "error",
-    });
-    return;
-  }
+    if (loading) return;
 
-  try {
-    setLoading(true);
-
-    const tagsArray = form.tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    const payload = {
-      title: form.title.trim(),
-      excerpt: form.excerpt.trim() || undefined,
-      content: form.content.trim(),
-      coverImage: form.coverImage.trim() || undefined,
-      category: form.category,
-      tags: tagsArray,
-      isPublished: form.isPublished,
-      featured: form.featured,
-      readTime: estimateReadTime(form.content),
-    };
-
-    if (form.slug.trim()) {
-      payload.slug = form.slug.trim().toLowerCase();
+    if (!form.title.trim() || !form.content.trim()) {
+      push({
+        title: "Missing required fields",
+        description: "Title and content are required to create a blog.",
+        variant: "error",
+      });
+      return;
     }
 
-    await axios.post(`${API_BASE}/blogs`, payload, {
-      withCredentials: true,
-    });
+    try {
+      setLoading(true);
 
-    push({
-      title: "Blog created",
-      description: "Your knockout article is live and ready for the frontend.",
-      variant: "success",
-    });
+      const payload = {
+        title: form.title.trim(),
+        excerpt: form.excerpt.trim() || undefined,
+        content: form.content.trim(),
+        coverImage: form.coverImage.trim() || undefined,
+        category: form.category,
+        tags: tagsArray,
+        isPublished: form.isPublished,
+        featured: form.featured,
+      };
 
-    handleReset();
-  } catch (err) {
-    const message =
-      err?.response?.data?.message ||
-      err?.message ||
-      "Failed to create blog. Please try again.";
-    push({
-      title: "Error creating blog",
-      description: message,
-      variant: "error",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      if (finalSlug) {
+        payload.slug = finalSlug;
+      }
 
-const handleDeleteOne = async () => {
-  const slug = form.slug.trim().toLowerCase();
+      await axiosInstance.post("/blogs", payload);
 
-  if (!slug) {
-    push({
-      title: "Slug required",
-      description: "Enter the slug of the blog you want to delete.",
-      variant: "error",
-    });
-    return;
-  }
+      push({
+        title: "Blog created",
+        description: "Your premium article was created successfully.",
+        variant: "success",
+      });
 
-  try {
-    await axios.delete(`${API_BASE}/blogs/${slug}`, {
-      withCredentials: true,
-    });
+      handleReset();
+    } catch (err) {
+      push({
+        title: "Error creating blog",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create blog. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    push({
-      title: "Blog deleted",
-      description: `Blog with slug "${slug}" has been removed.`,
-      variant: "success",
-    });
-  } catch (err) {
-    const message =
-      err?.response?.data?.message ||
-      err?.message ||
-      "Failed to delete blog. Please try again.";
-    push({
-      title: "Error deleting blog",
-      description: message,
-      variant: "error",
-    });
-  }
-};
+  const handleDeleteOne = async () => {
+    if (deleteLoading) return;
 
-const handleDeleteAll = async () => {
-  try {
-    await axios.delete(`${API_BASE}/blogs`, {
-      withCredentials: true,
-    });
+    const slug = form.slug.trim().toLowerCase();
 
-    push({
-      title: "All blogs deleted",
-      description: "Every blog has been removed from the database.",
-      variant: "success",
-    });
-  } catch (err) {
-    const message =
-      err?.response?.data?.message ||
-      err?.message ||
-      "Failed to delete all blogs. Please try again.";
-    push({
-      title: "Error deleting all blogs",
-      description: message,
-      variant: "error",
-    });
-  }
-};
+    if (!slug) {
+      push({
+        title: "Slug required",
+        description: "Enter the slug of the blog you want to delete.",
+        variant: "error",
+      });
+      return;
+    }
+
+    const ok = window.confirm(
+      `Delete this blog permanently?\n\nSlug: ${slug}\n\nThis cannot be undone.`
+    );
+
+    if (!ok) return;
+
+    try {
+      setDeleteLoading(true);
+
+      await axiosInstance.delete(`/blogs/${slug}`);
+
+      push({
+        title: "Blog deleted",
+        description: `Blog with slug "${slug}" has been removed.`,
+        variant: "success",
+      });
+    } catch (err) {
+      push({
+        title: "Error deleting blog",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to delete blog. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (deleteLoading) return;
+
+    const confirmText = window.prompt(
+      'This will delete every blog permanently. Type "DELETE ALL BLOGS" to confirm.'
+    );
+
+    if (confirmText !== "DELETE ALL BLOGS") {
+      push({
+        title: "Delete canceled",
+        description: "Blogs were not deleted.",
+        variant: "success",
+      });
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+
+      await axiosInstance.delete(
+  "/blogs?confirm=DELETE_ALL_BLOGS"
+);
+
+      push({
+        title: "All blogs deleted",
+        description: "Every blog has been removed from the database.",
+        variant: "success",
+      });
+    } catch (err) {
+      push({
+        title: "Error deleting all blogs",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to delete all blogs. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   return (
     <Section>
       <Shell>
         <HeaderRow>
-          <HookBadge>
-            ⚡ First 3 Seconds Hook • Admin Blog
-          </HookBadge>
-          <Title>Drop a Premium Knockout Blog Post</Title>
+          <HookBadge>⚡ Premium Admin Blog Studio</HookBadge>
+          <Title>Publish A 5-Star Knockout Article</Title>
           <Subtitle>
-            Craft luxury-level boxing, mindset, conditioning, and lifestyle articles
-            that your audience can’t scroll past. Hit publish once and let the frontend
-            pull pure fire straight from your database.
+            Create polished, premium, and professional articles with clean
+            formatting, stronger hooks, live preview, and protected admin actions.
           </Subtitle>
         </HeaderRow>
 
@@ -489,20 +251,21 @@ const handleDeleteAll = async () => {
           onSubmit={handleSubmit}
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.3 }}
         >
           <LeftColumn>
             <Field>
               <LabelRow>
-                <Label htmlFor="title">Title (Hook)</Label>
-                <Hint>Make the first 1–3 seconds hit harder.</Hint>
+                <Label htmlFor="title">Title / First Hook</Label>
+                <Hint>{form.title.length}/150</Hint>
               </LabelRow>
+
               <Input
                 id="title"
                 name="title"
                 type="text"
                 maxLength={150}
-                placeholder="Example: The Right Hook Timing Drill That Scrambles Any Opponent"
+                placeholder="Example: 7 Style Codes That Make Any Outfit Look Expensive"
                 value={form.title}
                 onChange={handleChange}
               />
@@ -510,32 +273,42 @@ const handleDeleteAll = async () => {
 
             <Field>
               <LabelRow>
-                <Label htmlFor="excerpt">Subtitle / Excerpt</Label>
-                <Hint>Short teaser shown on the frontend cards.</Hint>
+                <Label htmlFor="excerpt">Excerpt</Label>
+                <Hint>{form.excerpt.length}/300</Hint>
               </LabelRow>
+
               <TextArea
                 id="excerpt"
                 name="excerpt"
                 maxLength={300}
-                placeholder="One or two luxury lines that make them tap in and read the full story..."
+                placeholder="Write a short premium teaser that makes people want to open the article..."
                 value={form.excerpt}
                 onChange={handleChange}
               />
             </Field>
 
+            <MarkdownHelp>
+              <strong>Formatting Guide</strong>
+              <span># Main Title</span>
+              <span>## Section Title</span>
+              <span>**Bold text**</span>
+              <span>- Bullet point</span>
+              <span>&gt; Quote block</span>
+            </MarkdownHelp>
+
             <Field>
               <LabelRow>
                 <Label htmlFor="content">Main Content</Label>
-                <Hint>
-                  Build value. Teach, entertain, and sell your brand.
-                </Hint>
+                <Hint>{wordCount} words • {readTime || 0} min read</Hint>
               </LabelRow>
+
               <TextArea
                 id="content"
                 name="content"
-                placeholder="Write your long-form blog content here..."
+                placeholder="Write your full article here using clean markdown formatting..."
                 value={form.content}
                 onChange={handleChange}
+                $large
               />
             </Field>
           </LeftColumn>
@@ -543,29 +316,33 @@ const handleDeleteAll = async () => {
           <RightColumn>
             <Field>
               <LabelRow>
-                <Label htmlFor="slug">Slug (optional)</Label>
-                <Hint>Auto-generated if you leave this empty.</Hint>
+                <Label htmlFor="slug">Slug</Label>
+                <Hint>Optional</Hint>
               </LabelRow>
+
               <Input
                 id="slug"
                 name="slug"
                 type="text"
-                placeholder="right-hook-timing-drill"
+                placeholder="7-style-codes-expensive-outfit"
                 value={form.slug}
                 onChange={handleChange}
               />
+
+              <UrlPreview>/blog/{finalSlug || "your-blog-slug"}</UrlPreview>
             </Field>
 
             <Field>
               <LabelRow>
                 <Label htmlFor="coverImage">Cover Image URL</Label>
-                <Hint>Hero image for the blog card.</Hint>
+                <Hint>Luxury hero image</Hint>
               </LabelRow>
+
               <Input
                 id="coverImage"
                 name="coverImage"
                 type="url"
-                placeholder="https://your-cdn.com/boxing/right-hook-drill-cover.jpg"
+                placeholder="https://your-image-url.com/cover.jpg"
                 value={form.coverImage}
                 onChange={handleChange}
               />
@@ -574,8 +351,9 @@ const handleDeleteAll = async () => {
             <Field>
               <LabelRow>
                 <Label htmlFor="category">Category</Label>
-                <Hint>Helps with frontend filtering.</Hint>
+                <Hint>Frontend filter</Hint>
               </LabelRow>
+
               <Select
                 id="category"
                 name="category"
@@ -594,77 +372,112 @@ const handleDeleteAll = async () => {
             <Field>
               <LabelRow>
                 <Label htmlFor="tags">Tags</Label>
-                <Hint>Comma separated. Example: power, timing, defense</Hint>
+                <Hint>{tagsArray.length} tags</Hint>
               </LabelRow>
+
               <Input
                 id="tags"
                 name="tags"
                 type="text"
-                placeholder="boxing, right hook, drills, power, knockoutcodes"
+                placeholder="style, outfit, luxury, confidence"
                 value={form.tags}
                 onChange={handleChange}
               />
             </Field>
 
-            <Field>
-              <LabelRow>
-                <Label>Visibility</Label>
-                <Hint>Control how it hits the frontend.</Hint>
-              </LabelRow>
-              <ToggleRow>
-                <Toggle>
-                  <input
-                    type="checkbox"
-                    name="isPublished"
-                    checked={form.isPublished}
-                    onChange={handleChange}
-                  />
-                  <span>Published (visible on frontend)</span>
-                </Toggle>
-                <Toggle>
-                  <input
-                    type="checkbox"
-                    name="featured"
-                    checked={form.featured}
-                    onChange={handleChange}
-                  />
-                  <span>Featured (show in hero / spotlight)</span>
-                </Toggle>
-              </ToggleRow>
-            </Field>
+            <ToggleRow>
+              <Toggle>
+                <input
+                  type="checkbox"
+                  name="isPublished"
+                  checked={form.isPublished}
+                  onChange={handleChange}
+                />
+                <span>Published</span>
+              </Toggle>
+
+              <Toggle>
+                <input
+                  type="checkbox"
+                  name="featured"
+                  checked={form.featured}
+                  onChange={handleChange}
+                />
+                <span>Featured</span>
+              </Toggle>
+            </ToggleRow>
+
+            <SeoBox>
+              <strong>Quality Check</strong>
+
+              {seoWarnings.length ? (
+                seoWarnings.map((warning) => (
+                  <span key={warning}>• {warning}</span>
+                ))
+              ) : (
+                <SuccessText>Looks clean, premium, and ready.</SuccessText>
+              )}
+            </SeoBox>
+
+            <PreviewCard>
+              <PreviewImage
+                src={
+                  form.coverImage ||
+                  "https://images.pexels.com/photos/4761660/pexels-photo-4761660.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                }
+                alt="Blog preview"
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://images.pexels.com/photos/4761660/pexels-photo-4761660.jpeg?auto=compress&cs=tinysrgb&w=1200";
+                }}
+              />
+
+              <PreviewBody>
+                <PreviewBadge>{form.category}</PreviewBadge>
+                {form.featured ? <PreviewBadge>Featured</PreviewBadge> : null}
+
+                <PreviewTitle>
+                  {form.title || "Your premium blog title appears here"}
+                </PreviewTitle>
+
+                <PreviewText>
+                  {form.excerpt ||
+                    "Your article excerpt will preview here before publishing."}
+                </PreviewText>
+
+                <PreviewStats>
+                  <span>{readTime || 0} min read</span>
+                  <span>{wordCount} words</span>
+                </PreviewStats>
+              </PreviewBody>
+            </PreviewCard>
 
             <FooterRow>
               <Actions>
                 <PrimaryButton type="submit" disabled={loading}>
-                  {loading ? "Publishing..." : "Publish Blog"}
-                  {!loading && <span>➜</span>}
+                  {loading ? "Publishing..." : "Publish Blog"} {!loading && "➜"}
                 </PrimaryButton>
-                <SecondaryButton
-                  type="button"
-                  onClick={handleReset}
-                  disabled={loading}
-                >
+
+                <SecondaryButton type="button" onClick={handleReset} disabled={loading}>
                   Reset
                 </SecondaryButton>
-                <SecondaryButton
+
+                <DangerButton
                   type="button"
                   onClick={handleDeleteOne}
+                   disabled={deleteLoading}
                 >
                   Delete One
-                </SecondaryButton>
-                <SecondaryButton
+                </DangerButton>
+
+                <DangerButton
                   type="button"
                   onClick={handleDeleteAll}
+                  disabled={deleteLoading}
                 >
                   Delete All
-                </SecondaryButton>
+                </DangerButton>
               </Actions>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <StatusText>
-                  Est. read time: {estimateReadTime(form.content) || 0} min
-                </StatusText>
-                <WordCount>{wordCount} words</WordCount>
-              </div>
             </FooterRow>
           </RightColumn>
         </FormCard>
@@ -674,3 +487,351 @@ const handleDeleteAll = async () => {
 };
 
 export default AdminBlogForm;
+
+/* =========================
+   Styles
+========================= */
+
+const Section = styled.section`
+  width: 100%;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(circle at 88% 14%, rgba(90, 56, 37, 0.42), transparent 34%),
+    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+  padding: 96px 18px 54px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+`;
+
+const Shell = styled.div`
+  width: 100%;
+  max-width: ${({ theme }) => theme.layout.max || "1180px"};
+  display: grid;
+  gap: 24px;
+`;
+
+const HeaderRow = styled.div`
+  color: ${({ theme }) => theme.colors.ivory};
+`;
+
+const HookBadge = styled.span`
+  display: inline-flex;
+  padding: 8px 14px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: rgba(214, 182, 159, 0.12);
+  border: 1px solid rgba(214, 182, 159, 0.4);
+  color: ${({ theme }) => theme.colors.lightBrown};
+`;
+
+const Title = styled.h1`
+  margin: 14px 0 10px;
+  font-size: clamp(2.2rem, 5vw, 4.8rem);
+  line-height: 0.92;
+  font-weight: 950;
+  letter-spacing: -0.07em;
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.ivory},
+    ${({ theme }) => theme.colors.lightBrown}
+  );
+  -webkit-background-clip: text;
+  color: transparent;
+`;
+
+const Subtitle = styled.p`
+  max-width: 760px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  line-height: 1.75;
+`;
+
+const FormCard = styled(motion.form)`
+  background:
+    radial-gradient(circle at top left, rgba(214, 182, 159, 0.12), transparent 42%),
+    rgba(0, 0, 0, 0.42);
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 24px;
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  border: 1px solid rgba(255, 249, 242, 0.12);
+  display: grid;
+  gap: 24px;
+
+  @media (min-width: 960px) {
+    grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+  }
+`;
+
+const LeftColumn = styled.div`
+  display: grid;
+  gap: 18px;
+`;
+
+const RightColumn = styled.div`
+  display: grid;
+  gap: 18px;
+  align-content: start;
+`;
+
+const Field = styled.div`
+  display: grid;
+  gap: 7px;
+`;
+
+const LabelRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const Label = styled.label`
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.colors.ivory};
+`;
+
+const Hint = styled.span`
+  font-size: 0.78rem;
+  color: rgba(214, 182, 159, 0.82);
+`;
+
+const Input = styled.input`
+  border-radius: ${({ theme }) => theme.radius.md};
+  border: 1px solid rgba(255, 249, 242, 0.18);
+  background: rgba(0, 0, 0, 0.38);
+  color: ${({ theme }) => theme.colors.ivory};
+  padding: 12px;
+  font-size: 0.95rem;
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.lightBrown};
+    box-shadow: ${({ theme }) => theme.shadow.soft};
+  }
+
+  &::placeholder {
+    color: rgba(255, 249, 242, 0.4);
+  }
+`;
+
+const TextArea = styled.textarea`
+  border-radius: ${({ theme }) => theme.radius.lg};
+  border: 1px solid rgba(255, 249, 242, 0.18);
+  background: rgba(0, 0, 0, 0.38);
+  color: ${({ theme }) => theme.colors.ivory};
+  padding: 13px;
+  min-height: ${({ $large }) => ($large ? "360px" : "130px")};
+  resize: vertical;
+  font-size: 0.96rem;
+  outline: none;
+  line-height: 1.65;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.lightBrown};
+    box-shadow: ${({ theme }) => theme.shadow.soft};
+  }
+
+  &::placeholder {
+    color: rgba(255, 249, 242, 0.4);
+  }
+`;
+
+const Select = styled.select`
+  border-radius: ${({ theme }) => theme.radius.md};
+  border: 1px solid rgba(255, 249, 242, 0.18);
+  background: rgba(0, 0, 0, 0.5);
+  color: ${({ theme }) => theme.colors.ivory};
+  padding: 12px;
+  outline: none;
+`;
+
+const MarkdownHelp = styled.div`
+  border-radius: ${({ theme }) => theme.radius.lg};
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+  display: grid;
+  gap: 6px;
+  color: ${({ theme }) => theme.colors.ivory};
+
+  strong {
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+  }
+
+  span {
+    font-size: 0.84rem;
+    opacity: 0.82;
+  }
+`;
+
+const UrlPreview = styled.span`
+  font-size: 0.8rem;
+  color: ${({ theme }) => theme.colors.lightBrown};
+`;
+
+const ToggleRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const Toggle = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 249, 242, 0.14);
+  color: ${({ theme }) => theme.colors.ivory};
+  cursor: pointer;
+
+  input {
+    accent-color: ${({ theme }) => theme.colors.lightBrown};
+  }
+`;
+
+const SeoBox = styled.div`
+  border-radius: ${({ theme }) => theme.radius.lg};
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(214, 182, 159, 0.16);
+  display: grid;
+  gap: 7px;
+  color: ${({ theme }) => theme.colors.ivory};
+
+  strong {
+    color: ${({ theme }) => theme.colors.lightBrown};
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.78rem;
+  }
+
+  span {
+    font-size: 0.84rem;
+    opacity: 0.84;
+  }
+`;
+
+const SuccessText = styled.span`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 850;
+`;
+
+const PreviewCard = styled.div`
+  overflow: hidden;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background: linear-gradient(
+    150deg,
+    ${({ theme }) => theme.colors.cocoa},
+    ${({ theme }) => theme.colors.darkBrown}
+  );
+  border: 1px solid rgba(255, 249, 242, 0.1);
+  box-shadow: ${({ theme }) => theme.shadow.soft};
+`;
+
+const PreviewImage = styled.img`
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  display: block;
+`;
+
+const PreviewBody = styled.div`
+  padding: 16px;
+`;
+
+const PreviewBadge = styled.span`
+  display: inline-block;
+  margin: 0 6px 10px 0;
+  padding: 6px 9px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(214, 182, 159, 0.14);
+  border: 1px solid rgba(214, 182, 159, 0.28);
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+`;
+
+const PreviewTitle = styled.h3`
+  margin: 0 0 8px;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 1.25rem;
+  line-height: 1.15;
+`;
+
+const PreviewText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  font-size: 0.9rem;
+  line-height: 1.6;
+`;
+
+const PreviewStats = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 0.78rem;
+  font-weight: 850;
+`;
+
+const FooterRow = styled.div`
+  display: flex;
+`;
+
+const Actions = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const PrimaryButton = styled.button`
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 0;
+  padding: 11px 18px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: linear-gradient(
+    130deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
+  color: ${({ theme }) => theme.colors.black};
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid rgba(255, 249, 242, 0.34);
+  background: transparent;
+  color: ${({ theme }) => theme.colors.ivory};
+  padding: 11px 16px;
+  font-weight: 850;
+  cursor: pointer;
+`;
+
+const DangerButton = styled(SecondaryButton)`
+  border-color: rgba(255, 120, 120, 0.48);
+  color: #ffdede;
+`;

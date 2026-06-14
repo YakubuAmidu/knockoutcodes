@@ -22,12 +22,22 @@ const sanitizeTestimonials = (list = []) => {
         t?.isApproved !== false
     )
     .map((t, i) => ({
-      id: t._id || t.id || String(i),
-      imageUrl: t.imageUrl || t.image || "",
-      message: String(t.message || "").trim(),
-      rating: Math.max(1, Math.min(5, Number(t.rating ?? 5))),
-      createdAt: t.createdAt ? String(t.createdAt) : null,
-    }))
+  id: t._id || t.id || String(i),
+  name:
+    String(
+      t.name ||
+        t.fullName ||
+        t.username ||
+        t.user?.name ||
+        t.user?.fullName ||
+        t.user?.username ||
+        ""
+    ).trim() || "Verified Member",
+  imageUrl: t.imageUrl || t.image || "",
+  message: String(t.message || "").trim(),
+  rating: Math.max(1, Math.min(5, Number(t.rating ?? 5))),
+  createdAt: t.createdAt ? String(t.createdAt) : null,
+}))
     .filter((t) => t.message.length > 0);
 
   const seenIds = new Set();

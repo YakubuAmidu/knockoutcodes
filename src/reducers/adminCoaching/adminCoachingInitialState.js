@@ -1,23 +1,33 @@
-// src/reducers/adminCoachings/adminCoachingsInitialState.js
-
 export const ADMIN_COACHINGS_UI_KEY = "kc_admin_coachings_ui";
 
 /**
- * ✅ We ONLY persist non-sensitive UI state:
+ * We ONLY persist non-sensitive UI state:
  * - q, page, limit, sort
  * We do NOT store: items, fullName, email, phone, etc.
  */
 const ALLOWED_UI_KEYS = ["q", "page", "limit", "sort"];
 
+function cleanUI(ui = {}) {
+  return {
+    q: String(ui.q || "").trim().slice(0, 60),
+    page: Math.max(1, Number(ui.page) || 1),
+    limit: Math.min(100, Math.max(10, Number(ui.limit) || 20)),
+    sort: ui.sort === "createdAt" ? "createdAt" : "-createdAt",
+  };
+}
+
 function safeParseUI(raw) {
   try {
     const parsed = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== "object") return {};
+
     const cleaned = {};
-    for (const k of ALLOWED_UI_KEYS) {
-      if (k in parsed) cleaned[k] = parsed[k];
+
+    for (const key of ALLOWED_UI_KEYS) {
+      if (key in parsed) cleaned[key] = parsed[key];
     }
-    return cleaned;
+
+    return cleanUI(cleaned);
   } catch {
     return {};
   }
@@ -30,11 +40,10 @@ const uiDraft =
 
 export const adminCoachingsInitialState = {
   ui: {
-    q: "",
-    page: Number.isFinite(Number(uiDraft.page)) ? Math.max(1, Number(uiDraft.page)) : 1,
-    limit: Number.isFinite(Number(uiDraft.limit)) ? Math.min(100, Math.max(10, Number(uiDraft.limit))) : 20,
-    // "-createdAt" or "createdAt"
-    sort: uiDraft.sort === "createdAt" ? "createdAt" : "-createdAt",
+    q: uiDraft.q || "",
+    page: uiDraft.page || 1,
+    limit: uiDraft.limit || 20,
+    sort: uiDraft.sort || "-createdAt",
   },
 
   data: {
@@ -45,7 +54,7 @@ export const adminCoachingsInitialState = {
   selectedId: null,
 
   status: {
-    state: "idle", // idle | loading | success | error
+    state: "idle",
     message: "",
   },
 };

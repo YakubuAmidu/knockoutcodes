@@ -1,14 +1,18 @@
 import express from "express";
+
 import {
   createBlog,
   getBlogs,
   getBlog,
+  likeBlog,
+  unlikeBlog,
   updateBlog,
   deleteBlog,
   deleteAllBlogs,
 } from "../controllers/blogController.js";
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
+
 import {
   validateBlogBody,
   pickAllowedBlogUpdateFields,
@@ -16,28 +20,95 @@ import {
   validateIdOrSlugParam,
 } from "../middleware/blogSecurityMiddleware.js";
 
+import {
+  publicShield,
+  writeShield,
+  allowMethods,
+} from "../middleware/securityShield.js";
+
 const router = express.Router();
 
-// ✅ Public
-router.get("/", getBlogs);
-router.get("/:idOrSlug", validateIdOrSlugParam, getBlog);
+/* =========================
+   PUBLIC BLOGS
+========================= */
+router.get(
+  "/",
+  allowMethods(["GET"]),
+  publicShield,
+  getBlogs
+);
 
-// ✅ Admin only
-router.post("/", authRequired, adminOnly, validateBlogBody, createBlog);
+router.get(
+  "/:idOrSlug",
+  allowMethods(["GET"]),
+  publicShield,
+  validateIdOrSlugParam,
+  getBlog
+);
+
+/* =========================
+   USER ENGAGEMENT
+========================= */
+router.patch(
+  "/:idOrSlug/like",
+  allowMethods(["PATCH"]),
+  writeShield,
+  authRequired,
+  validateIdOrSlugParam,
+  likeBlog
+);
+
+router.patch(
+  "/:idOrSlug/unlike",
+  allowMethods(["PATCH"]),
+  writeShield,
+  authRequired,
+  validateIdOrSlugParam,
+  unlikeBlog
+);
+
+/* =========================
+   ADMIN BLOG MANAGEMENT
+========================= */
+router.post(
+  "/",
+  allowMethods(["POST"]),
+  writeShield,
+  authRequired,
+  adminOnly,
+  validateBlogBody,
+  createBlog
+);
 
 router.put(
   "/:id",
+  allowMethods(["PUT"]),
+  writeShield,
   authRequired,
   adminOnly,
-  validateBlogIdParam,              // ✅ FIX: validate :id as ObjectId
+  validateBlogIdParam,
   pickAllowedBlogUpdateFields,
   validateBlogBody,
   updateBlog
 );
 
-router.delete("/", authRequired, adminOnly, deleteAllBlogs);
-router.delete("/:idOrSlug", authRequired, adminOnly, validateIdOrSlugParam, deleteBlog);
+router.delete(
+  "/",
+  allowMethods(["DELETE"]),
+  writeShield,
+  authRequired,
+  adminOnly,
+  deleteAllBlogs
+);
+
+router.delete(
+  "/:idOrSlug",
+  allowMethods(["DELETE"]),
+  writeShield,
+  authRequired,
+  adminOnly,
+  validateIdOrSlugParam,
+  deleteBlog
+);
 
 export default router;
-
-

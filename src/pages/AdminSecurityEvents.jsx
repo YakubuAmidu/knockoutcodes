@@ -1,3 +1,4 @@
+// src/pages/AdminSecurityEvents.jsx
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
@@ -19,17 +20,22 @@ import { useToast } from "../components/Toast";
 
 const EVENT_TYPES = [
   "",
-  "REGISTER_SUCCESS",
-  "LOGIN_SUCCESS",
   "LOGIN_FAILED",
   "ACCOUNT_LOCKED",
-  "LOGOUT",
-  "FORGOT_PASSWORD_REQUEST",
-  "PASSWORD_RESET_SUCCESS",
-  "EMAIL_VERIFIED",
-  "EMAIL_VERIFICATION_RESENT",
-  "REFRESH_SUCCESS",
   "REFRESH_FAILED",
+  "BOT_DETECTED",
+  "RATE_LIMITED",
+  "CSRF_FAILED",
+  "XSS_ATTEMPT",
+  "SQLI_ATTEMPT",
+  "NOSQLI_ATTEMPT",
+  "PATH_TRAVERSAL_ATTEMPT",
+  "ADMIN_ACCESS_DENIED",
+  "BLOCKED_IP_HIT",
+  "PASSWORD_RESET_ABUSE",
+  "SCAM_PATTERN",
+  "CHECKOUT_ABUSE",
+  "SUSPICIOUS_REQUEST",
 ];
 
 const REVIEW_STATUSES = [
@@ -41,26 +47,54 @@ const REVIEW_STATUSES = [
   "ignored",
 ];
 
+const SEVERITIES = ["", "low", "medium", "high", "critical"];
+
+const CATEGORIES = [
+  "",
+  "auth",
+  "bot",
+  "abuse",
+  "attack",
+  "admin",
+  "payment",
+  "system",
+];
+
 const emptyModal = {
   type: "",
   event: null,
 };
 
+const cleanText = (value = "", max = 500) =>
+  String(value || "")
+    .replace(/[<>]/g, "")
+    .trim()
+    .slice(0, max);
+
 const formatDate = (value) => {
   if (!value) return "Not available";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Not available";
-  return date.toLocaleString();
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 };
 
-const eventLabel = (type = "") => {
-  if (!type) return "Unknown Event";
-  return String(type).replaceAll("_", " ");
+const labelize = (value = "", fallback = "Unknown") => {
+  if (!value) return fallback;
+  return String(value).replaceAll("_", " ");
 };
 
-const statusLabel = (status = "") => {
-  if (!status) return "All Statuses";
-  return String(status).replaceAll("_", " ");
+const getToastSuccess = (toast, message) => {
+  if (toast?.success) return toast.success(message);
+  return toast?.push?.({ title: "Success", description: message, variant: "success" });
+};
+
+const getToastError = (toast, message) => {
+  if (toast?.error) return toast.error(message);
+  return toast?.push?.({ title: "Error", description: message, variant: "error" });
 };
 
 export default function AdminSecurityEvents() {
@@ -84,16 +118,36 @@ export default function AdminSecurityEvents() {
     limit = 20,
     total = 0,
     pages = 0,
-    filters = { type: "", email: "", reviewStatus: "" },
+    filters = {
+      type: "",
+      email: "",
+      reviewStatus: "",
+      severity: "",
+      category: "",
+      ip: "",
+    },
   } = useSelector((state) => state.securityEvent || {});
+
+  const safeFilters = {
+    type: filters.type || "",
+    email: filters.email || "",
+    reviewStatus: filters.reviewStatus || "",
+    severity: filters.severity || "",
+    category: filters.category || "",
+    ip: filters.ip || "",
+  };
 
   const stats = useMemo(() => {
     return {
-      success: items.filter((item) => item.type === "LOGIN_SUCCESS").length,
-      failed: items.filter((item) => item.type === "LOGIN_FAILED").length,
-      locked: items.filter((item) => item.type === "ACCOUNT_LOCKED").length,
-      suspicious: items.filter((item) => item.reviewStatus === "suspicious")
-        .length,
+      totalOnPage: items.length,
+      critical: items.filter((item) => item.severity === "critical").length,
+      high: items.filter((item) => item.severity === "high").length,
+      suspicious: items.filter(
+        (item) =>
+          item.reviewStatus === "suspicious" ||
+          item.severity === "high" ||
+          item.severity === "critical"
+      ).length,
     };
   }, [items]);
 
@@ -101,24 +155,37 @@ export default function AdminSecurityEvents() {
     return dispatch(
       fetchSecurityEvents({
         page: custom.page || page,
-        limit,
-        type: filters.type,
-        email: filters.email,
-        reviewStatus: filters.reviewStatus,
+        limit: custom.limit || limit,
+        type: custom.type ?? safeFilters.type,
+        email: custom.email ?? safeFilters.email,
+        reviewStatus: custom.reviewStatus ?? safeFilters.reviewStatus,
+        severity: custom.severity ?? safeFilters.severity,
+        category: custom.category ?? safeFilters.category,
+        ip: custom.ip ?? safeFilters.ip,
       })
     );
   };
 
   useEffect(() => {
     loadEvents().catch(() => {
-      toast?.error?.("Failed to load security events.");
+      getToastError(toast, "Failed to load security events.");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, page, limit, filters.type, filters.email, filters.reviewStatus]);
+  }, [
+    dispatch,
+    page,
+    limit,
+    safeFilters.type,
+    safeFilters.email,
+    safeFilters.reviewStatus,
+    safeFilters.severity,
+    safeFilters.category,
+    safeFilters.ip,
+  ]);
 
   useEffect(() => {
     if (error) {
-      toast?.error?.(error);
+      getToastError(toast, error);
       dispatch(clearSecurityEventError());
     }
   }, [error, toast, dispatch]);
@@ -136,40 +203,53 @@ export default function AdminSecurityEvents() {
 
   const closeModal = () => {
     if (actionLoading || cleanupLoading) return;
+
     setActiveModal(emptyModal);
     setReviewDraft({ reviewStatus: "reviewed", adminNote: "" });
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    dispatch(setSecurityEventFilters({ [name]: value }));
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+
+    dispatch(
+      setSecurityEventFilters({
+        [name]: cleanText(value, 120),
+        page: 1,
+      })
+    );
   };
 
   const handleRefresh = () => {
     loadEvents()
-      .then(() => toast?.success?.("Security events refreshed."))
-      .catch(() => toast?.error?.("Unable to refresh security events."));
+      .then(() => getToastSuccess(toast, "Security events refreshed."))
+      .catch(() => getToastError(toast, "Unable to refresh security events."));
   };
 
   const handleCleanup = () => {
     dispatch(cleanupSecurityEvents({ days: 90 }))
       .then((data) => {
-        toast?.success?.(data?.message || "Old security events cleaned.");
+        getToastSuccess(toast, data?.message || "Old reviewed security events cleaned.");
         setShowCleanupModal(false);
         loadEvents({ page: 1 });
       })
-      .catch(() => toast?.error?.("Unable to cleanup old security events."));
+      .catch(() => getToastError(toast, "Unable to cleanup old security events."));
   };
 
   const handleReviewSave = () => {
     if (!activeModal.event?._id) return;
 
-    dispatch(updateSecurityEventReview(activeModal.event._id, reviewDraft))
-      .then((data) => {
-        toast?.success?.(data?.message || "Security event reviewed.");
-        closeModal();
+    dispatch(
+      updateSecurityEventReview(activeModal.event._id, {
+        reviewStatus: reviewDraft.reviewStatus,
+        adminNote: cleanText(reviewDraft.adminNote, 1000),
       })
-      .catch(() => toast?.error?.("Unable to update review."));
+    )
+      .then((data) => {
+        getToastSuccess(toast, data?.message || "Security event reviewed.");
+        closeModal();
+        loadEvents();
+      })
+      .catch(() => getToastError(toast, "Unable to update review."));
   };
 
   const handleDelete = () => {
@@ -177,10 +257,11 @@ export default function AdminSecurityEvents() {
 
     dispatch(deleteSecurityEvent(activeModal.event._id))
       .then((data) => {
-        toast?.success?.(data?.message || "Security event deleted.");
+        getToastSuccess(toast, data?.message || "Security event deleted.");
         closeModal();
+        loadEvents();
       })
-      .catch(() => toast?.error?.("Unable to delete security event."));
+      .catch(() => getToastError(toast, "Unable to delete security event."));
   };
 
   const handleDeactivateUser = () => {
@@ -192,10 +273,11 @@ export default function AdminSecurityEvents() {
       })
     )
       .then((data) => {
-        toast?.success?.(data?.message || "User account deactivated.");
+        getToastSuccess(toast, data?.message || "User account deactivated.");
         closeModal();
+        loadEvents();
       })
-      .catch(() => toast?.error?.("Unable to deactivate user."));
+      .catch(() => getToastError(toast, "Unable to deactivate user."));
   };
 
   const handleBlockIp = () => {
@@ -208,26 +290,28 @@ export default function AdminSecurityEvents() {
       })
     )
       .then((data) => {
-        toast?.success?.(data?.message || "IP address blocked.");
+        getToastSuccess(toast, data?.message || "IP address blocked.");
         closeModal();
+        loadEvents();
       })
-      .catch(() => toast?.error?.("Unable to block IP address."));
+      .catch(() => getToastError(toast, "Unable to block IP address."));
   };
 
   const handleUnblockIp = () => {
-  if (!activeModal.event?._id) return;
+    if (!activeModal.event?._id) return;
 
-  dispatch(
-    unblockSecurityEventIp(activeModal.event._id, {
-      adminNote: `IP ${activeModal.event?.ip || ""} unblocked from security review.`,
-    })
-  )
-    .then((data) => {
-      toast?.success?.(data?.message || "IP address unblocked.");
-      closeModal();
-    })
-    .catch(() => toast?.error?.("Unable to unblock IP address."));
-};
+    dispatch(
+      unblockSecurityEventIp(activeModal.event._id, {
+        adminNote: `IP ${activeModal.event?.ip || ""} unblocked from security review.`,
+      })
+    )
+      .then((data) => {
+        getToastSuccess(toast, data?.message || "IP address unblocked.");
+        closeModal();
+        loadEvents();
+      })
+      .catch(() => getToastError(toast, "Unable to unblock IP address."));
+  };
 
   const goToPage = (nextPage) => {
     if (nextPage < 1 || nextPage > pages) return;
@@ -236,11 +320,14 @@ export default function AdminSecurityEvents() {
       fetchSecurityEvents({
         page: nextPage,
         limit,
-        type: filters.type,
-        email: filters.email,
-        reviewStatus: filters.reviewStatus,
+        type: safeFilters.type,
+        email: safeFilters.email,
+        reviewStatus: safeFilters.reviewStatus,
+        severity: safeFilters.severity,
+        category: safeFilters.category,
+        ip: safeFilters.ip,
       })
-    ).catch(() => toast?.error?.("Unable to load that page."));
+    ).catch(() => getToastError(toast, "Unable to load that page."));
   };
 
   return (
@@ -253,16 +340,16 @@ export default function AdminSecurityEvents() {
           transition={{ duration: 0.45 }}
         >
           <Eyebrow>KnockoutCodes Security Command</Eyebrow>
-          <Title>Control threats before they touch the platform.</Title>
+          <Title>Threats only. Noise reduced.</Title>
           <Subtitle>
-            Review account activity, mark suspicious events, deactivate risky
-            users, block dangerous IP addresses, and protect your premium member
-            system with a clean audit trail.
+            This dashboard now focuses on suspicious activity, hacking attempts,
+            bot behavior, blocked IP hits, account abuse, and admin security
+            risks instead of filling MongoDB with normal user activity.
           </Subtitle>
 
           <HeroActions>
             <Button type="button" onClick={handleRefresh} disabled={loading}>
-              {loading ? "Refreshing..." : "Refresh Logs"}
+              {loading ? "Refreshing..." : "Refresh Threat Logs"}
             </Button>
 
             <DangerButton
@@ -270,29 +357,29 @@ export default function AdminSecurityEvents() {
               onClick={() => setShowCleanupModal(true)}
               disabled={cleanupLoading || loading}
             >
-              {cleanupLoading ? "Cleaning..." : "Clean 90+ Day Logs"}
+              {cleanupLoading ? "Cleaning..." : "Clean 90+ Day Reviewed Logs"}
             </DangerButton>
           </HeroActions>
         </Hero>
 
         <StatsGrid>
           <StatCard>
-            <StatLabel>Total Events</StatLabel>
+            <StatLabel>Total Threat Logs</StatLabel>
             <StatValue>{total}</StatValue>
           </StatCard>
 
           <StatCard>
-            <StatLabel>Login Success</StatLabel>
-            <StatValue>{stats.success}</StatValue>
+            <StatLabel>Critical On Page</StatLabel>
+            <StatValue>{stats.critical}</StatValue>
           </StatCard>
 
           <StatCard>
-            <StatLabel>Login Failed</StatLabel>
-            <StatValue>{stats.failed}</StatValue>
+            <StatLabel>High Risk On Page</StatLabel>
+            <StatValue>{stats.high}</StatValue>
           </StatCard>
 
           <StatCard $danger={stats.suspicious > 0 ? "true" : undefined}>
-            <StatLabel>Suspicious</StatLabel>
+            <StatLabel>Needs Attention</StatLabel>
             <StatValue>{stats.suspicious}</StatValue>
           </StatCard>
         </StatsGrid>
@@ -300,10 +387,10 @@ export default function AdminSecurityEvents() {
         <Panel>
           <PanelTop>
             <div>
-              <PanelTitle>Security Audit Trail</PanelTitle>
+              <PanelTitle>Security Threat Trail</PanelTitle>
               <PanelText>
-                Every event stays traceable. Admin actions add review notes
-                instead of secretly changing the original log.
+                Review what happened, who was connected, the route used, IP,
+                device, risk level, repeat count, and admin action history.
               </PanelText>
             </div>
           </PanelTop>
@@ -313,22 +400,60 @@ export default function AdminSecurityEvents() {
               <Label>Email Search</Label>
               <Input
                 name="email"
-                value={filters.email || ""}
+                value={safeFilters.email}
                 onChange={handleFilterChange}
                 placeholder="Search email..."
+                maxLength={120}
+              />
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>IP Search</Label>
+              <Input
+                name="ip"
+                value={safeFilters.ip}
+                onChange={handleFilterChange}
+                placeholder="Search IP..."
+                maxLength={80}
               />
             </FieldGroup>
 
             <FieldGroup>
               <Label>Event Type</Label>
-              <Select
-                name="type"
-                value={filters.type || ""}
-                onChange={handleFilterChange}
-              >
+              <Select name="type" value={safeFilters.type} onChange={handleFilterChange}>
                 {EVENT_TYPES.map((type) => (
                   <option key={type || "ALL"} value={type}>
-                    {type ? eventLabel(type) : "All Events"}
+                    {type ? labelize(type) : "All Threat Events"}
+                  </option>
+                ))}
+              </Select>
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>Severity</Label>
+              <Select
+                name="severity"
+                value={safeFilters.severity}
+                onChange={handleFilterChange}
+              >
+                {SEVERITIES.map((severity) => (
+                  <option key={severity || "ALL"} value={severity}>
+                    {severity ? labelize(severity) : "All Severities"}
+                  </option>
+                ))}
+              </Select>
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label>Category</Label>
+              <Select
+                name="category"
+                value={safeFilters.category}
+                onChange={handleFilterChange}
+              >
+                {CATEGORIES.map((category) => (
+                  <option key={category || "ALL"} value={category}>
+                    {category ? labelize(category) : "All Categories"}
                   </option>
                 ))}
               </Select>
@@ -338,12 +463,12 @@ export default function AdminSecurityEvents() {
               <Label>Review Status</Label>
               <Select
                 name="reviewStatus"
-                value={filters.reviewStatus || ""}
+                value={safeFilters.reviewStatus}
                 onChange={handleFilterChange}
               >
                 {REVIEW_STATUSES.map((status) => (
                   <option key={status || "ALL"} value={status}>
-                    {statusLabel(status)}
+                    {status ? labelize(status) : "All Statuses"}
                   </option>
                 ))}
               </Select>
@@ -351,20 +476,21 @@ export default function AdminSecurityEvents() {
           </Filters>
 
           {loading ? (
-            <EmptyBox>Loading security logs...</EmptyBox>
+            <EmptyBox>Loading security threat logs...</EmptyBox>
           ) : items.length === 0 ? (
-            <EmptyBox>No security events found.</EmptyBox>
+            <EmptyBox>No suspicious security events found.</EmptyBox>
           ) : (
             <TableWrap>
               <Table>
                 <thead>
                   <tr>
-                    <th>Event</th>
-                    <th>User</th>
-                    <th>Email</th>
+                    <th>Threat</th>
+                    <th>Risk</th>
+                    <th>User / Email</th>
                     <th>IP / Device</th>
+                    <th>Activity</th>
                     <th>Review</th>
-                    <th>Date</th>
+                    <th>Last Seen</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -374,22 +500,34 @@ export default function AdminSecurityEvents() {
                     <tr key={event._id}>
                       <td>
                         <Badge data-type={event.type}>
-                          {eventLabel(event.type)}
+                          {labelize(event.title || event.type, "Unknown Event")}
                         </Badge>
+
+                        <Small>{labelize(event.type)}</Small>
+
                         {event.actionTaken && event.actionTaken !== "none" ? (
-                          <Small>Action: {eventLabel(event.actionTaken)}</Small>
+                          <Small>Action: {labelize(event.actionTaken)}</Small>
                         ) : null}
                       </td>
 
                       <td>
-                        {event.user?.name || "Unknown"}
-                        <Small>
-                          {event.user?.role || "No role"}{" "}
-                          {event.user?.isActive === false ? "• Inactive" : ""}
-                        </Small>
+                        <SeverityBadge data-severity={event.severity || "medium"}>
+                          {labelize(event.severity || "medium")}
+                        </SeverityBadge>
+                        <Small>{labelize(event.category || "system")}</Small>
+                        <Small>Count: {event.count || 1}</Small>
                       </td>
 
-                      <td>{event.email || event.user?.email || "Not available"}</td>
+                      <td>
+                        {event.user?.name || "Unknown User"}
+                        <Small>
+                          {event.email || event.user?.email || "No email"}
+                        </Small>
+                        <Small>
+                          {event.user?.role || "No role"}
+                          {event.user?.isActive === false ? " • Inactive" : ""}
+                        </Small>
+                      </td>
 
                       <td>
                         {event.ip || "Not available"}
@@ -397,13 +535,23 @@ export default function AdminSecurityEvents() {
                       </td>
 
                       <td>
-                        <StatusBadge data-status={event.reviewStatus}>
-                          {statusLabel(event.reviewStatus || "unreviewed")}
+                        {event.method || "N/A"} {event.path || "No route"}
+                        {event.meta?.whatTheyDid ? (
+                          <Small>{event.meta.whatTheyDid}</Small>
+                        ) : null}
+                      </td>
+
+                      <td>
+                        <StatusBadge data-status={event.reviewStatus || "unreviewed"}>
+                          {labelize(event.reviewStatus || "unreviewed")}
                         </StatusBadge>
                         {event.adminNote ? <Small>{event.adminNote}</Small> : null}
                       </td>
 
-                      <td>{formatDate(event.createdAt)}</td>
+                      <td>
+                        {formatDate(event.lastSeenAt || event.createdAt)}
+                        <Small>Created: {formatDate(event.createdAt)}</Small>
+                      </td>
 
                       <td>
                         <ActionGroup>
@@ -432,12 +580,12 @@ export default function AdminSecurityEvents() {
                           </MiniButton>
 
                           <MiniButton
-  type="button"
-  onClick={() => openModal("unblockIp", event)}
-  disabled={actionLoading || !event.ip}
->
-  Unblock IP
-</MiniButton>
+                            type="button"
+                            onClick={() => openModal("unblockIp", event)}
+                            disabled={actionLoading || !event.ip}
+                          >
+                            Unblock IP
+                          </MiniButton>
 
                           <MiniDanger
                             type="button"
@@ -480,65 +628,42 @@ export default function AdminSecurityEvents() {
       </Shell>
 
       {showCleanupModal && (
-        <ModalOverlay>
-          <ModalCard
-            as={motion.div}
-            initial={{ opacity: 0, scale: 0.92, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <ModalEyebrow>Security Cleanup</ModalEyebrow>
-            <ModalTitle>Delete old security logs?</ModalTitle>
-            <ModalText>
-              This permanently deletes security events older than 90 days. Keep
-              newer logs for investigation and platform protection.
-            </ModalText>
-
-            <ModalActions>
-              <ModalCancel
-                type="button"
-                onClick={() => setShowCleanupModal(false)}
-                disabled={cleanupLoading}
-              >
-                Cancel
-              </ModalCancel>
-
-              <ModalDelete
-                type="button"
-                onClick={handleCleanup}
-                disabled={cleanupLoading}
-              >
-                {cleanupLoading ? "Deleting..." : "Delete Old Logs"}
-              </ModalDelete>
-            </ModalActions>
-          </ModalCard>
-        </ModalOverlay>
+        <ConfirmModal
+          eyebrow="Security Cleanup"
+          title="Delete old reviewed security logs?"
+          text="This deletes security events older than 90 days only when they are already reviewed, resolved, or ignored. Active unreviewed threat logs stay protected."
+          confirmText="Delete Old Logs"
+          loading={cleanupLoading}
+          onCancel={() => setShowCleanupModal(false)}
+          onConfirm={handleCleanup}
+          danger
+        />
       )}
 
       {activeModal.type === "review" && (
         <ModalOverlay>
           <ModalCard as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <ModalEyebrow>Admin Review</ModalEyebrow>
-            <ModalTitle>Mark this event</ModalTitle>
+            <ModalTitle>Review this threat event</ModalTitle>
             <ModalText>
-              Add a review status and note. This protects the audit trail while
-              recording what the admin decided.
+              Add a clear decision note. This keeps the investigation trail clean
+              without changing the original security event.
             </ModalText>
 
             <ModalField>
               <Label>Review Status</Label>
               <Select
                 value={reviewDraft.reviewStatus}
-                onChange={(e) =>
+                onChange={(event) =>
                   setReviewDraft((prev) => ({
                     ...prev,
-                    reviewStatus: e.target.value,
+                    reviewStatus: event.target.value,
                   }))
                 }
               >
                 {REVIEW_STATUSES.filter(Boolean).map((status) => (
                   <option key={status} value={status}>
-                    {statusLabel(status)}
+                    {labelize(status)}
                   </option>
                 ))}
               </Select>
@@ -548,13 +673,14 @@ export default function AdminSecurityEvents() {
               <Label>Admin Note</Label>
               <Textarea
                 value={reviewDraft.adminNote}
-                onChange={(e) =>
+                maxLength={1000}
+                onChange={(event) =>
                   setReviewDraft((prev) => ({
                     ...prev,
-                    adminNote: e.target.value,
+                    adminNote: cleanText(event.target.value, 1000),
                   }))
                 }
-                placeholder="Example: Reviewed failed login pattern. No action needed."
+                placeholder="Example: Repeated failed login attempts from same IP. Marked suspicious and blocked."
               />
             </ModalField>
 
@@ -562,7 +688,12 @@ export default function AdminSecurityEvents() {
               <ModalCancel type="button" onClick={closeModal} disabled={actionLoading}>
                 Cancel
               </ModalCancel>
-              <ModalConfirm type="button" onClick={handleReviewSave} disabled={actionLoading}>
+
+              <ModalConfirm
+                type="button"
+                onClick={handleReviewSave}
+                disabled={actionLoading}
+              >
                 {actionLoading ? "Saving..." : "Save Review"}
               </ModalConfirm>
             </ModalActions>
@@ -574,7 +705,7 @@ export default function AdminSecurityEvents() {
         <ConfirmModal
           eyebrow="Delete Log"
           title="Delete this security event?"
-          text="This removes one log from the audit trail. Only do this for spam, test logs, or data you are certain you do not need."
+          text="Only delete test logs or spam logs you are sure you do not need. Professional systems usually review or resolve logs instead of deleting them."
           confirmText="Delete Event"
           loading={actionLoading}
           onCancel={closeModal}
@@ -587,7 +718,7 @@ export default function AdminSecurityEvents() {
         <ConfirmModal
           eyebrow="Deactivate User"
           title="Deactivate this user account?"
-          text="This blocks the user from normal access if your auth middleware checks isActive. Use this for suspicious or dangerous account behavior."
+          text="This blocks the user from normal access if your auth middleware checks isActive. Use this only for dangerous or suspicious account behavior."
           confirmText="Deactivate User"
           loading={actionLoading}
           onCancel={closeModal}
@@ -600,7 +731,7 @@ export default function AdminSecurityEvents() {
         <ConfirmModal
           eyebrow="Block IP"
           title={`Block IP ${activeModal.event?.ip || ""}?`}
-          text="This saves the IP to your blocked IP list. To make it enforce fully, the backend must check BlockedIp in middleware."
+          text="This saves the IP to your blocked IP list. Your backend middleware must check BlockedIp for enforcement."
           confirmText="Block IP"
           loading={actionLoading}
           onCancel={closeModal}
@@ -610,16 +741,16 @@ export default function AdminSecurityEvents() {
       )}
 
       {activeModal.type === "unblockIp" && (
-  <ConfirmModal
-    eyebrow="Unblock IP"
-    title={`Unblock IP ${activeModal.event?.ip || ""}?`}
-    text="This will allow this IP address to access the platform again."
-    confirmText="Unblock IP"
-    loading={actionLoading}
-    onCancel={closeModal}
-    onConfirm={handleUnblockIp}
-  />
-)}
+        <ConfirmModal
+          eyebrow="Unblock IP"
+          title={`Unblock IP ${activeModal.event?.ip || ""}?`}
+          text="This will mark this IP as inactive in the blocked IP list so it can access the platform again."
+          confirmText="Unblock IP"
+          loading={actionLoading}
+          onCancel={closeModal}
+          onConfirm={handleUnblockIp}
+        />
+      )}
     </PageWrap>
   );
 }
@@ -842,11 +973,15 @@ const PanelText = styled.p`
 
 const Filters = styled.div`
   display: grid;
-  grid-template-columns: 1fr 260px 240px;
+  grid-template-columns: 1fr 1fr 240px 180px 180px 210px;
   gap: 16px;
   margin: 22px 0;
 
-  @media (max-width: 980px) {
+  @media (max-width: 1180px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 680px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -917,7 +1052,7 @@ const TableWrap = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 1120px;
+  min-width: 1320px;
   background: rgba(0, 0, 0, 0.36);
 
   th,
@@ -948,18 +1083,30 @@ const Badge = styled.span`
   font-weight: 950;
   color: #2f1b12;
   background: #d6b69f;
+`;
 
-  &[data-type="LOGIN_FAILED"],
-  &[data-type="ACCOUNT_LOCKED"],
-  &[data-type="REFRESH_FAILED"] {
-    background: #ffffff;
-    color: #5a3825;
+const SeverityBadge = styled.span`
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 8px 11px;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  color: #2f1b12;
+  background: #fff9f2;
+
+  &[data-severity="high"] {
+    background: #ffdede;
+    color: #3d120f;
   }
 
-  &[data-type="LOGIN_SUCCESS"],
-  &[data-type="REGISTER_SUCCESS"],
-  &[data-type="EMAIL_VERIFIED"] {
-    background: #fff9f2;
+  &[data-severity="critical"] {
+    background: #ffb3b3;
+    color: #280000;
+  }
+
+  &[data-severity="low"] {
+    background: rgba(214, 182, 159, 0.85);
     color: #2f1b12;
   }
 `;
@@ -992,7 +1139,7 @@ const Small = styled.span`
   color: rgba(255, 249, 242, 0.52);
   font-size: 0.76rem;
   margin-top: 5px;
-  max-width: 240px;
+  max-width: 260px;
   word-break: break-word;
 `;
 
@@ -1000,7 +1147,7 @@ const ActionGroup = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  min-width: 230px;
+  min-width: 240px;
 `;
 
 const MiniButton = styled.button`

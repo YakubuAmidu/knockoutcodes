@@ -1,5 +1,6 @@
 // routes/courseRoutes.js
-import express from 'express';
+import express from "express";
+
 import {
   createCourse,
   getCourses,
@@ -9,24 +10,81 @@ import {
   getCoursePlayer,
 } from "../controllers/courseController.js";
 
-// If you already have auth middleware, plug it in:
-import { authRequired, adminOnly } from '../middleware/authMiddleware.js';
-import { requireEnrollment } from '../middleware/requireEnrollment.js';
+import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
+import { csrfRequired } from "../middleware/csrfMiddleware.js";
+
+import {
+  publicShield,
+  writeShield,
+  allowMethods,
+} from "../middleware/securityShield.js";
 
 const router = express.Router();
 
-router
-  .route('/')
-  .get(getCourses)
-  // .post(protect, admin, createCourse);
-  .post(authRequired, adminOnly, createCourse); // <-- add protect/admin when ready
+/* ======================================================
+   KNOCKOUTCODES COURSE ROUTES
+====================================================== */
 
-router
-  .route('/:id')
-  .get(getCourse)
-  .put(authRequired, adminOnly, updateCourse)
-  .delete(authRequired, adminOnly, deleteCourse);
+/* =========================
+   ADMIN COURSE LIST
+   Must stay above "/:id"
+========================= */
+router.get(
+  "/admin/manage",
+  allowMethods(["GET"]),
+  publicShield,
+  authRequired,
+  adminOnly,
+  getCourses
+);
 
-router.route("/player/:courseId", authRequired, requireEnrollment, getCoursePlayer);
+/* =========================
+   COURSE LIST / CREATE
+========================= */
+router
+  .route("/")
+  .get(publicShield, getCourses)
+  .post(
+    allowMethods(["POST"]),
+    writeShield,
+    authRequired,
+    adminOnly,
+    csrfRequired,
+    createCourse
+  );
+
+/* =========================
+   COURSE PLAYER
+   Must stay above "/:id"
+========================= */
+router.get(
+  "/player/:courseId",
+  publicShield,
+  authRequired,
+  getCoursePlayer
+);
+
+/* =========================
+   SINGLE COURSE / UPDATE / DELETE
+========================= */
+router
+  .route("/:id")
+  .get(publicShield, getCourse)
+  .put(
+    allowMethods(["PUT"]),
+    writeShield,
+    authRequired,
+    adminOnly,
+    csrfRequired,
+    updateCourse
+  )
+  .delete(
+    allowMethods(["DELETE"]),
+    writeShield,
+    authRequired,
+    adminOnly,
+    csrfRequired,
+    deleteCourse
+  );
 
 export default router;

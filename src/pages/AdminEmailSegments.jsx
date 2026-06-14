@@ -3,8 +3,8 @@ import styled from "styled-components";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
 import { useToast } from "../components/Toast";
+
 import {
   fetchEmailSegments,
   createEmailSegment,
@@ -20,13 +20,17 @@ const emptyForm = {
   description: "",
   type: "newsletter",
   status: "active",
+  rules: {
+    source: "all",
+    minOrders: 0,
+    tags: "",
+  },
 };
 
-function AdminEmailSegments() {
+function AdminEmailSegment() {
   const dispatch = useDispatch();
   const toast = useToast();
-
-  const { initializing, isAuthenticated, isAdmin } = useAuth();
+  const { initializing, checkingAuth, isAuthenticated, isAdmin } = useAuth();
 
   const {
     loading,
@@ -42,9 +46,13 @@ function AdminEmailSegments() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
 
+  const authLoading = initializing || checkingAuth;
+
   useEffect(() => {
-    dispatch(fetchEmailSegments());
-  }, [dispatch]);
+    if (isAuthenticated && isAdmin) {
+      dispatch(fetchEmailSegments());
+    }
+  }, [dispatch, isAuthenticated, isAdmin]);
 
   useEffect(() => {
     if (error) {
@@ -67,38 +75,61 @@ function AdminEmailSegments() {
         description: selectedSegment.description || "",
         type: selectedSegment.type || "newsletter",
         status: selectedSegment.status || "active",
+        rules: {
+          source: selectedSegment.rules?.source || "all",
+          minOrders: selectedSegment.rules?.minOrders || 0,
+          tags: Array.isArray(selectedSegment.rules?.tags)
+            ? selectedSegment.rules.tags.join(", ")
+            : "",
+        },
       });
     }
   }, [selectedSegment]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const safeSegments = Array.isArray(segments) ? segments : [];
+
   const filteredSegments = useMemo(() => {
     const keyword = search.toLowerCase().trim();
 
-    if (!keyword) return segments || [];
+    if (!keyword) return safeSegments;
 
-    return (segments || []).filter((segment) => {
+    return safeSegments.filter((segment) => {
       return (
         segment?.name?.toLowerCase().includes(keyword) ||
         segment?.description?.toLowerCase().includes(keyword) ||
         segment?.type?.toLowerCase().includes(keyword) ||
-        segment?.status?.toLowerCase().includes(keyword)
+        segment?.status?.toLowerCase().includes(keyword) ||
+        segment?.rules?.source?.toLowerCase().includes(keyword)
       );
     });
-  }, [segments, search]);
+  }, [safeSegments, search]);
 
   const stats = useMemo(() => {
-    const list = segments || [];
-
     return {
-      total: list.length,
-      active: list.filter((item) => item.status === "active").length,
-      buyers: list.filter((item) => item.type === "buyers").length,
-      vip: list.filter((item) => item.type === "vip").length,
+      total: safeSegments.length,
+      active: safeSegments.filter((item) => item.status === "active").length,
+      buyers: safeSegments.filter((item) => item.type === "buyers").length,
+      vip: safeSegments.filter((item) => item.type === "vip").length,
     };
-  }, [segments]);
+  }, [safeSegments]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name.startsWith("rules.")) {
+      const key = name.split(".")[1];
+
+      setForm((prev) => ({
+        ...prev,
+        rules: {
+          ...prev.rules,
+          [key]: value,
+        },
+      }));
+
+      return;
+    }
 
     setForm((prev) => ({
       ...prev,
@@ -120,19 +151,27 @@ function AdminEmailSegments() {
     }
 
     const payload = {
-  name: form.name.trim(),
-  description: form.description.trim(),
-  type: form.type,
-  status: form.status,
-};
+      name: form.name.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      status: form.status,
+      rules: {
+        source: form.rules.source,
+        minOrders: Math.max(0, Number(form.rules.minOrders) || 0),
+        tags: String(form.rules.tags || "")
+          .split(",")
+          .map((tag) => tag.trim().toLowerCase())
+          .filter(Boolean),
+      },
+    };
 
-if (selectedSegment?._id) {
-  await dispatch(updateEmailSegment(selectedSegment._id, payload));
-} else {
-  await dispatch(createEmailSegment(payload));
-}
+    const result = selectedSegment?._id
+      ? await dispatch(updateEmailSegment(selectedSegment._id, payload))
+      : await dispatch(createEmailSegment(payload));
 
-    resetForm();
+    if (result?.success !== false) {
+      resetForm();
+    }
   };
 
   const handleEdit = (segment) => {
@@ -141,23 +180,29 @@ if (selectedSegment?._id) {
   };
 
   const handleDelete = async (id) => {
+    if (!id) return;
+
     const confirmed = window.confirm(
       "Delete this email segment? This action cannot be undone."
     );
 
     if (!confirmed) return;
 
-    await dispatch(deleteEmailSegment(id));
+    const result = await dispatch(deleteEmailSegment(id));
+
+    if (result?.success !== false && selectedSegment?._id === id) {
+      resetForm();
+    }
   };
 
-  if (initializing) {
-    return <EmptyState>Checking admin access...</EmptyState>
-  };
+  if (authLoading) {
+    return <EmptyState>Checking admin access...</EmptyState>;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  };
-  
+  }
+
   if (!isAdmin) {
     return <Navigate to="/home" replace />;
   }
@@ -167,12 +212,11 @@ if (selectedSegment?._id) {
       <Shell>
         <Hero>
           <HeroContent>
-            <Kicker>EMAIL SEGMENTATION ENGINE</Kicker>
+            <Kicker>Email Segmentation Engine</Kicker>
             <Title>Turn Your Audience Into Buyer Groups</Title>
             <Subtitle>
-              Build luxury-level customer segments for coaching offers, course
-              launches, product drops, newsletters, VIP buyers, and inactive
-              subscribers.
+              Build clean customer segments for coaching offers, course launches,
+              product drops, newsletters, VIP buyers, and inactive subscribers.
             </Subtitle>
           </HeroContent>
 
@@ -210,7 +254,7 @@ if (selectedSegment?._id) {
         <MainGrid>
           <FormCard onSubmit={handleSubmit}>
             <SectionHeader>
-              <Kicker>{selectedSegment ? "UPDATE SEGMENT" : "CREATE SEGMENT"}</Kicker>
+              <Kicker>{selectedSegment ? "Update Segment" : "Create Segment"}</Kicker>
               <SectionTitle>
                 {selectedSegment ? "Refine This Buyer Group" : "Create A Money Segment"}
               </SectionTitle>
@@ -232,7 +276,7 @@ if (selectedSegment?._id) {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                placeholder="Explain who belongs in this segment and what offer they should receive."
+                placeholder="Explain who belongs in this segment."
               />
             </Field>
 
@@ -258,6 +302,45 @@ if (selectedSegment?._id) {
               </Field>
             </TwoColumns>
 
+            <TwoColumns>
+              <Field>
+                <Label>Rule Source</Label>
+                <Select
+                  name="rules.source"
+                  value={form.rules.source}
+                  onChange={handleChange}
+                >
+                  <option value="all">All</option>
+                  <option value="newsletter">Newsletter</option>
+                  <option value="orders">Orders</option>
+                  <option value="coaching">Coaching</option>
+                  <option value="manual">Manual</option>
+                </Select>
+              </Field>
+
+              <Field>
+                <Label>Minimum Orders</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  name="rules.minOrders"
+                  value={form.rules.minOrders}
+                  onChange={handleChange}
+                  placeholder="0"
+                />
+              </Field>
+            </TwoColumns>
+
+            <Field>
+              <Label>Tags</Label>
+              <Input
+                name="rules.tags"
+                value={form.rules.tags}
+                onChange={handleChange}
+                placeholder="boxing, course-buyer, vip"
+              />
+            </Field>
+
             <ButtonRow>
               <PrimaryButton type="submit" disabled={creating || updating}>
                 {creating || updating
@@ -277,7 +360,7 @@ if (selectedSegment?._id) {
 
           <ListCard>
             <SectionHeader>
-              <Kicker>SEGMENT VAULT</Kicker>
+              <Kicker>Segment Vault</Kicker>
               <SectionTitle>Your Audience Groups</SectionTitle>
             </SectionHeader>
 
@@ -308,12 +391,25 @@ if (selectedSegment?._id) {
 
                     <MetaRow>
                       <Meta>{segment.type || "newsletter"}</Meta>
+                      <Meta>{segment.rules?.source || "all"}</Meta>
+                      <Meta>
+                        Min Orders: {Number(segment.rules?.minOrders || 0)}
+                      </Meta>
                       <Meta>
                         {segment.createdAt
                           ? new Date(segment.createdAt).toLocaleDateString()
                           : "No date"}
                       </Meta>
                     </MetaRow>
+
+                    {Array.isArray(segment.rules?.tags) &&
+                      segment.rules.tags.length > 0 && (
+                        <TagsRow>
+                          {segment.rules.tags.map((tag) => (
+                            <Tag key={tag}>{tag}</Tag>
+                          ))}
+                        </TagsRow>
+                      )}
 
                     <ActionRow>
                       <SmallButton type="button" onClick={() => handleEdit(segment)}>
@@ -325,7 +421,7 @@ if (selectedSegment?._id) {
                         disabled={deleting}
                         onClick={() => handleDelete(segment._id)}
                       >
-                        Delete
+                        {deleting ? "Deleting..." : "Delete"}
                       </DangerButton>
                     </ActionRow>
                   </SegmentItem>
@@ -339,7 +435,7 @@ if (selectedSegment?._id) {
   );
 }
 
-export default AdminEmailSegments;
+export default AdminEmailSegment;
 
 const colors = {
   darkBrown: "#2F1B12",
@@ -671,4 +767,20 @@ const EmptyState = styled.div`
   background: rgba(0, 0, 0, 0.24);
   color: ${colors.lightBrown};
   text-align: center;
+`;
+
+const TagsRow = styled.div`
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+`;
+
+const Tag = styled.span`
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+  background: rgba(214, 182, 159, 0.12);
+  color: ${colors.lightBrown};
+  font-size: 0.75rem;
+  font-weight: 850;
 `;

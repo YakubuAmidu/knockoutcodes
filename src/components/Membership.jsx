@@ -1,4 +1,3 @@
-// src/pages/Memberships.jsx
 import { useEffect, useMemo, useCallback, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -11,30 +10,59 @@ import {
   cancelMyMembership,
   createMembershipCheckoutSession,
 } from "../lib/apiClient";
+import { useToast } from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
 
 const normalizePlanSlug = (raw) => {
-  const s = String(raw || "").toLowerCase().trim();
-  if (s === "advanced") return "advance";
-  return s;
+  const value = String(raw || "").toLowerCase().trim();
+  if (value === "advanced") return "advance";
+  if (value.includes("beginner")) return "beginner";
+  if (value.includes("intermediate")) return "intermediate";
+  if (value.includes("advance") || value.includes("advanced")) return "advance";
+  if (value.includes("complete") || value.includes("elite")) return "complete";
+  return value;
 };
 
-const formatEnrolled = (n) => {
-  const num = Number(n || 0);
-  if (!Number.isFinite(num)) return "0";
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M+`;
-  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K+`;
-  return `${num}`;
+const formatEnrolled = (value) => {
+  const number = Number(value || 0);
+
+  if (!Number.isFinite(number) || number <= 0) return "New";
+  if (number >= 1_000_000) return `${(number / 1_000_000).toFixed(1)}M+`;
+  if (number >= 1_000) return `${(number / 1_000).toFixed(1)}K+`;
+
+  return `${Math.floor(number)}`;
 };
 
-const starText = (rating) => {
-  const r = Number(rating);
-  if (!Number.isFinite(r) || r <= 0) return "New";
-  return `★ ${r.toFixed(1)}`;
+const starText = (rating, reviewCount = 0) => {
+  const number = Number(rating || 0);
+  const reviews = Number(reviewCount || 0);
+
+  if (!Number.isFinite(number) || number <= 0 || reviews <= 0) {
+    return "New";
+  }
+
+  return `★ ${number.toFixed(1)}`;
+};
+
+const getArrayPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  return [];
+};
+
+const getSubscriptionPayload = (payload) => {
+  if (payload?.data?.data) return payload.data.data;
+  if (payload?.data) return payload.data;
+  if (payload?.subscription) return payload.subscription;
+  return payload || {};
 };
 
 const resolveCheckoutUrl = (res) => {
   const payload = res?.data ?? res ?? {};
+
   const url =
     payload?.url ||
     payload?.checkoutUrl ||
@@ -42,11 +70,16 @@ const resolveCheckoutUrl = (res) => {
     payload?.redirectUrl ||
     payload?.redirectURL ||
     payload?.data?.url ||
-    payload?.data?.checkoutUrl;
+    payload?.data?.checkoutUrl ||
+    payload?.data?.checkoutURL;
 
   if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return String(url);
-  if (String(url).startsWith("/")) return `${window.location.origin}${url}`;
+
+  const cleanUrl = String(url).trim();
+
+  if (/^https?:\/\//i.test(cleanUrl)) return cleanUrl;
+  if (cleanUrl.startsWith("/")) return `${window.location.origin}${cleanUrl}`;
+
   return "";
 };
 
@@ -54,7 +87,16 @@ const Memberships = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { isAuthenticated } = useAuth();
+  const toast = useToast();
+
+  const { isAuthenticated, user, currentUser, authUser } = useAuth();
+
+  const loggedInUser = user || currentUser || authUser || {};
+
+  const isAdmin =
+    ["admin", "superadmin"].includes(
+      String(loggedInUser?.role || loggedInUser?.user?.role || "").toLowerCase()
+    ) || loggedInUser?.isAdmin === true;
 
   const [billingPeriod, setBillingPeriod] = useState("monthly");
 
@@ -66,14 +108,18 @@ const Memberships = () => {
     switchingId,
     canceling,
     mySubscription,
-  } = useSelector((s) => s.membership);
+    mySubscriptionLoading,
+  } = useSelector((state) => state.membership);
 
   const courseIdFromState = location?.state?.courseId || "";
-  const requiredMembershipFromState = location?.state?.requiredMembershipId || "";
+  const requiredMembershipFromState =
+    location?.state?.requiredMembershipId || "";
   const fromPath = location?.state?.from || "";
 
-  const activeMembershipId = normalizePlanSlug(mySubscription?.membershipId || "");
-  const activeBillingPeriod = String(mySubscription?.billingPeriod || "").toLowerCase();
+  const activeMembershipId = normalizePlanSlug(mySubscription?.membershipId);
+  const activeBillingPeriod = String(
+    mySubscription?.billingPeriod || ""
+  ).toLowerCase();
 
   const hasActiveSubscription =
     Boolean(mySubscription?.hasSubscription) && Boolean(mySubscription?.isActive);
@@ -82,11 +128,11 @@ const Memberships = () => {
     dispatch({ type: MEMBERSHIP_ACTIONS.FETCH_START });
 
     try {
-      const list = await getMemberships("published=true&sort=enrolled");
+      const result = await getMemberships("published=true&sort=enrolled");
 
       dispatch({
         type: MEMBERSHIP_ACTIONS.FETCH_SUCCESS,
-        payload: Array.isArray(list) ? list : list?.items || list?.data || [],
+        payload: getArrayPayload(result),
       });
     } catch (err) {
       dispatch({
@@ -105,11 +151,11 @@ const Memberships = () => {
     dispatch({ type: MEMBERSHIP_ACTIONS.FETCH_MY_SUBSCRIPTION_START });
 
     try {
-      const sub = await getMySubscription();
+      const subscription = await getMySubscription();
 
       dispatch({
         type: MEMBERSHIP_ACTIONS.FETCH_MY_SUBSCRIPTION_SUCCESS,
-        payload: sub || {},
+        payload: getSubscriptionPayload(subscription),
       });
     } catch (err) {
       dispatch({
@@ -131,51 +177,93 @@ const Memberships = () => {
     const list = Array.isArray(memberships) ? memberships : [];
 
     if (loading && list.length === 0) {
-      return Array.from({ length: 4 }).map((_, idx) => ({
+      return Array.from({ length: 4 }).map((_, index) => ({
         __skeleton: true,
-        id: `skeleton-${idx}`,
+        id: `skeleton-${index}`,
+        membershipId: `skeleton-${index}`,
         title: "Loading membership...",
+        instructor: "KnockoutCodes Academy",
         price: "Loading...",
+        monthlyPrice: "Loading...",
+        yearlyPrice: "Loading...",
         short: "Preparing membership details...",
+        rating: 0,
+        enrolled: 0,
+        reviewCount: 0,
         meta: ["Weekly direction", "Course access", "Accountability"],
       }));
     }
 
-    return list.map((m) => {
+    return list.map((membership) => {
+      const membershipId = normalizePlanSlug(
+        membership?.membershipId || membership?.accessLevel
+      );
+
+      const accessLevel = normalizePlanSlug(
+        membership?.accessLevel || membership?.membershipId
+      );
+
       const monthlyPrice =
-        m?.monthlyPriceLabel || m?.monthlyPrice || m?.priceLabel || m?.price || "$0 / month";
+        membership?.monthlyPriceLabel ||
+        membership?.monthlyPrice ||
+        membership?.priceLabel ||
+        membership?.price ||
+        "$0 / month";
 
       const yearlyPrice =
-        m?.yearlyPriceLabel ||
-        m?.annualPriceLabel ||
-        m?.yearlyPrice ||
-        m?.annualPrice ||
+        membership?.yearlyPriceLabel ||
+        membership?.annualPriceLabel ||
+        membership?.yearlyPrice ||
+        membership?.annualPrice ||
         "Yearly option";
 
+      const id = String(
+        membership?.slug ||
+          membership?.membershipId ||
+          membership?.id ||
+          membership?._id ||
+          ""
+      );
+
       return {
-        id: String(m?.slug || m?.membershipId || m?.id || m?._id || ""),
-        membershipId: String(m?.membershipId || m?.accessLevel || ""),
-        accessLevel: String(m?.accessLevel || m?.membershipId || ""),
-        membershipDbId: String(m?._id || m?.id || ""),
-        stripePriceId: m?.stripePriceId || m?.priceId || "",
-        glyph: m?.glyph || "KC",
-        badgeLeft: m?.badgeLeft || "KnockoutCodes",
-        badgeRight: m?.badgeRight || "Membership",
-        highlight: Boolean(m?.highlight),
-        title: m?.title || "KnockoutCodes Membership",
-        instructor: m?.instructor || "KnockoutCodes Academy",
+        id,
+        membershipId,
+        accessLevel,
+        membershipDbId: String(membership?._id || membership?.id || ""),
+        stripePriceId: membership?.stripePriceId || membership?.priceId || "",
+        glyph: membership?.glyph || "KC",
+        badgeLeft: membership?.badgeLeft || "KnockoutCodes",
+        badgeRight: membership?.badgeRight || "Membership",
+        highlight: Boolean(membership?.highlight || membership?.isFeatured),
+        title: membership?.title || "KnockoutCodes Membership",
+        instructor: membership?.instructor || "KnockoutCodes Academy",
         monthlyPrice,
         yearlyPrice,
         price: billingPeriod === "yearly" ? yearlyPrice : monthlyPrice,
-        rating: Number(m?.rating || 0),
-        enrolled: Number(m?.enrolled || 0),
+        rating: Number(
+  membership?.ratingAverage ||
+    membership?.averageRating ||
+    membership?.rating ||
+    0
+),
+enrolled: Number(membership?.enrolled || membership?.studentCount || 0),
+reviewCount: Number(
+  membership?.ratingCount ||
+    membership?.reviewCount ||
+    membership?.totalReviews ||
+    0
+),
         short:
-          m?.short ||
-          m?.description ||
+          membership?.short ||
+          membership?.description ||
           "Premium boxing education, course access, structure, and accountability built for serious students.",
-        meta: Array.isArray(m?.meta)
-          ? m.meta
-          : ["Protected course access", "Monthly or yearly membership", "Upgrade path for serious students"],
+        meta: Array.isArray(membership?.meta)
+          ? membership.meta
+          : [
+              "Protected course access",
+              "Monthly or yearly membership",
+              "Upgrade path for serious students",
+            ],
       };
     });
   }, [memberships, loading, billingPeriod]);
@@ -184,8 +272,20 @@ const Memberships = () => {
     async (membership) => {
       if (!membership || membership.__skeleton) return;
 
-      const membershipId =
-        membership.membershipId || membership.accessLevel || membership.membershipDbId;
+      const membershipId = normalizePlanSlug(
+        membership.membershipId ||
+          membership.accessLevel ||
+          membership.membershipDbId
+      );
+
+      if (!membershipId) {
+        toast?.push?.({
+          title: "Membership unavailable",
+          description: "This membership is missing its access level.",
+          variant: "danger",
+        });
+        return;
+      }
 
       if (!isAuthenticated) {
         navigate("/login", {
@@ -196,6 +296,16 @@ const Memberships = () => {
             requiredMembershipId: requiredMembershipFromState,
             billingPeriod,
           },
+        });
+        return;
+      }
+
+      if (isAdmin) {
+        toast?.push?.({
+          title: "Admins cannot subscribe",
+          description:
+            "Admin accounts are blocked from buying courses, products, or memberships. Please use a regular user account.",
+          variant: "danger",
         });
         return;
       }
@@ -227,26 +337,59 @@ const Memberships = () => {
             err?.message ||
             "Unknown error occurred",
         });
+
+        toast?.push?.({
+          title: "Checkout failed",
+          description:
+            err?.response?.data?.message ||
+            err?.message ||
+            "Unable to open Stripe checkout.",
+          variant: "danger",
+        });
       } finally {
         dispatch({ type: MEMBERSHIP_ACTIONS.STOP_CHECKOUT });
       }
     },
     [
       isAuthenticated,
-      navigate,
+      isAdmin,
       dispatch,
-      billingPeriod,
+      navigate,
       courseIdFromState,
       requiredMembershipFromState,
+      billingPeriod,
+      toast,
     ]
   );
 
   const handleSwitchPlan = useCallback(
     async (membership) => {
-      if (!membership) return;
+      if (!membership || membership.__skeleton) return;
 
-      const membershipId =
-        membership.membershipId || membership.accessLevel || membership.membershipDbId;
+      if (isAdmin) {
+        toast?.push?.({
+          title: "Admins cannot manage subscriptions",
+          description:
+            "Admin accounts cannot subscribe, switch, or purchase memberships.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      const membershipId = normalizePlanSlug(
+        membership.membershipId ||
+          membership.accessLevel ||
+          membership.membershipDbId
+      );
+
+      if (!membershipId) {
+        toast?.push?.({
+          title: "Membership unavailable",
+          description: "This membership is missing its access level.",
+          variant: "danger",
+        });
+        return;
+      }
 
       dispatch({
         type: MEMBERSHIP_ACTIONS.START_SWITCH,
@@ -261,6 +404,12 @@ const Memberships = () => {
 
         await fetchMySubscription();
         await fetchMemberships();
+
+        toast?.push?.({
+          title: "Membership updated",
+          description: `Your plan was switched to ${membership.title}.`,
+          variant: "success",
+        });
       } catch (err) {
         dispatch({
           type: MEMBERSHIP_ACTIONS.FETCH_ERROR,
@@ -269,14 +418,40 @@ const Memberships = () => {
             err?.message ||
             "Failed to switch membership.",
         });
+
+        toast?.push?.({
+          title: "Switch failed",
+          description:
+            err?.response?.data?.message ||
+            err?.message ||
+            "Failed to switch membership.",
+          variant: "danger",
+        });
       } finally {
         dispatch({ type: MEMBERSHIP_ACTIONS.STOP_SWITCH });
       }
     },
-    [dispatch, billingPeriod, fetchMySubscription, fetchMemberships]
+    [
+      isAdmin,
+      dispatch,
+      toast,
+      billingPeriod,
+      fetchMySubscription,
+      fetchMemberships,
+    ]
   );
 
   const handleCancelMembership = useCallback(async () => {
+    if (isAdmin) {
+  toast?.push?.({
+    title: "Admins cannot manage subscriptions",
+    description:
+      "Admin accounts cannot subscribe, switch, cancel, or purchase memberships.",
+    variant: "danger",
+  });
+  return;
+    }
+    
     const ok = window.confirm(
       "Cancel membership? Your access will stay active until the end of your billing period."
     );
@@ -288,6 +463,13 @@ const Memberships = () => {
 
       await cancelMyMembership();
       await fetchMySubscription();
+
+      toast?.push?.({
+        title: "Membership cancellation scheduled",
+        description:
+          "Your access should remain active until the end of the billing period.",
+        variant: "success",
+      });
     } catch (err) {
       dispatch({
         type: MEMBERSHIP_ACTIONS.FETCH_ERROR,
@@ -296,10 +478,21 @@ const Memberships = () => {
           err?.message ||
           "Failed to cancel membership.",
       });
+
+      toast?.push?.({
+        title: "Cancel failed",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to cancel membership.",
+        variant: "danger",
+      });
     } finally {
       dispatch({ type: MEMBERSHIP_ACTIONS.STOP_CANCEL });
     }
-  }, [dispatch, fetchMySubscription]);
+  }, [dispatch, fetchMySubscription, isAdmin, toast]);
+
+  const hasPlans = normalized.some((plan) => !plan.__skeleton);
 
   return (
     <PageWrap>
@@ -324,10 +517,10 @@ const Memberships = () => {
             </HeroPoint>
 
             <HeroPoint>
-              <strong>Monthly or Yearly</strong>
+              <strong>Real Student Proof</strong>
               <span>
-                Start monthly or commit yearly when you want the full long-term
-                training path.
+                Ratings and student counts come from real database activity, not
+                fake card numbers.
               </span>
             </HeroPoint>
 
@@ -361,7 +554,7 @@ const Memberships = () => {
           <StatusBar>
             <StatusPill>Choose membership first</StatusPill>
             <StatusPill>Select course second</StatusPill>
-            <StatusPill>Stripe secure checkout after course choice</StatusPill>
+            <StatusPill>Stripe secure checkout</StatusPill>
           </StatusBar>
 
           <InfoBar>
@@ -370,13 +563,23 @@ const Memberships = () => {
             </InlineBtn>
 
             <StatusPill>
-              Showing {loading ? "..." : normalized.filter((x) => !x.__skeleton).length} memberships
+              Showing{" "}
+              {loading
+                ? "..."
+                : normalized.filter((item) => !item.__skeleton).length}{" "}
+              memberships
             </StatusPill>
+
+            {mySubscriptionLoading ? (
+              <StatusPill>Checking subscription...</StatusPill>
+            ) : null}
 
             {hasActiveSubscription ? (
               <StatusPill>
                 Active: {mySubscription?.membershipId} /{" "}
-                {mySubscription?.billingPeriod || activeBillingPeriod || "billing"}
+                {mySubscription?.billingPeriod ||
+                  activeBillingPeriod ||
+                  "billing"}
               </StatusPill>
             ) : null}
 
@@ -412,22 +615,35 @@ const Memberships = () => {
           </TrustItem>
         </TrustStrip>
 
+        {!loading && !hasPlans ? (
+          <EmptyState>
+            <strong>No memberships available yet.</strong>
+            <span>
+              Publish a membership from the admin dashboard and it will appear
+              here.
+            </span>
+          </EmptyState>
+        ) : null}
+
         <Grid>
-          {normalized.map((plan, idx) => {
-            const key = plan?.id || `membership-${idx}`;
+          {normalized.map((plan, index) => {
+            const key = plan?.id || `membership-${index}`;
             const planMembershipId = normalizePlanSlug(plan.membershipId);
 
             const isRequired =
               requiredMembershipFromState &&
-              normalizePlanSlug(plan.id) === normalizePlanSlug(requiredMembershipFromState);
+              (normalizePlanSlug(plan.id) ===
+                normalizePlanSlug(requiredMembershipFromState) ||
+                planMembershipId ===
+                  normalizePlanSlug(requiredMembershipFromState));
 
             const isCurrentPlan =
               hasActiveSubscription &&
               activeMembershipId === planMembershipId &&
               activeBillingPeriod === billingPeriod;
 
-            const isSwitching = switchingId === plan.membershipId;
-            const isStarting = startingId === plan.membershipId;
+            const isSwitching = switchingId === planMembershipId;
+            const isStarting = startingId === planMembershipId;
 
             return (
               <Card
@@ -445,10 +661,18 @@ const Memberships = () => {
                   </Thumb>
 
                   <BadgeRow>
-                    <Badge>{isCurrentPlan ? "Current Plan" : isRequired ? "Required" : plan.badgeLeft}</Badge>
+                    <Badge>
+                      {isCurrentPlan
+                        ? "Current Plan"
+                        : isRequired
+                        ? "Required"
+                        : plan.badgeLeft}
+                    </Badge>
 
                     <BadgeRightGroup>
-                      {plan.highlight ? <BestSellerBadge>Top Choice</BestSellerBadge> : null}
+                      {plan.highlight ? (
+                        <BestSellerBadge>Top Choice</BestSellerBadge>
+                      ) : null}
                       <Badge>{plan.badgeRight}</Badge>
                     </BadgeRightGroup>
                   </BadgeRow>
@@ -460,7 +684,9 @@ const Memberships = () => {
                   <PriceRow>
                     <Price>{plan.price}</Price>
                     <PriceNote>
-                      {billingPeriod === "yearly" ? "Billed yearly" : "Billed monthly"}
+                      {billingPeriod === "yearly"
+                        ? "Billed yearly"
+                        : "Billed monthly"}
                     </PriceNote>
                   </PriceRow>
 
@@ -474,14 +700,28 @@ const Memberships = () => {
                     <StatPill>
                       <StatLabel>Rating</StatLabel>
                       <Dot />
-                      <StatValue>{plan.__skeleton ? "..." : starText(plan.rating)}</StatValue>
+                      <StatValue>
+                        {plan.__skeleton
+                          ? "..."
+                          : starText(plan.rating, plan.reviewCount)}
+                      </StatValue>
                     </StatPill>
 
                     <StatPill>
                       <StatLabel>Students</StatLabel>
                       <Dot />
-                      <StatValue>{plan.__skeleton ? "..." : formatEnrolled(plan.enrolled)}</StatValue>
+                      <StatValue>
+                        {plan.__skeleton ? "..." : formatEnrolled(plan.enrolled)}
+                      </StatValue>
                     </StatPill>
+
+                    {Number(plan.reviewCount || 0) > 0 ? (
+                      <StatPill>
+                        <StatLabel>Reviews</StatLabel>
+                        <Dot />
+                        <StatValue>{Number(plan.reviewCount || 0)}</StatValue>
+                      </StatPill>
+                    ) : null}
 
                     {isCurrentPlan ? (
                       <StatPill>
@@ -497,7 +737,11 @@ const Memberships = () => {
                   <FeatureList>
                     {(plan.meta.length
                       ? plan.meta
-                      : ["Protected course access", "Progress-based learning", "Premium student experience"]
+                      : [
+                          "Protected course access",
+                          "Progress-based learning",
+                          "Premium student experience",
+                        ]
                     )
                       .slice(0, 5)
                       .map((item, i) => (
@@ -539,9 +783,9 @@ const Memberships = () => {
                       <PrimaryButton
                         type="button"
                         disabled={plan.__skeleton || isSwitching}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
                           handleSwitchPlan(plan);
                         }}
                       >
@@ -551,13 +795,15 @@ const Memberships = () => {
                       <PrimaryButton
                         type="button"
                         disabled={plan.__skeleton || isStarting}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
                           handleJoin(plan);
                         }}
                       >
-                        {isStarting ? "Opening Stripe..." : `Choose ${billingPeriod}`}
+                        {isStarting
+                          ? "Opening Stripe..."
+                          : `Choose ${billingPeriod}`}
                       </PrimaryButton>
                     )}
                   </Footer>
@@ -569,7 +815,9 @@ const Memberships = () => {
 
         {hasActiveSubscription ? (
           <InfoBar style={{ marginTop: "28px" }}>
-            <StatusPill>Active Membership: {mySubscription?.membershipId}</StatusPill>
+            <StatusPill>
+              Active Membership: {mySubscription?.membershipId}
+            </StatusPill>
 
             {mySubscription?.cancelAtPeriodEnd ? (
               <ErrorPill>
@@ -579,7 +827,11 @@ const Memberships = () => {
                   : "billing end"}
               </ErrorPill>
             ) : (
-              <InlineBtn type="button" disabled={canceling} onClick={handleCancelMembership}>
+              <InlineBtn
+                type="button"
+                disabled={canceling}
+                onClick={handleCancelMembership}
+              >
                 {canceling ? "Canceling..." : "Cancel Membership"}
               </InlineBtn>
             )}
@@ -812,6 +1064,27 @@ const TrustItem = styled.div`
     color: ${({ theme }) => theme.colors.ivory};
     font-weight: 850;
     font-size: 13px;
+  }
+`;
+
+const EmptyState = styled.div`
+  margin-bottom: 26px;
+  padding: 24px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  border: 1px solid rgba(214, 182, 159, 0.2);
+  background: rgba(0, 0, 0, 0.32);
+  text-align: center;
+  color: ${({ theme }) => theme.colors.ivory};
+
+  strong {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  span {
+    opacity: 0.76;
+    font-size: 14px;
   }
 `;
 

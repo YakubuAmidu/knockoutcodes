@@ -1,7 +1,7 @@
 // src/reducers/contact/contactActions.js
 import { CONTACT_ACTIONS } from "./contactActionTypes";
 
-export const hydrateContactFromStorage = (payload) => ({
+export const hydrateContactFromStorage = (payload = {}) => ({
   type: CONTACT_ACTIONS.HYDRATE_FROM_STORAGE,
   payload,
 });
@@ -11,13 +11,21 @@ export const updateContactField = (name, value) => ({
   payload: { name, value },
 });
 
-export const setContactStatus = (state, message = "") => ({
+export const setContactStatus = (state = "idle", message = "") => ({
   type: CONTACT_ACTIONS.SET_STATUS,
   payload: { state, message },
 });
 
+export const clearContactStatus = () => ({
+  type: CONTACT_ACTIONS.CLEAR_STATUS,
+});
+
 export const resetContactAfterSuccess = () => ({
   type: CONTACT_ACTIONS.RESET_AFTER_SUCCESS,
+});
+
+export const resetContactForm = () => ({
+  type: CONTACT_ACTIONS.RESET_FORM,
 });
 
 export const resetContactAll = () => ({

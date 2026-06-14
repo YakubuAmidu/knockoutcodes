@@ -1,9 +1,9 @@
 // src/pages/ManageNewsletters.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
-import Footer from "../components/Footer";
 import { useToast } from "../components/Toast";
+import { socket } from "../../utils/socket";
 
 // ✅ Redux
 import { useDispatch, useSelector } from "react-redux";
@@ -571,9 +571,14 @@ export default function ManageNewsletters() {
   const selectedId = manageState.selectedId || null;
   const search = manageState.search || "";
   const loadingList = Boolean(manageState.loadingList);
-  const saving = Boolean(manageState.saving);
-  const systemMessage = manageState.systemMessage || null;
-  const reduxError = manageState.error || "";
+const saving = Boolean(manageState.saving);
+const deleting = Boolean(manageState.deleting);
+const systemMessage = manageState.systemMessage || null;
+const reduxError = manageState.error || "";
+
+const backendTotal = Number(manageState.total) || newsletters.length;
+const backendActive = Number(manageState.active) || 0;
+const backendInactive = Number(manageState.inactive) || 0;
 
   // ✅ matches DB schema now (local form stays local for perfect UX)
   const [form, setForm] = useState({
@@ -588,8 +593,13 @@ export default function ManageNewsletters() {
   const [submitting, setSubmitting] = useState(false);
   const [localSearch, setLocalSearch] = useState(search);
   const [selectedIds, setSelectedIds] = useState([]);
-const [deleting, setDeleting] = useState(false);
-const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  
+  const lastLocalActionRef = useRef({
+  type: null,
+  id: null,
+  time: 0,
+});
 
   const getId = (n) =>
     (n && (n._id || n.id || n.newsletterId || n.newsletterID)) || "";
@@ -609,7 +619,9 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const saveCache = (list) => {
   try {
-    const safeList = list.slice(0, 500); // prevent huge storage abuse
+    const safeList = Array.isArray(list)
+  ? list.slice(0, 500)
+  : []; // prevent huge storage abuse
     localStorage.setItem(
       LS_CACHE_KEY,
       JSON.stringify({ ts: Date.now(), data: safeList })
@@ -658,11 +670,13 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
       })();
 
       const res = await dispatch(
-        fetchAdminNewsletters({
-          preferredId: savedId,
-          fallbackToFirst: true,
-        })
-      );
+  fetchAdminNewsletters({
+    preferredId: savedId,
+    fallbackToFirst: true,
+    search,
+    limit: 100,
+  })
+);
 
       if (!ignore) {
         if (res?.ok) {
@@ -699,12 +713,103 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
       ignore = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+  }, [dispatch, search]);
 
-  const selectedNewsletter = useMemo(
-    () => newsletters.find((n) => getId(n) === selectedId) || null,
-    [newsletters, selectedId]
+  useEffect(() => {
+  if (!socket.connected) {
+    socket.connect();
+  }
+
+  const shouldSilenceToast = (type, payload) => {
+    const local = lastLocalActionRef.current;
+    const payloadId = payload?._id || "";
+
+    return (
+      local?.type === type &&
+      local?.id === payloadId &&
+      Date.now() - local.time < 4000
+    );
+  };
+
+  const refreshNewsletters = async (payload, type = "new") => {
+  try {
+    const savedId = (() => {
+      try {
+        return localStorage.getItem(LS_SELECTED_KEY);
+      } catch {
+        return null;
+      }
+    })();
+
+    const res = await dispatch(
+      fetchAdminNewsletters({
+        preferredId: savedId || payload?._id,
+        fallbackToFirst: true,
+      })
+    );
+
+    if (!res?.ok) return;
+
+    saveCache(res.list || []);
+
+    if (!shouldSilenceToast(type, payload)) {
+      push({
+        title:
+          type === "reactivated"
+            ? "Subscriber reactivated live"
+            : type === "updated"
+            ? "Subscriber updated live"
+            : type === "deleted"
+            ? "Subscriber deleted live"
+            : "New subscriber joined live",
+
+        description:
+          type === "deleted" && payload?.email
+            ? `${payload.email} was removed from the list.`
+            : payload?.email
+            ? `${payload.email} updated in real time.`
+            : "Your newsletter database updated in real time.",
+
+        variant: "success",
+        duration: 3200,
+      });
+    }
+  } catch {
+    // silent fail to prevent socket crash loops
+  }
+};
+
+  socket.on("newsletter:new-subscriber", (payload) => {
+    refreshNewsletters(payload, "new");
+  });
+
+  socket.on("newsletter:subscriber-reactivated", (payload) => {
+    refreshNewsletters(payload, "reactivated");
+  });
+
+  socket.on("newsletter:subscriber-updated", (payload) => {
+    refreshNewsletters(payload, "updated");
+  });
+
+  socket.on("newsletter:subscriber-deleted", (payload) => {
+    refreshNewsletters(payload, "deleted");
+  });
+
+  return () => {
+    socket.off("newsletter:new-subscriber");
+    socket.off("newsletter:subscriber-reactivated");
+    socket.off("newsletter:subscriber-updated");
+    socket.off("newsletter:subscriber-deleted");
+  };
+}, [dispatch, push]);
+
+  const selectedNewsletter = useMemo(() => {
+  if (!selectedId) return null;
+
+  return (
+    newsletters.find((n) => getId(n) === selectedId) || null
   );
+}, [newsletters, selectedId]);
 
   useEffect(() => {
     if (!selectedNewsletter) return;
@@ -729,12 +834,14 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
   }, [selectedNewsletter]);
 
   const analytics = useMemo(() => {
-  const total = newsletters.length;
-  const active = newsletters.filter((n) => n.isActive === true).length;
-  const inactive = newsletters.filter((n) => n.isActive === false).length;
+  const total = backendTotal || newsletters.length;
+  const active =
+    backendActive || newsletters.filter((n) => n.isActive === true).length;
+  const inactive =
+    backendInactive || newsletters.filter((n) => n.isActive === false).length;
 
   const bySourceMap = newsletters.reduce((acc, n) => {
-    const source = (n.source || "unknown").trim().toLowerCase();
+    const source = String(n.source || "unknown").trim().toLowerCase();
     acc[source] = (acc[source] || 0) + 1;
     return acc;
   }, {});
@@ -749,7 +856,7 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
     inactive,
     topSources,
   };
-}, [newsletters]);
+}, [newsletters, backendTotal, backendActive, backendInactive]);
 
   const filteredNewsletters = useMemo(() => {
     if (!search.trim()) return newsletters;
@@ -770,68 +877,72 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
+    setForm((p) => ({
+  ...p,
+  [name]: typeof value === "string" ? value.replace(/\s{2,}/g, " ") : value,
+}));
   }
 
-  async function handleDeleteSelected() {
+ async function handleDeleteSelected() {
   if (!selectedIds.length || deleting) return;
 
   const confirmed = window.confirm(
-    `Delete ${selectedIds.length} subscriber${selectedIds.length > 1 ? "s" : ""}? This cannot be undone.`
+    `Delete ${selectedIds.length} subscriber${
+      selectedIds.length > 1 ? "s" : ""
+    }? This cannot be undone.`
   );
 
   if (!confirmed) return;
 
-  setDeleting(true);
+  selectedIds.forEach((id) => {
+    lastLocalActionRef.current = {
+      type: "deleted",
+      id,
+      time: Date.now(),
+    };
+  });
 
-  try {
-    const results = await Promise.all(
-      selectedIds.map((id) => dispatch(deleteAdminNewsletter(id)))
-    );
+  const results = await Promise.all(
+    selectedIds.filter(Boolean).map((id) => dispatch(deleteAdminNewsletter(id)))
+  );
 
-    const failed = results.filter((r) => !r?.ok);
-    const succeeded = results.filter((r) => r?.ok);
+  const failed = results.filter((r) => !r?.ok);
+  const succeeded = results.filter((r) => r?.ok);
 
-    if (succeeded.length) {
-      push({
-        title: "Subscribers deleted",
-        description: `${succeeded.length} subscriber${succeeded.length > 1 ? "s" : ""} removed successfully.`,
-        variant: "success",
-      });
-    }
-
-    if (failed.length) {
-      push({
-        title: "Some deletions failed",
-        description: `${failed.length} item${failed.length > 1 ? "s" : ""} could not be deleted.`,
-        variant: "error",
-      });
-    }
-
-    clearBulkSelection();
-
-    const savedId = (() => {
-      try {
-        return localStorage.getItem(LS_SELECTED_KEY);
-      } catch {
-        return null;
-      }
-    })();
-
-    const refresh = await dispatch(
-      fetchAdminNewsletters({
-        preferredId: savedId,
-        fallbackToFirst: true,
-      })
-    );
-
-    if (refresh?.ok) {
-      saveCache(refresh.list || []);
-    }
-  } finally {
-    setDeleting(false);
+  if (succeeded.length) {
+    push({
+      title: "Subscribers deleted",
+      description: `${succeeded.length} subscriber${
+        succeeded.length > 1 ? "s" : ""
+      } removed successfully.`,
+      variant: "success",
+    });
   }
+
+  if (failed.length) {
+    push({
+      title: "Some deletions failed",
+      description: `${failed.length} item${
+        failed.length > 1 ? "s" : ""
+      } could not be deleted.`,
+      variant: "error",
+    });
   }
+
+  clearBulkSelection();
+
+  const refresh = await dispatch(
+    fetchAdminNewsletters({
+      preferredId: selectedId,
+      fallbackToFirst: true,
+      search,
+    })
+  );
+
+  if (refresh?.ok) {
+    saveCache(refresh.list || []);
+  }
+  };
   
   async function handleBulkStatus(nextActive) {
   if (!selectedIds.length || bulkUpdating) return;
@@ -840,7 +951,7 @@ const [bulkUpdating, setBulkUpdating] = useState(false);
 
   try {
     const results = await Promise.all(
-      selectedIds.map((id) =>
+      selectedIds.filter(Boolean).map((id) =>
         dispatch(
           bulkUpdateAdminNewsletters(id, {
             isActive: !!nextActive,
@@ -934,7 +1045,9 @@ function exportNewslettersToCsv(rows) {
     ),
   ].join("\n");
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([`\uFEFF${csv}`], {
+  type: "text/csv;charset=utf-8;",
+});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1003,6 +1116,12 @@ function exportNewslettersToCsv(rows) {
       return;
     }
 
+    lastLocalActionRef.current = {
+  type: "updated",
+  id,
+  time: Date.now(),
+};
+
     const res = await dispatch(updateAdminNewsletter(id, clean));
 
     if (res?.ok) {
@@ -1068,9 +1187,9 @@ function exportNewslettersToCsv(rows) {
               <Kicker>First 1–3 seconds hook</Kicker>
               <Title>Luxury Newsletter Command Center</Title>
               <Subtitle>
-                Clean, controlled, and premium: manage every subscriber profile,
-                update details, and keep your newsletter database spotless.
-              </Subtitle>
+  Every subscriber. Every source. Every move — tracked live in a premium
+  command center built for serious growth.
+</Subtitle>
             </TitleBlock>
 
             <Badge>
@@ -1179,7 +1298,7 @@ function exportNewslettersToCsv(rows) {
             >
               <PanelHeader>
                 <PanelTitle>Subscribers</PanelTitle>
-                <Chip>Live Database</Chip>
+                <Chip>Real-Time Live Database</Chip>
               </PanelHeader>
 
               <SearchBar>
@@ -1284,7 +1403,7 @@ function exportNewslettersToCsv(rows) {
             >
               <PanelHeader>
                 <PanelTitle>Edit & Save</PanelTitle>
-                <Chip>Instant Sync</Chip>
+                <Chip>Live Sync</Chip>
               </PanelHeader>
 
               {!selectedNewsletter ? (
@@ -1389,7 +1508,11 @@ function exportNewslettersToCsv(rows) {
                     <PrimaryButton type="submit" disabled={saving || submitting}>
                       {saving ? "Saving…" : "Save Changes"}
                     </PrimaryButton>
-                    <GhostButton type="button" onClick={handleReset}>
+                    <GhostButton
+  type="button"
+  onClick={handleReset}
+  disabled={saving || submitting}
+>
                       Reset
                     </GhostButton>
                   </ButtonRow>
@@ -1399,8 +1522,6 @@ function exportNewslettersToCsv(rows) {
           </Layout>
         </Shell>
       </Page>
-
-      <Footer />
     </>
   );
 }

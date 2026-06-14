@@ -16,6 +16,8 @@ import {
   resetEmailCampaignSuccess,
 } from "../reducers/emailCampaign/emailCampaignActions";
 
+const EMAIL_REGEX = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/i;
+
 const INITIAL_FORM = {
   name: "",
   subject: "",
@@ -36,19 +38,44 @@ const INITIAL_FORM = {
 
 function toLocalDateTimeInput(value) {
   if (!value) return "";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-
   const pad = (num) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
+function normalizeManualRecipients(value = "") {
+  return [
+    ...new Set(
+      String(value)
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
+}
 
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+function isValidHttpUrl(value) {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function extractCreatedId(result) {
+  return (
+    result?._id ||
+    result?.data?._id ||
+    result?.payload?._id ||
+    result?.campaign?._id ||
+    result?.data?.campaign?._id ||
+    null
+  );
 }
 
 export default function AdminEmailCampaign() {
@@ -67,146 +94,141 @@ export default function AdminEmailCampaign() {
     error = "",
   } = useSelector((state) => state?.emailCampaign || {});
 
+  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [search, setSearch] = useState("");
+
   const safeCampaigns = useMemo(
     () => (Array.isArray(campaigns) ? campaigns : []),
     [campaigns]
   );
 
-  const [formData, setFormData] = useState(INITIAL_FORM);
-  const [search, setSearch] = useState("");
-
   const pushToast = useCallback(
-    (payload) => {
-      toast?.push?.(payload);
+    ({ title, description, variant = "info" }) => {
+      if (toast?.push) toast.push({ title, description, variant });
+      else if (toast?.showToast) toast.showToast(description || title, variant);
     },
     [toast]
   );
 
   useEffect(() => {
   const savedEmails = localStorage.getItem("selectedCampaignEmails");
-
   if (!savedEmails) return;
 
   try {
     const parsedEmails = JSON.parse(savedEmails);
 
     if (Array.isArray(parsedEmails) && parsedEmails.length > 0) {
-      setFormData((prev) => ({
-        ...prev,
+      const cleanEmails = [
+        ...new Set(
+          parsedEmails
+            .map((email) => String(email || "").trim().toLowerCase())
+            .filter(Boolean)
+        ),
+      ];
+
+      setFormData({
+        ...INITIAL_FORM,
         audienceType: "manual",
-        manualRecipients: parsedEmails.join(", "),
-      }));
+        manualRecipients: cleanEmails.join(", "),
+      });
 
       pushToast({
         title: "Subscribers Loaded",
-        description: `${parsedEmails.length} subscriber(s) added to manual recipients.`,
+        description: `${cleanEmails.length} subscriber(s) added.`,
         variant: "success",
       });
-
-      localStorage.removeItem("selectedCampaignEmails");
     }
   } catch {
     localStorage.removeItem("selectedCampaignEmails");
   }
-}, [pushToast]);
+  }, [pushToast]);
+  
+  useEffect(() => {
+  dispatch(fetchEmailCampaigns());
+}, [dispatch]);
 
   useEffect(() => {
-    dispatch(fetchEmailCampaigns());
-  }, [dispatch]);
+  if (!selectedCampaign) {
+    const savedEmails = localStorage.getItem("selectedCampaignEmails");
 
-  useEffect(() => {
-    if (selectedCampaign) {
-      setFormData({
-        name: selectedCampaign?.name || "",
-        subject: selectedCampaign?.subject || "",
-        previewText: selectedCampaign?.previewText || "",
-        brandName: selectedCampaign?.brandName || "KnockoutCodes",
-        headline: selectedCampaign?.headline || "",
-        subheadline: selectedCampaign?.subheadline || "",
-        body: selectedCampaign?.body || "",
-        ctaText: selectedCampaign?.ctaText || "Shop Now",
-        ctaUrl: selectedCampaign?.ctaUrl || "",
-        signature: selectedCampaign?.signature || "Team KnockoutCodes",
-        audienceType: selectedCampaign?.audienceType || "newsletter",
-        manualRecipients: Array.isArray(selectedCampaign?.manualRecipients)
-          ? selectedCampaign.manualRecipients.join(", ")
-          : "",
-        status: selectedCampaign?.status || "draft",
-        scheduledFor: toLocalDateTimeInput(selectedCampaign?.scheduledFor),
-        sendNow: false,
-      });
-    } else {
-      setFormData({ ...INITIAL_FORM });
-    }
+    if (savedEmails) return;
+
+    setFormData({ ...INITIAL_FORM });
+    return;
+  }
+
+  localStorage.removeItem("selectedCampaignEmails");
+
+  setFormData({
+      name: selectedCampaign?.name || "",
+      subject: selectedCampaign?.subject || "",
+      previewText: selectedCampaign?.previewText || "",
+      brandName: selectedCampaign?.brandName || "KnockoutCodes",
+      headline: selectedCampaign?.headline || "",
+      subheadline: selectedCampaign?.subheadline || "",
+      body: selectedCampaign?.body || "",
+      ctaText: selectedCampaign?.ctaText || "Shop Now",
+      ctaUrl: selectedCampaign?.ctaUrl || "",
+      signature: selectedCampaign?.signature || "Team KnockoutCodes",
+      audienceType: selectedCampaign?.audienceType || "newsletter",
+      manualRecipients: Array.isArray(selectedCampaign?.manualRecipients)
+        ? selectedCampaign.manualRecipients.join(", ")
+        : "",
+      status: selectedCampaign?.status || "draft",
+      scheduledFor: toLocalDateTimeInput(selectedCampaign?.scheduledFor),
+      sendNow: false,
+    });
   }, [selectedCampaign]);
 
   useEffect(() => {
     if (!error) return;
-
-    pushToast({
-      title: "Error",
-      description: error,
-      variant: "error",
-    });
-
+    pushToast({ title: "Error", description: error, variant: "error" });
     dispatch(clearEmailCampaignError());
   }, [error, dispatch, pushToast]);
 
   useEffect(() => {
     if (!successMessage) return;
-
-    pushToast({
-      title: "Success",
-      description: successMessage,
-      variant: "success",
-    });
-
-    if (
-      successMessage === "Email campaign created successfully" ||
-      successMessage === "Email campaign updated successfully" ||
-      successMessage === "Campaign created successfully" ||
-      successMessage === "Campaign updated successfully"
-    ) {
-      dispatch(setSelectedEmailCampaign(null));
-      setFormData({ ...INITIAL_FORM });
-    }
-
+    pushToast({ title: "Success", description: successMessage, variant: "success" });
     dispatch(resetEmailCampaignSuccess());
   }, [successMessage, dispatch, pushToast]);
 
   const filteredCampaigns = useMemo(() => {
-    const keyword = String(search || "").toLowerCase().trim();
-
+    const keyword = search.toLowerCase().trim();
     if (!keyword) return safeCampaigns;
 
-    return safeCampaigns.filter((campaign) => {
-      return (
-        String(campaign?.name || "").toLowerCase().includes(keyword) ||
-        String(campaign?.subject || "").toLowerCase().includes(keyword) ||
-        String(campaign?.headline || "").toLowerCase().includes(keyword) ||
-        String(campaign?.audienceType || "").toLowerCase().includes(keyword) ||
-        String(campaign?.status || "").toLowerCase().includes(keyword)
-      );
-    });
+    return safeCampaigns.filter((campaign) =>
+      [
+        campaign?.name,
+        campaign?.subject,
+        campaign?.headline,
+        campaign?.audienceType,
+        campaign?.status,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword)
+    );
   }, [safeCampaigns, search]);
 
   const derivedStatus = useMemo(() => {
     if (formData.sendNow) return "draft";
     if (formData.scheduledFor) return "scheduled";
     return formData.status === "sent" ? "sent" : "draft";
-  }, [formData.sendNow, formData.scheduledFor, formData.status]);
+  }, [formData]);
+
+  const totals = useMemo(
+    () => ({
+      total: safeCampaigns.length,
+      draft: safeCampaigns.filter((item) => item?.status === "draft").length,
+      scheduled: safeCampaigns.filter((item) => item?.status === "scheduled").length,
+      sent: safeCampaigns.filter((item) => item?.status === "sent").length,
+    }),
+    [safeCampaigns]
+  );
 
   function handleChange(e) {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-
-  function handleSelectCampaign(campaign) {
-    dispatch(setSelectedEmailCampaign(campaign));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
   function handleResetForm() {
@@ -214,71 +236,61 @@ export default function AdminEmailCampaign() {
     setFormData({ ...INITIAL_FORM });
   }
 
+  function validatePayload(payload) {
+    if (!payload.name || !payload.subject || !payload.headline || !payload.body) {
+      return "Name, subject, headline, and body are required.";
+    }
+
+    if (!isValidHttpUrl(payload.ctaUrl)) {
+      return "CTA URL must start with http:// or https://.";
+    }
+
+    if (payload.audienceType === "manual") {
+      if (!payload.manualRecipients.length) {
+        return "Please add at least one manual recipient email.";
+      }
+
+      const invalid = payload.manualRecipients.find((email) => !EMAIL_REGEX.test(email));
+      if (invalid) return `Invalid recipient email: ${invalid}`;
+    }
+
+    if (payload.scheduledFor) {
+      const scheduledDate = new Date(payload.scheduledFor);
+      if (Number.isNaN(scheduledDate.getTime())) return "Invalid schedule date.";
+      if (scheduledDate <= new Date()) return "Schedule date must be in the future.";
+    }
+
+    return "";
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const normalizedStatus = formData.sendNow
-      ? "draft"
-      : formData.scheduledFor
-      ? "scheduled"
-      : "draft";
-
     const manualRecipients =
       formData.audienceType === "manual"
-        ? formData.manualRecipients
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean)
+        ? normalizeManualRecipients(formData.manualRecipients)
         : [];
 
     const payload = {
       name: formData.name.trim(),
       subject: formData.subject.trim(),
       previewText: formData.previewText.trim(),
-      brandName: formData.brandName.trim(),
+      brandName: formData.brandName.trim() || "KnockoutCodes",
       headline: formData.headline.trim(),
       subheadline: formData.subheadline.trim(),
       body: formData.body.trim(),
-      ctaText: formData.ctaText.trim(),
+      ctaText: formData.ctaText.trim() || "Shop Now",
       ctaUrl: formData.ctaUrl.trim(),
-      signature: formData.signature.trim(),
+      signature: formData.signature.trim() || "Team KnockoutCodes",
       audienceType: formData.audienceType,
-      status: normalizedStatus,
+      status: formData.scheduledFor && !formData.sendNow ? "scheduled" : "draft",
       scheduledFor: formData.sendNow ? null : formData.scheduledFor || null,
       manualRecipients,
     };
 
-    if (!payload.name || !payload.subject || !payload.headline || !payload.body) {
-      pushToast({
-        title: "Error",
-        description: "Name, subject, headline, and body are required.",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (
-      !formData.sendNow &&
-      payload.status === "scheduled" &&
-      !payload.scheduledFor
-    ) {
-      pushToast({
-        title: "Error",
-        description: "Please choose a schedule date and time.",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (
-      payload.audienceType === "manual" &&
-      (!payload.manualRecipients || payload.manualRecipients.length === 0)
-    ) {
-      pushToast({
-        title: "Error",
-        description: "Please add at least one manual recipient email.",
-        variant: "error",
-      });
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      pushToast({ title: "Fix campaign", description: validationError, variant: "error" });
       return;
     }
 
@@ -290,12 +302,15 @@ export default function AdminEmailCampaign() {
           await dispatch(sendEmailCampaign(selectedCampaign._id));
         }
       } else {
-        const createdCampaign = await dispatch(createEmailCampaign(payload));
+        const result = await dispatch(createEmailCampaign(payload));
+        const createdId = extractCreatedId(result);
 
-if (formData.sendNow && createdCampaign?._id) {
-  await dispatch(sendEmailCampaign(createdCampaign._id));
+        if (formData.sendNow && createdId) {
+          await dispatch(sendEmailCampaign(createdId));
         }
       }
+
+      await dispatch(fetchEmailCampaigns());
     } catch {
       pushToast({
         title: "Error",
@@ -305,127 +320,73 @@ if (formData.sendNow && createdCampaign?._id) {
     }
   }
 
-  async function handleDelete(id) {
-    if (!id) return;
+  async function handleDelete(campaign) {
+    if (!campaign?._id) return;
 
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this campaign?"
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await dispatch(deleteEmailCampaign(id));
-
-      if (selectedCampaign?._id === id) {
-        handleResetForm();
-      }
-    } catch {
+    if (campaign.status === "sending") {
       pushToast({
-        title: "Error",
-        description: "Failed to delete campaign.",
+        title: "Blocked",
+        description: "A sending campaign cannot be deleted.",
         variant: "error",
       });
+      return;
     }
+
+    if (!window.confirm("Delete this campaign permanently?")) return;
+
+    await dispatch(deleteEmailCampaign(campaign._id));
+    if (selectedCampaign?._id === campaign._id) handleResetForm();
   }
 
-  function handleClearRecipients() {
-  setFormData((prev) => ({
-    ...prev,
-    manualRecipients: "",
-  }));
+  async function handleSend(campaign) {
+    if (!campaign?._id) return;
 
-  pushToast({
-    title: "Recipients Cleared",
-    description: "Manual campaign recipients have been removed.",
-    variant: "success",
-  });
-}
-
-  async function handleSend(id) {
-    if (!id) return;
-
-    const confirmed = window.confirm("Send this campaign now?");
-    if (!confirmed) return;
-
-    try {
-      await dispatch(sendEmailCampaign(id));
-    } catch {
+    if (["sent", "sending"].includes(campaign.status)) {
       pushToast({
-        title: "Error",
-        description: "Failed to send campaign.",
+        title: "Blocked",
+        description: "This campaign was already sent or is currently sending.",
         variant: "error",
       });
+      return;
     }
-  }
 
-  const totalCampaigns = safeCampaigns.length;
-  const totalDrafts = safeCampaigns.filter((item) => item?.status === "draft").length;
-  const totalScheduled = safeCampaigns.filter((item) => item?.status === "scheduled").length;
-  const totalSent = safeCampaigns.filter((item) => item?.status === "sent").length;
+    if (!window.confirm("Send this campaign now?")) return;
+
+    await dispatch(sendEmailCampaign(campaign._id));
+    await dispatch(fetchEmailCampaigns());
+  }
 
   return (
     <Page>
       <Inner>
-        <Hero
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-        >
+        <Hero initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}>
           <Badge>ADMIN • EMAIL CAMPAIGNS</Badge>
-
           <Title>
             HIT THE <span>INBOX</span> WITH PRECISION.
           </Title>
-
           <Sub>
-            Create luxury campaigns, control premium messaging, target the right
-            audience, and schedule powerful launches that drive clicks,
-            conversions, and revenue.
+            Create premium campaigns, target the right audience, schedule launches,
+            and protect your list like a real brand asset.
           </Sub>
 
           <HeroRow>
-            <HeroStat>
-              <HeroStatValue>{totalCampaigns}</HeroStatValue>
-              <HeroStatLabel>Total Campaigns</HeroStatLabel>
-            </HeroStat>
-
-            <HeroStat>
-              <HeroStatValue>{totalDrafts}</HeroStatValue>
-              <HeroStatLabel>Drafts</HeroStatLabel>
-            </HeroStat>
-
-            <HeroStat>
-              <HeroStatValue>{totalScheduled}</HeroStatValue>
-              <HeroStatLabel>Scheduled</HeroStatLabel>
-            </HeroStat>
-
-            <HeroStat>
-              <HeroStatValue>{totalSent}</HeroStatValue>
-              <HeroStatLabel>Sent</HeroStatLabel>
-            </HeroStat>
+            <HeroStat><HeroStatValue>{totals.total}</HeroStatValue><HeroStatLabel>Total Campaigns</HeroStatLabel></HeroStat>
+            <HeroStat><HeroStatValue>{totals.draft}</HeroStatValue><HeroStatLabel>Drafts</HeroStatLabel></HeroStat>
+            <HeroStat><HeroStatValue>{totals.scheduled}</HeroStatValue><HeroStatLabel>Scheduled</HeroStatLabel></HeroStat>
+            <HeroStat><HeroStatValue>{totals.sent}</HeroStatValue><HeroStatLabel>Sent</HeroStatLabel></HeroStat>
           </HeroRow>
         </Hero>
 
         <Grid>
-          <Left
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.05 }}
-          >
+          <Left>
             <CardTop>
-              <CardTitle>
-                {selectedCampaign ? "Edit Campaign" : "Create Campaign"}
-              </CardTitle>
-
+              <CardTitle>{selectedCampaign ? "Edit Campaign" : "Create Campaign"}</CardTitle>
               <TopActions>
                 <SearchInput
-                  type="text"
                   placeholder="Search campaigns..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-
                 <GhostButton type="button" onClick={handleResetForm}>
                   {selectedCampaign ? "Create New" : "Clear"}
                 </GhostButton>
@@ -434,130 +395,35 @@ if (formData.sendNow && createdCampaign?._id) {
 
             <Form onSubmit={handleSubmit}>
               <FieldGrid>
-                <Field>
-                  <Label>Campaign Name</Label>
-                  <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="VIP DROP – KnockoutCodes Elite Collection"
-                  />
-                </Field>
-
-                <Field>
-                  <Label>Email Subject</Label>
-                  <Input
-                    type="text"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    placeholder="You’re Early. The Drop Just Went Live."
-                  />
-                </Field>
+                <Field><Label>Campaign Name</Label><Input name="name" value={formData.name} onChange={handleChange} maxLength={120} /></Field>
+                <Field><Label>Email Subject</Label><Input name="subject" value={formData.subject} onChange={handleChange} maxLength={200} /></Field>
               </FieldGrid>
 
               <FieldGrid>
-                <Field>
-                  <Label>Preview Text</Label>
-                  <Input
-                    type="text"
-                    name="previewText"
-                    value={formData.previewText}
-                    onChange={handleChange}
-                    placeholder="Private access. Premium gear. Limited window."
-                  />
-                </Field>
-
-                <Field>
-                  <Label>Brand Name</Label>
-                  <Input
-                    type="text"
-                    name="brandName"
-                    value={formData.brandName}
-                    onChange={handleChange}
-                    placeholder="KnockoutCodes"
-                  />
-                </Field>
+                <Field><Label>Preview Text</Label><Input name="previewText" value={formData.previewText} onChange={handleChange} maxLength={220} /></Field>
+                <Field><Label>Brand Name</Label><Input name="brandName" value={formData.brandName} onChange={handleChange} maxLength={80} /></Field>
               </FieldGrid>
 
               <FieldGrid>
-                <Field>
-                  <Label>Headline</Label>
-                  <Input
-                    type="text"
-                    name="headline"
-                    value={formData.headline}
-                    onChange={handleChange}
-                    placeholder="STEP INTO ELITE MODE"
-                  />
-                </Field>
-
-                <Field>
-                  <Label>Subheadline</Label>
-                  <Input
-                    type="text"
-                    name="subheadline"
-                    value={formData.subheadline}
-                    onChange={handleChange}
-                    placeholder="This is not for everyone. Only those who move first win."
-                  />
-                </Field>
+                <Field><Label>Headline</Label><Input name="headline" value={formData.headline} onChange={handleChange} maxLength={180} /></Field>
+                <Field><Label>Subheadline</Label><Input name="subheadline" value={formData.subheadline} onChange={handleChange} maxLength={300} /></Field>
               </FieldGrid>
 
               <Field>
                 <Label>Campaign Body</Label>
-                <TextArea
-                  name="body"
-                  value={formData.body}
-                  onChange={handleChange}
-                  placeholder="Write the campaign body here..."
-                />
+                <TextArea name="body" value={formData.body} onChange={handleChange} maxLength={12000} />
               </Field>
 
               <FieldGrid>
-                <Field>
-                  <Label>CTA Text</Label>
-                  <Input
-                    type="text"
-                    name="ctaText"
-                    value={formData.ctaText}
-                    onChange={handleChange}
-                    placeholder="Shop Now"
-                  />
-                </Field>
-
-                <Field>
-                  <Label>CTA URL</Label>
-                  <Input
-                    type="text"
-                    name="ctaUrl"
-                    value={formData.ctaUrl}
-                    onChange={handleChange}
-                    placeholder="https://aurora45.gumroad.com"
-                  />
-                </Field>
+                <Field><Label>CTA Text</Label><Input name="ctaText" value={formData.ctaText} onChange={handleChange} maxLength={60} /></Field>
+                <Field><Label>CTA URL</Label><Input name="ctaUrl" value={formData.ctaUrl} onChange={handleChange} placeholder="https://..." maxLength={500} /></Field>
               </FieldGrid>
 
               <FieldGrid>
-                <Field>
-                  <Label>Signature</Label>
-                  <Input
-                    type="text"
-                    name="signature"
-                    value={formData.signature}
-                    onChange={handleChange}
-                    placeholder="Team KnockoutCodes"
-                  />
-                </Field>
-
+                <Field><Label>Signature</Label><Input name="signature" value={formData.signature} onChange={handleChange} maxLength={120} /></Field>
                 <Field>
                   <Label>Audience Type</Label>
-                  <Select
-                    name="audienceType"
-                    value={formData.audienceType}
-                    onChange={handleChange}
-                  >
+                  <Select name="audienceType" value={formData.audienceType} onChange={handleChange}>
                     <option value="all">all</option>
                     <option value="newsletter">newsletter</option>
                     <option value="customers">customers</option>
@@ -567,14 +433,44 @@ if (formData.sendNow && createdCampaign?._id) {
               </FieldGrid>
 
               {formData.manualRecipients && formData.audienceType !== "manual" && (
-  <AudienceWarning>
-    You have manual recipients saved, but audience type is not set to manual.
-    Switch to manual if you want to send to selected subscribers.
-  </AudienceWarning>
-)}
+                <AudienceWarning>
+                  Manual recipients are saved, but audience type is not manual.
+                </AudienceWarning>
+              )}
 
               {formData.audienceType === "manual" && (
                 <Field>
+                  {normalizeManualRecipients(formData.manualRecipients).length > 0 && (
+  <SelectedRecipientsBox>
+    <h3>Selected Subscribers</h3>
+
+    <p>
+      {
+        normalizeManualRecipients(formData.manualRecipients).length
+      } subscriber(s) loaded from Email Subscribers
+    </p>
+
+    <RecipientChips>
+      {normalizeManualRecipients(formData.manualRecipients).map((email) => (
+        <RecipientChip key={email}>
+          {email}
+        </RecipientChip>
+      ))}
+    </RecipientChips>
+
+    <ClearRecipientsButton
+      type="button"
+      onClick={() =>
+        setFormData((prev) => ({
+          ...prev,
+          manualRecipients: "",
+        }))
+      }
+    >
+      Clear Recipients
+    </ClearRecipientsButton>
+  </SelectedRecipientsBox>
+)}
                   <Label>Manual Recipients</Label>
                   <TextArea
                     name="manualRecipients"
@@ -583,53 +479,16 @@ if (formData.sendNow && createdCampaign?._id) {
                     placeholder="test1@gmail.com, test2@gmail.com"
                     style={{ minHeight: "120px" }}
                   />
-
                   <RecipientCount>
-  {
-    formData.manualRecipients
-      .split(",")
-      .map((email) => email.trim())
-      .filter(Boolean).length
-  }{" "}
-  recipient(s) entered
-</RecipientCount>
-
-                   {formData.audienceType === "manual" && formData.manualRecipients && (
-  <SelectedRecipientsBox>
-    <h3>Selected Subscribers</h3>
-
-    <p>
-      {
-        formData.manualRecipients
-          .split(",")
-          .map((email) => email.trim())
-          .filter(Boolean).length
-      }{" "}
-      subscriber(s) ready for this campaign.
-    </p>
-
-    <RecipientChips>
-      {formData.manualRecipients
-        .split(",")
-        .map((email) => email.trim())
-        .filter(Boolean)
-        .map((email) => (
-          <RecipientChip key={email}>{email}</RecipientChip>
-        ))}
-                      </RecipientChips>
-                      
-                      <ClearRecipientsButton type="button" onClick={handleClearRecipients}>
-  Clear Recipients
-</ClearRecipientsButton>
-  </SelectedRecipientsBox>
-)}
+                    {normalizeManualRecipients(formData.manualRecipients).length} recipient(s)
+                  </RecipientCount>
                 </Field>
               )}
 
               <FieldGrid>
                 <Field>
                   <Label>Status</Label>
-                  <Select name="status" value={derivedStatus} disabled>
+                  <Select value={derivedStatus} disabled>
                     <option value="draft">draft</option>
                     <option value="scheduled">scheduled</option>
                     <option value="sent">sent</option>
@@ -641,22 +500,13 @@ if (formData.sendNow && createdCampaign?._id) {
                   <Select
                     name="sendNow"
                     value={formData.sendNow ? "true" : "false"}
-                    onChange={(e) => {
-                      const isNow = e.target.value === "true";
-
+                    onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        sendNow: isNow,
-                        scheduledFor: isNow ? "" : prev.scheduledFor,
-                        status: isNow
-                          ? "draft"
-                          : prev.scheduledFor
-                          ? "scheduled"
-                          : prev.status === "sent"
-                          ? "sent"
-                          : "draft",
-                      }));
-                    }}
+                        sendNow: e.target.value === "true",
+                        scheduledFor: e.target.value === "true" ? "" : prev.scheduledFor,
+                      }))
+                    }
                   >
                     <option value="false">Schedule / Save Draft</option>
                     <option value="true">Send Now</option>
@@ -676,133 +526,73 @@ if (formData.sendNow && createdCampaign?._id) {
               </Field>
 
               <ActionRow>
-                <PrimaryButton type="submit" disabled={creating || updating}>
-                  {creating || updating ? (
-                    <BtnRow>
-                      <Spinner />
-                      {selectedCampaign ? "Updating..." : "Saving..."}
-                    </BtnRow>
-                  ) : selectedCampaign ? (
-                    "Update Campaign"
-                  ) : (
-                    "Save Campaign"
-                  )}
+                <PrimaryButton type="submit" disabled={creating || updating || sending}>
+                  {creating || updating || sending ? "Working..." : selectedCampaign ? "Update Campaign" : "Save Campaign"}
                 </PrimaryButton>
 
-                <SecondaryButton
-                  type="button"
-                  onClick={handleResetForm}
-                  disabled={creating || updating}
-                >
+                <SecondaryButton type="button" onClick={handleResetForm}>
                   Reset
                 </SecondaryButton>
               </ActionRow>
             </Form>
           </Left>
 
-          <Right
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.1 }}
-          >
+          <Right>
             <CardTop>
               <CardTitle>All Campaigns</CardTitle>
-              <MiniText>
-                {loading ? "Loading..." : `${filteredCampaigns.length} result(s)`}
-              </MiniText>
+              <MiniText>{loading ? "Loading..." : `${filteredCampaigns.length} result(s)`}</MiniText>
             </CardTop>
 
             {loading ? (
-              <EmptyState>
-                <EmptyTitle>Loading campaigns...</EmptyTitle>
-                <EmptySub>
-                  Please wait while your premium control room loads.
-                </EmptySub>
-              </EmptyState>
+              <EmptyState><EmptyTitle>Loading campaigns...</EmptyTitle></EmptyState>
             ) : filteredCampaigns.length ? (
               <CampaignList>
-                {filteredCampaigns.map((campaign) => {
-                  const active = selectedCampaign?._id === campaign?._id;
+                {filteredCampaigns.map((campaign) => (
+                  <CampaignCard key={campaign?._id} $active={selectedCampaign?._id === campaign?._id}>
+                    <CampaignHead>
+                      <CampaignInfo>
+                        <CampaignTitle>{campaign?.name || "Untitled Campaign"}</CampaignTitle>
+                        <CampaignSubject>{campaign?.subject || "No subject"}</CampaignSubject>
+                      </CampaignInfo>
+                      <StatusPill $status={campaign?.status}>{campaign?.status || "draft"}</StatusPill>
+                    </CampaignHead>
 
-                  return (
-                    <CampaignCard key={campaign?._id} $active={active}>
-                      <CampaignHead>
-                        <CampaignInfo>
-                          <CampaignTitle>
-                            {campaign?.name || "Untitled Campaign"}
-                          </CampaignTitle>
+                    <CampaignMeta>
+                      <MetaPill>audience: {campaign?.audienceType || "newsletter"}</MetaPill>
+                      <MetaPill>{campaign?.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : "no date"}</MetaPill>
+                    </CampaignMeta>
 
-                          <CampaignSubject>
-                            {campaign?.subject || "No subject"}
-                          </CampaignSubject>
-                        </CampaignInfo>
+                    <PreviewText>{campaign?.previewText || "No preview text added."}</PreviewText>
+                    <CampaignBodyPreview>{campaign?.body || "No campaign content yet."}</CampaignBodyPreview>
 
-                        <StatusPill $status={campaign?.status}>
-                          {campaign?.status || "draft"}
-                        </StatusPill>
-                      </CampaignHead>
+                    <CampaignActions>
+                      <SmallButton type="button" onClick={() => dispatch(setSelectedEmailCampaign(campaign))}>
+                        Edit
+                      </SmallButton>
 
-                      <CampaignMeta>
-                        <MetaPill>
-                          audience: {campaign?.audienceType || "newsletter"}
-                        </MetaPill>
+                      <SmallButton
+                        type="button"
+                        onClick={() => handleSend(campaign)}
+                        disabled={sending || ["sent", "sending"].includes(campaign?.status)}
+                      >
+                        {campaign?.status === "sent" ? "Sent" : sending ? "Sending..." : "Send"}
+                      </SmallButton>
 
-                        <MetaPill>
-                          {campaign?.createdAt
-                            ? new Date(campaign.createdAt).toLocaleDateString()
-                            : "no date"}
-                        </MetaPill>
-
-                        {campaign?.scheduledFor ? (
-                          <MetaPill>
-                            scheduled:{" "}
-                            {new Date(campaign.scheduledFor).toLocaleString()}
-                          </MetaPill>
-                        ) : null}
-                      </CampaignMeta>
-
-                      <PreviewText>
-                        {campaign?.previewText || "No preview text added."}
-                      </PreviewText>
-
-                      <CampaignBodyPreview>
-                        {campaign?.body || "No campaign content yet."}
-                      </CampaignBodyPreview>
-
-                      <CampaignActions>
-                        <SmallButton
-                          type="button"
-                          onClick={() => handleSelectCampaign(campaign)}
-                        >
-                          Edit
-                        </SmallButton>
-
-                        <SmallButton
-                          type="button"
-                          onClick={() => handleSend(campaign?._id)}
-                          disabled={sending}
-                        >
-                          {sending ? "Sending..." : "Send"}
-                        </SmallButton>
-
-                        <DangerButton
-                          type="button"
-                          onClick={() => handleDelete(campaign?._id)}
-                          disabled={deleting}
-                        >
-                          {deleting ? "Deleting..." : "Delete"}
-                        </DangerButton>
-                      </CampaignActions>
-                    </CampaignCard>
-                  );
-                })}
+                      <DangerButton
+                        type="button"
+                        onClick={() => handleDelete(campaign)}
+                        disabled={deleting || campaign?.status === "sending"}
+                      >
+                        {deleting ? "Deleting..." : "Delete"}
+                      </DangerButton>
+                    </CampaignActions>
+                  </CampaignCard>
+                ))}
               </CampaignList>
             ) : (
               <EmptyState>
                 <EmptyTitle>No campaigns found.</EmptyTitle>
-                <EmptySub>
-                  Create your first premium campaign and start owning the inbox.
-                </EmptySub>
+                <EmptySub>Create your first premium campaign.</EmptySub>
               </EmptyState>
             )}
           </Right>
@@ -811,6 +601,8 @@ if (formData.sendNow && createdCampaign?._id) {
     </Page>
   );
 }
+
+/* keep your existing styled-components from Page down */
 
 /* ------------------------------ STYLES ------------------------------ */
 

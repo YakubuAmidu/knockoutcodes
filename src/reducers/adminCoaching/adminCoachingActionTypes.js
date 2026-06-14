@@ -1,4 +1,3 @@
-// src/reducers/adminCoachings/adminCoachingsActionTypes.js
 export const ADMIN_COACHINGS_ACTIONS = {
   HYDRATE_UI: "ADMIN_COACHINGS/HYDRATE_UI",
   SET_UI_FIELD: "ADMIN_COACHINGS/SET_UI_FIELD",

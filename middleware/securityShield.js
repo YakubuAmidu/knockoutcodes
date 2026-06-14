@@ -126,14 +126,12 @@ export function botGuard(req, res, next) {
   }
 
   const blockedAgents = [
-    "curl",
-    "wget",
-    "python-requests",
-    "scrapy",
-    "httpclient",
-    "insomnia",
-    "postmanruntime",
-  ];
+  "curl",
+  "wget",
+  "python-requests",
+  "scrapy",
+  "httpclient",
+];
 
   if (blockedAgents.some((item) => ua.includes(item))) {
     return res.status(403).json({

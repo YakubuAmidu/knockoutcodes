@@ -1,3 +1,4 @@
+// routes/newsletterRoutes.js
 import express from "express";
 import {
   createNewsletter,
@@ -6,21 +7,29 @@ import {
   updateNewsletter,
   deleteNewsletter,
 } from "../controllers/newsletterController.js";
+
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
+
 import {
   newsletterBodyGuard,
+  newsletterAdminBodyGuard,
   newsletterQueryGuard,
 } from "../middleware/newsletterMiddleware.js";
+
 import {
   newsletterSubscribeLimiter,
   newsletterAdminReadLimiter,
   newsletterAdminWriteLimiter,
 } from "../middleware/newsletterRateLimit.js";
+
 import { csrfRequired } from "../middleware/csrfMiddleware.js";
 
 const router = express.Router();
 
-// PUBLIC subscribe
+/* =========================
+   PUBLIC: Subscribe
+   ✅ Public visitors can subscribe
+========================= */
 router.post(
   "/",
   newsletterSubscribeLimiter,
@@ -29,7 +38,9 @@ router.post(
   createNewsletter
 );
 
-// Admin only
+/* =========================
+   ADMIN: Read subscribers
+========================= */
 router.get(
   "/",
   authRequired,
@@ -47,16 +58,22 @@ router.get(
   getNewsletter
 );
 
+/* =========================
+   ADMIN: Update subscriber
+========================= */
 router.patch(
   "/:id",
   authRequired,
   adminOnly,
   newsletterAdminWriteLimiter,
   csrfRequired,
-  newsletterBodyGuard,
+  newsletterAdminBodyGuard,
   updateNewsletter
 );
 
+/* =========================
+   ADMIN: Delete subscriber
+========================= */
 router.delete(
   "/:id",
   authRequired,

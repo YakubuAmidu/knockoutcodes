@@ -1,28 +1,23 @@
 // models/OrderModel.js
 import mongoose from "mongoose";
 
-/**
- * Order Item Schema
- * -----------------
- * Stores each purchased item inside an order.
- */
+/* =========================================================
+   ORDER ITEM SCHEMA
+========================================================= */
 const orderItemSchema = new mongoose.Schema(
   {
-    // Type of item purchased
     productType: {
       type: String,
       enum: ["course", "subscription", "booking", "ebook", "product", "other"],
       required: [true, "Product type is required"],
     },
 
-    // MongoDB document connected to this item
     product: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Product reference is required"],
       refPath: "items.productModel",
     },
 
-    // Model name used by refPath
     productModel: {
       type: String,
       required: [true, "Product model name is required"],
@@ -37,7 +32,6 @@ const orderItemSchema = new mongoose.Schema(
       ],
     },
 
-    // Item title at the time of purchase
     title: {
       type: String,
       required: [true, "Item title is required"],
@@ -45,21 +39,18 @@ const orderItemSchema = new mongoose.Schema(
       maxlength: [180, "Item title cannot exceed 180 characters"],
     },
 
-    // Quantity purchased
     quantity: {
       type: Number,
       default: 1,
       min: [1, "Quantity must be at least 1"],
     },
 
-    // Price per item
     unitPrice: {
       type: Number,
       required: [true, "Unit price is required"],
       min: [0, "Unit price cannot be negative"],
     },
 
-    // Currency used for this item
     currency: {
       type: String,
       trim: true,
@@ -71,22 +62,56 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
-/**
- * Order Model
- * -----------
- * Stores completed and pending orders for courses,
- * subscriptions, products, ebooks, bookings, and other purchases.
- */
+/* =========================================================
+   SHIPPING ADDRESS SCHEMA
+========================================================= */
+const shippingAddressSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, trim: true, default: "" },
+    email: { type: String, trim: true, lowercase: true, default: "" },
+    phone: { type: String, trim: true, default: "" },
+    line1: { type: String, trim: true, default: "" },
+    line2: { type: String, trim: true, default: "" },
+    city: { type: String, trim: true, default: "" },
+    state: { type: String, trim: true, default: "" },
+    postalCode: { type: String, trim: true, default: "" },
+    country: { type: String, trim: true, uppercase: true, default: "" },
+  },
+  { _id: false }
+);
+
+/* =========================================================
+   SHIPPING / TRACKING SCHEMA
+========================================================= */
+const shippingSchema = new mongoose.Schema(
+  {
+    required: { type: Boolean, default: false },
+
+    carrier: {
+      type: String,
+      enum: ["", "usps", "ups", "fedex", "dhl", "other"],
+      default: "",
+    },
+
+    trackingNumber: { type: String, trim: true, default: "" },
+    trackingUrl: { type: String, trim: true, default: "" },
+    shippedAt: { type: Date, default: null },
+    deliveredAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
+/* =========================================================
+   ORDER SCHEMA
+========================================================= */
 const orderSchema = new mongoose.Schema(
   {
-    // User who owns the order
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Order must belong to a user"],
     },
 
-    // Purchased items
     items: {
       type: [orderItemSchema],
       required: true,
@@ -98,28 +123,24 @@ const orderSchema = new mongoose.Schema(
       },
     },
 
-    // Total before discount
     subtotal: {
       type: Number,
       required: [true, "Subtotal is required"],
       min: [0, "Subtotal cannot be negative"],
     },
 
-    // Discount applied
     discount: {
       type: Number,
       default: 0,
       min: [0, "Discount cannot be negative"],
     },
 
-    // Final total after discount
     total: {
       type: Number,
       required: [true, "Total is required"],
       min: [0, "Total cannot be negative"],
     },
 
-    // Order currency
     currency: {
       type: String,
       trim: true,
@@ -128,38 +149,30 @@ const orderSchema = new mongoose.Schema(
       maxlength: 10,
     },
 
-    // Payment status
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
     },
 
-    // Payment provider/method
     paymentMethod: {
       type: String,
       enum: ["card", "stripe", "paypal", "cashapp", "other"],
       default: "stripe",
-      index: true,
     },
 
-    // Stripe payment/session/subscription reference
     transactionId: {
       type: String,
       trim: true,
       default: "",
-      index: true,
     },
 
     stripeSessionId: {
-  type: String,
-  trim: true,
-  unique: true,
-  sparse: true,
-  default: undefined,
-},
+      type: String,
+      trim: true,
+      default: undefined,
+    },
 
-    // Optional coupon code
     couponCode: {
       type: String,
       trim: true,
@@ -168,7 +181,6 @@ const orderSchema = new mongoose.Schema(
       maxlength: [80, "Coupon code cannot exceed 80 characters"],
     },
 
-    // Optional order note
     note: {
       type: String,
       trim: true,
@@ -176,91 +188,83 @@ const orderSchema = new mongoose.Schema(
       maxlength: [500, "Note cannot exceed 500 characters"],
     },
 
-    // Admin/order lifecycle status
-    // Admin/order lifecycle status
-status: {
-  type: String,
-  enum: [
-    "new",
-    "processing",
-    "fulfilled",
-    "shipped",
-    "delivered",
-    "completed",
-    "cancelled",
-    "refunded",
-    "on_hold",
-  ],
-  default: "new",
-  index: true,
-},
+    status: {
+      type: String,
+      enum: [
+        "new",
+        "processing",
+        "fulfilled",
+        "shipped",
+        "delivered",
+        "completed",
+        "cancelled",
+        "refunded",
+        "on_hold",
+      ],
+      default: "new",
+    },
 
-    // Admin inbox/read tracking
     isSeenByAdmin: {
       type: Boolean,
       default: false,
-      index: true,
     },
 
     shippingAddress: {
-  fullName: { type: String, trim: true, default: "" },
-  email: { type: String, trim: true, lowercase: true, default: "" },
-  phone: { type: String, trim: true, default: "" },
-  line1: { type: String, trim: true, default: "" },
-  line2: { type: String, trim: true, default: "" },
-  city: { type: String, trim: true, default: "" },
-  state: { type: String, trim: true, default: "" },
-  postalCode: { type: String, trim: true, default: "" },
-  country: { type: String, trim: true, uppercase: true, default: "" },
-},
+      type: shippingAddressSchema,
+      default: () => ({}),
+    },
 
-shipping: {
-  required: { type: Boolean, default: false },
-  carrier: {
-    type: String,
-    enum: ["", "usps", "ups", "fedex", "dhl", "other"],
-    default: "",
+    shipping: {
+      type: shippingSchema,
+      default: () => ({}),
+    },
   },
-  trackingNumber: { type: String, trim: true, default: "" },
-  trackingUrl: { type: String, trim: true, default: "" },
-  shippedAt: { type: Date, default: null },
-  deliveredAt: { type: Date, default: null },
-},
-  },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-/**
- * Normalize order totals before saving.
- */
+/* =========================================================
+   NORMALIZATION + TOTAL SAFETY
+========================================================= */
 orderSchema.pre("validate", function (next) {
-  if (this.discount > this.subtotal) {
-    this.discount = this.subtotal;
-  }
+  const subtotal = Number(this.subtotal || 0);
+  const discount = Number(this.discount || 0);
 
-  this.total = Math.max(0, this.subtotal - this.discount);
+  this.discount = Math.min(Math.max(discount, 0), subtotal);
+  this.total = Math.max(0, subtotal - this.discount);
 
   if (this.currency) {
     this.currency = String(this.currency).trim().toUpperCase();
   }
 
+  if (this.couponCode) {
+    this.couponCode = String(this.couponCode).trim().toUpperCase();
+  }
+
   next();
 });
 
-/**
- * Query performance indexes.
- */
+/* =========================================================
+   INDEXES — ONLY DEFINE THEM HERE TO AVOID DUPLICATES
+========================================================= */
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ user: 1, paymentStatus: 1 });
 orderSchema.index({ paymentStatus: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ isSeenByAdmin: 1, createdAt: -1 });
+orderSchema.index({ transactionId: 1 });
 
-/**
- * Prevent model overwrite errors during development/hot reload.
- */
+orderSchema.index(
+  { stripeSessionId: 1 },
+  {
+    unique: true,
+    sparse: true,
+    name: "unique_stripe_session_id",
+  }
+);
+
+/* =========================================================
+   PREVENT MODEL OVERWRITE IN DEV/HOT RELOAD
+========================================================= */
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
 export default Order;

@@ -142,3 +142,8 @@ export const updateMaintenanceMode = (payload) => async (dispatch) => {
 export const clearSystemSettingMessages = () => ({
   type: SYSTEM_SETTING_ACTIONS.CLEAR_SYSTEM_SETTING_MESSAGES,
 });
+
+export const receiveMaintenanceSocketUpdate = (payload) => ({
+  type: SYSTEM_SETTING_ACTIONS.SYSTEM_MAINTENANCE_SOCKET_UPDATE,
+  payload: normalizeStatus(payload),
+});

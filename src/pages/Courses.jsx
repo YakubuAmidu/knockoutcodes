@@ -20,6 +20,15 @@ import CompleteImg from "../assets/knockoutcodes-complete-access-pass.png";
 
 const PAGE_SIZE = 8;
 
+const VALID_MEMBERSHIPS = [
+  "beginner",
+  "intermediate",
+  "advance",
+  "complete",
+];
+
+const VALID_BILLING_PERIODS = ["monthly", "yearly"];
+
 function formatMinutesToHours(minutes) {
   const m = Number(minutes);
   if (!Number.isFinite(m) || m <= 0) return null;
@@ -107,7 +116,7 @@ function getRequiredMembershipLevel(course) {
 const Courses = () => {
   const [page, setPage] = useState(1);
   const [activeCheckoutId, setActiveCheckoutId] = useState(null);
-  const [accessCourseIds, setAccessCourseIds] = useState(new Set());
+  const [accessCourseIds, setAccessCourseIds] = useState(() => new Set());
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,8 +130,23 @@ const Courses = () => {
     [location.search]
   );
 
-  const selectedMembershipId = searchParams.get("membershipId") || "";
-  const selectedBillingPeriod = searchParams.get("billingPeriod") || "";
+ const membershipIdFromUrl = String(searchParams.get("membershipId") || "")
+  .trim()
+  .toLowerCase();
+
+const billingPeriodFromUrl = String(searchParams.get("billingPeriod") || "")
+  .trim()
+  .toLowerCase();
+
+const selectedMembershipId = VALID_MEMBERSHIPS.includes(membershipIdFromUrl)
+  ? membershipIdFromUrl
+  : "";
+
+const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
+  billingPeriodFromUrl
+)
+  ? billingPeriodFromUrl
+  : "";
 
   const membershipQueryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -161,67 +185,51 @@ const Courses = () => {
   } = useSelector((state) => state.courses);
 
   useEffect(() => {
-    dispatch(fetchCourses());
-  }, [dispatch]);
+  dispatch(fetchCourses());
+
+  return () => {
+    dispatch(resetCourseState());
+  };
+}, [dispatch]);
 
   useEffect(() => {
     if (!isAuthenticated || authLoading) {
-      setAccessCourseIds(new Set());
+      setAccessCourseIds(() => new Set());
       return;
     }
 
     let mounted = true;
 
     async function loadMyAccess() {
-      try {
-        const { data } = await axiosInstance.get("/enrollments/my");
+  try {
+    const { data } = await axiosInstance.get("/enrollments/my");
 
-        const enrollmentIds = new Set(
-          (data?.data || [])
-            .map((enrollment) => enrollment?.course?._id || enrollment?.course)
-            .filter(Boolean)
-            .map(String)
-        );
+    const enrollments =
+      data?.enrollments ||
+      data?.data ||
+      [];
 
-        const list = Array.isArray(courses) ? courses : [];
+    const enrollmentIds = new Set(
+      enrollments
+        .map((enrollment) => enrollment?.course?._id || enrollment?.course)
+        .filter(Boolean)
+        .map(String)
+    );
 
-        const checks = await Promise.allSettled(
-          list.map(async (course) => {
-            const id = String(course?._id || "");
-            if (!id) return null;
+    if (!mounted) return;
 
-            if (enrollmentIds.has(id)) return id;
-
-            const statusRes = await axiosInstance.get(
-              `/enrollments/status/${id}`
-            );
-
-            return statusRes?.data?.hasAccess ? id : null;
-          })
-        );
-
-        if (!mounted) return;
-
-        const accessIds = new Set(enrollmentIds);
-
-        checks.forEach((result) => {
-          if (result.status === "fulfilled" && result.value) {
-            accessIds.add(String(result.value));
-          }
-        });
-
-        setAccessCourseIds(accessIds);
-      } catch {
-        if (mounted) setAccessCourseIds(new Set());
-      }
-    }
+    setAccessCourseIds(enrollmentIds);
+  } catch {
+    if (mounted) setAccessCourseIds(new Set());
+  }
+}
 
     loadMyAccess();
 
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated, authLoading, courses]);
+  }, [isAuthenticated, authLoading]);
 
   useEffect(() => {
     setPage(1);
@@ -398,16 +406,25 @@ const Courses = () => {
   const goPrev = () => setPage((p) => Math.max(1, p - 1));
 
   const goToCourseDetails = (course, extraState = {}) => {
-    if (!course?._id) return;
+  const courseId = course?._id;
 
-    navigate(`/courses/${course._id}${membershipQueryString}`, {
-      state: {
-        course,
-        ...membershipState,
-        ...extraState,
-      },
+  if (!courseId) {
+    toast?.push?.({
+      title: "Course Error",
+      description: "Course ID is missing. Please refresh and try again.",
+      variant: "danger",
     });
-  };
+    return;
+  }
+
+  navigate(`/courses/${encodeURIComponent(courseId)}${membershipQueryString}`, {
+    state: {
+      course,
+      ...membershipState,
+      ...extraState,
+    },
+  });
+};
 
   const handleEnroll = (course) => {
     if (authLoading || checkoutLoading || !course) return;
@@ -421,8 +438,19 @@ const Courses = () => {
         variant: "success",
       });
 
-      navigate(`/course-player/${encodeURIComponent(course._id)}`);
-      return;
+      const courseId = course?._id;
+
+if (!courseId) {
+  toast?.push?.({
+    title: "Course Error",
+    description: "Course ID is missing. Please refresh and try again.",
+    variant: "danger",
+  });
+  return;
+}
+
+navigate(`/course-player/${encodeURIComponent(courseId)}`);
+return;
     }
 
     if (course?.isFree) {
@@ -506,7 +534,7 @@ const Courses = () => {
             <HeroActions>
               <HeroButton
                 type="button"
-                onClick={() => window.scrollTo({ top: 520, behavior: "smooth" })}
+                onClick={() => navigate("/courses")}
               >
                 Explore Courses
               </HeroButton>
@@ -615,7 +643,7 @@ const Courses = () => {
                   Boolean(checkoutLoading) &&
                   String(activeCheckoutId) === String(_id);
 
-                const ownsCourse = accessCourseIds.has(String(_id));
+                const ownsCourse = Boolean(_id) && accessCourseIds.has(String(_id));
                 const membershipLevel = getRequiredMembershipLevel(course);
 
                 return (
@@ -623,10 +651,10 @@ const Courses = () => {
                     <ThumbWrap>
                       <Thumb
                         src={
-                          thumbnail ||
-                          pickLocalCourseImage(course) ||
-                          "https://via.placeholder.com/1200x800?text=KnockoutCodes+Course"
-                        }
+  thumbnail ||
+  pickLocalCourseImage(course) ||
+  "/images/default-course.jpg"
+}
                         alt={title || "Course thumbnail"}
                         loading="lazy"
                       />

@@ -29,25 +29,45 @@ const emptyForm = {
   isFeatured: false,
 };
 
+function normalizeText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function uniqueArray(arr) {
+  return [...new Set(Array.isArray(arr) ? arr : [])];
+}
+
 function parseCsv(text) {
   if (!text) return [];
-  return String(text)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return uniqueArray(
+    String(text)
+      .split(",")
+      .map((s) => normalizeText(s))
+      .filter(Boolean)
+  );
 }
 
 function parseLines(text) {
   if (!text) return [];
-  return String(text)
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return uniqueArray(
+    String(text)
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
 }
 
 function safeNumber(v, fallback = 0) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeSku(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 function getProductId(product) {
@@ -89,6 +109,7 @@ function toEditForm(p) {
 
 export default function ManageProducts() {
   const { push } = useToast();
+
   const [state, dispatch] = useReducer(
     manageProductReducer,
     manageProductInitialState
@@ -99,6 +120,8 @@ export default function ManageProducts() {
 
   const writeCache = useCallback((items) => {
     try {
+      if (typeof window === "undefined") return;
+
       localStorage.setItem(
         LS_KEY,
         JSON.stringify({
@@ -113,6 +136,8 @@ export default function ManageProducts() {
 
   const readCache = useCallback(() => {
     try {
+      if (typeof window === "undefined") return null;
+
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return null;
 
@@ -156,6 +181,7 @@ export default function ManageProducts() {
     dispatch({ type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_START });
 
     const cached = readCache();
+
     if (cached?.length) {
       dispatch({
         type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_SUCCESS,
@@ -164,49 +190,23 @@ export default function ManageProducts() {
     }
 
     try {
-      const [activeRes, inactiveRes] = await Promise.all([
-        axiosInstance.get("/products", {
-          params: {
-            brand: "knockoutcodes",
-            limit: 50,
-            page: 1,
-            sort: "-createdAt",
-            active: "true",
-          },
-        }),
-        axiosInstance.get("/products", {
-          params: {
-            brand: "knockoutcodes",
-            limit: 50,
-            page: 1,
-            sort: "-createdAt",
-            active: "false",
-          },
-        }),
-      ]);
-
-      const activeProducts = extractProducts(activeRes);
-      const inactiveProducts = extractProducts(inactiveRes);
-
-      const map = new Map();
-
-      [...activeProducts, ...inactiveProducts].forEach((p) => {
-        const id = getProductId(p);
-        if (id) map.set(id, p);
+      const res = await axiosInstance.get("/products/admin/manage", {
+        params: {
+          brand: "knockoutcodes",
+          limit: 100,
+          page: 1,
+          sort: "-createdAt",
+        },
       });
 
-      const merged = Array.from(map.values()).sort((a, b) => {
-        const da = new Date(a?.createdAt || 0).getTime();
-        const db = new Date(b?.createdAt || 0).getTime();
-        return db - da;
-      });
+      const products = extractProducts(res);
 
       dispatch({
         type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_SUCCESS,
-        payload: merged,
+        payload: products,
       });
 
-      writeCache(merged);
+      writeCache(products);
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
@@ -236,29 +236,34 @@ export default function ManageProducts() {
 
   function onEdit(product) {
     setForm(toEditForm(product));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   async function onSubmit(e) {
     e.preventDefault();
 
+    if (state.saving) return;
+
     const payload = {
       brand: "knockoutcodes",
-      title: String(form.title).trim(),
-      shortDescription: String(form.shortDescription || "").trim(),
+      title: normalizeText(form.title),
+      shortDescription: normalizeText(form.shortDescription),
       description: String(form.description || "").trim(),
       price: safeNumber(form.price, NaN),
       compareAtPrice:
         form.compareAtPrice === ""
           ? undefined
-          : safeNumber(form.compareAtPrice, 0),
+          : safeNumber(form.compareAtPrice, NaN),
       images: parseLines(form.imagesText),
-      category: String(form.category || "").trim(),
+      category: normalizeText(form.category),
       tags: parseCsv(form.tagsText),
       sizes: parseCsv(form.sizesText),
       colors: parseCsv(form.colorsText),
       stock: safeNumber(form.stock, 0),
-      sku: String(form.sku || "").trim(),
+      sku: normalizeSku(form.sku),
       isActive: !!form.isActive,
       isFeatured: !!form.isFeatured,
     };
@@ -276,6 +281,30 @@ export default function ManageProducts() {
       push({
         title: "Invalid price",
         description: "Price must be a valid number greater than or equal to 0.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    if (
+      payload.compareAtPrice !== undefined &&
+      (!Number.isFinite(payload.compareAtPrice) || payload.compareAtPrice < 0)
+    ) {
+      push({
+        title: "Invalid compare price",
+        description: "Compare price must be a valid number greater than or equal to 0.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    if (
+      payload.compareAtPrice !== undefined &&
+      payload.compareAtPrice <= payload.price
+    ) {
+      push({
+        title: "Invalid compare price",
+        description: "Compare price must be higher than product price.",
         variant: "warning",
       });
       return;
@@ -309,16 +338,19 @@ export default function ManageProducts() {
       });
 
       const productId = getProductId(product);
-      const exists = state.items.some((p) => getProductId(p) === productId);
+      const currentItems = Array.isArray(state.items) ? state.items : [];
+      const exists = currentItems.some((p) => getProductId(p) === productId);
 
       const nextCache = exists
-        ? state.items.map((p) => (getProductId(p) === productId ? product : p))
-        : [product, ...state.items];
+        ? currentItems.map((p) =>
+            getProductId(p) === productId ? product : p
+          )
+        : [product, ...currentItems];
 
       writeCache(nextCache);
 
       push({
-        title: form._id ? "Product upgraded" : "Product created",
+        title: form._id ? "Product updated" : "Product created",
         description: product.title || "Product saved successfully.",
         variant: "success",
       });
@@ -344,7 +376,7 @@ export default function ManageProducts() {
   }
 
   async function onDelete(id, title) {
-    if (!id) return;
+    if (!id || state.deletingId) return;
 
     const ok = window.confirm(
       `Delete "${title || "this product"}"? This cannot be undone.`
@@ -365,7 +397,9 @@ export default function ManageProducts() {
         payload: id,
       });
 
-      const next = state.items.filter((p) => getProductId(p) !== id);
+      const currentItems = Array.isArray(state.items) ? state.items : [];
+      const next = currentItems.filter((p) => getProductId(p) !== id);
+
       writeCache(next);
 
       push({
@@ -444,6 +478,7 @@ export default function ManageProducts() {
             <PanelTitle>
               {form._id ? "Edit Product" : "Create Premium Product"}
             </PanelTitle>
+
             <PanelSub>
               Add a product with sharp pricing, clean images, inventory, SKU,
               tags, and shop visibility.
@@ -633,7 +668,11 @@ export default function ManageProducts() {
                     : "Create Product"}
                 </SaveBtn>
 
-                <GhostBtn type="button" onClick={resetForm} disabled={state.saving}>
+                <GhostBtn
+                  type="button"
+                  onClick={resetForm}
+                  disabled={state.saving}
+                >
                   Clear
                 </GhostBtn>
               </Buttons>

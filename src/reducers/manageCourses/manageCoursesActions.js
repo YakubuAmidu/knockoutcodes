@@ -1,190 +1,169 @@
-// src/admin/reducers/manageCourses/manageCoursesActions.js
+import axiosInstance from "../../../utils/axiosInstance";
+import { MANAGE_COURSES_ACTIONS as T } from "./manageCoursesActionTypes";
 
-import api from "../../lib/apiClient";
-import { MANAGE_COURSES_ACTIONS } from "./manageCoursesActionTypes";
+const ADMIN_COURSES_ENDPOINT = "/courses/admin/manage";
 
-const getErrorMessage = (error, fallback) =>
-  error?.response?.data?.message || error?.message || fallback;
-
-const normalizeCoursePayload = (formData) => {
-  const toArray = (value) =>
-    String(value || "")
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-  const normalizeLevel = (value) => {
-    const level = String(value || "beginner").toLowerCase().trim();
-    if (level === "advanced") return "advance";
-    return level;
-  };
-
-  const level = normalizeLevel(formData.level);
-  const requiredMembershipLevel = normalizeLevel(
-    formData.requiredMembershipLevel || level
+const getErrorMessage = (error, fallback = "Something went wrong.") => {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    fallback
   );
+};
 
-  return {
-    title: String(formData.title || "").trim(),
-    description: String(formData.description || "").trim(),
-    category: formData.category || "Boxing Fundamentals",
-    focusArea: String(formData.focusArea || "").trim(),
+const normalizeCourses = (data) => {
+  if (Array.isArray(data?.data?.courses)) return data.data.courses;
+  if (Array.isArray(data?.courses)) return data.courses;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  return [];
+};
 
-    level,
-    requiredMembershipLevel: formData.isFree ? "none" : requiredMembershipLevel,
+const normalizeCourse = (data) => {
+  return data?.data?.course || data?.course || data?.data || null;
+};
 
-    allowSinglePurchase: Boolean(formData.allowSinglePurchase),
-    stripePriceId: String(formData.stripePriceId || "").trim(),
+const normalizeMeta = (data) => ({
+  total: data?.meta?.total ?? data?.total ?? normalizeCourses(data).length ?? 0,
+  page: data?.meta?.page ?? data?.page ?? 1,
+  pages: data?.meta?.pages ?? data?.pages ?? 1,
+});
 
-    thumbnail: String(formData.thumbnail || "").trim(),
-    promoVideo: String(formData.promoVideo || "").trim(),
+export const fetchManageCourses =
+  (params = {}) =>
+  async (dispatch) => {
+    try {
+      dispatch({ type: T.FETCH_START });
 
-    price: formData.price === "" ? 0 : Number(formData.price),
-    salePrice: formData.salePrice === "" ? null : Number(formData.salePrice),
+      const res = await axiosInstance.get(ADMIN_COURSES_ENDPOINT, {
+        params: {
+          admin: true,
+          includeUnpublished: true,
+          limit: 50,
+          sort: "featured",
+          ...params,
+        },
+      });
 
-    isFree: Boolean(formData.isFree),
+      dispatch({
+        type: T.FETCH_SUCCESS,
+        payload: {
+          courses: normalizeCourses(res.data),
+          meta: normalizeMeta(res.data),
+        },
+      });
 
-    durationInMinutes:
-      formData.durationInMinutes === "" ? 0 : Number(formData.durationInMinutes),
-
-    totalLessons:
-      formData.totalLessons === "" ? 0 : Number(formData.totalLessons),
-
-    language: String(formData.language || "English").trim(),
-
-    equipmentNeeded: toArray(formData.equipmentNeeded),
-    requirements: toArray(formData.requirements),
-    whatYouWillLearn: toArray(formData.whatYouWillLearn),
-    tags: toArray(formData.tags).map((tag) => tag.toLowerCase()),
-
-    isFeatured: Boolean(formData.isFeatured),
-    isPublished: Boolean(formData.isPublished),
+      return {
+        success: true,
+        courses: normalizeCourses(res.data),
+        meta: normalizeMeta(res.data),
+      };
+    } catch (error) {
+      const message = getErrorMessage(error, "Failed to load admin courses.");
+      dispatch({ type: T.FETCH_FAIL, payload: message });
+      return { success: false, message };
+    }
   };
-};
 
-const parseCoursesResponse = (res) => {
-  const payload = res?.data || {};
-
-  const courses = Array.isArray(payload.data)
-    ? payload.data
-    : Array.isArray(payload.courses)
-    ? payload.courses
-    : Array.isArray(payload)
-    ? payload
-    : [];
-
-  return {
-    courses,
-    meta: {
-      total: payload.total ?? courses.length,
-      page: payload.page ?? 1,
-      pages: payload.pages ?? 1,
-    },
-  };
-};
-
-export const fetchManageCourses = () => async (dispatch) => {
-  dispatch({ type: MANAGE_COURSES_ACTIONS.FETCH_START });
-
+export const createManageCourse = (payload) => async (dispatch) => {
   try {
-    const res = await api.get("/courses");
-    const parsed = parseCoursesResponse(res);
+    dispatch({ type: T.SAVE_START });
 
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.FETCH_SUCCESS,
-      payload: parsed,
+    const res = await axiosInstance.post("/courses", payload, {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
     });
-  } catch (error) {
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.FETCH_FAIL,
-      payload: getErrorMessage(error, "Failed to load courses."),
-    });
-  }
-};
 
-export const createManageCourse = (formData) => async (dispatch) => {
-  dispatch({ type: MANAGE_COURSES_ACTIONS.SAVE_START });
+    const course = normalizeCourse(res.data);
 
-  try {
-    const payload = normalizeCoursePayload(formData);
-
-    if (!payload.title || !payload.description) {
-      throw new Error("Title and description are required.");
+    if (!course?._id) {
+      throw new Error("Course was created, but the server did not return it.");
     }
 
-    const res = await api.post("/courses", payload);
-    const course = res?.data?.data || res?.data?.course || res?.data;
+    dispatch({ type: T.CREATE_SUCCESS, payload: course });
 
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.CREATE_SUCCESS,
-      payload: {
-        course,
-        message: res?.data?.message || "Course created successfully.",
-      },
-    });
-
-    return course;
+    return {
+      success: true,
+      course,
+      message: res.data?.message || "Course created successfully.",
+    };
   } catch (error) {
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.SAVE_FAIL,
-      payload: getErrorMessage(error, "Failed to create course."),
-    });
-
-    throw error;
+    const message = getErrorMessage(error, "Failed to create course.");
+    dispatch({ type: T.SAVE_FAIL, payload: message });
+    return { success: false, message };
   }
 };
 
-export const updateManageCourse = (id, formData) => async (dispatch) => {
-  dispatch({ type: MANAGE_COURSES_ACTIONS.SAVE_START });
-
+export const updateManageCourse = (courseId, payload) => async (dispatch) => {
   try {
-    const payload = normalizeCoursePayload(formData);
+    if (!courseId) throw new Error("Course ID is required.");
 
-    if (!payload.title || !payload.description) {
-      throw new Error("Title and description are required.");
+    dispatch({ type: T.SAVE_START });
+
+    const res = await axiosInstance.put(
+      `/courses/${encodeURIComponent(courseId)}`,
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    const course = normalizeCourse(res.data);
+
+    if (!course?._id) {
+      throw new Error("Course was updated, but the server did not return it.");
     }
 
-    const res = await api.put(`/courses/${id}`, payload);
-    const course = res?.data?.data || res?.data?.course || res?.data;
+    dispatch({ type: T.UPDATE_SUCCESS, payload: course });
 
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.UPDATE_SUCCESS,
-      payload: {
-        course,
-        message: res?.data?.message || "Course updated successfully.",
-      },
-    });
-
-    return course;
+    return {
+      success: true,
+      course,
+      message: res.data?.message || "Course updated successfully.",
+    };
   } catch (error) {
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.SAVE_FAIL,
-      payload: getErrorMessage(error, "Failed to update course."),
-    });
-
-    throw error;
+    const message = getErrorMessage(error, "Failed to update course.");
+    dispatch({ type: T.SAVE_FAIL, payload: message });
+    return { success: false, message };
   }
 };
 
-export const deleteManageCourse = (id) => async (dispatch) => {
-  dispatch({ type: MANAGE_COURSES_ACTIONS.DELETE_START });
-
+export const deleteManageCourse = (courseId) => async (dispatch) => {
   try {
-    const res = await api.delete(`/courses/${id}`);
+    if (!courseId) throw new Error("Course ID is required.");
+
+    dispatch({ type: T.DELETE_START });
+
+    const res = await axiosInstance.delete(
+      `/courses/${encodeURIComponent(courseId)}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        data: {},
+      }
+    );
 
     dispatch({
-      type: MANAGE_COURSES_ACTIONS.DELETE_SUCCESS,
-      payload: {
-        id,
-        message: res?.data?.message || "Course deleted successfully.",
-      },
+      type: T.DELETE_SUCCESS,
+      payload: res.data?.deletedId || courseId,
     });
+
+    return {
+      success: true,
+      deletedId: res.data?.deletedId || courseId,
+      message: res.data?.message || "Course deleted successfully.",
+    };
   } catch (error) {
-    dispatch({
-      type: MANAGE_COURSES_ACTIONS.DELETE_FAIL,
-      payload: getErrorMessage(error, "Failed to delete course."),
-    });
-
-    throw error;
+    const message = getErrorMessage(error, "Failed to delete course.");
+    dispatch({ type: T.DELETE_FAIL, payload: message });
+    return { success: false, message };
   }
 };

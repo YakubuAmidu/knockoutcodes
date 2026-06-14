@@ -13,10 +13,22 @@ const MEMBERSHIP_RANK = {
   complete: 4,
 };
 
+const isAdminUser = (req) =>
+  req.user && ["admin", "superadmin"].includes(String(req.user.role));
+
 function normalizeLevel(value) {
   const level = String(value || "").trim().toLowerCase();
 
   if (level === "advanced") return "advance";
+  if (level === "all") return "all-levels";
+
+  return level;
+}
+
+function normalizeRequiredLevel(value, fallback = "beginner") {
+  const level = normalizeLevel(value || fallback);
+
+  if (!level || level === "none") return "none";
   if (level === "all-levels") return "beginner";
 
   return level;
@@ -24,7 +36,7 @@ function normalizeLevel(value) {
 
 function membershipAllowsCourse(accessLevel, requiredLevel) {
   const access = normalizeLevel(accessLevel);
-  const required = normalizeLevel(requiredLevel || "beginner");
+  const required = normalizeRequiredLevel(requiredLevel);
 
   if (!required || required === "none") return true;
   if (access === "complete") return true;
@@ -33,6 +45,34 @@ function membershipAllowsCourse(accessLevel, requiredLevel) {
   const requiredRank = MEMBERSHIP_RANK[required] || 1;
 
   return accessRank >= requiredRank;
+}
+
+function sendAccessError(res, statusCode, message, extra = {}) {
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    ...extra,
+  });
+}
+
+async function findCourseByIdOrSlug(courseId) {
+  if (!courseId) return null;
+
+  if (mongoose.Types.ObjectId.isValid(courseId)) {
+    const course = await Course.findById(courseId)
+      .select(
+        "_id title slug isFree level requiredMembershipLevel isPublished allowSinglePurchase"
+      )
+      .lean();
+
+    if (course) return course;
+  }
+
+  return Course.findOne({ slug: String(courseId).toLowerCase().trim() })
+    .select(
+      "_id title slug isFree level requiredMembershipLevel isPublished allowSinglePurchase"
+    )
+    .lean();
 }
 
 export const requireEnrollment = async (req, res, next) => {
@@ -46,48 +86,44 @@ export const requireEnrollment = async (req, res, next) => {
       req.query.courseId;
 
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required.",
+      return sendAccessError(res, 401, "Authentication required.", {
+        code: "AUTH_REQUIRED",
       });
     }
 
     if (!courseId) {
-      return res.status(400).json({
-        success: false,
-        message: "courseId is required for access check.",
+      return sendAccessError(res, 400, "courseId is required for access check.", {
+        code: "COURSE_ID_REQUIRED",
       });
     }
 
-    let course = null;
-
-    if (mongoose.Types.ObjectId.isValid(courseId)) {
-      course = await Course.findById(courseId)
-        .select("_id title slug isFree level requiredMembershipLevel isPublished")
-        .lean();
-    }
+    const course = await findCourseByIdOrSlug(courseId);
 
     if (!course) {
-      course = await Course.findOne({ slug: courseId })
-        .select("_id title slug isFree level requiredMembershipLevel isPublished")
-        .lean();
-    }
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found.",
+      return sendAccessError(res, 404, "Course not found.", {
+        code: "COURSE_NOT_FOUND",
       });
     }
 
-    if (course.isPublished === false) {
-      return res.status(403).json({
-        success: false,
-        message: "This course is not published yet.",
+    if (course.isPublished === false && !isAdminUser(req)) {
+      return sendAccessError(res, 403, "This course is not published yet.", {
+        code: "COURSE_NOT_PUBLISHED",
       });
     }
 
-    const requiredLevel = normalizeLevel(
+    if (isAdminUser(req)) {
+      req.course = course;
+      req.courseAccess = {
+        allowed: true,
+        type: "admin",
+        courseId: course._id,
+        requiredMembershipLevel: course.requiredMembershipLevel || "none",
+      };
+
+      return next();
+    }
+
+    const requiredLevel = normalizeRequiredLevel(
       course.requiredMembershipLevel || course.level || "beginner"
     );
 
@@ -108,7 +144,9 @@ export const requireEnrollment = async (req, res, next) => {
       course: course._id,
       status: { $in: ["active", "completed"] },
       paymentStatus: "paid",
-    }).select("_id status paymentStatus progressPercent");
+    })
+      .select("_id status paymentStatus progressPercent")
+      .lean();
 
     if (enrollment) {
       req.course = course;
@@ -139,7 +177,9 @@ export const requireEnrollment = async (req, res, next) => {
         new Date(subscription.currentPeriodEnd).getTime() < Date.now();
 
       const accessLevel = normalizeLevel(
-        subscription.accessLevel || subscription.membershipId
+        subscription.accessLevel ||
+          subscription.membershipId ||
+          subscription.membership
       );
 
       if (!isExpired && membershipAllowsCourse(accessLevel, requiredLevel)) {
@@ -158,20 +198,22 @@ export const requireEnrollment = async (req, res, next) => {
       }
     }
 
-    return res.status(403).json({
-      success: false,
-      message:
-        "Access denied. Purchase this course or join the required membership.",
-      code: "COURSE_ACCESS_REQUIRED",
-      requiredMembershipLevel: requiredLevel,
-      courseId: String(course._id),
-    });
+    return sendAccessError(
+      res,
+      403,
+      "Access denied. Purchase this course or join the required membership.",
+      {
+        code: "COURSE_ACCESS_REQUIRED",
+        requiredMembershipLevel: requiredLevel,
+        courseId: String(course._id),
+        allowSinglePurchase: Boolean(course.allowSinglePurchase),
+      }
+    );
   } catch (error) {
     console.error("requireEnrollment error:", error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Course access check failed.",
+    return sendAccessError(res, 500, "Course access check failed.", {
+      code: "COURSE_ACCESS_CHECK_FAILED",
     });
   }
 };

@@ -1,202 +1,232 @@
+// controllers/emailCampaignAnalyticsController.js
 import mongoose from "mongoose";
-import EmailCampaign from "../models/EmailCampaignModel.js";
-import EmailCampaignLog from "../models/EmailCampaignLogModel.js";
+import EmailCampaign from "../models/emailCampaignModel.js";
+import EmailCampaignLog from "../models/emailCampaignLogModel.js";
 
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
 
-function toNumber(value, fallback = 0) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
+function percent(part, total) {
+  if (!total) return 0;
+  return Number(((Number(part || 0) / Number(total || 0)) * 100).toFixed(2));
 }
 
-function buildRate(numerator, denominator) {
-  const safeNumerator = toNumber(numerator, 0);
-  const safeDenominator = toNumber(denominator, 0);
+function safeCampaign(campaign) {
+  if (!campaign) return null;
 
-  if (safeDenominator <= 0) return 0;
+  const item = campaign.toObject ? campaign.toObject() : campaign;
 
-  return Number(((safeNumerator / safeDenominator) * 100).toFixed(2));
-}
-
-function createEmptyLogBreakdown() {
   return {
-    pending: 0,
-    sent: 0,
-    failed: 0,
-    opened: 0,
-    clicked: 0,
-    unsubscribed: 0,
+    _id: item._id,
+    name: item.name,
+    subject: item.subject,
+    status: item.status,
+    totalRecipients: item.totalRecipients || 0,
+    totalSent: item.totalSent || 0,
+    totalFailed: item.totalFailed || 0,
+    totalUnsubscribed: item.totalUnsubscribed || 0,
+    scheduledFor: item.scheduledFor || null,
+    sentAt: item.sentAt || null,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   };
 }
 
-function applyLogBreakdownRows(rows = []) {
-  const breakdown = createEmptyLogBreakdown();
-
-  for (const row of rows) {
-    if (
-      row?._id &&
-      Object.prototype.hasOwnProperty.call(breakdown, row._id)
-    ) {
-      breakdown[row._id] = toNumber(row.count, 0);
-    }
-  }
-
-  return breakdown;
-}
-
-function normalizeCampaignTotals(row = {}) {
+function safeActivity(item) {
   return {
-    totalRecipients: toNumber(row.totalRecipients, 0),
-    totalSent: toNumber(row.totalSent, 0),
-    totalFailed: toNumber(row.totalFailed, 0),
-    totalUnsubscribed: toNumber(row.totalUnsubscribed, 0),
+    _id: item._id,
+    campaign: item.campaign,
+    email: item.email,
+    status: item.status || "pending",
+    sentAt: item.sentAt || null,
+    openedAt: item.openedAt || null,
+    clickedAt: item.clickedAt || null,
+    unsubscribedAt: item.unsubscribedAt || null,
+    openCount: item.openCount || 0,
+    clickCount: item.clickCount || 0,
+    providerMessageId: item.providerMessageId || "",
+    errorMessage: item.errorMessage || "",
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   };
 }
 
-function normalizeEngagementTotals(row = {}) {
-  return {
-    totalLogs: toNumber(row.totalLogs, 0),
-    totalOpenEvents: toNumber(row.totalOpenEvents, 0),
-    totalClickEvents: toNumber(row.totalClickEvents, 0),
-    uniqueOpenedLogs: toNumber(row.uniqueOpenedLogs, 0),
-    uniqueClickedLogs: toNumber(row.uniqueClickedLogs, 0),
-    uniqueUnsubscribedLogs: toNumber(row.uniqueUnsubscribedLogs, 0),
-  };
-}
+async function buildCampaignAnalytics(campaignId) {
+  const campaign = await EmailCampaign.findById(campaignId).lean();
 
-function buildEngagementResponse(engagementTotals, deliveredBase) {
+  if (!campaign) return null;
+
+  const [
+    totalLogs,
+    sent,
+    failed,
+    opened,
+    clicked,
+    unsubscribed,
+    recentActivity,
+  ] = await Promise.all([
+    EmailCampaignLog.countDocuments({ campaign: campaignId }),
+
+    EmailCampaignLog.countDocuments({
+      campaign: campaignId,
+      status: { $in: ["sent", "opened", "clicked", "unsubscribed"] },
+    }),
+
+    EmailCampaignLog.countDocuments({
+      campaign: campaignId,
+      status: "failed",
+    }),
+
+    EmailCampaignLog.countDocuments({
+      campaign: campaignId,
+      openCount: { $gt: 0 },
+    }),
+
+    EmailCampaignLog.countDocuments({
+      campaign: campaignId,
+      clickCount: { $gt: 0 },
+    }),
+
+    EmailCampaignLog.countDocuments({
+      campaign: campaignId,
+      status: "unsubscribed",
+    }),
+
+    EmailCampaignLog.find({ campaign: campaignId })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean(),
+  ]);
+
+  const recipients = campaign.totalRecipients || totalLogs || 0;
+  const sentTotal = campaign.totalSent || sent || 0;
+  const failedTotal = campaign.totalFailed || failed || 0;
+  const unsubscribedTotal = campaign.totalUnsubscribed || unsubscribed || 0;
+  const deliveredBase = sentTotal || recipients;
+
   return {
-    totalLogs: toNumber(engagementTotals.totalLogs, 0),
-    totalOpenEvents: toNumber(engagementTotals.totalOpenEvents, 0),
-    totalClickEvents: toNumber(engagementTotals.totalClickEvents, 0),
-    uniqueOpenedLogs: toNumber(engagementTotals.uniqueOpenedLogs, 0),
-    uniqueClickedLogs: toNumber(engagementTotals.uniqueClickedLogs, 0),
-    uniqueUnsubscribedLogs: toNumber(
-      engagementTotals.uniqueUnsubscribedLogs,
-      0
-    ),
-    openRate: buildRate(
-      engagementTotals.uniqueOpenedLogs,
-      deliveredBase
-    ),
-    clickRate: buildRate(
-      engagementTotals.uniqueClickedLogs,
-      deliveredBase
-    ),
-    unsubscribeRate: buildRate(
-      engagementTotals.uniqueUnsubscribedLogs,
-      deliveredBase
-    ),
+    campaign: safeCampaign(campaign),
+    totals: {
+      logs: totalLogs,
+      recipients,
+      sent: sentTotal,
+      failed: failedTotal,
+      opened,
+      clicked,
+      unsubscribed: unsubscribedTotal,
+      bounced: 0,
+    },
+    engagement: {
+      openRate: percent(opened, deliveredBase),
+      clickRate: percent(clicked, deliveredBase),
+      failureRate: percent(failedTotal, recipients),
+      unsubscribeRate: percent(unsubscribedTotal, deliveredBase),
+      bounceRate: 0,
+    },
+    recentActivity: recentActivity.map(safeActivity),
   };
 }
 
 export async function getEmailCampaignAnalytics(req, res, next) {
   try {
+    const campaigns = await EmailCampaign.find({})
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    const campaignIds = campaigns.map((campaign) => campaign._id);
+
     const [
       totalCampaigns,
-      draftCampaigns,
-      scheduledCampaigns,
-      sendingCampaigns,
-      sentCampaigns,
-      failedCampaigns,
-      aggregateCampaigns,
-      aggregateLogStatuses,
-      aggregateLogEngagement,
-      recentCampaigns,
+      totalLogs,
+      opened,
+      clicked,
+      unsubscribed,
+      failed,
     ] = await Promise.all([
       EmailCampaign.countDocuments({}),
-      EmailCampaign.countDocuments({ status: "draft" }),
-      EmailCampaign.countDocuments({ status: "scheduled" }),
-      EmailCampaign.countDocuments({ status: "sending" }),
-      EmailCampaign.countDocuments({ status: "sent" }),
-      EmailCampaign.countDocuments({ status: "failed" }),
 
-      EmailCampaign.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalRecipients: { $sum: { $ifNull: ["$totalRecipients", 0] } },
-            totalSent: { $sum: { $ifNull: ["$totalSent", 0] } },
-            totalFailed: { $sum: { $ifNull: ["$totalFailed", 0] } },
-            totalUnsubscribed: { $sum: { $ifNull: ["$totalUnsubscribed", 0] } },
-          },
-        },
-      ]),
+      EmailCampaignLog.countDocuments({
+        campaign: { $in: campaignIds },
+      }),
 
-      EmailCampaignLog.aggregate([
-        {
-          $group: {
-            _id: "$status",
-            count: { $sum: 1 },
-          },
-        },
-      ]),
+      EmailCampaignLog.countDocuments({
+        campaign: { $in: campaignIds },
+        openCount: { $gt: 0 },
+      }),
 
-      EmailCampaignLog.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalLogs: { $sum: 1 },
-            totalOpenEvents: { $sum: { $ifNull: ["$openCount", 0] } },
-            totalClickEvents: { $sum: { $ifNull: ["$clickCount", 0] } },
-            uniqueOpenedLogs: {
-              $sum: {
-                $cond: [{ $ne: ["$openedAt", null] }, 1, 0],
-              },
-            },
-            uniqueClickedLogs: {
-              $sum: {
-                $cond: [{ $ne: ["$clickedAt", null] }, 1, 0],
-              },
-            },
-            uniqueUnsubscribedLogs: {
-              $sum: {
-                $cond: [{ $ne: ["$unsubscribedAt", null] }, 1, 0],
-              },
-            },
-          },
-        },
-      ]),
+      EmailCampaignLog.countDocuments({
+        campaign: { $in: campaignIds },
+        clickCount: { $gt: 0 },
+      }),
 
-      EmailCampaign.find({})
-        .select(
-          "name subject status totalRecipients totalSent totalFailed totalUnsubscribed scheduledFor sentAt createdAt"
-        )
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean(),
+      EmailCampaignLog.countDocuments({
+        campaign: { $in: campaignIds },
+        status: "unsubscribed",
+      }),
+
+      EmailCampaignLog.countDocuments({
+        campaign: { $in: campaignIds },
+        status: "failed",
+      }),
     ]);
 
-    const campaignTotals = normalizeCampaignTotals(aggregateCampaigns[0]);
-    const engagementTotals = normalizeEngagementTotals(
-      aggregateLogEngagement[0]
+    const campaignSummaries = await Promise.all(
+      campaigns.map(async (campaign) => {
+        const analytics = await buildCampaignAnalytics(campaign._id);
+
+        return {
+          campaign: safeCampaign(campaign),
+          totals: analytics?.totals || {
+            logs: 0,
+            recipients: campaign.totalRecipients || 0,
+            sent: campaign.totalSent || 0,
+            failed: campaign.totalFailed || 0,
+            opened: 0,
+            clicked: 0,
+            unsubscribed: campaign.totalUnsubscribed || 0,
+            bounced: 0,
+          },
+          engagement: analytics?.engagement || {
+            openRate: 0,
+            clickRate: 0,
+            failureRate: 0,
+            unsubscribeRate: 0,
+            bounceRate: 0,
+          },
+        };
+      })
     );
-    const logBreakdown = applyLogBreakdownRows(aggregateLogStatuses);
+
+    const totalSent = campaignSummaries.reduce(
+      (sum, item) => sum + Number(item?.totals?.sent || 0),
+      0
+    );
+
+    const totalRecipients = campaignSummaries.reduce(
+      (sum, item) => sum + Number(item?.totals?.recipients || 0),
+      0
+    );
 
     return res.status(200).json({
       success: true,
       data: {
-        cards: {
-          totalCampaigns: toNumber(totalCampaigns, 0),
-          draftCampaigns: toNumber(draftCampaigns, 0),
-          scheduledCampaigns: toNumber(scheduledCampaigns, 0),
-          sendingCampaigns: toNumber(sendingCampaigns, 0),
-          sentCampaigns: toNumber(sentCampaigns, 0),
-          failedCampaigns: toNumber(failedCampaigns, 0),
-          totalRecipients: campaignTotals.totalRecipients,
-          totalSent: campaignTotals.totalSent,
-          totalFailed: campaignTotals.totalFailed,
-          totalUnsubscribed: campaignTotals.totalUnsubscribed,
+        overview: {
+          totalCampaigns,
+          totalLogs,
+          totalRecipients,
+          totalSent,
+          opened,
+          clicked,
+          unsubscribed,
+          failed,
+          openRate: percent(opened, totalSent || totalLogs),
+          clickRate: percent(clicked, totalSent || totalLogs),
+          unsubscribeRate: percent(unsubscribed, totalSent || totalLogs),
+          failureRate: percent(failed, totalRecipients || totalLogs),
         },
-        logs: logBreakdown,
-        engagement: buildEngagementResponse(
-          engagementTotals,
-          campaignTotals.totalSent
-        ),
-        recentCampaigns: Array.isArray(recentCampaigns) ? recentCampaigns : [],
-        generatedAt: new Date().toISOString(),
+        campaigns: campaignSummaries,
       },
     });
   } catch (error) {
@@ -206,106 +236,26 @@ export async function getEmailCampaignAnalytics(req, res, next) {
 
 export async function getEmailCampaignAnalyticsById(req, res, next) {
   try {
-    const { id } = req.params;
-
-    if (!isValidObjectId(id)) {
+    if (!isValidObjectId(req.params.id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid campaign id",
       });
     }
 
-    const campaignObjectId = new mongoose.Types.ObjectId(id);
+    const analytics = await buildCampaignAnalytics(req.params.id);
 
-    const campaign = await EmailCampaign.findById(id)
-      .select(
-        "name subject previewText brandName headline subheadline status audienceType totalRecipients totalSent totalFailed totalUnsubscribed scheduledFor sentAt createdAt updatedAt"
-      )
-      .lean();
-
-    if (!campaign) {
+    if (!analytics) {
       return res.status(404).json({
         success: false,
-        message: "Email campaign not found",
+        message: "Campaign analytics not found",
       });
     }
 
-    const [statusRows, engagementRows, recentActivity] = await Promise.all([
-      EmailCampaignLog.aggregate([
-        {
-          $match: {
-            campaign: campaignObjectId,
-          },
-        },
-        {
-          $group: {
-            _id: "$status",
-            count: { $sum: 1 },
-          },
-        },
-      ]),
-
-      EmailCampaignLog.aggregate([
-        {
-          $match: {
-            campaign: campaignObjectId,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            totalLogs: { $sum: 1 },
-            totalOpenEvents: { $sum: { $ifNull: ["$openCount", 0] } },
-            totalClickEvents: { $sum: { $ifNull: ["$clickCount", 0] } },
-            uniqueOpenedLogs: {
-              $sum: {
-                $cond: [{ $ne: ["$openedAt", null] }, 1, 0],
-              },
-            },
-            uniqueClickedLogs: {
-              $sum: {
-                $cond: [{ $ne: ["$clickedAt", null] }, 1, 0],
-              },
-            },
-            uniqueUnsubscribedLogs: {
-              $sum: {
-                $cond: [{ $ne: ["$unsubscribedAt", null] }, 1, 0],
-              },
-            },
-          },
-        },
-      ]),
-
-      EmailCampaignLog.find({ campaign: campaignObjectId })
-        .select(
-          "email status sentAt openedAt clickedAt unsubscribedAt openCount clickCount lastOpenedAt lastClickedAt errorMessage createdAt updatedAt"
-        )
-        .sort({ updatedAt: -1, createdAt: -1 })
-        .limit(20)
-        .lean(),
-    ]);
-
-    const logBreakdown = applyLogBreakdownRows(statusRows);
-    const engagementTotals = normalizeEngagementTotals(engagementRows[0]);
-
     return res.status(200).json({
       success: true,
-      data: {
-        campaign: {
-          ...campaign,
-          totalRecipients: toNumber(campaign.totalRecipients, 0),
-          totalSent: toNumber(campaign.totalSent, 0),
-          totalFailed: toNumber(campaign.totalFailed, 0),
-          totalUnsubscribed: toNumber(campaign.totalUnsubscribed, 0),
-        },
-        logs: logBreakdown,
-        engagement: buildEngagementResponse(
-          engagementTotals,
-          campaign.totalSent
-        ),
-        recentActivity: Array.isArray(recentActivity) ? recentActivity : [],
-        generatedAt: new Date().toISOString(),
-      },
+      data: analytics,
+      analytics,
     });
   } catch (error) {
     next(error);

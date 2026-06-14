@@ -3,34 +3,37 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-/* =========================
-   Session Schema
-========================= */
+const cleanString = (value, max = 120) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+
 const sessionSchema = new Schema(
   {
-    // User who owns this session
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
-    // Store only a hash, never raw refresh tokens or raw session IDs
     sessionKeyHash: {
       type: String,
       required: true,
       trim: true,
       minlength: 32,
       maxlength: 128,
+      select: false,
       index: true,
     },
 
-    // Device information
     deviceName: {
       type: String,
       trim: true,
       default: "Device",
       maxlength: 120,
+      set: (v) => cleanString(v, 120) || "Device",
     },
 
     browser: {
@@ -38,6 +41,7 @@ const sessionSchema = new Schema(
       trim: true,
       default: "Unknown",
       maxlength: 80,
+      set: (v) => cleanString(v, 80) || "Unknown",
     },
 
     os: {
@@ -45,6 +49,7 @@ const sessionSchema = new Schema(
       trim: true,
       default: "Unknown",
       maxlength: 80,
+      set: (v) => cleanString(v, 80) || "Unknown",
     },
 
     userAgent: {
@@ -52,14 +57,16 @@ const sessionSchema = new Schema(
       trim: true,
       default: "",
       maxlength: 500,
+      select: false,
+      set: (v) => cleanString(v, 500),
     },
 
-    // Security/audit information
     ip: {
       type: String,
       trim: true,
       default: "",
       maxlength: 80,
+      set: (v) => cleanString(v, 80),
     },
 
     approxLocation: {
@@ -67,21 +74,21 @@ const sessionSchema = new Schema(
       trim: true,
       default: "",
       maxlength: 160,
+      set: (v) => cleanString(v, 160),
     },
 
     isTrusted: {
       type: Boolean,
       default: false,
+      index: true,
     },
 
-    // Activity tracking
     lastActiveAt: {
       type: Date,
       default: Date.now,
       index: true,
     },
 
-    // Session revocation
     revokedAt: {
       type: Date,
       default: null,
@@ -93,6 +100,15 @@ const sessionSchema = new Schema(
       trim: true,
       default: "",
       maxlength: 120,
+      enum: [
+        "",
+        "user_revoked_device",
+        "user_revoked_others",
+        "admin_revoked_session",
+        "token_rotated",
+        "logout",
+        "cleanup",
+      ],
     },
   },
   {
@@ -100,16 +116,11 @@ const sessionSchema = new Schema(
   }
 );
 
-/* =========================
-   Indexes
-========================= */
 sessionSchema.index({ user: 1, sessionKeyHash: 1 }, { unique: true });
 sessionSchema.index({ user: 1, revokedAt: 1, lastActiveAt: -1 });
-sessionSchema.index({ user: 1, revokedAt: 1, createdAt: -1 });
+sessionSchema.index({ revokedAt: 1, lastActiveAt: -1 });
+sessionSchema.index({ isTrusted: 1, revokedAt: 1 });
 
-/* =========================
-   Model Export
-========================= */
 const Session =
   mongoose.models.Session || mongoose.model("Session", sessionSchema);
 

@@ -1,12 +1,10 @@
-import axios from "axios";
+// utils/csrf.js
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+import axiosInstance from "./axiosInstance";
 
 export async function getCsrfToken() {
-  const res = await axios.get(`${API_BASE_URL}/auth/csrf`, {
-    withCredentials: true,
-  });
-
-  return res.data?.csrfToken;
+  const response = await axiosInstance.get("/csrf-token");
+  return response?.data?.csrfToken || response?.data?.csrf || "";
 }
+
+export default getCsrfToken;

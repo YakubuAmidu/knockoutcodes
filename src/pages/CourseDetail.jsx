@@ -10,12 +10,15 @@ import styled, { keyframes } from "styled-components";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../components/Toast";
 import axiosInstance from "../../utils/axiosInstance";
+import ReviewForm from "../components/ReviewForm";
 import { createMembershipCheckoutSession } from "../lib/apiClient";
 
 import beginnerImg from "../assets/knockoutcodes-beginner-access-pass.png";
 import intermediateImg from "../assets/knockoutcodes-intermediate-access-pass.png";
 import advanceImg from "../assets/knockoutcodes-advance-access-pass.png";
 import completeImg from "../assets/knockoutcodes-complete-access-pass.png";
+
+const VALID_MEMBERSHIPS = ["beginner", "intermediate", "advance", "complete"];
 
 function formatMinutesToHours(minutes) {
   const m = Number(minutes);
@@ -42,10 +45,14 @@ function normalizeLevel(value) {
 }
 
 function getRequiredMembershipLevel(course) {
+  if (course?.isFree) return "none";
+
   const level = course?.requiredMembershipLevel || course?.level || "beginner";
   const normalized = normalizeLevel(level);
 
-  if (!normalized || normalized === "all-levels") return "beginner";
+  if (!normalized || normalized === "none") return "none";
+  if (normalized === "all-levels") return "beginner";
+
   return normalized;
 }
 
@@ -54,7 +61,13 @@ function toArray(value) {
 }
 
 function pickLocalCourseImage(course) {
-  const key = String(course?.slug || course?.title || course?._id || "").toLowerCase();
+  const key = String(
+    course?.slug || course?.title || course?._id || ""
+  ).toLowerCase();
+
+    if (key.includes("free") || key.includes("7-day") || key.includes("fight-camp-challenge")) {
+    return beginnerImg;
+  }
 
   if (key.includes("beginner")) return beginnerImg;
   if (key.includes("intermediate")) return intermediateImg;
@@ -66,21 +79,27 @@ function pickLocalCourseImage(course) {
 }
 
 function getCourseHook(course) {
-  const level = String(course?.level || course?.title || "").toLowerCase();
+  const text = String(
+    `${course?.slug || ""} ${course?.title || ""} ${course?.level || ""}`
+  ).toLowerCase();
 
-  if (level.includes("beginner")) {
+  if (course?.isFree || text.includes("free") || text.includes("7-day")) {
+    return "Most people start boxing wrong. This free 7-day challenge fixes your foundation before bad habits take over.";
+  }
+
+  if (text.includes("beginner")) {
     return "If you’re starting from zero, this is where discipline becomes skill.";
   }
 
-  if (level.includes("intermediate")) {
+  if (text.includes("intermediate")) {
     return "You know the basics — now we make your movement dangerous.";
   }
 
-  if (level.includes("advanced") || level.includes("advance")) {
+  if (text.includes("advanced") || text.includes("advance")) {
     return "This is where pressure, power, and control start looking different.";
   }
 
-  if (level.includes("complete")) {
+  if (text.includes("complete")) {
     return "Everything. All systems. One clean path to champion-level execution.";
   }
 
@@ -103,6 +122,49 @@ function resolveCheckoutUrl(res) {
   if (/^https?:\/\//i.test(url)) return String(url);
   if (String(url).startsWith("/")) return `${window.location.origin}${url}`;
   return "";
+}
+
+function getVideoEmbedUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw);
+
+    if (parsed.hostname.includes("youtube.com")) {
+      const videoId = parsed.searchParams.get("v");
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+
+      if (parsed.pathname.includes("/shorts/")) {
+        const id = parsed.pathname.split("/shorts/")[1]?.split("/")[0];
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+
+      if (parsed.pathname.includes("/embed/")) {
+        return raw;
+      }
+    }
+
+    if (parsed.hostname.includes("youtu.be")) {
+      const id = parsed.pathname.replace("/", "");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+
+    if (parsed.hostname.includes("vimeo.com")) {
+      const id = parsed.pathname.split("/").filter(Boolean).pop();
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+
+    return raw;
+  } catch {
+    return raw;
+  }
+}
+
+function isDirectVideo(url) {
+  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""));
 }
 
 function buildFallbackDetails(course) {
@@ -130,6 +192,8 @@ function buildFallbackDetails(course) {
         ],
     whatYouLearn: toArray(course?.whatYouLearn).length
       ? course.whatYouLearn
+      : toArray(course?.whatYouWillLearn).length
+      ? course.whatYouWillLearn
       : [
           "Stance, guard, balance, and clean movement.",
           "Punch mechanics, combinations, and controlled execution.",
@@ -165,6 +229,69 @@ function buildFallbackDetails(course) {
 }
 
 const COURSE_DETAIL = {
+    "free-7-day-fight-camp-challenge": {
+    _id: "free-7-day-fight-camp-challenge",
+    slug: "free-7-day-fight-camp-challenge",
+    eyebrow: "Free Fight Camp Challenge",
+    badgeLeft: "Free Starter System",
+    badgeRight: "7-Day Challenge",
+    title: "FREE 7-DAY FIGHT CAMP CHALLENGE",
+    hook:
+      "Most people start boxing wrong. This free 7-day challenge fixes your foundation before bad habits take over.",
+    image: beginnerImg,
+    level: "Free Starter",
+    requiredMembershipLevel: "none",
+    coach: "KnockoutCodes Coaching Team",
+    durationInMinutes: 70,
+    totalLessons: 7,
+    price: 0,
+    salePrice: null,
+    isFree: true,
+    allowSinglePurchase: false,
+    category: "Boxing Fundamentals",
+    whatThisIs:
+      "This free 7-day fight camp challenge gives new students a real taste of the KnockoutCodes system. You will build stance, balance, jab mechanics, defense, movement, conditioning, and fight flow without guessing what to train next.",
+    whatYouWillLearn: [
+      "How to stand like a fighter instead of a beginner.",
+      "How to build balance before throwing punches.",
+      "How to throw a cleaner jab.",
+      "How to defend, counter, and move with control.",
+      "How to connect daily training into one simple fight flow.",
+    ],
+    whyThisCourse: [
+      "It gives new students a clean starting point before joining paid courses.",
+      "It helps beginners stop training randomly.",
+      "It turns curiosity into action with a simple 7-day structure.",
+    ],
+    outcomes: [
+      "Cleaner stance and guard.",
+      "Better balance and movement.",
+      "More confidence starting the paid KnockoutCodes system.",
+    ],
+    whatYouGet: [
+      "Free access to the 7-day challenge.",
+      "Step-by-step beginner lessons.",
+      "Daily assignments to practice immediately.",
+      "A clear path into the full KnockoutCodes training system.",
+    ],
+    forYouIf: [
+      "You are new to boxing.",
+      "You want structure before paying for a full course.",
+      "You want to see how KnockoutCodes teaches before joining.",
+    ],
+    howItWorks: [
+      "Start the free course.",
+      "Complete one lesson per day.",
+      "Practice the daily assignment.",
+      "After Day 7, continue into the Beginner or Complete Fight Camp system.",
+    ],
+    rules: [
+      "Do not rush the basics.",
+      "Train one day at a time.",
+      "Repeat until your body moves clean.",
+    ],
+  },
+
   "kc-beginner": {
     _id: "kc-beginner",
     eyebrow: "Beginner Access Pass",
@@ -176,9 +303,6 @@ const COURSE_DETAIL = {
     level: "Beginner",
     coach: "KnockoutCodes Coaching Team",
     durationInMinutes: 360,
-    studentsCount: 1540,
-    ratingAverage: 4.8,
-    ratingCount: 128,
     price: 20,
     whatThisIs:
       "Beginner Access is a premium starter program designed to build your boxing foundation the right way. You’ll learn clean mechanics, simple combos, beginner defense, and a repeatable weekly plan.",
@@ -194,9 +318,6 @@ const COURSE_DETAIL = {
     level: "Intermediate",
     coach: "KnockoutCodes Coaching Team",
     durationInMinutes: 540,
-    studentsCount: 980,
-    ratingAverage: 4.9,
-    ratingCount: 92,
     price: 35,
     whatThisIs:
       "Intermediate Access is where you stop trying and start executing. This course sharpens movement, timing, defense habits, and counter systems.",
@@ -212,9 +333,6 @@ const COURSE_DETAIL = {
     level: "Advanced",
     coach: "KnockoutCodes Coaching Team",
     durationInMinutes: 720,
-    studentsCount: 620,
-    ratingAverage: 4.9,
-    ratingCount: 64,
     price: 40,
     whatThisIs:
       "Advanced Access is for disciplined executors who want precision, power, pressure control, and advanced defense-to-counter systems.",
@@ -230,9 +348,6 @@ const COURSE_DETAIL = {
     level: "All Levels",
     coach: "KnockoutCodes Coaching Team",
     durationInMinutes: 1200,
-    studentsCount: 410,
-    ratingAverage: 5.0,
-    ratingCount: 41,
     price: 50,
     whatThisIs:
       "Complete Access is the full KnockoutCodes blueprint — fundamentals, footwork, defense, power, strategy, and ring IQ organized into one long-term training system.",
@@ -248,14 +363,23 @@ const CourseDetail = () => {
 
   const [isOwned, setIsOwned] = useState(false);
   const [checkingOwnership, setCheckingOwnership] = useState(false);
-  const [membershipCheckoutLoading, setMembershipCheckoutLoading] = useState(false);
+  const [membershipCheckoutLoading, setMembershipCheckoutLoading] =
+    useState(false);
+  const [freshCourse, setFreshCourse] = useState(null);
+
+  const [lessons, setLessons] = useState([]);
+  const [previewLesson, setPreviewLesson] = useState(null);
+  const [selectedPreviewLesson, setSelectedPreviewLesson] = useState(null);
+  const [lessonLoading, setLessonLoading] = useState(false);
+  const [lessonError, setLessonError] = useState("");
+  const [lessonAccess, setLessonAccess] = useState(null);
+  const [lessonDurationInMinutes, setLessonDurationInMinutes] = useState(0);
 
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   const {
     checkoutLoading,
     checkoutError,
-    checkoutUrl,
     alreadyPurchased,
     purchasedCourseId,
     purchaseMessage,
@@ -266,8 +390,12 @@ const CourseDetail = () => {
     [location.search]
   );
 
-  const selectedMembershipId =
+  const rawMembershipId =
     searchParams.get("membershipId") || location?.state?.membershipId || "";
+
+  const selectedMembershipId = VALID_MEMBERSHIPS.includes(rawMembershipId)
+    ? rawMembershipId
+    : "";
 
   const selectedBillingPeriod =
     searchParams.get("billingPeriod") ||
@@ -280,16 +408,45 @@ const CourseDetail = () => {
     const fromState = location?.state?.course || null;
     const hard = COURSE_DETAIL[courseId] || null;
 
-    if (hard && fromState && (fromState._id || fromState.title)) {
-      return { ...hard, ...fromState };
+    if (!hard && !fromState && !freshCourse) return null;
+
+    return {
+      ...(hard || {}),
+      ...(fromState || {}),
+      ...(freshCourse || {}),
+    };
+  }, [courseId, location?.state?.course, freshCourse]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadFreshCourse() {
+      if (!courseId) return;
+
+      try {
+        const { data } = await axiosInstance.get(`/courses/${courseId}`);
+
+        const fresh = data?.course || data?.data || data?.courseDetail || null;
+
+        if (mounted && fresh) {
+          setFreshCourse(fresh);
+        }
+      } catch {
+        // Keep static fallback. Do not break page.
+      }
     }
 
-    return hard || fromState || null;
-  }, [courseId, location?.state?.course]);
+    loadFreshCourse();
+
+    return () => {
+      mounted = false;
+    };
+  }, [courseId]);
 
   const details = useMemo(() => buildFallbackDetails(course || {}), [course]);
 
-  const resolvedCourseId = course?._id || courseId;
+  const resolvedCourseId = freshCourse?._id || course?._id || courseId;
+const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
   const showOwnedState = Boolean(isOwned || alreadyPurchased);
   const isAnyCheckoutLoading = Boolean(
     checkoutLoading || membershipCheckoutLoading
@@ -311,6 +468,59 @@ const CourseDetail = () => {
   }, [course, navigate, toast]);
 
   useEffect(() => {
+    if (!resolvedCourseId) return;
+
+    let mounted = true;
+
+    async function loadLessons() {
+      try {
+        setLessonLoading(true);
+        setLessonError("");
+
+        const { data } = await axiosInstance.get(
+  `/lessons/by-course/${encodeURIComponent(lessonCourseLookupId)}`
+);
+
+        const incomingLessons = data?.lessons || data?.data || [];
+        const incomingPreview =
+          data?.previewLesson ||
+          incomingLessons.find((lesson) => lesson?.isPreview && lesson?.videoUrl) ||
+          incomingLessons.find((lesson) => lesson?.canPlay && lesson?.videoUrl) ||
+          null;
+
+        if (mounted) {
+          setLessons(Array.isArray(incomingLessons) ? incomingLessons : []);
+          setPreviewLesson(incomingPreview);
+          setSelectedPreviewLesson(incomingPreview);
+          setLessonAccess(data?.access || null);
+          setLessonDurationInMinutes(Number(data?.totalDurationInMinutes) || 0);
+        }
+      } catch (error) {
+        if (mounted) {
+          setLessons([]);
+          setPreviewLesson(null);
+          setSelectedPreviewLesson(null);
+          setLessonAccess(null);
+          setLessonDurationInMinutes(0);
+          setLessonError(
+            error?.response?.data?.message ||
+              error?.message ||
+              "Lessons could not be loaded."
+          );
+        }
+      } finally {
+        if (mounted) setLessonLoading(false);
+      }
+    }
+
+    loadLessons();
+
+    return () => {
+      mounted = false;
+    };
+  }, [lessonCourseLookupId, resolvedCourseId]);
+
+  useEffect(() => {
     if (!isAuthenticated || authLoading || !resolvedCourseId) {
       setIsOwned(false);
       return;
@@ -327,7 +537,14 @@ const CourseDetail = () => {
         );
 
         if (mounted) {
-          setIsOwned(Boolean(data?.hasAccess || data?.isEnrolled));
+          setIsOwned(
+            Boolean(
+              data?.hasAccess ||
+                data?.isEnrolled ||
+                data?.access?.allowed ||
+                data?.data?.hasAccess
+            )
+          );
         }
       } catch {
         if (mounted) setIsOwned(false);
@@ -342,17 +559,6 @@ const CourseDetail = () => {
       mounted = false;
     };
   }, [isAuthenticated, authLoading, resolvedCourseId]);
-
-  useEffect(() => {
-    if (
-      checkoutUrl &&
-      typeof checkoutUrl === "string" &&
-      /^https?:\/\//i.test(checkoutUrl)
-    ) {
-      window.location.assign(checkoutUrl);
-      dispatch(resetCourseState());
-    }
-  }, [checkoutUrl, dispatch]);
 
   useEffect(() => {
     if (!alreadyPurchased) return;
@@ -488,8 +694,17 @@ const CourseDetail = () => {
   ]);
 
   const handleEnroll = useCallback(() => {
+    if (!resolvedCourseId) {
+      toast?.push?.({
+        title: "Course Error",
+        description:
+          "Course ID is missing. Please go back and choose the course again.",
+        variant: "danger",
+      });
+      return;
+    }
+
     if (
-      !resolvedCourseId ||
       authLoading ||
       checkoutLoading ||
       membershipCheckoutLoading ||
@@ -504,6 +719,15 @@ const CourseDetail = () => {
     }
 
     if (course?.isFree) {
+      if (!isAuthenticated) {
+        navigate("/login", {
+          state: {
+            from: getCourseDetailReturnPath(),
+          },
+        });
+        return;
+      }
+
       navigate(`/course-player/${encodeURIComponent(resolvedCourseId)}`);
       return;
     }
@@ -539,11 +763,12 @@ const CourseDetail = () => {
     course?.allowSinglePurchase,
     isAuthenticated,
     hasSelectedMembership,
-    handleMembershipCheckout,
-    handleJoinMembership,
     dispatch,
+    toast,
     navigate,
     getCourseDetailReturnPath,
+    handleMembershipCheckout,
+    handleJoinMembership,
   ]);
 
   const handleBack = useCallback(() => {
@@ -565,6 +790,11 @@ const CourseDetail = () => {
     selectedBillingPeriod,
   ]);
 
+  const handlePreviewPick = useCallback((lesson) => {
+    if (!lesson?.videoUrl) return;
+    setSelectedPreviewLesson(lesson);
+  }, []);
+
   if (!course) {
     return (
       <PageWrap>
@@ -575,7 +805,10 @@ const CourseDetail = () => {
     );
   }
 
-  const durationLabel = formatMinutesToHours(course?.durationInMinutes);
+  const totalLessonCount = lessons.length || Number(course?.totalLessons) || 0;
+  const durationLabel =
+    formatMinutesToHours(lessonDurationInMinutes) ||
+    formatMinutesToHours(course?.durationInMinutes);
 
   const hasSale =
     course?.salePrice != null &&
@@ -589,9 +822,22 @@ const CourseDetail = () => {
   const leftLearn = whatYouLearn.slice(0, Math.ceil(whatYouLearn.length / 2));
   const rightLearn = whatYouLearn.slice(Math.ceil(whatYouLearn.length / 2));
 
+  const ratingAverage = Number(course?.ratingAverage || 0);
+  const ratingCount = Number(course?.ratingCount || 0);
+  const studentsCount = Number(course?.studentsCount || 0);
+
   const isBestSeller =
     Boolean(course.isFeatured) ||
-    (Number(course.ratingAverage) >= 4.7 && Number(course.ratingCount) >= 20);
+    (ratingAverage >= 4.7 && ratingCount >= 20);
+
+  const canReview = Boolean(isAuthenticated && showOwnedState);
+  const shouldLoginToReview = Boolean(!isAuthenticated);
+  const shouldBuyToReview = Boolean(isAuthenticated && !showOwnedState);
+
+  const activePreview = selectedPreviewLesson || previewLesson;
+  const activePreviewUrl = activePreview?.videoUrl || course?.promoVideo || "";
+  const embedUrl = getVideoEmbedUrl(activePreviewUrl);
+  const directVideo = isDirectVideo(embedUrl);
 
   return (
     <PageWrap>
@@ -618,22 +864,28 @@ const CourseDetail = () => {
             <MetaGrid>
               {course.level ? <MetaPill>Level: {course.level}</MetaPill> : null}
               {course.coach ? <MetaPill>Coach: {course.coach}</MetaPill> : null}
-              {durationLabel ? <MetaPill>Duration: {durationLabel}</MetaPill> : null}
+              {durationLabel ? <MetaPill>Training Time: {durationLabel}</MetaPill> : null}
+              {totalLessonCount > 0 ? (
+                <MetaPill>{totalLessonCount} Lessons</MetaPill>
+              ) : null}
               {showOwnedState ? <MetaPill>Already Purchased</MetaPill> : null}
               {hasSelectedMembership ? (
                 <MetaPill>
                   Membership checkout: {selectedBillingPeriod || "monthly"}
                 </MetaPill>
               ) : null}
-              {typeof course.studentsCount === "number" ? (
-                <MetaPill>{course.studentsCount} students</MetaPill>
-              ) : null}
-              {typeof course.ratingAverage === "number" ? (
-                <MetaPill>
-                  ⭐ {Number(course.ratingAverage).toFixed(1)} / 5
-                  {course.ratingCount ? ` • ${course.ratingCount} ratings` : ""}
-                </MetaPill>
-              ) : null}
+              <MetaPill>
+                {studentsCount > 0
+                  ? `${studentsCount} enrolled`
+                  : "New students incoming"}
+              </MetaPill>
+
+              <MetaPill>
+                ⭐ {ratingAverage > 0 ? ratingAverage.toFixed(1) : "New"}
+                {ratingCount > 0
+                  ? ` • ${ratingCount} reviews`
+                  : " • No reviews yet"}
+              </MetaPill>
             </MetaGrid>
           </HeroCopy>
 
@@ -672,6 +924,159 @@ const CourseDetail = () => {
         <Layout>
           <MainCard>
             <Section>
+              <SectionKicker>Preview the training</SectionKicker>
+              <SectionTitle>Watch the first lesson preview</SectionTitle>
+
+              <PreviewGrid>
+                <PreviewCard>
+                  {embedUrl ? (
+                    directVideo ? (
+                      <PreviewVideo controls src={embedUrl} />
+                    ) : (
+                      <PreviewFrame
+                        src={embedUrl}
+                        title={activePreview?.title || `${course.title} preview`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    )
+                  ) : (
+                    <PreviewEmpty>
+                      <strong>Preview coming soon</strong>
+                      <span>
+                        Add a video URL to the first preview lesson so students can
+                        see the course before they buy.
+                      </span>
+                    </PreviewEmpty>
+                  )}
+                </PreviewCard>
+
+                <PreviewInfo>
+                  <PreviewTag>
+                    {activePreview?.isPreview ? "Free Preview" : "Course Preview"}
+                  </PreviewTag>
+                  <PreviewTitle>
+                    {activePreview?.title || "First Lesson Preview"}
+                  </PreviewTitle>
+                  <PreviewText>
+                    {activePreview?.description ||
+                      "Give customers a clean preview of the course experience before they unlock the full training room."}
+                  </PreviewText>
+
+                  <PreviewStats>
+                    <PreviewStat>
+                      <strong>{totalLessonCount || "—"}</strong>
+                      <span>Total Lessons</span>
+                    </PreviewStat>
+                    <PreviewStat>
+                      <strong>{durationLabel || "Self-paced"}</strong>
+                      <span>Training Time</span>
+                    </PreviewStat>
+                    <PreviewStat>
+                      <strong>
+                        {lessonAccess?.allowed || showOwnedState
+                          ? "Unlocked"
+                          : "Preview"}
+                      </strong>
+                      <span>Access</span>
+                    </PreviewStat>
+                  </PreviewStats>
+                </PreviewInfo>
+              </PreviewGrid>
+            </Section>
+
+            <Section>
+              <SectionKicker>Course lessons</SectionKicker>
+              <SectionTitle>Everything inside this course</SectionTitle>
+
+              {lessonLoading ? (
+                <LessonNotice>Loading lessons...</LessonNotice>
+              ) : lessonError ? (
+                <LessonNotice>{lessonError}</LessonNotice>
+              ) : lessons.length > 0 ? (
+                <LessonList>
+                  {lessons.map((lesson, index) => {
+                    const canPlayPreview = Boolean(lesson?.videoUrl);
+                    const isActive =
+                      activePreview?._id &&
+                      lesson?._id &&
+                      String(activePreview._id) === String(lesson._id);
+
+                    return (
+                      <LessonItem
+                        key={lesson?._id || `${lesson?.title}-${index}`}
+                        $active={isActive}
+                      >
+                        <LessonNumber>
+                          {String(index + 1).padStart(2, "0")}
+                        </LessonNumber>
+
+                        <LessonBody>
+                          <LessonTitleRow>
+                            <LessonName>{lesson?.title}</LessonName>
+
+                            <LessonBadges>
+                              {lesson?.isPreview ? (
+                                <PreviewBadge>Preview</PreviewBadge>
+                              ) : null}
+
+                              {lesson?.isLocked ? (
+                                <LockedBadge>Locked</LockedBadge>
+                              ) : (
+                                <UnlockedBadge>Unlocked</UnlockedBadge>
+                              )}
+                            </LessonBadges>
+                          </LessonTitleRow>
+
+                          {lesson?.description ? (
+                            <LessonDescription>
+                              {lesson.description}
+                            </LessonDescription>
+                          ) : null}
+
+                          <LessonMetaRow>
+                            {lesson?.durationInMinutes ? (
+                              <span>
+                                {formatMinutesToHours(lesson.durationInMinutes)}
+                              </span>
+                            ) : (
+                              <span>Self-paced</span>
+                            )}
+
+                            {lesson?.isLocked ? (
+                              <span>Unlock to watch full lesson</span>
+                            ) : (
+                              <span>Available to watch</span>
+                            )}
+                          </LessonMetaRow>
+                        </LessonBody>
+
+                        <LessonAction
+                          type="button"
+                          disabled={!canPlayPreview}
+                          onClick={() => handlePreviewPick(lesson)}
+                        >
+                          {canPlayPreview
+                            ? isActive
+                              ? "Now Playing"
+                              : "Play Preview"
+                            : lesson?.isLocked
+                            ? "Locked"
+                            : "No Video"}
+                        </LessonAction>
+                      </LessonItem>
+                    );
+                  })}
+                </LessonList>
+              ) : (
+                <LessonNotice>
+                  No lessons added yet. Once you create lessons for this course,
+                  they will show here automatically.
+                </LessonNotice>
+              )}
+            </Section>
+
+            <Section>
               <SectionKicker>Why this course matters</SectionKicker>
               <SectionTitle>Train with a path, not confusion.</SectionTitle>
 
@@ -684,28 +1089,6 @@ const CourseDetail = () => {
                 ))}
               </LuxuryGrid>
             </Section>
-
-            <SplitSection>
-              <Section>
-                <SectionKicker>Transformation</SectionKicker>
-                <SectionTitle>What you’ll achieve</SectionTitle>
-                <List>
-                  {toArray(details.outcomes).map((item) => (
-                    <Li key={item}>{item}</Li>
-                  ))}
-                </List>
-              </Section>
-
-              <Section>
-                <SectionKicker>Best fit</SectionKicker>
-                <SectionTitle>Who this is for</SectionTitle>
-                <List>
-                  {toArray(details.forYouIf).map((item) => (
-                    <Li key={item}>{item}</Li>
-                  ))}
-                </List>
-              </Section>
-            </SplitSection>
 
             <Section>
               <SectionKicker>Curriculum preview</SectionKicker>
@@ -756,6 +1139,48 @@ const CourseDetail = () => {
                   <RulePill key={item}>{item}</RulePill>
                 ))}
               </RuleRow>
+            </Section>
+
+            <Section>
+              <SectionKicker>Student Review</SectionKicker>
+              <SectionTitle>Tell The Next Student The Truth</SectionTitle>
+
+              <ReviewSectionText>
+                Your review helps future students know if this course is worth
+                their time, money, and discipline.
+              </ReviewSectionText>
+
+              {canReview ? (
+                <ReviewForm
+                  courseId={resolvedCourseId}
+                  courseTitle={course?.title || "this course"}
+                />
+              ) : shouldLoginToReview ? (
+                <ReviewLockedBox>
+                  <strong>Login required</strong>
+                  <span>
+                    You need to login and own this course before leaving a review.
+                  </span>
+                  <Ghost
+                    type="button"
+                    onClick={() =>
+                      navigate("/login", {
+                        state: { from: getCourseDetailReturnPath() },
+                      })
+                    }
+                  >
+                    Login To Review
+                  </Ghost>
+                </ReviewLockedBox>
+              ) : shouldBuyToReview ? (
+                <ReviewLockedBox>
+                  <strong>Verified students only</strong>
+                  <span>
+                    Only students who purchased or unlocked this course can leave a
+                    review.
+                  </span>
+                </ReviewLockedBox>
+              ) : null}
             </Section>
           </MainCard>
 
@@ -847,8 +1272,8 @@ const CourseDetail = () => {
                 <OwnedNotice>
                   <OwnedTitle>Access Unlocked</OwnedTitle>
                   <OwnedText>
-                    This course is unlocked through your purchase or active membership.
-                    Your access is protected.
+                    This course is unlocked through your purchase or active
+                    membership. Your access is protected.
                   </OwnedText>
                 </OwnedNotice>
               ) : null}
@@ -862,6 +1287,23 @@ const CourseDetail = () => {
               </Notice>
 
               <MiniStats>
+                <MiniStat>
+                  <strong>
+                    {ratingAverage > 0 ? ratingAverage.toFixed(1) : "New"}
+                  </strong>
+                  <span>Rating</span>
+                </MiniStat>
+
+                <MiniStat>
+                  <strong>{ratingCount}</strong>
+                  <span>Reviews</span>
+                </MiniStat>
+
+                <MiniStat>
+                  <strong>{totalLessonCount || "Coming"}</strong>
+                  <span>Lessons</span>
+                </MiniStat>
+
                 <MiniStat>
                   <strong>{durationLabel || "Self-paced"}</strong>
                   <span>Training time</span>
@@ -1175,6 +1617,292 @@ const SectionTitle = styled.h2`
   line-height: 1;
   font-weight: 950;
   letter-spacing: -0.04em;
+`;
+
+const PreviewGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 14px;
+  align-items: stretch;
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const PreviewCard = styled.div`
+  border-radius: ${({ theme }) => theme.radius.xl};
+  overflow: hidden;
+  min-height: 320px;
+  background:
+    radial-gradient(circle at center, rgba(214, 182, 159, 0.12), transparent 42%),
+    rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+  box-shadow: ${({ theme }) => theme.shadow.soft};
+
+  @media (max-width: 640px) {
+    min-height: 230px;
+  }
+`;
+
+const PreviewFrame = styled.iframe`
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  border: 0;
+  display: block;
+
+  @media (max-width: 640px) {
+    min-height: 230px;
+  }
+`;
+
+const PreviewVideo = styled.video`
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  display: block;
+  object-fit: cover;
+  background: #000;
+
+  @media (max-width: 640px) {
+    min-height: 230px;
+  }
+`;
+
+const PreviewEmpty = styled.div`
+  min-height: 320px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 24px;
+
+  strong {
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 18px;
+    font-weight: 950;
+  }
+
+  span {
+    display: block;
+    max-width: 430px;
+    margin-top: 8px;
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.76;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+`;
+
+const PreviewInfo = styled.div`
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(214, 182, 159, 0.14);
+`;
+
+const PreviewTag = styled.div`
+  display: inline-flex;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  padding: 7px 10px;
+  background: rgba(214, 182, 159, 0.14);
+  border: 1px solid rgba(214, 182, 159, 0.22);
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+const PreviewTitle = styled.h3`
+  margin: 14px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+`;
+
+const PreviewText = styled.p`
+  margin: 10px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  font-size: 13px;
+  line-height: 1.7;
+`;
+
+const PreviewStats = styled.div`
+  margin-top: 16px;
+  display: grid;
+  gap: 9px;
+`;
+
+const PreviewStat = styled.div`
+  border-radius: ${({ theme }) => theme.radius.lg};
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 249, 242, 0.09);
+
+  strong {
+    display: block;
+    color: ${({ theme }) => theme.colors.ivory};
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  span {
+    display: block;
+    margin-top: 3px;
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 10px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+`;
+
+const LessonList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const LessonItem = styled.div`
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 14px;
+  background: ${({ $active }) =>
+    $active ? "rgba(214, 182, 159, 0.16)" : "rgba(0, 0, 0, 0.26)"};
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(214, 182, 159, 0.36)" : "rgba(214, 182, 159, 0.14)"};
+
+  @media (max-width: 720px) {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+`;
+
+const LessonNumber = styled.div`
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+  font-size: 12px;
+  font-weight: 950;
+`;
+
+const LessonBody = styled.div`
+  min-width: 0;
+`;
+
+const LessonTitleRow = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+  }
+`;
+
+const LessonName = styled.h3`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 950;
+`;
+
+const LessonBadges = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+const PreviewBadge = styled(Badge)`
+  background: rgba(214, 182, 159, 0.92);
+  color: ${({ theme }) => theme.colors.black};
+`;
+
+const LockedBadge = styled(Badge)`
+  background: rgba(0, 0, 0, 0.6);
+  color: ${({ theme }) => theme.colors.ivory};
+`;
+
+const UnlockedBadge = styled(Badge)`
+  background: rgba(255, 249, 242, 0.92);
+  color: ${({ theme }) => theme.colors.black};
+`;
+
+const LessonDescription = styled.p`
+  margin: 7px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.72;
+  font-size: 12.5px;
+  line-height: 1.55;
+`;
+
+const LessonMetaRow = styled.div`
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  span {
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+`;
+
+const LessonAction = styled.button`
+  min-height: 38px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid rgba(255, 249, 242, 0.18);
+  background: rgba(0, 0, 0, 0.28);
+  color: ${({ theme }) => theme.colors.ivory};
+  padding: 0 13px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 249, 242, 0.07);
+    border-color: rgba(214, 182, 159, 0.38);
+  }
+
+  &:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 720px) {
+    grid-column: 2;
+    width: 100%;
+  }
+`;
+
+const LessonNotice = styled.div`
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(214, 182, 159, 0.16);
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.82;
+  font-size: 13px;
+  line-height: 1.65;
 `;
 
 const LuxuryGrid = styled.div`
@@ -1507,4 +2235,38 @@ const OwnedText = styled.p`
   opacity: 0.82;
   font-size: 12.5px;
   line-height: 1.6;
+`;
+
+const ReviewSectionText = styled.p`
+  max-width: 720px;
+  margin: 0 0 16px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  font-size: 13.5px;
+  line-height: 1.7;
+`;
+
+const ReviewLockedBox = styled.div`
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+
+  strong {
+    display: block;
+    color: ${({ theme }) => theme.colors.lightBrown};
+    font-size: 13px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  span {
+    display: block;
+    margin: 8px 0 12px;
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.78;
+    font-size: 13px;
+    line-height: 1.6;
+  }
 `;

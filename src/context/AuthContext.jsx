@@ -1,5 +1,10 @@
 // src/context/AuthContext.jsx
 import {
+  socket,
+  connectUserSocket,
+  disconnectUserSocket,
+} from "../../utils/socket";
+import {
   createContext,
   useCallback,
   useContext,
@@ -24,6 +29,7 @@ const PUBLIC_AUTH_PATHS = new Set([
   "/register",
   "/forgot-password",
   "/reset-password",
+  "/account-access-notice",
   "/home",
   "/",
 ]);
@@ -74,6 +80,9 @@ function sanitizeUser(user) {
     role: user.role || "user",
     avatar: user.avatar || "",
     isActive: user.isActive !== false,
+    isDeleted: user.isDeleted === true,
+    accountStatus: user.accountStatus || "active",
+    statusReason: user.statusReason || "",
     createdAt: user.createdAt || null,
     updatedAt: user.updatedAt || null,
   };
@@ -116,6 +125,31 @@ function clearClientAuth() {
   safeRemove(sessionStorage, "user");
   safeRemove(localStorage, "token");
   safeRemove(sessionStorage, "token");
+}
+
+function saveAccountAccessNotice(data = {}) {
+  safeSet(
+    localStorage,
+    "accountAccessMessage",
+    data.message ||
+      "Your account access has been restricted. Please contact support."
+  );
+
+  safeSet(
+    localStorage,
+    "accountStatus",
+    data.accountStatus || "restricted"
+  );
+
+  if (data.userId) {
+    safeSet(localStorage, "accountAccessUserId", String(data.userId));
+  }
+}
+
+function redirectToAccountAccessNotice(data = {}) {
+  saveAccountAccessNotice(data);
+
+  window.location.replace(data.redirectTo || "/account-access-notice");
 }
 
 function persistUser(user, mode = "local") {
@@ -265,10 +299,30 @@ if (refreshedUser?.isActive === false) {
 
 return refreshedUser;
       }
-    } catch {
-      return null;
-    }
-  }, [ensureCsrf, forceLogout]);
+    } catch (error) {
+  const data = error?.response?.data;
+
+  if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+    saveAccountAccessNotice(data);
+
+    dispatch({
+      type: AUTH_ACTIONS.ACCOUNT_ACCESS_RESTRICTED,
+      payload: {
+        message: data.message,
+        accountStatus: data.accountStatus,
+      },
+    });
+
+    window.location.replace(
+      data.redirectTo || "/account-access-notice"
+    );
+
+    return null;
+  }
+
+  return null;
+}
+  }, [dispatch, ensureCsrf, forceLogout]);
 
   const refresh = useCallback(async () => {
     const freshUser = await bootstrapSession();
@@ -387,7 +441,56 @@ if (freshUser.isActive === false) {
       window.removeEventListener(event, resetTimer);
     });
   };
-}, [user, forceLogout]);
+  }, [user, forceLogout]);
+  
+ useEffect(() => {
+  if (!user?._id) return;
+
+  connectUserSocket(user._id);
+
+  const handleForceLogout = (data = {}) => {
+    forceLogout(
+      data.message || "Your account was logged out by an administrator."
+    );
+  };
+
+  const handleAccessUpdated = (data = {}) => {
+    console.log("ACCOUNT ACCESS UPDATED RECEIVED:", data);
+
+    const nextStatus = data.accountStatus || "restricted";
+    const nextMessage =
+      data.message ||
+      data.statusReason ||
+      "Your account access was updated by an administrator.";
+
+    localStorage.setItem("accountStatus", nextStatus);
+    localStorage.setItem("accountAccessMessage", nextMessage);
+
+    const restricted =
+      data.isDeleted === true ||
+      data.isActive === false ||
+      nextStatus !== "active";
+
+    if (restricted) {
+      window.location.replace("/account-access-notice");
+      return;
+    }
+
+    localStorage.removeItem("accountStatus");
+    localStorage.removeItem("accountAccessMessage");
+
+    window.location.replace("/user-dashboard");
+  };
+
+  socket.on("auth:force-logout", handleForceLogout);
+  socket.on("account:access-updated", handleAccessUpdated);
+
+  return () => {
+    socket.off("auth:force-logout", handleForceLogout);
+    socket.off("account:access-updated", handleAccessUpdated);
+    disconnectUserSocket(user._id);
+  };
+}, [user?._id, forceLogout]);
 
   const login = useCallback(
     async (credentials, options = {}) => {
@@ -435,16 +538,33 @@ dispatch({
           role: loggedInUser.role || "user",
         };
       } catch (error) {
-        clearAuthState();
+  const data = error?.response?.data;
 
-        return {
-          ok: false,
-          error:
-            error?.response?.data?.message ||
-            error?.message ||
-            "Invalid email or password.",
-        };
-      } finally {
+  clearAuthState();
+
+  if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+    dispatch({
+      type: AUTH_ACTIONS.AUTH_FAIL,
+      payload: data.message || "Account access restricted.",
+    });
+
+    redirectToAccountAccessNotice(data);
+
+    return {
+      ok: false,
+      restricted: true,
+      error: data.message || "Account access restricted.",
+    };
+  }
+
+  return {
+    ok: false,
+    error:
+      data?.message ||
+      error?.message ||
+      "Invalid email or password.",
+  };
+}finally {
         if (mountedRef.current) {
           setInitializing(false);
         }

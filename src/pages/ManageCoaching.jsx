@@ -13,7 +13,23 @@ import {
 } from "../lib/adminCoachingApi";
 
 const STATUS_OPTIONS = ["pending", "confirmed", "completed", "cancelled"];
-const TYPE_OPTIONS = ["", "1-on-1", "group", "online", "in-person"];
+const TYPE_OPTIONS = [
+  "",
+  "Power Punch Mechanics",
+  "Speed + Combination Flow",
+  "Defense, Slips + Counters",
+  "Footwork, Angles + Ring IQ",
+  "Body Shots + Inside Fighting",
+  "Southpaw vs Orthodox Strategy",
+  "Bagwork Drill Plan (No Gym)",
+  "Conditioning + Fight Pace",
+];
+const SESSION_METHOD_OPTIONS = [
+  "Google Meet",
+  "Zoom",
+  "Phone Call",
+  "WhatsApp",
+];
 
 function fmtDate(iso) {
   try {
@@ -60,6 +76,10 @@ export default function ManageCoaching() {
     fullName: "",
     email: "",
     phone: "",
+    sessionMethod: "Google Meet",
+sessionLink: "",
+sessionPhone: "",
+sessionInstructions: "",
     coachingType: "",
     preferredDate: "",
     preferredTime: "",
@@ -116,10 +136,11 @@ export default function ManageCoaching() {
 
     try {
       const data = await fetchAdminCoachings({
-        page: safeUI.page,
-        limit: safeUI.limit,
-        q: safeUI.q,
-      });
+  page: safeUI.page,
+  limit: safeUI.limit,
+  q: safeUI.q,
+  sort: safeUI.sort,
+});
 
       if (!data?.success) {
         const msg = data?.message || "Failed to fetch coachings.";
@@ -181,6 +202,10 @@ setUI("q", "");
       fullName: item?.fullName || "",
       email: item?.email || "",
       phone: item?.phone || "",
+      sessionMethod: item?.sessionMethod || "Google Meet",
+sessionLink: item?.sessionLink || "",
+sessionPhone: item?.sessionPhone || "",
+sessionInstructions: item?.sessionInstructions || "",
       coachingType: item?.coachingType || "",
       preferredDate: item?.preferredDate || item?.date || "",
       preferredTime: item?.preferredTime || item?.time || "",
@@ -202,6 +227,10 @@ setUI("q", "");
       fullName: "",
       email: "",
       phone: "",
+      sessionMethod: "Google Meet",
+sessionLink: "",
+sessionPhone: "",
+sessionInstructions: "",
       coachingType: "",
       preferredDate: "",
       preferredTime: "",
@@ -221,6 +250,8 @@ setUI("q", "");
       if (typeof showToast === "function") showToast("Invalid status.", "error");
       return;
     }
+
+
 
     const fullName = String(draft.fullName || "").trim().slice(0, 80);
     const email = String(draft.email || "").trim().slice(0, 120);
@@ -244,6 +275,10 @@ setUI("q", "");
       fullName,
       email,
       phone,
+      sessionMethod: draft.sessionMethod,
+sessionLink: draft.sessionLink,
+sessionPhone: draft.sessionPhone,
+sessionInstructions: draft.sessionInstructions,
       coachingType,
       preferredDate,
       preferredTime,
@@ -461,7 +496,7 @@ setUI("q", "");
                   </tr>
                 ) : (
                   filteredItems.map((it) => (
-                    <tr key={it._id}>
+                    <tr key={it._id} className={!it.adminViewedAt ? "is-new" : ""}>
                       <td>
                         <ClientCell>
                           <Avatar>
@@ -499,10 +534,14 @@ setUI("q", "");
                       </td>
 
                       <td>
-                        <StatusBadge $status={getStatusLabel(it.status)}>
-                          {getStatusLabel(it.status)}
-                        </StatusBadge>
-                      </td>
+  {!it.adminViewedAt && (
+    <NewBadge>NEW</NewBadge>
+  )}
+
+  <StatusBadge $status={getStatusLabel(it.status)}>
+    {getStatusLabel(it.status)}
+  </StatusBadge>
+</td>
 
                       <td>{fmtDate(it.createdAt)}</td>
 
@@ -663,6 +702,72 @@ setUI("q", "");
                   </Field>
 
                   <Field>
+  <Label>Session Method</Label>
+
+  <Select
+    value={draft.sessionMethod}
+    onChange={(e) =>
+      setDraft((d) => ({
+        ...d,
+        sessionMethod: e.target.value,
+      }))
+    }
+  >
+    {SESSION_METHOD_OPTIONS.map((method) => (
+      <option key={method} value={method}>
+        {method}
+      </option>
+    ))}
+  </Select>
+                  </Field>
+                  
+                  <Field>
+  <Label>Meeting Link</Label>
+
+  <Input
+    value={draft.sessionLink}
+    onChange={(e) =>
+      setDraft((d) => ({
+        ...d,
+        sessionLink: e.target.value.slice(0, 500),
+      }))
+    }
+    placeholder="Google Meet or Zoom link"
+  />
+                  </Field>
+                  
+                  <Field>
+  <Label>Session Phone</Label>
+
+  <Input
+    value={draft.sessionPhone}
+    onChange={(e) =>
+      setDraft((d) => ({
+        ...d,
+        sessionPhone: e.target.value.slice(0, 40),
+      }))
+    }
+    placeholder="+1 555 555 5555"
+  />
+                  </Field>
+                  
+                  <Field style={{ gridColumn: "1 / -1" }}>
+  <Label>Session Instructions</Label>
+
+  <Textarea
+    rows={4}
+    value={draft.sessionInstructions}
+    onChange={(e) =>
+      setDraft((d) => ({
+        ...d,
+        sessionInstructions: e.target.value.slice(0, 800),
+      }))
+    }
+    placeholder="Special instructions for customer..."
+  />
+</Field>
+
+                  <Field>
                     <Label>Coaching Type</Label>
                     <TypeRow>
                       <Select
@@ -723,7 +828,7 @@ setUI("q", "");
                           preferredTime: e.target.value.slice(0, 60),
                         }))
                       }
-                      placeholder="2:30 PM PST"
+                      placeholder="14:30"
                     />
                   </Field>
 
@@ -1113,6 +1218,16 @@ const Table = styled.table`
     letter-spacing: 0.12em;
   }
 
+  /* New coaching requests not viewed by admin */
+  tbody tr.is-new td {
+    background: rgba(214, 182, 159, 0.075);
+    border-bottom-color: rgba(214, 182, 159, 0.18);
+  }
+
+  tbody tr.is-new:hover td {
+    background: rgba(214, 182, 159, 0.11);
+  }
+
   tbody tr:hover td {
     background: rgba(214, 182, 159, 0.04);
   }
@@ -1176,14 +1291,45 @@ const StatusBadge = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.08em;
 
-  ${({ $status, theme }) =>
-    $status === "confirmed"
-      ? `border-color: rgba(214,182,159,0.55); color: ${theme.colors.lightBrown};`
+  ${({ $status }) =>
+    $status === "pending"
+      ? `
+        background: rgba(255, 193, 7, 0.16);
+        border-color: rgba(255, 193, 7, 0.5);
+        color: #ffe08a;
+      `
+      : $status === "confirmed"
+      ? `
+        background: rgba(64, 156, 255, 0.16);
+        border-color: rgba(64, 156, 255, 0.52);
+        color: #9dccff;
+      `
       : $status === "completed"
-      ? "border-color: rgba(130,255,180,0.35);"
+      ? `
+        background: rgba(46, 204, 113, 0.16);
+        border-color: rgba(46, 204, 113, 0.52);
+        color: #9ff0bf;
+      `
       : $status === "cancelled"
-      ? "border-color: rgba(255,120,120,0.38); color: #ffb4b4;"
+      ? `
+        background: rgba(255, 82, 82, 0.16);
+        border-color: rgba(255, 82, 82, 0.52);
+        color: #ffb4b4;
+      `
       : ""}
+`;
+
+const NewBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #ffb300;
+  color: #111;
+  font-size: 10px;
+  font-weight: 900;
 `;
 
 const ActionRow = styled.div`

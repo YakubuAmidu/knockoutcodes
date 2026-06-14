@@ -1,10 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchEmailAnalytics } from "../reducers/emailAnalytics/emailAnalyticsActions";
 import styled from "styled-components";
 import { motion } from "framer-motion";
-import { useToast } from "../components/Toast";
 import {
   ResponsiveContainer,
   LineChart,
@@ -16,204 +14,294 @@ import {
   Legend,
 } from "recharts";
 
+import Footer from "../components/Footer";
+import { useToast } from "../components/Toast";
+import { fetchEmailAnalytics } from "../reducers/emailAnalytics/emailAnalyticsActions";
+
 function AdminEmailAnalytics() {
-  const { showToast } = useToast();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const lastErrorRef = useRef("");
 
-  const { loading, analytics, error } = useSelector(
-    (state) => state.emailAnalytics
-  );
-
-  const chartData =
-    analytics?.recentCampaigns?.map((c) => ({
-      name: c.name?.slice(0, 12) || "Campaign",
-      sent: c.totalSent || 0,
-      failed: c.totalFailed || 0,
-      recipients: c.totalRecipients || 0,
-    })) || [];
+  const {
+    loading = false,
+    analytics = null,
+    error = "",
+  } = useSelector((state) => state.emailAnalytics || {});
 
   useEffect(() => {
     dispatch(fetchEmailAnalytics());
   }, [dispatch]);
 
   useEffect(() => {
-    if (error) showToast(error, "error");
+    if (!error || lastErrorRef.current === error) return;
+    lastErrorRef.current = error;
+    showToast(error, "error");
   }, [error, showToast]);
 
+  const cards = analytics?.cards || {};
+  const engagement = analytics?.engagement || {};
+  const recentCampaigns = Array.isArray(analytics?.recentCampaigns)
+    ? analytics.recentCampaigns
+    : [];
+
+  const chartData = useMemo(() => {
+    return recentCampaigns.map((campaign, index) => ({
+      name:
+        campaign?.name?.length > 14
+          ? `${campaign.name.slice(0, 14)}...`
+          : campaign?.name || `Campaign ${index + 1}`,
+      sent: Number(campaign?.totalSent) || 0,
+      failed: Number(campaign?.totalFailed) || 0,
+      recipients: Number(campaign?.totalRecipients) || 0,
+    }));
+  }, [recentCampaigns]);
+
+  const formatNumber = (value) => {
+    return new Intl.NumberFormat("en-US").format(Number(value) || 0);
+  };
+
+  const formatPercent = (value) => {
+    const clean = Number(value) || 0;
+    return `${clean.toFixed(clean % 1 === 0 ? 0 : 1)}%`;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "-";
+
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "-";
+
+    return parsed.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const handleRefresh = () => {
+    dispatch(fetchEmailAnalytics());
+    showToast("Email analytics refreshed.", "success");
+  };
+
+  const handleOpenCampaign = (campaignId) => {
+    if (!campaignId) return;
+    navigate(`/admin/email-analytics/${campaignId}`);
+  };
+
   return (
-    <Page>
-      <Shell>
-        <Hero
-          as={motion.section}
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-        >
-          <Kicker>EMAIL ANALYTICS COMMAND CENTER</Kicker>
-          <Title>Know What Converts. Cut What Doesn’t.</Title>
-          <Text>
-            Track campaigns, opens, clicks, unsubscribes, failures, audience
-            movement, and performance signals from one premium admin dashboard.
-          </Text>
-        </Hero>
+    <>
+      <Page>
+        <Shell>
+          <Hero
+            as={motion.section}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+          >
+            <HeroTop>
+              <div>
+                <Kicker>EMAIL ANALYTICS COMMAND CENTER</Kicker>
+                <Title>Know What Converts. Cut What Doesn’t.</Title>
+                <Text>
+                  Track campaigns, opens, clicks, unsubscribes, failures,
+                  audience movement, and performance signals from one premium
+                  admin dashboard.
+                </Text>
+              </div>
 
-        {loading ? (
-          <StateCard>Loading email analytics...</StateCard>
-        ) : !analytics ? (
-          <StateCard>No analytics data found yet.</StateCard>
-        ) : (
-          <>
-            <CardsGrid>
-              <StatCard>
-                <StatTitle>Total Campaigns</StatTitle>
-                <StatValue>{analytics.cards?.totalCampaigns || 0}</StatValue>
-              </StatCard>
+              <HeroActions>
+                <ActionButton type="button" onClick={() => navigate(-1)}>
+                  Back
+                </ActionButton>
+                <ActionButton
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                >
+                  {loading ? "Refreshing..." : "Refresh"}
+                </ActionButton>
+              </HeroActions>
+            </HeroTop>
+          </Hero>
 
-              <StatCard>
-                <StatTitle>Total Sent</StatTitle>
-                <StatValue>{analytics.cards?.totalSent || 0}</StatValue>
-              </StatCard>
+          {loading && !analytics ? (
+            <StateCard>Loading email analytics...</StateCard>
+          ) : !analytics ? (
+            <StateCard>No analytics data found yet.</StateCard>
+          ) : (
+            <>
+              <CardsGrid>
+                <StatCard>
+                  <StatTitle>Total Campaigns</StatTitle>
+                  <StatValue>{formatNumber(cards.totalCampaigns)}</StatValue>
+                </StatCard>
 
-              <StatCard>
-                <StatTitle>Total Failed</StatTitle>
-                <StatValue>{analytics.cards?.totalFailed || 0}</StatValue>
-              </StatCard>
+                <StatCard>
+                  <StatTitle>Total Sent</StatTitle>
+                  <StatValue>{formatNumber(cards.totalSent)}</StatValue>
+                </StatCard>
 
-              <StatCard>
-                <StatTitle>Recipients</StatTitle>
-                <StatValue>{analytics.cards?.totalRecipients || 0}</StatValue>
-              </StatCard>
+                <StatCard>
+                  <StatTitle>Total Failed</StatTitle>
+                  <StatValue>{formatNumber(cards.totalFailed)}</StatValue>
+                </StatCard>
 
-              <StatCard>
-                <StatTitle>Open Rate</StatTitle>
-                <StatValue>{analytics.engagement?.openRate || 0}%</StatValue>
-              </StatCard>
+                <StatCard>
+                  <StatTitle>Recipients</StatTitle>
+                  <StatValue>{formatNumber(cards.totalRecipients)}</StatValue>
+                </StatCard>
 
-              <StatCard>
-                <StatTitle>Click Rate</StatTitle>
-                <StatValue>{analytics.engagement?.clickRate || 0}%</StatValue>
-              </StatCard>
+                <StatCard>
+                  <StatTitle>Open Rate</StatTitle>
+                  <StatValue>{formatPercent(engagement.openRate)}</StatValue>
+                </StatCard>
 
-              <StatCard>
-                <StatTitle>Unsubscribe Rate</StatTitle>
-                <StatValue>
-                  {analytics.engagement?.unsubscribeRate || 0}%
-                </StatValue>
-              </StatCard>
-            </CardsGrid>
+                <StatCard>
+                  <StatTitle>Click Rate</StatTitle>
+                  <StatValue>{formatPercent(engagement.clickRate)}</StatValue>
+                </StatCard>
 
-            {chartData.length > 0 && (
+                <StatCard>
+                  <StatTitle>Unsubscribe Rate</StatTitle>
+                  <StatValue>
+                    {formatPercent(engagement.unsubscribeRate)}
+                  </StatValue>
+                </StatCard>
+              </CardsGrid>
+
               <ChartWrapper>
                 <SectionHeader>
-                  <h3>Campaign Performance</h3>
-                  <p>Track sent vs failed vs recipients across campaigns.</p>
+                  <div>
+                    <h3>Campaign Performance</h3>
+                    <p>Track sent vs failed vs recipients across campaigns.</p>
+                  </div>
                 </SectionHeader>
 
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(255,255,255,0.08)"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#D6B69F"
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis stroke="#D6B69F" />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#1a0f0a",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "10px",
-                        color: "#FFF9F2",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="sent"
-                      stroke="#D6B69F"
-                      strokeWidth={3}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="failed"
-                      stroke="#5A3825"
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="recipients"
-                      stroke="#FFF9F2"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={330}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255,255,255,0.08)"
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#D6B69F"
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis stroke="#D6B69F" allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#1a0f0a",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          borderRadius: "10px",
+                          color: "#FFF9F2",
+                        }}
+                        labelStyle={{ color: "#FFF9F2" }}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="sent"
+                        stroke="#D6B69F"
+                        strokeWidth={3}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="failed"
+                        stroke="#8B3A2E"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="recipients"
+                        stroke="#FFF9F2"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyBox>No chart data available yet.</EmptyBox>
+                )}
               </ChartWrapper>
-            )}
 
-            <TableWrapper>
-              <SectionHeader>
-                <h3>Recent Campaigns</h3>
-                <p>Latest campaigns and performance overview.</p>
-              </SectionHeader>
+              <TableWrapper>
+                <SectionHeader>
+                  <div>
+                    <h3>Recent Campaigns</h3>
+                    <p>Latest campaigns and performance overview.</p>
+                  </div>
+                </SectionHeader>
 
-              {analytics?.recentCampaigns?.length > 0 ? (
-                <TableScroll>
-                  <Table>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Recipients</th>
-                        <th>Sent</th>
-                        <th>Failed</th>
-                        <th>Date</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {analytics.recentCampaigns.map((c) => (
-                        <tr
-                          key={c._id}
-                          onClick={() =>
-                            navigate(`/admin/email-analytics/${c._id}`)
-                          }
-                        >
-                          <td>
-                            <CampaignName>{c.name}</CampaignName>
-                            <CampaignSubject>{c.subject}</CampaignSubject>
-                          </td>
-
-                          <td>
-                            <StatusBadge $status={c.status}>
-                              {c.status || "draft"}
-                            </StatusBadge>
-                          </td>
-
-                          <td>{c.totalRecipients || 0}</td>
-                          <td>{c.totalSent || 0}</td>
-                          <td>{c.totalFailed || 0}</td>
-                          <td>
-                            {c.createdAt
-                              ? new Date(c.createdAt).toLocaleDateString()
-                              : "-"}
-                          </td>
+                {recentCampaigns.length > 0 ? (
+                  <TableScroll>
+                    <Table>
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Status</th>
+                          <th>Recipients</th>
+                          <th>Sent</th>
+                          <th>Failed</th>
+                          <th>Date</th>
+                          <th>Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </TableScroll>
-              ) : (
-                <EmptyBox>No recent campaigns yet.</EmptyBox>
-              )}
-            </TableWrapper>
-          </>
-        )}
-      </Shell>
-    </Page>
+                      </thead>
+
+                      <tbody>
+                        {recentCampaigns.map((campaign) => (
+                          <tr key={campaign._id || campaign.name}>
+                            <td>
+                              <CampaignName>
+                                {campaign.name || "Untitled Campaign"}
+                              </CampaignName>
+                              <CampaignSubject>
+                                {campaign.subject || "No subject"}
+                              </CampaignSubject>
+                            </td>
+
+                            <td>
+                              <StatusBadge $status={campaign.status}>
+                                {campaign.status || "draft"}
+                              </StatusBadge>
+                            </td>
+
+                            <td>{formatNumber(campaign.totalRecipients)}</td>
+                            <td>{formatNumber(campaign.totalSent)}</td>
+                            <td>{formatNumber(campaign.totalFailed)}</td>
+                            <td>{formatDate(campaign.createdAt)}</td>
+                            <td>
+                              <TableButton
+                                type="button"
+                                onClick={() =>
+                                  handleOpenCampaign(campaign._id)
+                                }
+                                disabled={!campaign._id}
+                              >
+                                View
+                              </TableButton>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </TableScroll>
+                ) : (
+                  <EmptyBox>No recent campaigns yet.</EmptyBox>
+                )}
+              </TableWrapper>
+            </>
+          )}
+        </Shell>
+      </Page>
+
+      <Footer />
+    </>
   );
 }
 
@@ -222,8 +310,16 @@ export default AdminEmailAnalytics;
 const Page = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 35%),
-    radial-gradient(circle at top right, rgba(90, 56, 37, 0.2), transparent 30%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(90, 56, 37, 0.2),
+      transparent 30%
+    ),
     ${({ theme }) => theme.colors.black};
   color: ${({ theme }) => theme.colors.white};
   padding: 3rem 1.5rem;
@@ -240,6 +336,45 @@ const Hero = styled.section`
   background: ${({ theme }) => theme.colors.glass};
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.glow};
+`;
+
+const HeroTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+
+  @media (max-width: 760px) {
+    flex-direction: column;
+  }
+`;
+
+const HeroActions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const ActionButton = styled.button`
+  border: 0;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  font-weight: 900;
+  color: ${({ theme }) => theme.colors.black};
+  background: ${({ theme }) => theme.colors.lightBrown};
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
 `;
 
 const Kicker = styled.p`
@@ -326,6 +461,10 @@ const TableWrapper = styled.section`
 
 const SectionHeader = styled.div`
   margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 
   h3 {
     margin: 0;
@@ -347,7 +486,7 @@ const TableScroll = styled.div`
 
 const Table = styled.table`
   width: 100%;
-  min-width: 760px;
+  min-width: 860px;
   border-collapse: collapse;
 
   th {
@@ -369,8 +508,7 @@ const Table = styled.table`
   }
 
   tbody tr {
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition: background 0.2s ease;
   }
 
   tbody tr:hover {
@@ -409,7 +547,7 @@ const StatusBadge = styled.span`
       case "sent":
         return "rgba(214,182,159,0.22)";
       case "failed":
-        return "rgba(90,56,37,0.35)";
+        return "rgba(180,60,45,0.25)";
       case "scheduled":
         return "rgba(255,255,255,0.12)";
       case "draft":
@@ -420,6 +558,29 @@ const StatusBadge = styled.span`
   }};
 
   color: ${({ theme }) => theme.colors.lightBrown};
+`;
+
+const TableButton = styled.button`
+  border: 1px solid rgba(214, 182, 159, 0.35);
+  border-radius: ${({ theme }) => theme.radius.pill};
+  padding: 0.55rem 0.9rem;
+  background: rgba(214, 182, 159, 0.12);
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(214, 182, 159, 0.2);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const EmptyBox = styled.div`

@@ -21,9 +21,9 @@ function ensureAbsoluteUrl(url = "") {
     return clean;
   }
 
-  if (clean.startsWith("/")) {
-    return clean;
-  }
+  if (clean.startsWith("/") && !clean.startsWith("//")) {
+  return clean;
+}
 
   return clean;
 }

@@ -1,10 +1,14 @@
+// src/reducers/emailSegment/emailSegmentActions.js
 import axiosInstance from "../../../utils/axiosInstance";
 import { EMAIL_SEGMENT_ACTIONS } from "./emailSegmentActionTypes";
+
+const BASE_URL = "/admin/email-segments";
 
 const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
-const BASE_URL = "/admin/email-segments";
+const getSegmentsFromResponse = (data) =>
+  data?.data || data?.segments || [];
 
 /* =========================
    GET ALL SEGMENTS
@@ -17,13 +21,19 @@ export const fetchEmailSegments = () => async (dispatch) => {
 
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.LIST_SUCCESS,
-      payload: data?.data || [],
+      payload: getSegmentsFromResponse(data),
     });
+
+    return { success: true, data: getSegmentsFromResponse(data) };
   } catch (error) {
+    const message = getErrorMessage(error, "Failed to fetch segments");
+
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.LIST_FAIL,
-      payload: getErrorMessage(error, "Failed to fetch segments"),
+      payload: message,
     });
+
+    return { success: false, message };
   }
 };
 
@@ -39,15 +49,23 @@ export const createEmailSegment = (formData) => async (dispatch) => {
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.CREATE_SUCCESS,
       payload: {
-        segment: data?.data,
+        segment: data?.data || data?.segment,
         message: data?.message || "Segment created successfully",
       },
     });
+
+    await dispatch(fetchEmailSegments());
+
+    return { success: true, data };
   } catch (error) {
+    const message = getErrorMessage(error, "Failed to create segment");
+
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.CREATE_FAIL,
-      payload: getErrorMessage(error, "Failed to create segment"),
+      payload: message,
     });
+
+    return { success: false, message };
   }
 };
 
@@ -63,15 +81,23 @@ export const updateEmailSegment = (id, formData) => async (dispatch) => {
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.UPDATE_SUCCESS,
       payload: {
-        segment: data?.data,
+        segment: data?.data || data?.segment,
         message: data?.message || "Segment updated successfully",
       },
     });
+
+    await dispatch(fetchEmailSegments());
+
+    return { success: true, data };
   } catch (error) {
+    const message = getErrorMessage(error, "Failed to update segment");
+
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.UPDATE_FAIL,
-      payload: getErrorMessage(error, "Failed to update segment"),
+      payload: message,
     });
+
+    return { success: false, message };
   }
 };
 
@@ -82,17 +108,25 @@ export const deleteEmailSegment = (id) => async (dispatch) => {
   try {
     dispatch({ type: EMAIL_SEGMENT_ACTIONS.DELETE_REQUEST });
 
-    await axiosInstance.delete(`${BASE_URL}/${id}`);
+    const { data } = await axiosInstance.delete(`${BASE_URL}/${id}`);
 
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.DELETE_SUCCESS,
       payload: id,
     });
+
+    await dispatch(fetchEmailSegments());
+
+    return { success: true, data };
   } catch (error) {
+    const message = getErrorMessage(error, "Failed to delete segment");
+
     dispatch({
       type: EMAIL_SEGMENT_ACTIONS.DELETE_FAIL,
-      payload: getErrorMessage(error, "Failed to delete segment"),
+      payload: message,
     });
+
+    return { success: false, message };
   }
 };
 

@@ -1,10 +1,14 @@
 // src/pages/MyMessages.jsx
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import styled from "styled-components";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/Toast";
+
+import {
+  socket,
+} from "../../utils/socket";
 
 import {
   loadMyTickets,
@@ -14,21 +18,64 @@ import {
   clearMyMessagesError,
 } from "../reducers/myMessages/myMessagesActions";
 
+/* =========================
+   Styled Components
+========================= */
+
 const Page = styled.main`
   min-height: 100vh;
   padding: 100px 18px 60px;
-  background: radial-gradient(
-      1200px 520px at 18% 0%,
-      rgba(214, 182, 159, 0.18) 0%,
-      rgba(90, 56, 37, 0.35) 40%,
-      rgba(0, 0, 0, 1) 78%
-    ),
-    radial-gradient(
-      900px 520px at 92% 88%,
-      rgba(61, 38, 26, 0.55) 0%,
-      rgba(0, 0, 0, 1) 70%
-    );
+  background:
+    radial-gradient(900px 420px at 18% 0%, rgba(214, 182, 159, 0.2), transparent 62%),
+    radial-gradient(850px 480px at 92% 90%, rgba(61, 38, 26, 0.62), transparent 64%),
+    linear-gradient(135deg, #000 0%, #080604 48%, #000 100%);
   color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
+`;
+
+const Hero = styled(motion.section)`
+  max-width: ${({ theme }) => theme?.layout?.max || "1200px"};
+  width: ${({ theme }) => theme?.layout?.gutter || "92vw"};
+  margin: 0 auto 18px;
+  padding: 22px;
+  border-radius: ${({ theme }) => theme?.radius?.lg || "24px"};
+  border: 1px solid rgba(255, 249, 242, 0.12);
+  background:
+    linear-gradient(135deg, rgba(214, 182, 159, 0.13), rgba(0, 0, 0, 0.55)),
+    rgba(0, 0, 0, 0.55);
+  box-shadow: ${({ theme }) =>
+    theme?.shadow?.hard || "0 22px 55px rgba(0,0,0,0.35)"};
+  backdrop-filter: blur(16px);
+`;
+
+const Eyebrow = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
+  border: 1px solid rgba(214, 182, 159, 0.32);
+  background: rgba(214, 182, 159, 0.1);
+  color: ${({ theme }) => theme?.colors?.lightBrown || "#D6B69F"};
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+`;
+
+const HeroTitle = styled.h1`
+  margin: 14px 0 8px;
+  max-width: 820px;
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: 0.95;
+  letter-spacing: -1.4px;
+`;
+
+const HeroText = styled.p`
+  margin: 0;
+  max-width: 760px;
+  color: rgba(214, 182, 159, 0.92);
+  font-size: 14px;
+  line-height: 1.65;
 `;
 
 const Shell = styled.div`
@@ -36,7 +83,7 @@ const Shell = styled.div`
   width: ${({ theme }) => theme?.layout?.gutter || "92vw"};
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 390px 1fr;
   gap: 16px;
 
   @media (max-width: 980px) {
@@ -46,8 +93,8 @@ const Shell = styled.div`
 `;
 
 const Card = styled(motion.section)`
-  background: rgba(0, 0, 0, 0.58);
-  border: 1px solid rgba(255, 249, 242, 0.10);
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid rgba(255, 249, 242, 0.11);
   border-radius: ${({ theme }) => theme?.radius?.lg || "22px"};
   overflow: hidden;
   box-shadow: ${({ theme }) =>
@@ -56,12 +103,12 @@ const Card = styled(motion.section)`
 `;
 
 const Head = styled.div`
-  padding: 16px 16px 14px;
+  padding: 16px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid rgba(255, 249, 242, 0.10);
+  border-bottom: 1px solid rgba(255, 249, 242, 0.1);
   background: linear-gradient(
     120deg,
     rgba(47, 27, 18, 0.72),
@@ -69,18 +116,24 @@ const Head = styled.div`
   );
 `;
 
-const Title = styled.h1`
+const Title = styled.h2`
   margin: 0;
   font-size: 15px;
   letter-spacing: 0.18px;
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
 `;
 
 const Sub = styled.p`
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   font-size: 12px;
   color: ${({ theme }) => theme?.colors?.lightBrown || "#D6B69F"};
-  opacity: 0.9;
+  opacity: 0.92;
+`;
+
+const Actions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 `;
 
 const Btn = styled.button`
@@ -88,15 +141,21 @@ const Btn = styled.button`
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme?.radius?.md || "16px"};
   cursor: pointer;
-  background: rgba(214, 182, 159, 0.16);
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
-  border: 1px solid rgba(214, 182, 159, 0.28);
-  box-shadow: ${({ theme }) =>
-    theme?.shadow?.soft || "0 10px 30px rgba(0,0,0,0.18)"};
+  background: ${({ $primary }) =>
+    $primary
+      ? "linear-gradient(135deg, rgba(214,182,159,0.95), rgba(132,87,55,0.95))"
+      : "rgba(214, 182, 159, 0.14)"};
+  color: ${({ $primary }) => ($primary ? "#0b0704" : "#FFF9F2")};
+  border: 1px solid
+    ${({ $primary }) =>
+      $primary ? "rgba(255,249,242,0.28)" : "rgba(214,182,159,0.26)"};
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  font-weight: 800;
+  transition: 0.2s ease;
 
   &:hover:not(:disabled) {
-    background: rgba(214, 182, 159, 0.22);
     transform: translateY(-1px);
+    filter: brightness(1.08);
   }
 
   &:disabled {
@@ -106,8 +165,54 @@ const Btn = styled.button`
   }
 `;
 
+const Toolbar = styled.div`
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 249, 242, 0.08);
+`;
+
+const Search = styled.input`
+  width: 100%;
+  padding: 12px 13px;
+  border-radius: ${({ theme }) => theme?.radius?.md || "16px"};
+  border: 1px solid rgba(255, 249, 242, 0.13);
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff9f2;
+  outline: none;
+
+  &::placeholder {
+    color: rgba(214, 182, 159, 0.68);
+  }
+
+  &:focus {
+    border-color: rgba(214, 182, 159, 0.7);
+    box-shadow: 0 0 0 3px rgba(214, 182, 159, 0.13);
+  }
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+`;
+
+const Chip = styled.button`
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(214,182,159,0.68)" : "rgba(255,249,242,0.12)"};
+  background: ${({ $active }) =>
+    $active ? "rgba(214,182,159,0.18)" : "rgba(255,255,255,0.04)"};
+  color: #fff9f2;
+  padding: 8px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+`;
+
 const List = styled.div`
-  max-height: 640px;
+  max-height: 620px;
   overflow: auto;
 `;
 
@@ -116,14 +221,19 @@ const Item = styled.button`
   text-align: left;
   border: 0;
   cursor: pointer;
-  background: ${({ $active }) =>
-    $active ? "rgba(214, 182, 159, 0.14)" : "transparent"};
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
-  padding: 14px 14px;
+  background: ${({ $active, $new }) =>
+    $active
+      ? "rgba(214, 182, 159, 0.16)"
+      : $new
+      ? "rgba(214, 182, 159, 0.08)"
+      : "transparent"};
+  color: #fff9f2;
+  padding: 15px 14px;
   border-bottom: 1px solid rgba(255, 249, 242, 0.08);
+  transition: 0.2s ease;
 
   &:hover {
-    background: rgba(255, 249, 242, 0.05);
+    background: rgba(255, 249, 242, 0.06);
   }
 `;
 
@@ -141,31 +251,30 @@ const Badge = styled.span`
   border: 1px solid rgba(255, 249, 242, 0.18);
   background: rgba(255, 255, 255, 0.06);
   text-transform: capitalize;
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
+  white-space: nowrap;
 `;
 
 const HotBadge = styled(Badge)`
-  border-color: rgba(214, 182, 159, 0.55);
-  background: rgba(214, 182, 159, 0.22);
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
+  border-color: rgba(214, 182, 159, 0.58);
+  background: rgba(214, 182, 159, 0.24);
 `;
 
 const ClosedBadge = styled(Badge)`
   border-color: rgba(255, 176, 176, 0.28);
-  background: rgba(255, 80, 80, 0.10);
+  background: rgba(255, 80, 80, 0.1);
   color: rgba(255, 210, 210, 0.95);
 `;
 
 const ItemTitle = styled.div`
-  font-weight: 750;
+  font-weight: 850;
   font-size: 13px;
-  line-height: 1.2;
+  line-height: 1.25;
 `;
 
 const ItemMeta = styled.div`
-  margin-top: 6px;
+  margin-top: 7px;
   font-size: 12px;
-  opacity: 0.82;
+  opacity: 0.84;
   color: ${({ theme }) => theme?.colors?.lightBrown || "#D6B69F"};
   display: flex;
   justify-content: space-between;
@@ -173,36 +282,43 @@ const ItemMeta = styled.div`
 `;
 
 const Thread = styled.div`
-  padding: 14px;
-  max-height: 520px;
+  padding: 16px;
+  min-height: 410px;
+  max-height: 535px;
   overflow: auto;
 `;
 
-const BubbleRow = styled.div`
+const BubbleRow = styled(motion.div)`
   display: flex;
   justify-content: ${({ $mine }) => ($mine ? "flex-end" : "flex-start")};
-  margin: 8px 0;
+  margin: 9px 0;
 `;
 
 const Bubble = styled.div`
   max-width: 78%;
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-radius: ${({ theme }) => theme?.radius?.md || "16px"};
   border: 1px solid rgba(255, 249, 242, 0.12);
   background: ${({ $mine, theme }) =>
     $mine
-      ? "linear-gradient(120deg, rgba(214, 182, 159, 0.22), rgba(61, 38, 26, 0.18))"
+      ? "linear-gradient(120deg, rgba(214, 182, 159, 0.25), rgba(61, 38, 26, 0.2))"
       : theme?.colors?.glass || "rgba(255,255,255,0.06)"};
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 13px;
-  line-height: 1.4;
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
+  line-height: 1.45;
+`;
+
+const BubbleMeta = styled.div`
+  margin-top: 7px;
+  font-size: 11px;
+  opacity: 0.78;
+  color: rgba(214, 182, 159, 0.95);
 `;
 
 const Composer = styled.div`
-  padding: 12px 14px 14px;
-  border-top: 1px solid rgba(255, 249, 242, 0.10);
+  padding: 13px 14px 14px;
+  border-top: 1px solid rgba(255, 249, 242, 0.1);
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
@@ -219,15 +335,15 @@ const Composer = styled.div`
 
 const Input = styled.textarea`
   width: 100%;
-  min-height: 44px;
-  max-height: 120px;
+  min-height: 48px;
+  max-height: 130px;
   resize: vertical;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: ${({ theme }) => theme?.radius?.md || "16px"};
   outline: none;
   border: 1px solid rgba(255, 249, 242, 0.14);
   background: rgba(0, 0, 0, 0.45);
-  color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
+  color: #fff9f2;
 
   &::placeholder {
     color: rgba(214, 182, 159, 0.75);
@@ -241,7 +357,6 @@ const Input = styled.textarea`
   &:disabled {
     opacity: 0.65;
     cursor: not-allowed;
-    background: rgba(0, 0, 0, 0.35);
   }
 `;
 
@@ -249,33 +364,41 @@ const DisabledHint = styled.div`
   grid-column: 1 / -1;
   font-size: 12px;
   color: rgba(214, 182, 159, 0.9);
-  opacity: 0.95;
-  padding: 2px 2px 0;
 `;
 
 const Empty = styled.div`
-  padding: 16px;
+  padding: 18px;
   font-size: 13px;
   color: ${({ theme }) => theme?.colors?.lightBrown || "#D6B69F"};
-  opacity: 0.92;
+  opacity: 0.94;
 `;
 
 const LoginWall = styled(Card)`
-  grid-column: 1 / -1;
-  padding: 18px;
+  max-width: 760px;
+  width: 92vw;
+  margin: 0 auto;
+  padding: 22px;
 `;
+
+/* =========================
+   Helpers
+========================= */
 
 function fmtTime(ts) {
   if (!ts) return "";
   try {
-    const d = new Date(ts);
-    return d.toLocaleString();
+    return new Date(ts).toLocaleString();
   } catch {
     return "";
   }
 }
 
-// ✅ detect "new admin reply" reliably
+function isLockedTicket(ticket) {
+  const status = String(ticket?.status || "").toLowerCase();
+
+  return ["resolved", "complete", "completed", "closed"].includes(status);
+}
+
 function isNewForUser(ticket) {
   if (!ticket) return false;
 
@@ -283,6 +406,7 @@ function isNewForUser(ticket) {
   const lastMessageAt = ticket?.lastMessageAt
     ? new Date(ticket.lastMessageAt).getTime()
     : 0;
+
   const userLastSeenAt = ticket?.userLastSeenAt
     ? new Date(ticket.userLastSeenAt).getTime()
     : 0;
@@ -290,44 +414,18 @@ function isNewForUser(ticket) {
   return lastSender === "admin" && lastMessageAt > userLastSeenAt;
 }
 
+/* =========================
+   Component
+========================= */
+
 export default function MyMessages() {
   const dispatch = useDispatch();
   const nav = useNavigate();
   const toast = useToast();
 
-  // ✅ Use Toast exactly like Login.jsx / Cart.jsx (toast.push)
-  const pushToast = React.useCallback(
-    (payload) => {
-      if (!payload) return;
-
-      const hasStandardShape =
-        typeof payload.title === "string" || typeof payload.description === "string";
-
-      const normalized = hasStandardShape
-        ? {
-            title: payload.title || "Notice",
-            description: payload.description || "",
-            variant: payload.variant || "info",
-          }
-        : {
-            title:
-              payload.type === "success"
-                ? "Success"
-                : payload.type === "error"
-                ? "Error"
-                : payload.type === "warning"
-                ? "Warning"
-                : payload.type === "info"
-                ? "Info"
-                : "Notice",
-            description: payload.message || "",
-            variant: payload.type || "info",
-          };
-
-      toast?.push?.(normalized);
-    },
-    [toast]
-  );
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const threadEndRef = useRef(null);
 
   const {
     items,
@@ -341,6 +439,36 @@ export default function MyMessages() {
     needsLogin,
   } = useSelector((s) => s.myMessages);
 
+  const authUser = useSelector(
+    (s) =>
+      s.auth?.user ||
+      s.auth?.currentUser ||
+      s.user?.user ||
+      s.user?.currentUser ||
+      null
+  );
+
+  const pushToast = useCallback(
+    (payload) => {
+      if (!payload) return;
+
+      toast?.push?.({
+        title:
+          payload.title ||
+          (payload.type === "success"
+            ? "Success"
+            : payload.type === "error"
+            ? "Error"
+            : payload.type === "warning"
+            ? "Warning"
+            : "Notice"),
+        description: payload.message || payload.description || "",
+        variant: payload.variant || payload.type || "info",
+      });
+    },
+    [toast]
+  );
+
   const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
 
   const threadMessages = useMemo(() => {
@@ -348,11 +476,33 @@ export default function MyMessages() {
     return Array.isArray(msgs) ? msgs : [];
   }, [active]);
 
-  // ✅ CLOSED behavior (admin closed thread -> user cannot send)
-  const isClosed = useMemo(() => {
-    const s = String(active?.status || "").toLowerCase();
-    return s === "closed";
-  }, [active?.status]);
+  const isClosed = useMemo(() => isLockedTicket(active), [active]);
+
+  const filteredItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    return safeItems.filter((t) => {
+      const title = String(t?.subject || "").toLowerCase();
+      const status = String(t?.status || "").toLowerCase();
+      const hasNew = isNewForUser(t);
+      const closed = isLockedTicket(t);
+
+      const matchesSearch = !q || title.includes(q) || status.includes(q);
+
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "new" && hasNew) ||
+        (filter === "open" && !closed) ||
+        (filter === "closed" && closed);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [safeItems, query, filter]);
+
+  const unreadCount = useMemo(
+    () => safeItems.filter((t) => isNewForUser(t)).length,
+    [safeItems]
+  );
 
   useEffect(() => {
     dispatch(loadMyTickets());
@@ -360,22 +510,102 @@ export default function MyMessages() {
 
   useEffect(() => {
     if (!error) return;
+
     pushToast({ type: "error", message: error });
     dispatch(clearMyMessagesError());
   }, [error, pushToast, dispatch]);
 
-  // ✅ lightweight polling so user notices new admin replies
-  const pollRef = useRef(null);
   useEffect(() => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(() => {
-      dispatch(loadMyTickets());
-    }, 12_000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = null;
-    };
-  }, [dispatch]);
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [threadMessages.length, active?._id]);
+
+  /* =========================
+     Socket.IO Real-Time Updates
+  ========================= */
+
+  useEffect(() => {
+  const userId = authUser?._id || authUser?.id;
+
+  if (!socket) return;
+
+  const joinUserRooms = () => {
+    if (!userId) return;
+
+    socket.emit("join:user", userId);
+    socket.emit("user:join", { userId });
+    socket.emit("messages:join", { userId });
+    socket.emit("ticket:join-user", { userId });
+
+    console.log("✅ MyMessages socket joined:", userId);
+  };
+
+  joinUserRooms();
+
+  socket.on("connect", joinUserRooms);
+
+  const refreshInbox = async (payload = {}) => {
+    console.log("🔥 MyMessages real-time event received:", payload);
+
+    const ticketId =
+      payload?.ticketId ||
+      payload?._id ||
+      payload?.id ||
+      payload?.message?.ticketId ||
+      payload?.data?.ticketId;
+
+    await dispatch(loadMyTickets());
+
+    if (
+      selectedId &&
+      ticketId &&
+      String(ticketId) === String(selectedId)
+    ) {
+      await dispatch(openTicket(selectedId));
+    }
+
+    if (
+      payload?.lastSender === "admin" ||
+      payload?.sender === "admin" ||
+      payload?.message?.sender === "admin"
+    ) {
+      pushToast({
+        type: "info",
+        message: "New admin reply received.",
+      });
+    }
+  };
+
+  const events = [
+    "ticket:new",
+    "ticket:updated",
+    "ticket:reply",
+    "ticket:closed",
+    "message:new",
+    "messages:updated",
+    "myMessages:updated",
+    "support:reply",
+    "contact:reply",
+    "contact:updated",
+
+    // add these stronger names too
+    "user:ticket-updated",
+    "user:ticket-reply",
+    "user:message-received",
+    "admin:reply-sent",
+  ];
+
+  events.forEach((eventName) => {
+    socket.on(eventName, refreshInbox);
+  });
+
+  return () => {
+    socket.off("connect", joinUserRooms);
+
+    events.forEach((eventName) => {
+      socket.off(eventName, refreshInbox);
+    });
+  };
+}, [dispatch, selectedId, authUser, pushToast]);
 
   const handleOpen = async (id) => {
     if (!id) return;
@@ -398,6 +628,7 @@ export default function MyMessages() {
     }
 
     const text = String(draft || "").trim();
+
     if (!text) {
       pushToast({ type: "error", message: "Type a message first." });
       return;
@@ -406,22 +637,27 @@ export default function MyMessages() {
     try {
       const res = await dispatch(sendMyReply(selectedId, text));
 
-      // always refresh so UI reflects backend truth (esp. for closed/forbidden)
       dispatch(loadMyTickets());
-      if (selectedId) dispatch(openTicket(selectedId));
+      dispatch(openTicket(selectedId));
 
       if (res?.ok) {
-        pushToast({ type: "success", message: "Sent ✅" });
-        dispatch(loadMyTickets());
-      } else if (res?.message) {
-        // if your backend sends 403/401 messages, you'll now see them
-        pushToast({ type: "error", message: res.message });
+        pushToast({ type: "success", message: "Message sent." });
+
+        socket?.emit?.("user:message-sent", {
+          ticketId: selectedId,
+          text,
+        });
       } else {
-        pushToast({ type: "error", message: "Failed to send. Please try again." });
+        pushToast({
+          type: "error",
+          message: res?.message || "Failed to send. Please try again.",
+        });
       }
-    // eslint-disable-next-line no-unused-vars
-    } catch (e) {
-      pushToast({ type: "error", message: "Failed to send. Please try again." });
+    } catch {
+      pushToast({
+        type: "error",
+        message: "Failed to send. Please try again.",
+      });
     }
   };
 
@@ -429,24 +665,19 @@ export default function MyMessages() {
     return (
       <Page>
         <LoginWall initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Title>Login Required</Title>
-          <Sub>
-            To protect your private support thread, you must be logged in to view
-            messages and reply.
-          </Sub>
+          <Eyebrow>Private Support Access</Eyebrow>
+          <HeroTitle>Login required to view your messages.</HeroTitle>
+          <HeroText>
+            Your support conversations are private. Login to view your message
+            history, replies, and updates from admin.
+          </HeroText>
 
-          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Btn onClick={() => nav("/login")}>Go to Login</Btn>
-            <Btn
-              onClick={() => dispatch(loadMyTickets())}
-              style={{
-                background: "rgba(255,255,255,0.06)",
-                borderColor: "rgba(255,255,255,0.12)",
-              }}
-            >
-              Try Again
+          <Actions style={{ marginTop: 16, justifyContent: "flex-start" }}>
+            <Btn $primary onClick={() => nav("/login")}>
+              Go to Login
             </Btn>
-          </div>
+            <Btn onClick={() => dispatch(loadMyTickets())}>Try Again</Btn>
+          </Actions>
         </LoginWall>
       </Page>
     );
@@ -454,56 +685,100 @@ export default function MyMessages() {
 
   return (
     <Page>
+      <Hero
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
+        <Eyebrow>KnockoutCodes Message Center</Eyebrow>
+        <HeroTitle>Your private support command room.</HeroTitle>
+        <HeroText>
+          Track every conversation, see admin replies instantly, continue active
+          threads, and keep closed tickets protected like a professional client
+          portal.
+        </HeroText>
+      </Hero>
+
       <Shell>
-        {/* LEFT: Threads */}
         <Card initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Head>
             <div>
               <Title>My Messages</Title>
-              <Sub>{loadingList ? "Loading…" : `${safeItems.length} thread(s)`}</Sub>
+              <Sub>
+                {loadingList
+                  ? "Loading your threads…"
+                  : `${safeItems.length} thread(s) • ${unreadCount} new`}
+              </Sub>
             </div>
-            <Btn onClick={() => dispatch(loadMyTickets())} disabled={loadingList}>
-              Refresh
-            </Btn>
+
+            <Actions>
+              <Btn onClick={() => nav("/contact")}>New Ticket</Btn>
+              <Btn onClick={() => dispatch(loadMyTickets())} disabled={loadingList}>
+                Refresh
+              </Btn>
+            </Actions>
           </Head>
 
+          <Toolbar>
+            <Search
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by subject or status..."
+            />
+
+            <FilterRow>
+              {["all", "new", "open", "closed"].map((f) => (
+                <Chip
+                  key={f}
+                  $active={filter === f}
+                  onClick={() => setFilter(f)}
+                >
+                  {f === "new" ? "New Replies" : f}
+                </Chip>
+              ))}
+            </FilterRow>
+          </Toolbar>
+
           <List>
-            {safeItems.length === 0 && !loadingList ? (
-              <Empty>No messages yet. Use the Contact page to open a support ticket.</Empty>
+            {filteredItems.length === 0 && !loadingList ? (
+              <Empty>
+                No matching messages found. You can open a new ticket from the
+                Contact page.
+              </Empty>
             ) : null}
 
-            {safeItems.map((t) => {
+            {filteredItems.map((t) => {
               const hasNew = isNewForUser(t);
-              const statusLower = String(t?.status || "").toLowerCase();
-              const isTicketClosed = statusLower === "closed";
+              const closed = isLockedTicket(t);
 
               return (
                 <Item
                   key={t._id}
                   $active={String(t._id) === String(selectedId)}
+                  $new={hasNew}
                   onClick={() => handleOpen(t._id)}
                 >
                   <ItemTop>
                     <ItemTitle>{t.subject || "Support Ticket"}</ItemTitle>
 
-                    {isTicketClosed ? (
-                      <ClosedBadge>closed</ClosedBadge>
+                    {closed ? (
+                      <ClosedBadge>Closed</ClosedBadge>
                     ) : hasNew ? (
                       <HotBadge>New Reply</HotBadge>
                     ) : (
-                      <Badge>{t.status || "new"}</Badge>
+                      <Badge>{t.status || "Open"}</Badge>
                     )}
                   </ItemTop>
 
                   <ItemMeta>
                     <span>
-                      {isTicketClosed
+                      {closed
                         ? "Closed by admin"
                         : hasNew
-                        ? "Admin replied (new)"
-                        : t.replied
                         ? "Admin replied"
-                        : "Waiting…"}
+                        : t.replied
+                        ? "Admin responded"
+                        : "Waiting for admin"}
                     </span>
                     <span>{fmtTime(t.lastMessageAt || t.updatedAt || t.createdAt)}</span>
                   </ItemMeta>
@@ -513,77 +788,89 @@ export default function MyMessages() {
           </List>
         </Card>
 
-        {/* RIGHT: Thread */}
         <Card initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Head>
             <div>
-              <Title>{active?.subject || "Thread"}</Title>
+              <Title>{active?.subject || "Conversation"}</Title>
               <Sub>
                 {loadingThread
-                  ? "Opening…"
+                  ? "Opening thread…"
                   : active
-                  ? `Last update: ${fmtTime(active.lastMessageAt || active.updatedAt || active.createdAt)}`
+                  ? `Last update: ${fmtTime(
+                      active.lastMessageAt || active.updatedAt || active.createdAt
+                    )}`
                   : "Select a thread to view messages"}
               </Sub>
             </div>
 
             {active?._id ? (
-              <Btn
-                onClick={() => {
-                  dispatch(openTicket(active._id));
-                  dispatch(loadMyTickets());
-                }}
-                disabled={loadingThread}
-              >
-                Reload
-              </Btn>
+              <Actions>
+                <Btn
+                  onClick={() => {
+                    dispatch(openTicket(active._id));
+                    dispatch(loadMyTickets());
+                  }}
+                  disabled={loadingThread}
+                >
+                  Reload
+                </Btn>
+
+                {isClosed ? (
+                  <Btn onClick={() => nav("/contact")}>Open New</Btn>
+                ) : null}
+              </Actions>
             ) : null}
           </Head>
 
           {!active ? (
-            <Empty>Pick a thread on the left to view the conversation.</Empty>
+            <Empty>Pick a thread on the left to view the full conversation.</Empty>
           ) : (
             <>
               <Thread>
                 {threadMessages.length === 0 ? (
                   <Empty>No messages in this thread yet.</Empty>
                 ) : (
-                  threadMessages.map((m, idx) => {
-                    const mine = m?.sender === "user";
-                    return (
-                      <BubbleRow key={m?._id || idx} $mine={mine}>
-                        <Bubble $mine={mine}>
-                          {m?.text || ""}
-                          <div
-                            style={{
-                              marginTop: 6,
-                              fontSize: 11,
-                              opacity: 0.78,
-                              color: "rgba(214, 182, 159, 0.95)",
-                            }}
-                          >
-                            {mine ? "You" : "Admin"} • {fmtTime(m?.createdAt)}
-                          </div>
-                        </Bubble>
-                      </BubbleRow>
-                    );
-                  })
+                  <AnimatePresence initial={false}>
+                    {threadMessages.map((m, idx) => {
+                      const mine = m?.sender === "user";
+
+                      return (
+                        <BubbleRow
+                          key={m?._id || idx}
+                          $mine={mine}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Bubble $mine={mine}>
+                            {m?.text || ""}
+                            <BubbleMeta>
+                              {mine ? "You" : "Admin"} • {fmtTime(m?.createdAt)}
+                            </BubbleMeta>
+                          </Bubble>
+                        </BubbleRow>
+                      );
+                    })}
+                  </AnimatePresence>
                 )}
+                <div ref={threadEndRef} />
               </Thread>
 
               <Composer>
                 <Input
                   value={draft}
                   onChange={(e) => dispatch(updateMyMessageDraft(e.target.value))}
-                  placeholder={
-                    isClosed
-                      ? "This conversation was closed by admin. Messaging is disabled."
-                      : "Write your reply…"
-                  }
+                 placeholder={
+  isClosed
+    ? "This conversation is finished. Messaging is disabled."
+    : "Write your reply..."
+}
                   disabled={isClosed || loadingThread || sending || !selectedId}
                 />
 
                 <Btn
+                  $primary={!isClosed}
                   onClick={handleSend}
                   disabled={
                     isClosed ||
@@ -594,12 +881,12 @@ export default function MyMessages() {
                   }
                   title={isClosed ? "Closed threads cannot be replied to." : "Send message"}
                 >
-                  {isClosed ? "Closed" : sending ? "Sending…" : "Send"}
+                  {isClosed ? "Closed" : sending ? "Sending..." : "Send"}
                 </Btn>
 
                 {isClosed ? (
                   <DisabledHint>
-                    🔒 Admin closed this thread — you can read the history, but you can’t send new messages.
+                    Admin closed this thread. You can read the history, but replies are disabled.
                   </DisabledHint>
                 ) : null}
               </Composer>

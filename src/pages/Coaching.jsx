@@ -1,5 +1,5 @@
 // src/pages/Coaching.jsx
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,8 +8,9 @@ import { useToast } from "../components/Toast";
 import { getCsrfToken } from "../../utils/csrf";
 import { COACHING_ACTIONS } from "../reducers/coaching/coachingActionTypes";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1"
+).replace(/\/$/, "");
 
 const COACHING_ENDPOINT = "/coachings";
 
@@ -33,10 +34,31 @@ const LIMITS = {
   fullName: { min: 2, max: 80 },
   email: { min: 6, max: 120 },
   phone: { min: 7, max: 25 },
-  coachingType: { min: 3, max: 80 },
   timeZone: { min: 3, max: 60 },
   goals: { min: 20, max: 1200 },
 };
+
+const TRAINING_PROMISES = [
+  "Cleaner punch mechanics",
+  "Sharper defense and counters",
+  "Better footwork and balance",
+  "Simple drills you can repeat daily",
+];
+
+const PREMIUM_RESULTS = [
+  {
+    title: "Power",
+    text: "Fix wasted motion so your shots land cleaner, heavier, and sharper.",
+  },
+  {
+    title: "Defense",
+    text: "Build slips, guard discipline, distance control, and counters.",
+  },
+  {
+    title: "Footwork",
+    text: "Learn angles, exits, balance, and ring IQ without needing a gym.",
+  },
+];
 
 function getTodayYYYYMMDD() {
   return new Date().toISOString().slice(0, 10);
@@ -59,21 +81,9 @@ function isValidTimeZone(value) {
   }
 }
 
-function toISOFromLocalDateTime(dateStr, timeStr, timeZone) {
-  try {
-    if (!dateStr || !timeStr || !timeZone) return null;
-    if (!isValidDateYYYYMMDD(dateStr) || !isValidTimeHHMM(timeStr)) return null;
-    if (!isValidTimeZone(timeZone)) return null;
-
-    const [year, month, day] = dateStr.split("-").map(Number);
-    const [hour, minute] = timeStr.split(":").map(Number);
-
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-
-    return utcDate.toISOString();
-  } catch {
-    return null;
-  }
+function toISOFromLocalDateTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+  return `${dateStr}T${timeStr}:00`;
 }
 
 function clampLen(str, max) {
@@ -100,10 +110,9 @@ function onlyDigitsPlus(str) {
 function hasSpamPattern(str) {
   const value = String(str || "");
   const links = value.match(/https?:\/\/|www\./gi);
-  const hasTooManyLinks = (links?.length || 0) >= 2;
-  const hasRepeatingChars = /([a-zA-Z0-9!?.])\1{9,}/.test(value);
-
-  return hasTooManyLinks || hasRepeatingChars;
+  const tooManyLinks = (links?.length || 0) >= 2;
+  const repeatingChars = /([a-zA-Z0-9!?.])\1{9,}/.test(value);
+  return tooManyLinks || repeatingChars;
 }
 
 function normalizeCoachingType(value) {
@@ -121,11 +130,11 @@ function validateLen(label, value, min, max) {
 export default function Coaching() {
   const { showToast } = useToast();
   const dispatch = useDispatch();
+  const isSubmittingRef = useRef(false);
 
   const form = useSelector((s) => s.coaching?.form);
   const status = useSelector((s) => s.coaching?.status);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeForm = form || {
     fullName: "",
     email: "",
@@ -137,6 +146,7 @@ export default function Coaching() {
     time: "",
     goals: "",
     preferGoogleMeet: true,
+    sessionMethod: "Google Meet",
     acceptPolicies: false,
     marketingOptIn: false,
     nickName: "",
@@ -167,7 +177,11 @@ export default function Coaching() {
         `Duration: ${safeForm.duration} mins`,
         `Time Zone: ${normalizeSpaces(stripAngleBrackets(safeForm.timeZone))}`,
         `Preferred: ${safeForm.date || "—"} at ${safeForm.time || "—"}`,
-        `Google Meet: ${safeForm.preferGoogleMeet ? "Yes" : "No"}`,
+        `Session Method: ${
+          safeForm.preferGoogleMeet
+            ? "Google Meet"
+            : safeForm.sessionMethod || "Phone Call"
+        }`,
         `Marketing Opt-In: ${safeForm.marketingOptIn ? "Yes" : "No"}`,
         `Goals: ${normalizeSpaces(stripAngleBrackets(safeForm.goals)) || "—"}`,
       ].join("\n"),
@@ -199,8 +213,17 @@ export default function Coaching() {
     }
 
     if (name === "duration") {
-      const safeDuration = ["30", "60", "90"].includes(value) ? value : "60";
-      setField(name, safeDuration);
+      setField(name, ["30", "60", "90"].includes(value) ? value : "60");
+      return;
+    }
+
+    if (name === "preferGoogleMeet") {
+      const nextChecked = !!checked;
+      setField("preferGoogleMeet", nextChecked);
+      if (nextChecked) setField("sessionMethod", "Google Meet");
+      else if (!safeForm.sessionMethod || safeForm.sessionMethod === "Google Meet") {
+        setField("sessionMethod", "Phone Call");
+      }
       return;
     }
 
@@ -356,6 +379,7 @@ export default function Coaching() {
     e.preventDefault();
 
     if (status?.state === "loading") return;
+    if (isSubmittingRef.current) return;
 
     const v = validate();
 
@@ -365,41 +389,49 @@ export default function Coaching() {
       return;
     }
 
-    setStatus({ state: "loading", message: "Submitting your boxing request…" });
-
-    const preferredStartISO = toISOFromLocalDateTime(
-      safeForm.date,
-      safeForm.time,
-      v.cleaned.timeZone
-    );
-
-    const payload = {
-      fullName: v.cleaned.fullName,
-      email: v.cleaned.email,
-      phone: v.cleaned.phone,
-      coachingType: v.cleaned.coachingType,
-      duration: v.cleaned.duration,
-      timeZone: v.cleaned.timeZone,
-      preferredDate: safeForm.date,
-      preferredTime: safeForm.time,
-      preferredStartISO,
-      preferGoogleMeet: !!safeForm.preferGoogleMeet,
-      goals: v.cleaned.goals,
-      marketingOptIn: !!safeForm.marketingOptIn,
-      emailSubject,
-      emailSummary,
-      nickName: safeForm.nickName || "",
-      source: {
-        channel: "web",
-        pageUrl: typeof window !== "undefined" ? window.location.href : null,
-        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-      },
-    };
+    isSubmittingRef.current = true;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
 
     try {
+      setStatus({
+        state: "loading",
+        message: "Submitting your private coaching request…",
+      });
+
+      const preferredStartISO = toISOFromLocalDateTime(
+        safeForm.date,
+        safeForm.time
+      );
+
+      const payload = {
+        fullName: v.cleaned.fullName,
+        email: v.cleaned.email,
+        phone: v.cleaned.phone,
+        coachingType: v.cleaned.coachingType,
+        duration: v.cleaned.duration,
+        timeZone: v.cleaned.timeZone,
+        preferredDate: safeForm.date,
+        preferredTime: safeForm.time,
+        preferredStartISO,
+        preferGoogleMeet: !!safeForm.preferGoogleMeet,
+        sessionMethod: safeForm.preferGoogleMeet
+          ? "Google Meet"
+          : safeForm.sessionMethod || "Phone Call",
+        goals: v.cleaned.goals,
+        marketingOptIn: !!safeForm.marketingOptIn,
+        emailSubject,
+        emailSummary,
+        nickName: safeForm.nickName || "",
+        source: {
+          channel: "web",
+          pageUrl: typeof window !== "undefined" ? window.location.href : null,
+          userAgent:
+            typeof navigator !== "undefined" ? navigator.userAgent : null,
+        },
+      };
+
       const csrfToken = await getCsrfToken();
 
       const res = await fetch(`${API_BASE_URL}${COACHING_ENDPOINT}`, {
@@ -436,9 +468,14 @@ export default function Coaching() {
       }
 
       const successMsg =
-        data?.message || "Request received! We’ll email you shortly.";
+        data?.message || "Request received. We’ll email you shortly.";
 
       setStatus({ state: "success", message: successMsg });
+
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
       if (typeof showToast === "function") showToast(successMsg, "success");
 
       dispatch({ type: COACHING_ACTIONS.RESET_AFTER_SUCCESS });
@@ -458,47 +495,72 @@ export default function Coaching() {
       }
     } finally {
       clearTimeout(timeout);
+      isSubmittingRef.current = false;
     }
   }
 
   return (
-    <Page initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+    <Page initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.45 }}>
       <Hero>
-        <Badge as={motion.div} initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          PRIVATE BOXING COACHING
+        <HeroGlow />
+
+        <Badge as={motion.div} initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+          Private KnockoutCodes Boxing Coaching
         </Badge>
 
-        <Title as={motion.h1} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          One Mistake Can Make Your Punches Weak — Let’s Fix It Fast.
+        <Title
+          as={motion.h1}
+          initial={{ y: 24, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.08 }}
+        >
+          Your Punch Is Not Weak. Your Mechanics Are Leaking Power.
         </Title>
 
         <Sub>
-          Premium 1-on-1 boxing coaching built to sharpen your power, defense,
+          Get premium 1-on-1 boxing coaching built to sharpen power, defense,
           footwork, combinations, conditioning, and fight IQ — even if you train
-          without a gym.
+          outside, at home, or without a gym.
         </Sub>
+
+        <PromiseBar>
+          {TRAINING_PROMISES.map((item) => (
+            <span key={item}>✓ {item}</span>
+          ))}
+        </PromiseBar>
 
         {CAL_URL && (
           <CalBar>
             <a href={CAL_URL} target="_blank" rel="noreferrer" className="cal-btn">
-              Book instantly via Cal.com
+              Book Instantly
             </a>
             <span className="or">or</span>
             <a className="form-btn" href="#book-form">
-              Use the form below
+              Request Below
             </a>
           </CalBar>
         )}
       </Hero>
 
       <Shell>
-        <Card
+        <FormCard
           as={motion.div}
-          initial={{ y: 18, opacity: 0 }}
+          initial={{ y: 22, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.08, type: "spring", stiffness: 120, damping: 18 }}
+          transition={{ delay: 0.12, type: "spring", stiffness: 120, damping: 18 }}
         >
-          <CardTitle>Request Your Private Boxing Session</CardTitle>
+          <CardHeader>
+            <MiniLabel>Elite Session Request</MiniLabel>
+            <CardTitle>Tell Me What You Want Fixed First</CardTitle>
+            <CardText>
+              The better your details, the sharper the session. Share your level,
+              stance, biggest weakness, and what you want to improve.
+            </CardText>
+          </CardHeader>
+
+          {status?.message && (
+            <StatusMessage $state={status?.state}>{status.message}</StatusMessage>
+          )}
 
           <Form id="book-form" onSubmit={onSubmit} noValidate>
             <Row>
@@ -511,6 +573,7 @@ export default function Coaching() {
                   onChange={onChange}
                   placeholder="Your full name"
                   required
+                  aria-required="true"
                   minLength={LIMITS.fullName.min}
                   maxLength={LIMITS.fullName.max}
                   autoComplete="name"
@@ -527,6 +590,7 @@ export default function Coaching() {
                   onChange={onChange}
                   placeholder="you@example.com"
                   required
+                  aria-required="true"
                   minLength={LIMITS.email.min}
                   maxLength={LIMITS.email.max}
                   autoComplete="email"
@@ -542,8 +606,9 @@ export default function Coaching() {
                   name="phone"
                   value={safeForm.phone}
                   onChange={onChange}
-                  placeholder="Enter your phone number..."
+                  placeholder="+1 555 000 0000"
                   required
+                  aria-required="true"
                   minLength={LIMITS.phone.min}
                   maxLength={LIMITS.phone.max}
                   autoComplete="tel"
@@ -552,17 +617,18 @@ export default function Coaching() {
               </Field>
 
               <Field>
-                <Label htmlFor="coachingType">Coaching type</Label>
+                <Label htmlFor="coachingType">Coaching focus</Label>
                 <Select
                   id="coachingType"
                   name="coachingType"
                   value={selectedCoachingType}
                   onChange={onChange}
                   required
+                  aria-required="true"
                 >
-                  {COACHING_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                  {COACHING_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
                     </option>
                   ))}
                 </Select>
@@ -571,13 +637,14 @@ export default function Coaching() {
 
             <Row>
               <Field>
-                <Label htmlFor="duration">Duration</Label>
+                <Label htmlFor="duration">Session duration</Label>
                 <Select
                   id="duration"
                   name="duration"
                   value={safeForm.duration}
                   onChange={onChange}
                   required
+                  aria-required="true"
                 >
                   <option value="30">30 minutes</option>
                   <option value="60">60 minutes</option>
@@ -593,6 +660,7 @@ export default function Coaching() {
                   value={safeForm.timeZone}
                   onChange={onChange}
                   required
+                  aria-required="true"
                   minLength={LIMITS.timeZone.min}
                   maxLength={LIMITS.timeZone.max}
                   placeholder="America/Los_Angeles"
@@ -610,6 +678,7 @@ export default function Coaching() {
                   value={safeForm.date}
                   onChange={onChange}
                   required
+                  aria-required="true"
                   min={today}
                 />
               </Field>
@@ -623,6 +692,7 @@ export default function Coaching() {
                   value={safeForm.time}
                   onChange={onChange}
                   required
+                  aria-required="true"
                 />
               </Field>
             </Row>
@@ -635,12 +705,16 @@ export default function Coaching() {
                   name="goals"
                   value={safeForm.goals}
                   onChange={onChange}
-                  rows={5}
+                  rows={6}
                   required
+                  aria-required="true"
                   minLength={LIMITS.goals.min}
                   maxLength={LIMITS.goals.max}
-                  placeholder="Tell me your level, stance, biggest weakness, training setup, and what you want to improve first..."
+                  placeholder="Example: I’m orthodox, my right hand feels slow, I lose balance after combinations, and I want sharper footwork without training in a gym..."
                 />
+                <Hint $count={String(safeForm.goals || "").length}>
+                  {String(safeForm.goals || "").length}/{LIMITS.goals.max} characters
+                </Hint>
               </Field>
             </Row>
 
@@ -665,8 +739,26 @@ export default function Coaching() {
                     checked={!!safeForm.preferGoogleMeet}
                     onChange={onChange}
                   />
-                  <span>Use Google Meet</span>
+                  <span>Use Google Meet for the session.</span>
                 </label>
+
+                {!safeForm.preferGoogleMeet && (
+                  <MethodBox>
+                    <Label htmlFor="sessionMethod">Choose another session method</Label>
+                    <Select
+                      id="sessionMethod"
+                      name="sessionMethod"
+                      value={safeForm.sessionMethod || "Phone Call"}
+                      onChange={onChange}
+                      required
+                      aria-required="true"
+                    >
+                      <option value="Phone Call">Phone Call</option>
+                      <option value="Zoom">Zoom</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                    </Select>
+                  </MethodBox>
+                )}
 
                 <label className="check">
                   <input
@@ -675,9 +767,7 @@ export default function Coaching() {
                     checked={!!safeForm.marketingOptIn}
                     onChange={onChange}
                   />
-                  <span>
-                    Send me occasional KnockoutCodes updates and discounts.
-                  </span>
+                  <span>Send me occasional KnockoutCodes updates and discounts.</span>
                 </label>
 
                 <label className="check">
@@ -711,105 +801,142 @@ export default function Coaching() {
 
               {CAL_URL && (
                 <Ghost href={CAL_URL} target="_blank" rel="noreferrer">
-                  Book via Cal.com
+                  Book Through Cal.com
                 </Ghost>
               )}
             </Actions>
           </Form>
-        </Card>
+        </FormCard>
 
-        <PolicyCard
-          as={motion.div}
-          initial={{ y: 18, opacity: 0 }}
+        <SidePanel
+          as={motion.aside}
+          initial={{ y: 22, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.12, type: "spring", stiffness: 120, damping: 18 }}
+          transition={{ delay: 0.18, type: "spring", stiffness: 120, damping: 18 }}
         >
-          <PolicyTitle>What You Get Inside</PolicyTitle>
+          <PanelTop>
+            <MiniLabel>What You Get</MiniLabel>
+            <PolicyTitle>Train Cleaner. Move Smarter. Hit Harder.</PolicyTitle>
+            <PanelText>
+              This is not random boxing advice. This is a focused private session
+              built around your weakness, your level, your setup, and your next step.
+            </PanelText>
+          </PanelTop>
 
-          <HooksList>
-            <li>
-              <strong>Power:</strong> Clean mechanics so your punches feel heavier.
-            </li>
-            <li>
-              <strong>Speed:</strong> Better rhythm, sharper combinations, less wasted motion.
-            </li>
-            <li>
-              <strong>Defense:</strong> Slips, counters, guard discipline, and distance control.
-            </li>
-            <li>
-              <strong>Footwork:</strong> Angles, balance, exits, and ring IQ.
-            </li>
-            <li>
-              <strong>Plan:</strong> A simple drill structure you can repeat daily.
-            </li>
-          </HooksList>
+          <ResultGrid>
+            {PREMIUM_RESULTS.map((item) => (
+              <ResultCard key={item.title}>
+                <strong>{item.title}</strong>
+                <span>{item.text}</span>
+              </ResultCard>
+            ))}
+          </ResultGrid>
 
-          <small>
-            Book instantly through Cal.com or submit the form and we’ll confirm
-            your session details.
-          </small>
-        </PolicyCard>
+          <LuxuryNote>
+            <span>Best for:</span>
+            beginners, self-trained fighters, outdoor training, bagwork, defense,
+            footwork, power mechanics, and confidence on camera or in sparring.
+          </LuxuryNote>
+        </SidePanel>
       </Shell>
     </Page>
   );
 }
 
 const Page = styled(motion.main)`
-  --bg: ${({ theme }) => theme.colors.darkBrown};
-  --card: ${({ theme }) => theme.colors.brown};
-  --ink: ${({ theme }) => theme.colors.ivory};
-  --accent: ${({ theme }) => theme.colors.lightBrown};
-  --glass: ${({ theme }) => theme.colors.glass};
-  --shadow: ${({ theme }) => theme.shadow.glow};
+  --bg: ${({ theme }) => theme?.colors?.darkBrown || "#130c09"};
+  --card: ${({ theme }) => theme?.colors?.brown || "#221610"};
+  --ink: ${({ theme }) => theme?.colors?.ivory || "#fff8ef"};
+  --accent: ${({ theme }) => theme?.colors?.lightBrown || "#d6b69f"};
+  --glass: ${({ theme }) => theme?.colors?.glass || "rgba(255,255,255,0.08)"};
+  --black: ${({ theme }) => theme?.colors?.black || "#050505"};
+  --white: ${({ theme }) => theme?.colors?.white || "#ffffff"};
+  --shadow: ${({ theme }) => theme?.shadow?.glow || "0 24px 80px rgba(0,0,0,0.38)"};
 
   min-height: 100svh;
+  overflow: hidden;
   background:
-    radial-gradient(1200px 600px at 10% 0%, rgba(214, 182, 159, 0.16), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(214, 182, 159, 0.12), transparent 60%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 30%),
+    radial-gradient(900px 520px at 8% 0%, rgba(214, 182, 159, 0.2), transparent 62%),
+    radial-gradient(760px 460px at 88% 8%, rgba(255, 255, 255, 0.08), transparent 58%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 35%),
     var(--bg);
   color: var(--ink);
 `;
 
 const Hero = styled.header`
-  max-width: ${({ theme }) => theme.layout.max};
+  position: relative;
+  max-width: ${({ theme }) => theme?.layout?.max || "1180px"};
   margin: 0 auto;
-  padding: 78px 20px 32px;
+  padding: 86px 20px 36px;
   text-align: center;
 `;
 
+const HeroGlow = styled.div`
+  position: absolute;
+  inset: 18px 16% auto;
+  height: 220px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(214, 182, 159, 0.18), transparent 68%);
+  filter: blur(18px);
+`;
+
 const Badge = styled.div`
-  display: inline-block;
-  padding: 9px 16px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.colors.glass};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-  letter-spacing: 0.14em;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 17px;
+  border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
+  background: rgba(255, 255, 255, 0.075);
+  box-shadow: ${({ theme }) => theme?.shadow?.soft || "0 14px 32px rgba(0,0,0,0.2)"};
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  font-weight: 800;
-  font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 900;
+  font-size: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  backdrop-filter: blur(18px);
 `;
 
 const Title = styled.h1`
-  margin: 18px auto 12px;
-  max-width: 950px;
-  font-size: clamp(38px, 6vw, 72px);
-  line-height: 1.02;
-  letter-spacing: -0.04em;
-  text-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+  position: relative;
+  margin: 20px auto 14px;
+  max-width: 980px;
+  font-size: clamp(40px, 6.4vw, 82px);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  text-shadow: 0 18px 38px rgba(0, 0, 0, 0.42);
 `;
 
 const Sub = styled.p`
+  position: relative;
   opacity: 0.92;
-  max-width: 820px;
+  max-width: 850px;
   margin: 0 auto;
-  font-size: clamp(16px, 1.8vw, 19px);
-  line-height: 1.75;
+  font-size: clamp(16px, 1.8vw, 20px);
+  line-height: 1.78;
+`;
+
+const PromiseBar = styled.div`
+  margin: 26px auto 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 950px;
+
+  span {
+    padding: 10px 13px;
+    border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
+    background: rgba(255, 255, 255, 0.065);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 800;
+  }
 `;
 
 const CalBar = styled.div`
-  margin-top: 24px;
+  margin-top: 26px;
   display: inline-flex;
   gap: 12px;
   align-items: center;
@@ -818,56 +945,113 @@ const CalBar = styled.div`
 
   .cal-btn,
   .form-btn {
-    padding: 13px 17px;
-    border-radius: ${({ theme }) => theme.radius.pill};
-    background: ${({ theme }) => theme.colors.lightBrown};
-    color: ${({ theme }) => theme.colors.black};
-    font-weight: 800;
-    border: none;
+    padding: 14px 18px;
+    border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
+    font-weight: 900;
     cursor: pointer;
     text-decoration: none;
-    box-shadow: 0 14px 28px rgba(214, 182, 159, 0.2);
+    transition: 220ms ease;
+  }
+
+  .cal-btn {
+    background: var(--accent);
+    color: var(--black);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 18px 38px rgba(214, 182, 159, 0.24);
   }
 
   .form-btn {
-    background: transparent;
-    color: ${({ theme }) => theme.colors.white};
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: none;
+    background: rgba(255, 255, 255, 0.055);
+    color: var(--white);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .cal-btn:hover,
+  .form-btn:hover {
+    transform: translateY(-2px);
   }
 
   .or {
-    opacity: 0.7;
+    opacity: 0.65;
     font-size: 14px;
   }
 `;
 
 const Shell = styled.section`
-  max-width: ${({ theme }) => theme.layout.max};
-  margin: 12px auto 90px;
+  max-width: ${({ theme }) => theme?.layout?.max || "1180px"};
+  margin: 16px auto 96px;
   padding: 0 20px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 22px;
 
   @media (min-width: 980px) {
-    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-columns: minmax(0, 1.18fr) minmax(330px, 0.82fr);
+    align-items: start;
   }
 `;
 
-const Card = styled.div`
+const GlassCard = styled.div`
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 30%),
-    var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: ${({ theme }) => theme.radius.lg};
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0) 36%),
+    rgba(34, 22, 16, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: ${({ theme }) => theme?.radius?.lg || "28px"};
   box-shadow: var(--shadow);
-  padding: 26px;
+  backdrop-filter: blur(18px);
+`;
+
+const FormCard = styled(GlassCard)`
+  padding: clamp(20px, 3vw, 30px);
+`;
+
+const CardHeader = styled.div`
+  margin-bottom: 20px;
+`;
+
+const MiniLabel = styled.span`
+  display: inline-block;
+  margin-bottom: 9px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 `;
 
 const CardTitle = styled.h2`
-  font-size: 23px;
-  margin: 4px 0 18px;
+  font-size: clamp(24px, 2.8vw, 36px);
+  line-height: 1.05;
+  margin: 0 0 10px;
+  letter-spacing: -0.035em;
+`;
+
+const CardText = styled.p`
+  margin: 0;
+  opacity: 0.78;
+  line-height: 1.7;
+`;
+
+const StatusMessage = styled.div`
+  margin: 0 0 16px;
+  padding: 13px 15px;
+  border-radius: 18px;
+  line-height: 1.55;
+  font-weight: 800;
+  color: ${({ $state }) => ($state === "success" ? "#dfffe7" : "#fff4df")};
+  background: ${({ $state }) =>
+    $state === "success"
+      ? "rgba(46, 204, 113, 0.14)"
+      : $state === "warning"
+        ? "rgba(255, 193, 7, 0.14)"
+        : "rgba(255, 82, 82, 0.13)"};
+  border: 1px solid
+    ${({ $state }) =>
+      $state === "success"
+        ? "rgba(46, 204, 113, 0.25)"
+        : $state === "warning"
+          ? "rgba(255, 193, 7, 0.24)"
+          : "rgba(255, 82, 82, 0.22)"};
 `;
 
 const Form = styled.form`
@@ -883,7 +1067,7 @@ const Row = styled.div.withConfig({
     $columns === "1" || columns === "1" ? "1fr" : "1fr 1fr"};
   gap: 14px;
 
-  @media (max-width: 680px) {
+  @media (max-width: 700px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -895,32 +1079,40 @@ const Field = styled.div`
 
 const Label = styled.label`
   font-size: 13px;
-  opacity: 0.92;
-  font-weight: 700;
+  opacity: 0.94;
+  font-weight: 850;
 `;
 
 const inputBase = `
   width: 100%;
-  background: rgba(255,255,255,0.045);
+  background: rgba(255,255,255,0.055);
   border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 14px;
+  border-radius: 16px;
   color: #fff;
-  padding: 13px 14px;
+  padding: 14px 14px;
   outline: none;
-  transition: 180ms ease;
-  box-shadow: inset 0 1px 0 rgba(0,0,0,0.22);
+  transition: 190ms ease;
+  box-shadow: inset 0 1px 0 rgba(0,0,0,0.25);
 
   &::placeholder {
-    color: rgba(255,255,255,0.48);
+    color: rgba(255,255,255,0.44);
+  }
+
+  &:hover {
+    border-color: rgba(214,182,159,0.34);
+    background: rgba(255,255,255,0.07);
   }
 
   &:focus {
-    border-color: rgba(255,255,255,0.48);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.16);
+    border-color: rgba(214,182,159,0.78);
+    box-shadow: 0 0 0 4px rgba(214,182,159,0.15);
+    background: rgba(255,255,255,0.075);
   }
 `;
 
-const Input = styled.input`${inputBase}`;
+const Input = styled.input`
+  ${inputBase}
+`;
 
 const Select = styled.select`
   ${inputBase}
@@ -934,6 +1126,18 @@ const Select = styled.select`
 const Textarea = styled.textarea`
   ${inputBase}
   resize: vertical;
+  min-height: 150px;
+`;
+
+const Hint = styled.small`
+  text-align: right;
+  font-weight: 700;
+
+  color: ${({ $count }) => {
+    if ($count >= 1000) return "#ff6b6b";
+    if ($count >= 800) return "#ffd166";
+    return "rgba(255,255,255,0.58)";
+  }};
 `;
 
 const Honeypot = styled.div`
@@ -945,46 +1149,60 @@ const Honeypot = styled.div`
 
 const Checks = styled.div`
   display: grid;
-  gap: 10px;
+  gap: 11px;
+  padding: 4px 0;
 
   .check {
     display: inline-flex;
     align-items: flex-start;
     gap: 10px;
     user-select: none;
-    line-height: 1.55;
-
-    input[type="checkbox"] {
-      margin-top: 4px;
-      accent-color: ${({ theme }) => theme.colors.lightBrown};
-    }
-
-    a {
-      color: ${({ theme }) => theme.colors.lightBrown};
-      font-weight: 800;
-    }
+    line-height: 1.58;
+    color: rgba(255, 255, 255, 0.88);
   }
+
+  input[type="checkbox"] {
+    margin-top: 5px;
+    accent-color: var(--accent);
+  }
+
+  a {
+    color: var(--accent);
+    font-weight: 900;
+  }
+`;
+
+const MethodBox = styled.div`
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(214, 182, 159, 0.18);
 `;
 
 const Actions = styled.div`
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  padding-top: 4px;
 `;
 
 const Primary = styled.button`
-  background: ${({ theme }) => theme.colors.lightBrown};
-  color: ${({ theme }) => theme.colors.black};
-  font-weight: 900;
-  padding: 14px 19px;
-  border-radius: ${({ theme }) => theme.radius.pill};
+  background: var(--accent);
+  color: var(--black);
+  font-weight: 950;
+  padding: 15px 20px;
+  border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
   border: none;
   cursor: pointer;
-  box-shadow: 0 14px 30px rgba(214, 182, 159, 0.26);
-  transition: 200ms ease;
+  box-shadow: 0 18px 38px rgba(214, 182, 159, 0.25);
+  transition: 220ms ease;
 
   &:hover {
-    transform: translateY(-1px) scale(1.01);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 24px 44px rgba(214, 182, 159, 0.32);
   }
 
   &:active {
@@ -992,50 +1210,97 @@ const Primary = styled.button`
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.62;
     cursor: not-allowed;
     transform: none;
   }
 `;
 
 const Ghost = styled.a`
-  background: transparent;
-  color: #fff;
-  font-weight: 800;
-  padding: 14px 18px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--white);
+  font-weight: 900;
+  padding: 15px 19px;
+  border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
+  border: 1px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
-  transition: 200ms ease;
+  transition: 220ms ease;
   text-decoration: none;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.085);
   }
 `;
 
-const PolicyCard = styled(Card)`
-  small {
-    display: block;
-    opacity: 0.76;
-    margin-top: 14px;
-    line-height: 1.65;
+const SidePanel = styled(GlassCard)`
+  padding: clamp(20px, 3vw, 28px);
+  position: sticky;
+  top: 20px;
+
+  @media (max-width: 979px) {
+    position: static;
   }
+`;
+
+const PanelTop = styled.div`
+  margin-bottom: 18px;
 `;
 
 const PolicyTitle = styled.h3`
-  margin: 2px 0 14px;
-  font-size: 22px;
+  margin: 0 0 10px;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 `;
 
-const HooksList = styled.ul`
+const PanelText = styled.p`
   margin: 0;
-  padding-left: 18px;
+  opacity: 0.78;
+  line-height: 1.75;
+`;
+
+const ResultGrid = styled.div`
   display: grid;
-  gap: 11px;
-  line-height: 1.6;
+  gap: 13px;
+`;
+
+const ResultCard = styled.div`
+  padding: 15px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
 
   strong {
-    color: ${({ theme }) => theme.colors.lightBrown};
+    display: block;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+
+  span {
+    display: block;
+    line-height: 1.62;
+    opacity: 0.82;
+  }
+`;
+
+const LuxuryNote = styled.div`
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(214, 182, 159, 0.16), rgba(255, 255, 255, 0.045));
+  border: 1px solid rgba(214, 182, 159, 0.22);
+  line-height: 1.7;
+  opacity: 0.9;
+
+  span {
+    display: block;
+    color: var(--accent);
+    font-weight: 950;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
   }
 `;

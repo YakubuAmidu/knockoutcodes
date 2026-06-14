@@ -61,6 +61,55 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    accountStatus: {
+  type: String,
+  enum: ["active", "on_hold", "suspended", "banned", "deactivated"],
+  default: "active",
+  index: true,
+},
+
+statusReason: {
+  type: String,
+  trim: true,
+  maxlength: 500,
+  default: "",
+},
+
+statusChangedAt: {
+  type: Date,
+  default: null,
+},
+
+statusChangedBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  default: null,
+},
+
+adminNotes: {
+  type: String,
+  trim: true,
+  maxlength: 2000,
+  default: "",
+},
+
+isDeleted: {
+  type: Boolean,
+  default: false,
+  index: true,
+},
+
+deletedAt: {
+  type: Date,
+  default: null,
+},
+
+deletedBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  default: null,
+},
+
     // Email verification
     isEmailVerified: {
       type: Boolean,
@@ -255,6 +304,8 @@ const userSchema = new mongoose.Schema(
 ========================= */
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ accountStatus: 1, isActive: 1 });
+userSchema.index({ isDeleted: 1, createdAt: -1 });
 
 /* =========================
    Middleware
@@ -332,6 +383,10 @@ userSchema.methods.toJSON = function toJSON() {
   delete obj.mfaBackupCodes;
   delete obj.lastPasswordResetAt;
   delete obj.lastFailedLoginAt;
+  delete obj.adminNotes;
+  delete obj.statusReason;
+  delete obj.statusChangedBy;
+  delete obj.deletedBy;
 
   return obj;
 };

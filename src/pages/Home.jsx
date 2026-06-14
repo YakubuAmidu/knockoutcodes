@@ -14,30 +14,39 @@ export default function Home(){
     <>
       {/* Header */}
       <Header />
+      <hr />
 
       {/* Preview */}
       <Preview />
+      <hr />
 
       {/* Ebooks */}
       <Ebook />
+      <hr />
 
       {/* Courses */}
       <Courses />
+      <hr />
 
       {/* Testimonials */}
       <Testimonials />
+      <hr />
 
       {/* Membership */}
       <Membership />
+      <hr />
 
       {/* Blogs */}
       <Blog />
+      <hr />
 
       {/* Products */}
       <Product />
+      <hr />
 
       {/* Coaching */}
       <Coaching />
+      <hr />
     </>
  )
 }

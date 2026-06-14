@@ -12,19 +12,19 @@ export const systemSettingReducer = (state, action) => {
       };
 
     case SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_SUCCESS:
-      return {
-        ...state,
-        loading: false,
-        maintenanceMode: Boolean(action.payload.maintenanceMode),
-        maintenanceTitle:
-          action.payload.maintenanceTitle || state.maintenanceTitle,
-        maintenanceMessage:
-          action.payload.maintenanceMessage || state.maintenanceMessage,
-        allowAdminAccess:
-          action.payload.allowAdminAccess !== false,
-        updatedAt: action.payload.updatedAt || null,
-        error: null,
-      };
+  return {
+    ...state,
+    loading: false,
+    hasLoaded: true,
+    maintenanceMode: Boolean(action.payload.maintenanceMode),
+    maintenanceTitle:
+      action.payload.maintenanceTitle || state.maintenanceTitle,
+    maintenanceMessage:
+      action.payload.maintenanceMessage || state.maintenanceMessage,
+    allowAdminAccess: action.payload.allowAdminAccess !== false,
+    updatedAt: action.payload.updatedAt || null,
+    error: null,
+  };
 
     case SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_FAIL:
       return {
@@ -33,6 +33,20 @@ export const systemSettingReducer = (state, action) => {
         hasLoaded: true,
         error: action.payload,
       };
+    
+    case SYSTEM_SETTING_ACTIONS.SYSTEM_MAINTENANCE_SOCKET_UPDATE:
+  return {
+    ...state,
+    hasLoaded: true,
+    maintenanceMode: Boolean(action.payload.maintenanceMode),
+    maintenanceTitle:
+      action.payload.maintenanceTitle || state.maintenanceTitle,
+    maintenanceMessage:
+      action.payload.maintenanceMessage || state.maintenanceMessage,
+    allowAdminAccess: action.payload.allowAdminAccess !== false,
+    updatedAt: action.payload.updatedAt || state.updatedAt,
+    error: null,
+  };
 
     case SYSTEM_SETTING_ACTIONS.UPDATE_MAINTENANCE_REQUEST:
       return {

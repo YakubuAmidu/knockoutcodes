@@ -2,7 +2,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import Footer from "../components/Footer";
 import { useToast } from "../components/Toast.jsx"; // ✅ global toast
 
 // ✅ Redux hooks
@@ -1383,8 +1382,6 @@ async function handleLogout() {
           </Split>
         </Inner>
       </Wrap>
-
-      <Footer />
     </>
   );
 };

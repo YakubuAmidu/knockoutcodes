@@ -40,11 +40,54 @@ const initialFormState = {
 
 const arrayToText = (value) => (Array.isArray(value) ? value.join(", ") : "");
 
+const textToArray = (value) =>
+  String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const buildCoursePayload = (formData) => ({
+  title: String(formData.title || "").trim(),
+  description: String(formData.description || "").trim(),
+  category: String(formData.category || "").trim(),
+  focusArea: String(formData.focusArea || "").trim(),
+
+  level: formData.level,
+  requiredMembershipLevel: formData.isFree
+    ? "none"
+    : formData.requiredMembershipLevel,
+
+  allowSinglePurchase: Boolean(formData.allowSinglePurchase),
+  stripePriceId: String(formData.stripePriceId || "").trim(),
+
+  thumbnail: String(formData.thumbnail || "").trim(),
+  promoVideo: String(formData.promoVideo || "").trim(),
+
+  price: formData.isFree ? 0 : Number(formData.price || 0),
+  salePrice:
+    formData.isFree || formData.salePrice === ""
+      ? null
+      : Number(formData.salePrice),
+
+  isFree: Boolean(formData.isFree),
+  durationInMinutes: Number(formData.durationInMinutes || 0),
+  totalLessons: Number(formData.totalLessons || 0),
+  language: String(formData.language || "English").trim(),
+
+  equipmentNeeded: textToArray(formData.equipmentNeeded),
+  requirements: textToArray(formData.requirements),
+  whatYouWillLearn: textToArray(formData.whatYouWillLearn),
+  tags: textToArray(formData.tags),
+
+  isFeatured: Boolean(formData.isFeatured),
+  isPublished: Boolean(formData.isPublished),
+});
+
 const ManageCourses = () => {
   const dispatch = useDispatch();
 
   const {
-    courses,
+    courses = [],
     meta,
     selectedCourse,
     loading,
@@ -52,10 +95,15 @@ const ManageCourses = () => {
     deleting,
     error,
     successMessage,
-    search,
-    levelFilter,
-    statusFilter,
-  } = useSelector((state) => state.manageCourses);
+    search = "",
+    levelFilter = "all",
+    statusFilter = "all",
+  } = useSelector((state) => state.manageCourses || {});
+
+  const safeCourses = useMemo(
+    () => (Array.isArray(courses) ? courses : []),
+    [courses]
+  );
 
   const [formData, setFormData] = useState(initialFormState);
   const [toast, setToast] = useState(null);
@@ -88,41 +136,49 @@ const ManageCourses = () => {
   const isEditing = Boolean(selectedCourse?._id);
 
   const publishedCount = useMemo(
-    () => courses.filter((course) => course.isPublished).length,
-    [courses]
+    () => safeCourses.filter((course) => course?.isPublished).length,
+    [safeCourses]
   );
 
-  const draftCount = Math.max(0, Number(meta?.total || 0) - publishedCount);
+  const draftCount = useMemo(
+    () => safeCourses.filter((course) => !course?.isPublished).length,
+    [safeCourses]
+  );
 
   const featuredCount = useMemo(
-    () => courses.filter((course) => course.isFeatured).length,
-    [courses]
+    () => safeCourses.filter((course) => course?.isFeatured).length,
+    [safeCourses]
   );
 
   const filteredCourses = useMemo(() => {
-    const term = String(search || "").toLowerCase().trim();
+    const term = String(search || "").toLowerCase().trim().slice(0, 120);
 
-    return courses.filter((course) => {
+    return safeCourses.filter((course) => {
       const matchesSearch =
         !term ||
-        String(course.title || "").toLowerCase().includes(term) ||
-        String(course.category || "").toLowerCase().includes(term) ||
-        String(course.level || "").toLowerCase().includes(term);
+        String(course?.title || "").toLowerCase().includes(term) ||
+        String(course?.category || "").toLowerCase().includes(term) ||
+        String(course?.level || "").toLowerCase().includes(term) ||
+        String(course?.requiredMembershipLevel || "")
+          .toLowerCase()
+          .includes(term);
 
       const matchesLevel =
-        levelFilter === "all" || String(course.level) === String(levelFilter);
+        levelFilter === "all" || String(course?.level) === String(levelFilter);
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "published" && course.isPublished) ||
-        (statusFilter === "draft" && !course.isPublished) ||
-        (statusFilter === "featured" && course.isFeatured);
+        (statusFilter === "published" && course?.isPublished) ||
+        (statusFilter === "draft" && !course?.isPublished) ||
+        (statusFilter === "featured" && course?.isFeatured);
 
       return matchesSearch && matchesLevel && matchesStatus;
     });
-  }, [courses, search, levelFilter, statusFilter]);
+  }, [safeCourses, search, levelFilter, statusFilter]);
 
   const fillFormFromCourse = (course) => {
+    if (!course) return;
+
     setFormData({
       _id: course._id || "",
       title: course.title || "",
@@ -140,7 +196,9 @@ const ManageCourses = () => {
       salePrice: course.salePrice != null ? String(course.salePrice) : "",
       isFree: Boolean(course.isFree),
       durationInMinutes:
-        course.durationInMinutes != null ? String(course.durationInMinutes) : "",
+        course.durationInMinutes != null
+          ? String(course.durationInMinutes)
+          : "",
       totalLessons:
         course.totalLessons != null ? String(course.totalLessons) : "",
       language: course.language || "English",
@@ -158,6 +216,7 @@ const ManageCourses = () => {
       type: MANAGE_COURSES_ACTIONS.SET_SELECTED_COURSE,
       payload: course,
     });
+
     fillFormFromCourse(course);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -176,7 +235,12 @@ const ManageCourses = () => {
         [name]: type === "checkbox" ? checked : value,
       };
 
-      if (name === "level" && !prev.requiredMembershipLevel) {
+      if (
+        name === "level" &&
+        !next.isFree &&
+        (!prev.requiredMembershipLevel ||
+          prev.requiredMembershipLevel === prev.level)
+      ) {
         next.requiredMembershipLevel = value;
       }
 
@@ -187,6 +251,14 @@ const ManageCourses = () => {
         next.salePrice = "";
       }
 
+      if (name === "isFree" && !checked) {
+        next.requiredMembershipLevel =
+          prev.requiredMembershipLevel === "none"
+            ? next.level || "beginner"
+            : prev.requiredMembershipLevel || "beginner";
+        next.allowSinglePurchase = true;
+      }
+
       return next;
     });
   };
@@ -194,7 +266,12 @@ const ManageCourses = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!formData.title.trim() || !formData.description.trim()) {
+    const title = String(formData.title || "").trim();
+    const description = String(formData.description || "").trim();
+    const thumbnail = String(formData.thumbnail || "").trim();
+    const stripePriceId = String(formData.stripePriceId || "").trim();
+
+    if (!title || !description) {
       setToast({
         type: "error",
         message: "Title and description are required.",
@@ -202,22 +279,110 @@ const ManageCourses = () => {
       return;
     }
 
+    const price = Number(formData.price || 0);
+    const salePrice =
+      formData.salePrice === "" ? null : Number(formData.salePrice);
+
+    if (!formData.isFree && (!Number.isFinite(price) || price < 0)) {
+      setToast({
+        type: "error",
+        message: "Price must be a valid number.",
+      });
+      return;
+    }
+
+    if (
+      salePrice !== null &&
+      (!Number.isFinite(salePrice) || salePrice < 0 || salePrice > price)
+    ) {
+      setToast({
+        type: "error",
+        message: "Sale price must be valid and cannot be greater than price.",
+      });
+      return;
+    }
+
+    if (
+      !formData.isFree &&
+      stripePriceId &&
+      !stripePriceId.startsWith("price_")
+    ) {
+      setToast({
+        type: "error",
+        message: "Stripe Price ID must start with price_.",
+      });
+      return;
+    }
+
+    if (formData.isPublished && !thumbnail) {
+      setToast({
+        type: "error",
+        message: "Published courses require a thumbnail.",
+      });
+      return;
+    }
+
+    if (formData.isPublished && !formData.isFree && price <= 0) {
+      setToast({
+        type: "error",
+        message: "Published paid courses require a price.",
+      });
+      return;
+    }
+
+    const duplicateTitle = safeCourses.some(
+      (course) =>
+        course?._id !== formData._id &&
+        String(course?.title || "").trim().toLowerCase() ===
+          title.toLowerCase()
+    );
+
+    if (duplicateTitle) {
+      setToast({
+        type: "error",
+        message: "A course with this title already exists.",
+      });
+      return;
+    }
+
+    if (
+  salePrice !== null &&
+  !formData.isFree &&
+  price <= salePrice
+) {
+  setToast({
+    type: "error",
+    message: "Regular price must be greater than sale price.",
+  });
+  return;
+    };
+
     try {
+      const payload = buildCoursePayload(formData);
+
       if (isEditing) {
-        await dispatch(updateManageCourse(selectedCourse._id, formData));
+        await dispatch(updateManageCourse(selectedCourse._id, payload));
       } else {
-        await dispatch(createManageCourse(formData));
+        await dispatch(createManageCourse(payload));
       }
 
       handleNewCourse();
     } catch {
-      // error already handled by reducer
+      // Error handled by reducer/toast
     }
   };
 
   const handleDelete = async (course) => {
+    if (!course?._id) {
+      setToast({
+        type: "error",
+        message: "Course ID is missing. Cannot delete this course.",
+      });
+      return;
+    }
+
     const ok = window.confirm(
-      `Delete "${course.title}"? This cannot be undone.`
+      `Delete "${course.title}"?\n\nThis will permanently remove the course and may affect enrolled students.`
     );
 
     if (!ok) return;
@@ -229,7 +394,7 @@ const ManageCourses = () => {
         handleNewCourse();
       }
     } catch {
-      // error already handled by reducer
+      // Error handled by reducer/toast
     }
   };
 
@@ -258,7 +423,10 @@ const ManageCourses = () => {
               + Create New Course
             </PrimaryButton>
 
-            <GhostButton type="button" onClick={() => dispatch(fetchManageCourses())}>
+            <GhostButton
+              type="button"
+              onClick={() => dispatch(fetchManageCourses())}
+            >
               Refresh Courses
             </GhostButton>
           </HeroActions>
@@ -278,7 +446,7 @@ const ManageCourses = () => {
 
       <StatsGrid>
         <StatCard>
-          <strong>{meta?.total || courses.length}</strong>
+          <strong>{meta?.total || safeCourses.length}</strong>
           <span>Total Courses</span>
         </StatCard>
 
@@ -302,17 +470,17 @@ const ManageCourses = () => {
         <FormPanel>
           <PanelTop>
             <div>
-              <SectionEyebrow>{isEditing ? "Edit Course" : "Create Course"}</SectionEyebrow>
+              <SectionEyebrow>
+                {isEditing ? "Edit Course" : "Create Course"}
+              </SectionEyebrow>
               <SectionTitle>
-                {isEditing ? "Upgrade This Course" : "Build A New Premium Course"}
+                {isEditing
+                  ? "Upgrade This Course"
+                  : "Build A New Premium Course"}
               </SectionTitle>
             </div>
 
-            {isEditing ? (
-              <MiniBadge>Editing</MiniBadge>
-            ) : (
-              <MiniBadge>New Course</MiniBadge>
-            )}
+            <MiniBadge>{isEditing ? "Editing" : "New Course"}</MiniBadge>
           </PanelTop>
 
           <Form onSubmit={handleSubmit}>
@@ -370,7 +538,6 @@ const ManageCourses = () => {
                 <option value="intermediate">Intermediate</option>
                 <option value="advance">Advance</option>
                 <option value="complete">Complete</option>
-                <option value="all-levels">All Levels</option>
               </Select>
             </Field>
 
@@ -450,6 +617,9 @@ const ManageCourses = () => {
 
             <Field>
               <Label>Thumbnail URL</Label>
+              {formData.thumbnail ? (
+                <PreviewImage src={formData.thumbnail} alt="Course preview" />
+              ) : null}
               <Input
                 name="thumbnail"
                 value={formData.thumbnail}
@@ -460,6 +630,9 @@ const ManageCourses = () => {
 
             <Field>
               <Label>Promo Video URL</Label>
+              {formData.promoVideo ? (
+                <PreviewVideo src={formData.promoVideo} controls />
+              ) : null}
               <Input
                 name="promoVideo"
                 value={formData.promoVideo}
@@ -601,7 +774,6 @@ const ManageCourses = () => {
               <option value="intermediate">Intermediate</option>
               <option value="advance">Advance</option>
               <option value="complete">Complete</option>
-              <option value="all-levels">All Levels Course</option>
             </Select>
 
             <Select
@@ -627,37 +799,40 @@ const ManageCourses = () => {
           ) : (
             <CourseList>
               {filteredCourses.map((course) => (
-                <CourseCard key={course._id}>
+                <CourseCard key={course?._id || course?.slug || course?.title}>
                   <CourseImageBox>
-                    {course.thumbnail ? (
+                    {course?.thumbnail ? (
                       <CourseImage src={course.thumbnail} alt={course.title} />
                     ) : (
                       <ImageFallback>KC</ImageFallback>
                     )}
 
                     <BadgeRow>
-                      <CourseBadge>{course.level}</CourseBadge>
+                      <CourseBadge>{course?.level || "beginner"}</CourseBadge>
                       <CourseBadge $light>
-                        {course.isPublished ? "Published" : "Draft"}
+                        {course?.isPublished ? "Published" : "Draft"}
                       </CourseBadge>
                     </BadgeRow>
                   </CourseImageBox>
 
                   <CourseBody>
-                    <CourseTitle>{course.title}</CourseTitle>
-                    <CourseText>{course.description}</CourseText>
+                    <CourseTitle>{course?.title}</CourseTitle>
+                    <CourseText>{course?.description}</CourseText>
 
                     <CourseMeta>
-                      <span>{course.category}</span>
+                      <span>{course?.category}</span>
                       <span>
-                        {course.isFree
+                        {course?.isFree
                           ? "Free"
-                          : `$${Number(course.salePrice || course.price || 0).toFixed(2)}`}
+                          : `$${Number(
+                              course?.salePrice || course?.price || 0
+                            ).toFixed(2)}`}
                       </span>
-                      <span>{course.studentsCount || 0} students</span>
+                      <span>{course?.studentsCount || 0} students</span>
                       <span>
-                        Membership: {course.requiredMembershipLevel || "none"}
+                        Membership: {course?.requiredMembershipLevel || "none"}
                       </span>
+                      <span>Access: {course?.requiredMembershipLevel || "none"}</span>
                     </CourseMeta>
 
                     <CardActions>
@@ -667,7 +842,7 @@ const ManageCourses = () => {
 
                       <DangerButton
                         type="button"
-                        disabled={deleting}
+                        disabled={deleting || saving}
                         onClick={() => handleDelete(course)}
                       >
                         Delete
@@ -1025,6 +1200,22 @@ const TextArea = styled.textarea`
   &::placeholder {
     color: rgba(255, 249, 242, 0.45);
   }
+`;
+
+const PreviewImage = styled.img`
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  border: 1px solid rgba(214, 182, 159, 0.18);
+`;
+
+const PreviewVideo = styled.video`
+  width: 100%;
+  max-height: 220px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  border: 1px solid rgba(214, 182, 159, 0.18);
+  background: #000;
 `;
 
 const ToggleGrid = styled.div`

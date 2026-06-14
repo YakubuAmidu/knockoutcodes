@@ -1,5 +1,3 @@
-// src/reducers/manageNewsletter/manageNewsletterInitialState.js
-
 export const manageNewsletterInitialState = {
   loadingList: false,
   saving: false,
@@ -10,5 +8,11 @@ export const manageNewsletterInitialState = {
   search: "",
 
   error: "",
-  systemMessage: null, // { tone: "error" | "success" | "info", text: string }
+  systemMessage: null,
+
+  total: 0,
+  active: 0,
+  inactive: 0,
+  page: 1,
+  pages: 1,
 };

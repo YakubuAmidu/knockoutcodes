@@ -8,6 +8,18 @@ import LessonProgress from "../models/LessonProgressModel.js";
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(String(id));
 
+const ALLOWED_UPDATE_FIELDS = [
+  "course",
+  "title",
+  "description",
+  "videoUrl",
+  "durationInMinutes",
+  "order",
+  "isPreview",
+  "isPublished",
+  "resources",
+];
+
 function normalizeLevel(value) {
   const level = String(value || "").trim().toLowerCase();
   if (level === "advanced") return "advance";
@@ -16,7 +28,6 @@ function normalizeLevel(value) {
 
 function isSubscriptionActive(sub) {
   if (!sub) return false;
-
   if (!["active", "trialing"].includes(sub.status)) return false;
 
   if (
@@ -29,6 +40,34 @@ function isSubscriptionActive(sub) {
   return true;
 }
 
+function cleanText(value = "", max = 2000) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function cleanNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : fallback;
+}
+
+function cleanBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
+function cleanResources(resources = []) {
+  if (!Array.isArray(resources)) return [];
+
+  return resources
+    .map((resource) => ({
+      label: cleanText(resource?.label, 120),
+      url: cleanText(resource?.url, 500),
+    }))
+    .filter((resource) => resource.label || resource.url)
+    .slice(0, 20);
+}
+
 function removeProtectedVideoFields(lesson) {
   const safeLesson = { ...lesson };
 
@@ -38,6 +77,33 @@ function removeProtectedVideoFields(lesson) {
   delete safeLesson.videoAssetId;
 
   return safeLesson;
+}
+
+function pickAllowedUpdates(body = {}) {
+  const update = {};
+
+  for (const key of ALLOWED_UPDATE_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      update[key] = body[key];
+    }
+  }
+
+  return update;
+}
+
+function buildLessonPayload(body = {}, userId = null) {
+  return {
+    course: body.course || body.courseId,
+    title: cleanText(body.title, 160),
+    description: cleanText(body.description, 2000),
+    videoUrl: cleanText(body.videoUrl, 500),
+    durationInMinutes: cleanNumber(body.durationInMinutes, 0),
+    order: cleanNumber(body.order, 0),
+    isPreview: cleanBoolean(body.isPreview, false),
+    isPublished: cleanBoolean(body.isPublished, true),
+    resources: cleanResources(body.resources),
+    createdBy: userId,
+  };
 }
 
 async function verifyCourseAccess(userId, course) {
@@ -112,7 +178,7 @@ async function verifyCourseAccess(userId, course) {
 
   return {
     allowed: false,
-    reason: "membership_level_too_low",
+    reason: "membership_level_not_matching",
     source: "membership",
     userLevel,
     requiredLevel,
@@ -123,8 +189,8 @@ async function verifyCourseAccess(userId, course) {
 export const getAllLessons = async (req, res) => {
   try {
     const lessons = await Lesson.find({})
-      .populate("course", "title slug category level isFree price")
-      .sort({ createdAt: -1 })
+      .populate("course", "title slug category level requiredMembershipLevel isFree price")
+      .sort({ course: 1, order: 1, createdAt: -1 })
       .lean();
 
     return res.status(200).json({
@@ -132,46 +198,34 @@ export const getAllLessons = async (req, res) => {
       count: lessons.length,
       data: lessons,
     });
-  } catch (error) {
-    console.error("getAllLessons error:", error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch all lessons.",
-      error: error.message,
     });
   }
 };
 
-// Admin: Create a lesson
+// Admin: Create lesson
 export const createLesson = async (req, res) => {
   try {
-    const {
-      course,
-      title,
-      description,
-      videoUrl,
-      durationInMinutes,
-      order,
-      isPreview,
-      isPublished,
-      resources,
-    } = req.body;
+    const payload = buildLessonPayload(req.body, req.user?._id);
 
-    if (!course || !title) {
+    if (!payload.course || !payload.title) {
       return res.status(400).json({
         success: false,
-        message: "course and title are required.",
+        message: "Course and lesson title are required.",
       });
     }
 
-    if (!isValidObjectId(course)) {
+    if (!isValidObjectId(payload.course)) {
       return res.status(400).json({
         success: false,
         message: "Valid course ID is required.",
       });
     }
 
-    const courseDoc = await Course.findById(course);
+    const courseDoc = await Course.findById(payload.course).select("_id title");
 
     if (!courseDoc) {
       return res.status(404).json({
@@ -180,35 +234,34 @@ export const createLesson = async (req, res) => {
       });
     }
 
-    const lesson = await Lesson.create({
-      course,
-      title,
-      description,
-      videoUrl,
-      durationInMinutes,
-      order,
-      isPreview,
-      isPublished,
-      resources,
-      createdBy: req.user?._id,
-    });
+    const lesson = await Lesson.create(payload);
+
+    const populatedLesson = await Lesson.findById(lesson._id)
+      .populate("course", "title slug category level requiredMembershipLevel isFree price")
+      .lean();
 
     return res.status(201).json({
       success: true,
       message: "Lesson created successfully.",
-      data: lesson,
+      data: populatedLesson,
     });
   } catch (error) {
-    console.error("createLesson error:", error);
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)[0]?.message || "Validation failed.",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Failed to create lesson.",
-      error: error.message,
     });
   }
 };
 
-// Get all lessons for a course
+// Public/course lessons
+// Public/course lessons
 export const getLessonsByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -225,13 +278,19 @@ export const getLessonsByCourse = async (req, res) => {
 
     if (isValidObjectId(courseId)) {
       course = await Course.findById(courseId)
-        .select("_id title slug isFree level requiredMembershipLevel isPublished")
+        .select(
+          "_id title slug isFree level requiredMembershipLevel isPublished durationInMinutes totalLessons"
+        )
         .lean();
     }
 
     if (!course) {
-      course = await Course.findOne({ slug: courseId })
-        .select("_id title slug isFree level requiredMembershipLevel isPublished")
+      course = await Course.findOne({
+        slug: String(courseId).trim().toLowerCase(),
+      })
+        .select(
+          "_id title slug isFree level requiredMembershipLevel isPublished durationInMinutes totalLessons"
+        )
         .lean();
     }
 
@@ -242,33 +301,51 @@ export const getLessonsByCourse = async (req, res) => {
       });
     }
 
-    if (course.isPublished === false && req.user?.role !== "admin") {
+    const isAdmin =
+      req.user &&
+      ["admin", "superadmin"].includes(String(req.user.role));
+
+    if (course.isPublished === false && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "This course is not published yet.",
       });
     }
 
-    const access =
-      req.user?.role === "admin"
-        ? { allowed: true, source: "admin", reason: "admin_access" }
-        : await verifyCourseAccess(userId, course);
+    const access = isAdmin
+      ? { allowed: true, source: "admin", reason: "admin_access" }
+      : await verifyCourseAccess(userId, course);
 
-    const query = {
+    const lessons = await Lesson.find({
       course: course._id,
       isPublished: true,
-    };
-
-    if (!access.allowed) {
-      query.isPreview = true;
-    }
-
-    const lessons = await Lesson.find(query).sort({ order: 1, createdAt: 1 }).lean();
+    })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
 
     const safeLessons = lessons.map((lesson) => {
-      if (access.allowed || lesson.isPreview) return lesson;
-      return removeProtectedVideoFields(lesson);
+      const canPlay =
+        Boolean(access.allowed) ||
+        Boolean(lesson.isPreview) ||
+        Boolean(course.isFree);
+
+      return {
+        ...lesson,
+        isLocked: !canPlay,
+        canPlay,
+        videoUrl: canPlay ? lesson.videoUrl : "",
+      };
     });
+
+    const previewLesson =
+      safeLessons.find((lesson) => lesson.isPreview && lesson.videoUrl) ||
+      safeLessons.find((lesson) => lesson.canPlay && lesson.videoUrl) ||
+      null;
+
+    const totalDurationInMinutes = safeLessons.reduce(
+      (sum, lesson) => sum + (Number(lesson.durationInMinutes) || 0),
+      0
+    );
 
     return res.status(200).json({
       success: true,
@@ -288,10 +365,13 @@ export const getLessonsByCourse = async (req, res) => {
         requiredMembershipLevel: course.requiredMembershipLevel,
       },
       count: safeLessons.length,
+      previewLesson,
+      totalLessons: safeLessons.length,
+      totalDurationInMinutes,
       data: safeLessons,
+      lessons: safeLessons,
     });
-  } catch (error) {
-    console.error("getLessonsByCourse error:", error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch course lessons.",
@@ -299,7 +379,7 @@ export const getLessonsByCourse = async (req, res) => {
   }
 };
 
-// Get a single lesson by ID or slug — protected against video leak
+// Public/single lesson
 export const getLesson = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
@@ -312,13 +392,12 @@ export const getLesson = async (req, res) => {
       });
     }
 
-    const query = isValidObjectId(id) ? { _id: id } : { slug: id };
+    const query = isValidObjectId(id)
+      ? { _id: id }
+      : { slug: String(id).trim().toLowerCase() };
 
     const lesson = await Lesson.findOne(query)
-      .populate(
-        "course",
-        "_id title slug isFree level requiredMembershipLevel isPublished"
-      )
+      .populate("course", "_id title slug isFree level requiredMembershipLevel isPublished")
       .lean();
 
     if (!lesson || !lesson.course) {
@@ -348,7 +427,9 @@ export const getLesson = async (req, res) => {
         : await verifyCourseAccess(userId, lesson.course);
 
     const canWatchFullLesson =
-      Boolean(lesson.isPreview) || Boolean(lesson.course?.isFree) || access.allowed;
+      Boolean(lesson.isPreview) ||
+      Boolean(lesson.course?.isFree) ||
+      Boolean(access.allowed);
 
     const safeLesson = canWatchFullLesson
       ? lesson
@@ -366,17 +447,15 @@ export const getLesson = async (req, res) => {
       },
       data: safeLesson,
     });
-  } catch (error) {
-    console.error("getLesson error:", error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch lesson.",
-      error: error.message,
     });
   }
 };
 
-// Update lesson progress — supports paid enrollment OR active membership
+// User: update lesson progress
 export const updateLessonProgress = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
@@ -400,7 +479,7 @@ export const updateLessonProgress = async (req, res) => {
     const lesson = await Lesson.findById(lessonId)
       .populate(
         "course",
-        "_id title slug isFree level requiredMembershipLevel isPublished"
+        "_id title slug isFree price salePrice level requiredMembershipLevel isPublished"
       )
       .select("_id course isPublished")
       .lean();
@@ -429,23 +508,85 @@ export const updateLessonProgress = async (req, res) => {
       });
     }
 
+    const freeCourse =
+      lesson.course.isFree === true ||
+      Number(lesson.course.price || 0) <= 0 ||
+      String(lesson.course.requiredMembershipLevel || "").toLowerCase() ===
+        "none";
+
     let enrollment = access.enrollment || null;
 
-    if (!enrollment && access.source !== "enrollment") {
-  return res.status(403).json({
-    success: false,
-    message:
-      "Membership users can watch lessons but cannot create enrollment progress records.",
-  });
-}
+    if (!enrollment && freeCourse) {
+      enrollment = await Enrollment.findOneAndUpdate(
+        {
+          user: userId,
+          course: lesson.course._id,
+        },
+        {
+          $setOnInsert: {
+            user: userId,
+            course: lesson.course._id,
+            pricePaid: 0,
+            currency: "USD",
+            paymentPlan: "free",
+            paymentStatus: "paid",
+            status: "active",
+            accessType: "free",
+            progressPercent: 0,
+            startedAt: new Date(),
+          },
+          $set: {
+            lastAccessedAt: new Date(),
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+        }
+      );
+    }
 
     const safeWatchedSeconds = Math.max(0, Number(watchedSeconds) || 0);
     const safeDurationSeconds = Math.max(0, Number(durationSeconds) || 0);
 
-    const cappedWatched =
-      safeDurationSeconds > 0
-        ? Math.min(safeWatchedSeconds, safeDurationSeconds)
-        : safeWatchedSeconds;
+    if (safeDurationSeconds <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Video duration is required to save progress.",
+      });
+    }
+
+    const previousProgress = await LessonProgress.findOne({
+      user: userId,
+      course: lesson.course._id,
+      lesson: lesson._id,
+    });
+
+    const previousWatched = Number(previousProgress?.watchedSeconds || 0);
+    const now = new Date();
+
+    const elapsedSeconds = previousProgress?.lastWatchedAt
+      ? Math.max(
+          0,
+          Math.floor((now.getTime() - new Date(previousProgress.lastWatchedAt).getTime()) / 1000)
+        )
+      : 0;
+
+    const graceSeconds = previousProgress ? 18 : 25;
+    const maxAllowedWatched = previousProgress
+      ? previousWatched + elapsedSeconds + graceSeconds
+      : graceSeconds;
+
+    const cappedWatched = Math.min(
+      safeWatchedSeconds,
+      safeDurationSeconds,
+      maxAllowedWatched
+    );
+
+    const attemptedSkip =
+      safeWatchedSeconds > cappedWatched + 8 &&
+      safeWatchedSeconds / safeDurationSeconds >= 0.9;
 
     const completed =
       safeDurationSeconds > 0 && cappedWatched / safeDurationSeconds >= 0.9;
@@ -463,8 +604,8 @@ export const updateLessonProgress = async (req, res) => {
         $set: {
           durationSeconds: safeDurationSeconds,
           completed,
-          lastWatchedAt: new Date(),
-          ...(completed ? { completedAt: new Date() } : {}),
+          lastWatchedAt: now,
+          ...(completed ? { completedAt: now } : {}),
         },
       },
       {
@@ -490,26 +631,34 @@ export const updateLessonProgress = async (req, res) => {
         ? Math.min(100, Math.round((completedLessons / totalLessons) * 100))
         : 0;
 
-    enrollment.progressPercent = progressPercent;
-    enrollment.lastAccessedAt = new Date();
+    if (enrollment) {
+      enrollment.progressPercent = progressPercent;
+      enrollment.lastAccessedAt = now;
 
-    if (progressPercent >= 100) {
-      enrollment.status = "completed";
-      enrollment.completedAt = enrollment.completedAt || new Date();
+      if (progressPercent >= 100) {
+        enrollment.status = "completed";
+        enrollment.completedAt = enrollment.completedAt || now;
+      } else if (enrollment.status === "completed") {
+        enrollment.status = "active";
+        enrollment.completedAt = null;
+      }
+
+      await enrollment.save();
     }
-
-    await enrollment.save();
 
     return res.status(200).json({
       success: true,
-      message: "Lesson progress updated.",
+      message: attemptedSkip
+        ? "Please watch the lesson normally before it can be marked complete."
+        : "Lesson progress updated.",
+      accepted: !attemptedSkip,
       data: {
         lessonProgress: progress,
         enrollmentProgressPercent: progressPercent,
+        attemptedSkip,
       },
     });
-  } catch (error) {
-    console.error("updateLessonProgress error:", error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to update lesson progress.",
@@ -517,7 +666,7 @@ export const updateLessonProgress = async (req, res) => {
   }
 };
 
-// Admin: Update a lesson
+// Admin: Update lesson
 export const updateLesson = async (req, res) => {
   try {
     const { id } = req.params;
@@ -529,14 +678,53 @@ export const updateLesson = async (req, res) => {
       });
     }
 
+    const allowedUpdates = pickAllowedUpdates(req.body);
+
+    if (Object.keys(allowedUpdates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid lesson fields provided.",
+      });
+    }
+
+    if (allowedUpdates.course && !isValidObjectId(allowedUpdates.course)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid course ID is required.",
+      });
+    }
+
+    if (allowedUpdates.course) {
+      const courseExists = await Course.exists({ _id: allowedUpdates.course });
+
+      if (!courseExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Course not found.",
+        });
+      }
+    }
+
+    const cleanedUpdate = {};
+
+    if ("course" in allowedUpdates) cleanedUpdate.course = allowedUpdates.course;
+    if ("title" in allowedUpdates) cleanedUpdate.title = cleanText(allowedUpdates.title, 160);
+    if ("description" in allowedUpdates) cleanedUpdate.description = cleanText(allowedUpdates.description, 2000);
+    if ("videoUrl" in allowedUpdates) cleanedUpdate.videoUrl = cleanText(allowedUpdates.videoUrl, 500);
+    if ("durationInMinutes" in allowedUpdates) cleanedUpdate.durationInMinutes = cleanNumber(allowedUpdates.durationInMinutes, 0);
+    if ("order" in allowedUpdates) cleanedUpdate.order = cleanNumber(allowedUpdates.order, 0);
+    if ("isPreview" in allowedUpdates) cleanedUpdate.isPreview = cleanBoolean(allowedUpdates.isPreview, false);
+    if ("isPublished" in allowedUpdates) cleanedUpdate.isPublished = cleanBoolean(allowedUpdates.isPublished, true);
+    if ("resources" in allowedUpdates) cleanedUpdate.resources = cleanResources(allowedUpdates.resources);
+
     const lesson = await Lesson.findByIdAndUpdate(
       id,
-      { $set: req.body },
+      { $set: cleanedUpdate },
       {
         new: true,
         runValidators: true,
       }
-    );
+    ).populate("course", "title slug category level requiredMembershipLevel isFree price");
 
     if (!lesson) {
       return res.status(404).json({
@@ -551,16 +739,21 @@ export const updateLesson = async (req, res) => {
       data: lesson,
     });
   } catch (error) {
-    console.error("updateLesson error:", error);
+    if (error?.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors)[0]?.message || "Validation failed.",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Failed to update lesson.",
-      error: error.message,
     });
   }
 };
 
-// Admin: Delete a lesson
+// Admin: Delete lesson
 export const deleteLesson = async (req, res) => {
   try {
     const { id } = req.params;
@@ -581,16 +774,16 @@ export const deleteLesson = async (req, res) => {
       });
     }
 
+    await LessonProgress.deleteMany({ lesson: id });
+
     return res.status(200).json({
       success: true,
       message: "Lesson deleted successfully.",
     });
-  } catch (error) {
-    console.error("deleteLesson error:", error);
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to delete lesson.",
-      error: error.message,
     });
   }
 };

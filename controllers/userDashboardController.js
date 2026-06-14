@@ -38,9 +38,9 @@ export const getUserDashboard = async (req, res) => {
     };
 
     return res.status(200).json(payload);
-  } catch (error) {
+  } catch {
     return res.status(500).json({
-      message: "Failed to load dashboard.", error
+      message: "Failed to load dashboard.",
     });
   }
 };

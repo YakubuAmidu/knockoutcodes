@@ -12,12 +12,6 @@ const userLinks = [
   { label: "Contact", to: "/contact" },
 ];
 
-const adminLinks = [
-  { label: "Admin Dashboard", to: "/admin/dashboard" },
-  { label: "Admin Profile", to: "/admin/profile" },
-  { label: "Email Campaigns", to: "/admin/email-campaigns" },
-];
-
 const adminSidebarLinks = [
   { label: "Admin Dashboard", to: "/admin/dashboard" },
   { label: "Admin Profile", to: "/admin/profile" },
@@ -35,19 +29,21 @@ const adminSidebarLinks = [
   { label: "Email Templates", to: "/admin/email-templates" },
   { label: "Email Analytics", to: "/admin/email-analytics" },
   { label: "Manage Lessons", to: "/admin/lessons" },
-  { label: "Maintenance", to: "/admin/maintenance" },
   { label: "Security Events", to: "/admin/security-events" },
   { label: "Manage Sessions", to: "/admin/sessions" },
+  { label: "Manage Reviews", to: "/admin/reviews" },
+  { label: "Manage Testimonial", to: "/admin/testimonials" },
+  { label: "System Control", to: "/admin/system-cleanup" },
+  { label: "Manage Memberships", to: "/admin/memberships" },
+  { label: "Manage Enrollments", to: "/admin/enrollments" },
+  { label: "Manage Subscriptions", to: "/admin/user-subscriptions" },
 ];
-
-const MotionLink = motion.create(Link);
 
 const AdminNavbar = ({ currentUser, onLogout }) => {
   const location = useLocation();
   const isAdmin = currentUser?.role === "admin";
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const links = useMemo(() => (isAdmin ? adminLinks : userLinks), [isAdmin]);
   const sidebarLinks = useMemo(
     () => (isAdmin ? adminSidebarLinks : userLinks),
     [isAdmin]
@@ -55,6 +51,7 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
 
   const initials = useMemo(() => {
     if (!currentUser?.name) return "KC";
+
     return currentUser.name
       .split(" ")
       .map((n) => n[0])
@@ -67,7 +64,7 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
 
   const handleLogoutClick = () => {
     setIsMenuOpen(false);
-    if (onLogout) onLogout();
+    onLogout?.();
   };
 
   return (
@@ -78,39 +75,23 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
       transition={{ duration: 0.45, ease: "easeOut" }}
     >
       <Inner>
-        <BrandWrapper>
-          <Brand to="/home" onClick={handleNavClick}>
-            <LogoMark>KC</LogoMark>
+        <Brand to="/home" onClick={handleNavClick}>
+          <LogoMark>KC</LogoMark>
 
-            <BrandText>
-              <BrandTitle>KNOCKOUTCODES</BrandTitle>
-              <BrandSub>
-                <span>Pro Boxing Academy</span>
-                {isAdmin && <AdminBadge>ADMIN</AdminBadge>}
-              </BrandSub>
-            </BrandText>
-          </Brand>
-        </BrandWrapper>
+          <BrandText>
+            <BrandTitle>KNOCKOUTCODES</BrandTitle>
+            <BrandSub>
+              <span>Admin Command Center</span>
+              {isAdmin && <AdminBadge>Admin</AdminBadge>}
+            </BrandSub>
+          </BrandText>
+        </Brand>
 
-        <NavLinks>
-          {links.map((link) => {
-            const active = location.pathname === link.to;
-
-            return (
-              <NavItem
-                key={link.to}
-                to={link.to}
-                $active={active ? 1 : 0}
-                whileHover={{ y: -1, scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ duration: 0.18 }}
-              >
-                {link.label}
-                {active && <ActiveGlow layoutId="nav-glow" />}
-              </NavItem>
-            );
-          })}
-        </NavLinks>
+        <LuxuryCenter>
+          <CenterLine />
+          <CenterText>No middle links • Sidebar controlled</CenterText>
+          <CenterLine />
+        </LuxuryCenter>
 
         <RightSide>
           <ProfileArea>
@@ -122,7 +103,7 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
             </ProfileMeta>
 
             {onLogout ? (
-              <LogoutButton type="button" onClick={onLogout}>
+              <LogoutButton type="button" onClick={handleLogoutClick}>
                 Logout
               </LogoutButton>
             ) : (
@@ -159,20 +140,25 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
           >
             <SidebarPanel
               as={motion.aside}
-              initial={{ x: 280 }}
-              animate={{ x: 0 }}
-              exit={{ x: 280 }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
+              initial={{ x: 340, opacity: 0.96 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 340, opacity: 0.96 }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
               onClick={(e) => e.stopPropagation()}
             >
+              <SidebarGlow />
+              <SidebarTopLine />
+
               <SidebarHeader>
                 <SidebarAvatar>{initials}</SidebarAvatar>
 
                 <SidebarMeta>
                   <SidebarName>{currentUser?.name || "Guest Fighter"}</SidebarName>
-                  <SidebarRole>{isAdmin ? "Admin Coach" : "Athlete"}</SidebarRole>
+                  <SidebarRole>{isAdmin ? "Premium Admin Area" : "Athlete Area"}</SidebarRole>
                 </SidebarMeta>
               </SidebarHeader>
+
+              <SidebarDivider />
 
               <SidebarNav>
                 {sidebarLinks.map((link) => {
@@ -226,57 +212,40 @@ const Bar = styled.div`
   width: 100%;
   max-width: 100vw;
   overflow-x: clip;
-  backdrop-filter: blur(18px);
-  background: linear-gradient(
-    130deg,
-    ${({ theme }) => theme.colors.black} 0%,
-    ${({ theme }) => theme.colors.cocoa} 40%,
-    rgba(0, 0, 0, 0.9) 100%
-  );
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(22px);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(214, 182, 159, 0.2), transparent 34%),
+    linear-gradient(
+      130deg,
+      ${({ theme }) => theme.colors.black} 0%,
+      ${({ theme }) => theme.colors.cocoa} 42%,
+      rgba(0, 0, 0, 0.94) 100%
+    );
+  border-bottom: 1px solid rgba(214, 182, 159, 0.14);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
 
 const Inner = styled.div`
   width: min(100%, ${({ theme }) => theme.layout.max});
   margin: 0 auto;
-  padding: 12px clamp(12px, 2vw, 24px);
+  padding: 13px clamp(14px, 2vw, 26px);
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1.4vw, 18px);
-  min-width: 0;
-
-  @media (max-width: 640px) {
-    padding: 10px 12px;
-  }
-
-  @media (max-width: 380px) {
-    padding: 9px 10px;
-    gap: 8px;
-  }
-`;
-
-const BrandWrapper = styled.div`
-  flex: 0 1 auto;
-  min-width: 0;
+  gap: clamp(10px, 1.5vw, 22px);
 `;
 
 const Brand = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   min-width: 0;
   text-decoration: none;
-
-  @media (max-width: 420px) {
-    gap: 8px;
-  }
 `;
 
 const LogoMark = styled.div`
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: radial-gradient(
     circle at 30% 0%,
@@ -284,63 +253,41 @@ const LogoMark = styled.div`
     ${({ theme }) => theme.colors.brown} 48%,
     ${({ theme }) => theme.colors.darkBrown} 100%
   );
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   color: ${({ theme }) => theme.colors.ivory};
-  font-weight: 800;
+  font-weight: 950;
   font-size: 15px;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-
-  @media (max-width: 380px) {
-    width: 31px;
-    height: 31px;
-    flex-basis: 31px;
-    font-size: 13px;
-  }
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.35),
+    0 0 0 4px rgba(214, 182, 159, 0.08);
 `;
 
 const BrandText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 `;
 
 const BrandTitle = styled.div`
-  font-size: clamp(11px, 1.2vw, 14px);
-  font-weight: 700;
-  letter-spacing: clamp(0.12em, 0.9vw, 0.22em);
+  font-size: clamp(12px, 1.2vw, 15px);
+  font-weight: 950;
+  letter-spacing: clamp(0.13em, 0.9vw, 0.22em);
   text-transform: uppercase;
   color: ${({ theme }) => theme.colors.ivory};
   white-space: nowrap;
-
-  @media (max-width: 520px) {
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  @media (max-width: 380px) {
-    max-width: 122px;
-  }
 `;
 
 const BrandSub = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  gap: 7px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 249, 242, 0.7);
-
-  span:first-child {
-    white-space: nowrap;
-  }
+  color: rgba(255, 249, 242, 0.64);
 
   @media (max-width: 700px) {
     span:first-child {
@@ -350,105 +297,78 @@ const BrandSub = styled.div`
 `;
 
 const AdminBadge = styled.span`
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(214, 182, 159, 0.4);
-  background: linear-gradient(
-    135deg,
-    rgba(214, 182, 159, 0.22),
-    rgba(61, 38, 26, 0.9)
-  );
+  border: 1px solid rgba(214, 182, 159, 0.5);
+  background: rgba(214, 182, 159, 0.16);
   color: ${({ theme }) => theme.colors.ivory};
   font-size: 9px;
-  font-weight: 700;
-  white-space: nowrap;
+  font-weight: 950;
 `;
 
-const NavLinks = styled.div`
-  flex: 1 1 auto;
-  min-width: 0;
+const LuxuryCenter = styled.div`
+  flex: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: clamp(5px, 0.7vw, 8px);
+  gap: 13px;
+  min-width: 0;
 
-  @media (max-width: 1120px) {
+  @media (max-width: 1000px) {
     display: none;
   }
 `;
 
-const NavItem = styled(MotionLink)`
-  position: relative;
-  padding: 8px clamp(10px, 1vw, 14px);
-  border-radius: ${({ theme }) => theme.radius.pill};
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: ${({ theme, $active }) =>
-    $active ? theme.colors.ivory : "rgba(255,255,255,0.72)"};
-  background: ${({ $active }) =>
-    $active ? "rgba(214,182,159,0.13)" : "transparent"};
-  border: 1px solid
-    ${({ $active }) =>
-      $active ? "rgba(214,182,159,0.6)" : "rgba(255,255,255,0.06)"};
-  overflow: hidden;
-  white-space: nowrap;
-
-  &:hover {
-    border-color: rgba(214, 182, 159, 0.6);
-    background: radial-gradient(
-      circle at top,
-      rgba(214, 182, 159, 0.2),
-      rgba(0, 0, 0, 0.4)
-    );
-  }
+const CenterLine = styled.div`
+  width: min(90px, 10vw);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(214, 182, 159, 0.45),
+    transparent
+  );
 `;
 
-const ActiveGlow = styled(motion.div)`
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: 0 0 0 1px rgba(214, 182, 159, 0.65),
-    0 0 40px rgba(214, 182, 159, 0.36);
-  pointer-events: none;
+const CenterText = styled.div`
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 249, 242, 0.42);
+  white-space: nowrap;
 `;
 
 const RightSide = styled.div`
-  flex: 0 0 auto;
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1vw, 14px);
-  min-width: 0;
+  gap: clamp(9px, 1vw, 14px);
 `;
 
 const ProfileArea = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 0;
 
-  @media (max-width: 1120px) {
+  @media (max-width: 900px) {
     display: none;
   }
 `;
 
 const AvatarCircle = styled.div`
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 34px;
+  height: 34px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: radial-gradient(
     circle at 30% 0,
     ${({ theme }) => theme.colors.lightBrown},
     ${({ theme }) => theme.colors.darkBrown}
   );
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
   letter-spacing: 0.12em;
   color: ${({ theme }) => theme.colors.ivory};
   text-transform: uppercase;
@@ -459,13 +379,13 @@ const ProfileMeta = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-width: 130px;
+  max-width: 140px;
   min-width: 0;
 `;
 
 const ProfileName = styled.div`
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800;
   color: ${({ theme }) => theme.colors.ivory};
   white-space: nowrap;
   overflow: hidden;
@@ -476,17 +396,17 @@ const ProfileRole = styled.div`
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 249, 242, 0.7);
-  white-space: nowrap;
+  color: rgba(255, 249, 242, 0.62);
 `;
 
 const BaseButton = styled(Link)`
   text-decoration: none;
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 11px;
+  font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 7px 14px;
+  padding: 8px 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -499,16 +419,11 @@ const BaseButton = styled(Link)`
   color: ${({ theme }) => theme.colors.ivory};
   cursor: pointer;
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: 0.2s ease;
 
   &:hover {
     box-shadow: ${({ theme }) => theme.shadow.hard};
     transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-    box-shadow: ${({ theme }) => theme.shadow.soft};
   }
 `;
 
@@ -519,41 +434,34 @@ const ProfileButton = styled(BaseButton)`
 const LogoutButton = styled.button`
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 11px;
+  font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 7px 12px;
-  border: 1px solid rgba(214, 182, 159, 0.4);
-  background: transparent;
-  color: rgba(255, 249, 242, 0.9);
+  padding: 8px 13px;
+  border: 1px solid rgba(214, 182, 159, 0.42);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 249, 242, 0.92);
   cursor: pointer;
-  white-space: nowrap;
 
   &:hover {
-    background: rgba(214, 182, 159, 0.08);
+    background: rgba(214, 182, 159, 0.1);
+    border-color: rgba(214, 182, 159, 0.7);
   }
 `;
 
 const MenuButton = styled.button`
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 44px;
+  height: 44px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(214, 182, 159, 0.28);
+  border: 1px solid rgba(214, 182, 159, 0.35);
   background: rgba(255, 255, 255, 0.045);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
 
   &:hover {
-    background: rgba(214, 182, 159, 0.12);
-    border-color: rgba(214, 182, 159, 0.55);
-  }
-
-  @media (max-width: 380px) {
-    width: 38px;
-    height: 38px;
-    flex-basis: 38px;
+    background: rgba(214, 182, 159, 0.13);
+    border-color: rgba(214, 182, 159, 0.7);
   }
 `;
 
@@ -569,13 +477,11 @@ const MenuIcon = styled.div`
     height: 2px;
     border-radius: 999px;
     background: ${({ theme }) => theme.colors.ivory};
-    transition: transform 0.2s ease, opacity 0.2s ease, top 0.2s ease,
-      bottom 0.2s ease;
+    transition: 0.2s ease;
   }
 
   span:nth-child(1) {
     top: ${({ $open }) => ($open ? "8px" : "0px")};
-    transform-origin: center;
     transform: ${({ $open }) => ($open ? "rotate(45deg)" : "none")};
   }
 
@@ -586,7 +492,6 @@ const MenuIcon = styled.div`
 
   span:nth-child(3) {
     bottom: ${({ $open }) => ($open ? "8px" : "0px")};
-    transform-origin: center;
     transform: ${({ $open }) => ($open ? "rotate(-45deg)" : "none")};
   }
 `;
@@ -595,55 +500,89 @@ const SidebarOverlay = styled.div`
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: rgba(0, 0, 0, 0.64);
+  background:
+    radial-gradient(circle at top right, rgba(214, 182, 159, 0.18), transparent 35%),
+    rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: flex-end;
 `;
 
 const SidebarPanel = styled.div`
-  width: min(320px, 88vw);
+  position: relative;
+  isolation: isolate;
+  width: min(350px, 90vw);
   height: 100dvh;
-  background: ${({ theme }) =>
-    `linear-gradient(145deg, ${theme.colors.black} 0%, ${theme.colors.cocoa} 40%, rgba(0,0,0,0.96) 100%)`};
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: ${({ theme }) => theme.shadow.glow};
-  padding: 20px 18px 18px;
+  padding: 22px 18px 18px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
 
-  @media (max-width: 420px) {
-    width: min(300px, 92vw);
-    padding: 18px 14px 16px;
-  }
+  background:
+    linear-gradient(
+      145deg,
+      rgba(0, 0, 0, 0.98),
+      rgba(47, 27, 18, 0.98) 44%,
+      rgba(0, 0, 0, 0.98)
+    );
+
+  border-left: 1px solid rgba(214, 182, 159, 0.3);
+  box-shadow:
+    -26px 0 70px rgba(0, 0, 0, 0.65),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08);
+`;
+
+const SidebarGlow = styled.div`
+  position: absolute;
+  top: -90px;
+  right: -90px;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  background: rgba(214, 182, 159, 0.2);
+  filter: blur(36px);
+  pointer-events: none;
+  z-index: -1;
+`;
+
+const SidebarTopLine = styled.div`
+  height: 3px;
+  width: 86px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 1),
+    rgba(214, 182, 159, 0.18)
+  );
+  box-shadow: 0 0 24px rgba(214, 182, 159, 0.42);
 `;
 
 const SidebarHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 12px;
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(214, 182, 159, 0.2);
 `;
 
 const SidebarAvatar = styled(AvatarCircle)`
-  width: 34px;
-  height: 34px;
-  flex-basis: 34px;
+  width: 44px;
+  height: 44px;
 `;
 
 const SidebarMeta = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 `;
 
 const SidebarName = styled.span`
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 900;
   color: ${({ theme }) => theme.colors.ivory};
   white-space: nowrap;
   overflow: hidden;
@@ -651,49 +590,64 @@ const SidebarName = styled.span`
 `;
 
 const SidebarRole = styled.span`
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 249, 242, 0.7);
-  white-space: nowrap;
+  color: rgba(255, 249, 242, 0.62);
+`;
+
+const SidebarDivider = styled.div`
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(214, 182, 159, 0.38),
+    transparent
+  );
 `;
 
 const SidebarNav = styled.nav`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 6px;
+  gap: 9px;
 `;
 
 const SidebarNavItem = styled(Link)`
   width: 100%;
-  padding: 9px 10px;
-  border-radius: ${({ theme }) => theme.radius.md};
+  padding: 12px 13px;
+  border-radius: ${({ theme }) => theme.radius.lg};
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 900;
   letter-spacing: 0.11em;
   line-height: 1.25;
   text-transform: uppercase;
   text-decoration: none;
   color: ${({ theme, $active }) =>
-    $active ? theme.colors.ivory : "rgba(255,255,255,0.78)"};
+    $active ? theme.colors.ivory : "rgba(255,255,255,0.76)"};
   background: ${({ $active }) =>
-    $active ? "rgba(214,182,159,0.16)" : "rgba(16, 9, 6, 0.96)"};
+    $active
+      ? "linear-gradient(135deg, rgba(214,182,159,0.24), rgba(0,0,0,0.4))"
+      : "rgba(0,0,0,0.3)"};
   border: 1px solid
     ${({ $active }) =>
-      $active ? "rgba(214,182,159,0.6)" : "rgba(255,255,255,0.12)"};
-  overflow-wrap: anywhere;
+      $active ? "rgba(214,182,159,0.66)" : "rgba(255,255,255,0.09)"};
 
   &:hover {
-    background: rgba(214, 182, 159, 0.2);
-    border-color: rgba(214, 182, 159, 0.7);
+    transform: translateX(-2px);
+    background: linear-gradient(
+      135deg,
+      rgba(214, 182, 159, 0.22),
+      rgba(0, 0, 0, 0.42)
+    );
+    border-color: rgba(214, 182, 159, 0.72);
   }
 `;
 
 const SidebarFooter = styled.div`
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 14px;
+  border-top: 1px solid rgba(214, 182, 159, 0.16);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -703,20 +657,23 @@ const SidebarLogoutButton = styled.button`
   width: 100%;
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 11px;
+  font-weight: 950;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 9px 12px;
-  border: 1px solid rgba(214, 182, 159, 0.6);
-  background: transparent;
+  padding: 11px 12px;
+  border: 1px solid rgba(214, 182, 159, 0.56);
+  background: rgba(0, 0, 0, 0.24);
   color: rgba(255, 249, 242, 0.95);
   cursor: pointer;
 
   &:hover {
-    background: rgba(214, 182, 159, 0.12);
+    background: rgba(214, 182, 159, 0.14);
+    border-color: rgba(214, 182, 159, 0.78);
   }
 `;
 
 const SidebarProfileLink = styled(BaseButton)`
   width: 100%;
   justify-content: center;
+  padding: 11px 12px;
 `;

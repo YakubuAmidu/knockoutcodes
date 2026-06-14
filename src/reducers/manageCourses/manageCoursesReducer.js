@@ -1,14 +1,26 @@
 // src/admin/reducers/manageCourses/manageCoursesReducer.js
-
-import { MANAGE_COURSES_ACTIONS } from "./manageCoursesActionTypes";
+import { MANAGE_COURSES_ACTIONS as T } from "./manageCoursesActionTypes";
 import { manageCoursesInitialState } from "./manageCoursesInitialState";
+
+const ensureArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.courses)) return value.courses;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+};
+
+const ensureMeta = (value) => ({
+  total: Number(value?.total || 0),
+  page: Number(value?.page || 1),
+  pages: Number(value?.pages || 1),
+});
 
 export const manageCoursesReducer = (
   state = manageCoursesInitialState,
   action
 ) => {
   switch (action.type) {
-    case MANAGE_COURSES_ACTIONS.FETCH_START:
+    case T.FETCH_START:
       return {
         ...state,
         loading: true,
@@ -16,23 +28,24 @@ export const manageCoursesReducer = (
         successMessage: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.FETCH_SUCCESS:
+    case T.FETCH_SUCCESS:
       return {
         ...state,
         loading: false,
-        courses: action.payload.courses,
-        meta: action.payload.meta,
+        courses: ensureArray(action.payload),
+        meta: ensureMeta(action.payload?.meta),
         error: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.FETCH_FAIL:
+    case T.FETCH_FAIL:
       return {
         ...state,
         loading: false,
-        error: action.payload,
+        courses: [],
+        error: action.payload || "Failed to load courses.",
       };
 
-    case MANAGE_COURSES_ACTIONS.SAVE_START:
+    case T.SAVE_START:
       return {
         ...state,
         saving: true,
@@ -40,39 +53,36 @@ export const manageCoursesReducer = (
         successMessage: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.CREATE_SUCCESS:
+    case T.CREATE_SUCCESS:
       return {
         ...state,
         saving: false,
-        courses: [action.payload.course, ...state.courses],
-        meta: {
-          ...state.meta,
-          total: Number(state.meta.total || 0) + 1,
-        },
-        successMessage: action.payload.message,
-      };
-
-    case MANAGE_COURSES_ACTIONS.UPDATE_SUCCESS:
-      return {
-        ...state,
-        saving: false,
-        courses: state.courses.map((course) =>
-          String(course._id) === String(action.payload.course._id)
-            ? action.payload.course
-            : course
-        ),
+        courses: [action.payload, ...ensureArray(state.courses)].filter(Boolean),
         selectedCourse: null,
-        successMessage: action.payload.message,
+        successMessage: "Course created successfully.",
+        error: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.SAVE_FAIL:
+    case T.UPDATE_SUCCESS:
       return {
         ...state,
         saving: false,
-        error: action.payload,
+        courses: ensureArray(state.courses).map((course) =>
+          course?._id === action.payload?._id ? action.payload : course
+        ),
+        selectedCourse: action.payload,
+        successMessage: "Course updated successfully.",
+        error: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.DELETE_START:
+    case T.SAVE_FAIL:
+      return {
+        ...state,
+        saving: false,
+        error: action.payload || "Failed to save course.",
+      };
+
+    case T.DELETE_START:
       return {
         ...state,
         deleting: true,
@@ -80,67 +90,74 @@ export const manageCoursesReducer = (
         successMessage: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.DELETE_SUCCESS:
+    case T.DELETE_SUCCESS:
       return {
         ...state,
         deleting: false,
-        courses: state.courses.filter(
-          (course) => String(course._id) !== String(action.payload.id)
+        courses: ensureArray(state.courses).filter(
+          (course) => course?._id !== action.payload
         ),
-        meta: {
-          ...state.meta,
-          total: Math.max(0, Number(state.meta.total || 0) - 1),
-        },
-        successMessage: action.payload.message,
+        selectedCourse:
+          state.selectedCourse?._id === action.payload
+            ? null
+            : state.selectedCourse,
+        successMessage: "Course deleted successfully.",
+        error: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.DELETE_FAIL:
+    case T.DELETE_FAIL:
       return {
         ...state,
         deleting: false,
-        error: action.payload,
+        error: action.payload || "Failed to delete course.",
       };
 
-    case MANAGE_COURSES_ACTIONS.SET_SELECTED_COURSE:
+    case T.SET_SELECTED_COURSE:
       return {
         ...state,
-        selectedCourse: action.payload,
+        selectedCourse: action.payload || null,
       };
 
-    case MANAGE_COURSES_ACTIONS.CLEAR_SELECTED_COURSE:
+    case T.CLEAR_SELECTED_COURSE:
       return {
         ...state,
         selectedCourse: null,
       };
 
-    case MANAGE_COURSES_ACTIONS.SET_SEARCH:
+    case T.SET_SEARCH:
       return {
         ...state,
-        search: action.payload,
+        search: String(action.payload || ""),
       };
 
-    case MANAGE_COURSES_ACTIONS.SET_LEVEL_FILTER:
+    case T.SET_LEVEL_FILTER:
       return {
         ...state,
-        levelFilter: action.payload,
+        levelFilter: action.payload || "all",
       };
 
-    case MANAGE_COURSES_ACTIONS.SET_STATUS_FILTER:
+    case T.SET_STATUS_FILTER:
       return {
         ...state,
-        statusFilter: action.payload,
+        statusFilter: action.payload || "all",
       };
 
-    case MANAGE_COURSES_ACTIONS.CLEAR_ERROR:
+    case T.CLEAR_ERROR:
       return {
         ...state,
         error: "",
+        successMessage: "",
       };
 
-    case MANAGE_COURSES_ACTIONS.RESET:
-      return manageCoursesInitialState;
+    case T.CLEAR_SUCCESS:
+      return {
+        ...state,
+        successMessage: "",
+      };
 
     default:
       return state;
   }
 };
+
+export default manageCoursesReducer;

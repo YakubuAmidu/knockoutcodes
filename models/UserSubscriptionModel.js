@@ -1,11 +1,6 @@
-// models/UserSubscriptionModel.js
 import mongoose from "mongoose";
 
-/* =========================
-   Constants
-========================= */
 const MEMBERSHIP_LEVELS = ["beginner", "intermediate", "advance", "complete"];
-
 const BILLING_PERIODS = ["monthly", "yearly"];
 
 const SUBSCRIPTION_STATUSES = [
@@ -14,97 +9,80 @@ const SUBSCRIPTION_STATUSES = [
   "past_due",
   "canceled",
   "incomplete",
+  "incomplete_expired",
   "unpaid",
 ];
 
 function normalizeLevel(value) {
   const level = String(value || "").trim().toLowerCase();
-
   if (level === "advanced") return "advance";
-
   return level;
 }
 
-/* =========================
-   User Subscription Schema
-========================= */
 const userSubscriptionSchema = new mongoose.Schema(
   {
-    // Owner of the subscription
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: [true, "User is required"],
     },
 
-    // Membership plan purchased
     membership: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Membership",
-      required: true,
-      index: true,
+      required: [true, "Membership is required"],
     },
 
-    // Public membership key: beginner, intermediate, advance, complete
     membershipId: {
       type: String,
-      required: true,
+      required: [true, "Membership level is required"],
       trim: true,
       lowercase: true,
       enum: MEMBERSHIP_LEVELS,
-      index: true,
     },
 
-    // Access level used to unlock courses
     accessLevel: {
       type: String,
-      required: true,
+      required: [true, "Access level is required"],
       trim: true,
       lowercase: true,
       enum: MEMBERSHIP_LEVELS,
-      default: "beginner",
-      index: true,
     },
 
-    // Stripe billing period
     billingPeriod: {
       type: String,
+      trim: true,
+      lowercase: true,
       enum: BILLING_PERIODS,
       default: "monthly",
-      index: true,
     },
 
-    // Current subscription status from Stripe
     status: {
       type: String,
+      trim: true,
+      lowercase: true,
       enum: SUBSCRIPTION_STATUSES,
       default: "incomplete",
-      index: true,
     },
 
-    // Stripe customer ID
     stripeCustomerId: {
       type: String,
       trim: true,
       default: "",
-      index: true,
     },
 
-    // Stripe subscription ID
     stripeSubscriptionId: {
       type: String,
       trim: true,
       default: "",
     },
 
-    // Stripe price ID used for the active billing plan
     stripePriceId: {
       type: String,
       trim: true,
       default: "",
     },
 
-    // Stripe subscription period dates
     currentPeriodStart: {
       type: Date,
       default: null,
@@ -113,10 +91,8 @@ const userSubscriptionSchema = new mongoose.Schema(
     currentPeriodEnd: {
       type: Date,
       default: null,
-      index: true,
     },
 
-    // True when user canceled but still has access until period end
     cancelAtPeriodEnd: {
       type: Boolean,
       default: false,
@@ -125,17 +101,9 @@ const userSubscriptionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* =========================
-   Normalization
-========================= */
-userSubscriptionSchema.pre("validate", function normalizeSubscription(next) {
-  if (this.membershipId) {
-    this.membershipId = normalizeLevel(this.membershipId);
-  }
-
-  if (this.accessLevel) {
-    this.accessLevel = normalizeLevel(this.accessLevel);
-  }
+userSubscriptionSchema.pre("validate", function (next) {
+  this.membershipId = normalizeLevel(this.membershipId);
+  this.accessLevel = normalizeLevel(this.accessLevel);
 
   if (!this.accessLevel && this.membershipId) {
     this.accessLevel = this.membershipId;
@@ -144,13 +112,8 @@ userSubscriptionSchema.pre("validate", function normalizeSubscription(next) {
   next();
 });
 
-/* =========================
-   Instance Methods
-========================= */
-userSubscriptionSchema.methods.isActive = function isActive() {
-  const activeStatuses = ["active", "trialing"];
-
-  if (!activeStatuses.includes(this.status)) return false;
+userSubscriptionSchema.methods.isActive = function () {
+  if (!["active", "trialing"].includes(this.status)) return false;
 
   if (
     this.currentPeriodEnd &&
@@ -162,17 +125,28 @@ userSubscriptionSchema.methods.isActive = function isActive() {
   return true;
 };
 
-/* =========================
-   Indexes
-========================= */
-userSubscriptionSchema.index({ user: 1 }, { unique: true });
+userSubscriptionSchema.index({ membership: 1 });
+userSubscriptionSchema.index({ membershipId: 1 });
+userSubscriptionSchema.index({ accessLevel: 1 });
+userSubscriptionSchema.index({ billingPeriod: 1 });
+userSubscriptionSchema.index({ status: 1 });
+userSubscriptionSchema.index({ currentPeriodEnd: 1 });
+userSubscriptionSchema.index({ stripeCustomerId: 1 });
+
 userSubscriptionSchema.index({ user: 1, status: 1 });
 userSubscriptionSchema.index({ user: 1, accessLevel: 1 });
-userSubscriptionSchema.index({ stripeSubscriptionId: 1 }, { sparse: true });
 
-/* =========================
-   Model Export
-========================= */
+userSubscriptionSchema.index(
+  { stripeSubscriptionId: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      stripeSubscriptionId: { $type: "string", $ne: "" },
+    },
+  }
+);
+
 const UserSubscription =
   mongoose.models.UserSubscription ||
   mongoose.model("UserSubscription", userSubscriptionSchema);

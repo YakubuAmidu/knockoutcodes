@@ -2,9 +2,7 @@
 import React, { useEffect, useMemo } from "react";
 import styled from "styled-components";
 import { useDispatch, useSelector } from "react-redux";
-
 import { useToast } from "../components/Toast";
-import Footer from "../components/Footer";
 
 import {
   getAdminOrders,
@@ -1195,8 +1193,6 @@ const ManageOrders = () => {
           </Layout>
         </Inner>
       </Page>
-
-      <Footer />
     </>
   );
 };

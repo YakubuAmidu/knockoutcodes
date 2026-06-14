@@ -1,0 +1,9 @@
+// src/reducers/myOrders/myOrderActionTypes.js
+
+export const MY_ORDERS_FETCH_START = "MY_ORDERS_FETCH_START";
+export const MY_ORDERS_FETCH_SUCCESS = "MY_ORDERS_FETCH_SUCCESS";
+export const MY_ORDERS_FETCH_FAILURE = "MY_ORDERS_FETCH_FAILURE";
+
+export const MY_ORDERS_SET_PAGE = "MY_ORDERS_SET_PAGE";
+export const MY_ORDERS_REFRESH = "MY_ORDERS_REFRESH";
+export const MY_ORDERS_RESET = "MY_ORDERS_RESET";

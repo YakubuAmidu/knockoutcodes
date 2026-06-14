@@ -1,3 +1,4 @@
+// routes/lessonRoutes.js
 import express from "express";
 import {
   createLesson,
@@ -6,6 +7,7 @@ import {
   getLesson,
   updateLesson,
   deleteLesson,
+  updateLessonProgress,
 } from "../controllers/lessonController.js";
 
 import {
@@ -16,14 +18,17 @@ import {
 
 const router = express.Router();
 
-// Admin only: get all lessons + create lesson
+// Admin only
 router
   .route("/")
   .get(authRequired, adminOnly, getAllLessons)
   .post(authRequired, adminOnly, createLesson);
 
-// Public previews + paid-user full access
+// Public preview + paid/enrolled/membership access
 router.get("/by-course/:courseId", optionalAuth, getLessonsByCourse);
+
+// Authenticated user progress
+router.put("/progress/:lessonId", authRequired, updateLessonProgress);
 
 // Single lesson
 router

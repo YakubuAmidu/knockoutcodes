@@ -2,6 +2,7 @@
 import crypto from "crypto";
 import Contact from "../models/ContactModel.js"; // ✅ match your actual filename
 import { sendMail } from "../utils/mailer.js";
+import { emitToUser, getIO } from "../config/socket.js";
 
 /**
  * Helper: sanitize for safe content
@@ -15,13 +16,46 @@ function publicUrl() {
   return process.env.APP_PUBLIC_URL || "";
 }
 
+function emitContactRealtime(contact, action = "updated") {
+  try {
+    if (!contact) return;
+
+    const safeContact = contact.toObject ? contact.toObject() : contact;
+    const userId = safeContact.user?._id || safeContact.user;
+
+    if (userId) {
+      emitToUser(userId, "user:contact-updated", {
+        action,
+        contact: safeContact,
+      });
+    }
+
+    const io = getIO?.();
+
+    if (io) {
+      io.emit("admin:contacts-refresh", {
+        action,
+        contactId: safeContact._id,
+      });
+    }
+  } catch {
+      // Ignore contact realtime emit failure.
+  }
+}
+
 /* =========================================================
    ✅ PoW (Proof-of-Work) SERVER HELPERS
 ========================================================= */
 
 function powSecret() {
   // eslint-disable-next-line no-undef
-  return process.env.POW_SECRET || "dev_pow_secret_change_me";
+  const secret = process.env.POW_SECRET;
+
+  if (!secret) {
+    throw new Error("POW secret is not configured.");
+  }
+
+  return secret;
 }
 
 function hmacSig(payload) {
@@ -178,6 +212,8 @@ export const createContact = async (req, res) => {
       adminLastSeenAt: null,
     });
 
+    emitContactRealtime(doc, "created");
+
     // ✅ Auto-confirmation email (won't break if SMTP fails)
     try {
       const url = publicUrl();
@@ -272,6 +308,8 @@ export const getMyContact = async (req, res) => {
     doc.userLastSeenAt = new Date();
     await doc.save();
 
+    emitContactRealtime(doc, "user-seen");
+
     return res.status(200).json({
       success: true,
       item: doc,
@@ -288,34 +326,97 @@ export const getMyContact = async (req, res) => {
 export const sendMyReply = async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: "Login required." });
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Login required.",
+      });
+    }
 
     const { id } = req.params;
+
     const replyText = safe(req.body?.message, 5000);
 
     if (!replyText) {
-      return res.status(400).json({ success: false, message: "Message is required." });
+      return res.status(400).json({
+        success: false,
+        message: "Message is required.",
+      });
     }
 
-    const contact = await Contact.findOne({ _id: id, user: userId });
+    const contact = await Contact.findOne({
+      _id: id,
+      user: userId,
+    });
+
     if (!contact) {
-      return res.status(404).json({ success: false, message: "Thread not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Thread not found.",
+      });
+    }
+
+    // ✅ PROFESSIONAL TICKET PROTECTION
+    // Once a ticket is resolved/completed/closed,
+    // users cannot continue replying.
+    const lockedStatuses = [
+      "resolved",
+      "complete",
+      "completed",
+      "closed",
+    ];
+
+    if (
+      lockedStatuses.includes(
+        String(contact.status || "").toLowerCase()
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This conversation is already finished. Please open a new ticket.",
+      });
     }
 
     const now = new Date();
 
-    contact.messages = Array.isArray(contact.messages) ? contact.messages : [];
-    contact.messages.push({ sender: "user", text: replyText });
+    contact.messages = Array.isArray(contact.messages)
+      ? contact.messages
+      : [];
+
+    contact.messages.push({
+      sender: "user",
+      text: replyText,
+    });
 
     // ✅ workflow + detection
-    contact.isSeen = false; // admin hasn’t seen latest user reply yet
+    contact.isSeen = false;
+
+    // admin hasn't seen latest user reply yet
     contact.lastSender = "user";
     contact.lastMessageAt = now;
-    contact.userLastSeenAt = now; // user wrote it, so they've seen it
 
-    if (contact.status === "resolved" || contact.status === "closed") contact.status = "open";
+    // user wrote it, so they've seen it
+    contact.userLastSeenAt = now;
 
     await contact.save();
+
+    emitContactRealtime(contact, "user-replied");
+
+    // ✅ emit directly to admin rooms too
+    const io = req.app.get("io");
+
+    if (io) {
+      io.emit("contact:updated", {
+        contactId: contact._id,
+        sender: "user",
+        lastSender: "user",
+        action: "user-replied",
+        updatedAt: contact.updatedAt,
+        lastMessageAt: contact.lastMessageAt,
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -323,7 +424,10 @@ export const sendMyReply = async (req, res) => {
       item: contact,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err?.message || "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+    });
   }
 };
 
@@ -382,6 +486,8 @@ export const updateContact = async (req, res) => {
       return res.status(404).json({ success: false, message: "Contact not found" });
     }
 
+    emitContactRealtime(updated, "updated");
+
     return res.status(200).json({
       success: true,
       message: "Contact updated",
@@ -408,6 +514,8 @@ export const deleteContact = async (req, res) => {
       return res.status(404).json({ success: false, message: "Contact not found" });
     }
 
+    emitContactRealtime(deleted, "deleted");
+
     return res.status(200).json({ success: true, message: "Deleted" });
   } catch (err) {
     return res.status(500).json({
@@ -425,6 +533,16 @@ export const markAllSeen = async (req, res) => {
   try {
     const now = new Date();
     await Contact.updateMany({}, { $set: { isSeen: true, adminLastSeenAt: now } });
+
+    try {
+  const io = getIO?.();
+  io?.emit("admin:contacts-refresh", {
+    action: "mark-all-seen",
+  });
+} catch {
+  // ignore socket errors
+    }
+    
     return res.status(200).json({ success: true, message: "All contacts marked seen" });
   } catch (err) {
     return res.status(500).json({
@@ -467,6 +585,40 @@ export const sendAdminReply = async (req, res) => {
     contact.adminLastSeenAt = now; // admin just acted on it
 
     await contact.save();
+
+    emitContactRealtime(contact, "admin-replied");
+
+    // ✅ Real-time update for user's MyMessages.jsx
+const io = req.app.get("io");
+
+const userId =
+  contact.user?._id?.toString?.() ||
+  contact.user?.toString?.() ||
+  contact.userId?._id?.toString?.() ||
+  contact.userId?.toString?.();
+
+if (io && userId) {
+  io.to(`user:${userId}`).emit("myMessages:updated", {
+    ticketId: contact._id,
+    contactId: contact._id,
+    sender: "admin",
+    lastSender: "admin",
+    action: "admin-replied",
+    message: "Admin replied",
+    updatedAt: contact.updatedAt,
+    lastMessageAt: contact.lastMessageAt,
+  });
+
+  io.to(`user:${userId}`).emit("user:ticket-reply", {
+    ticketId: contact._id,
+    contactId: contact._id,
+    sender: "admin",
+    lastSender: "admin",
+    action: "admin-replied",
+    updatedAt: contact.updatedAt,
+    lastMessageAt: contact.lastMessageAt,
+  });
+}
 
     // Email (safe)
     try {

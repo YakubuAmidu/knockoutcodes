@@ -1,4 +1,3 @@
-// routes/reviewRoutes.js
 import express from "express";
 import {
   createReview,
@@ -8,28 +7,20 @@ import {
   deleteReview,
   getAdminReviews,
   approveReview,
+  unapproveReview,
 } from "../controllers/reviewController.js";
 import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
-
 import { reviewCreateLimiter } from "../middleware/rateLimiters.js";
 
 const router = express.Router();
 
-// Public: get reviews (optionally by courseId)
 router.get("/", getReviews);
 
-// Admin: get all reviews (including unapproved)
 router.get("/admin/all", authRequired, adminOnly, getAdminReviews);
-
-// Admin must approve it before it shows
 router.patch("/admin/:id/approve", authRequired, adminOnly, approveReview);
+router.patch("/admin/:id/unapprove", authRequired, adminOnly, unapproveReview);
 
-/**
- * Create review
- * ✅ Real users only
- * ❌ Admins blocked
- */
 router.post(
   "/",
   authRequired,

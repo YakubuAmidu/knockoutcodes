@@ -1,3 +1,4 @@
+// routes/emailSegmentRoutes.js
 import express from "express";
 import rateLimit from "express-rate-limit";
 
@@ -11,11 +12,13 @@ import {
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
 import { requireCsrf } from "../middleware/csrfMiddleware.js";
+
 import {
   requireJsonContent,
   adminRequestHardening,
   adminDeleteHardening,
 } from "../middleware/requestHardening.js";
+
 import validateObjectId from "../middleware/validateObjectId.js";
 
 const router = express.Router();
@@ -42,10 +45,6 @@ const emailSegmentWriteLimiter = rateLimit({
   },
 });
 
-/* -------------------------------------------------------------------------- */
-/*                          Protected admin routes                            */
-/* -------------------------------------------------------------------------- */
-
 router.use(authRequired, adminOnly);
 
 router
@@ -61,11 +60,7 @@ router
 
 router
   .route("/:id")
-  .get(
-    emailSegmentReadLimiter,
-    validateObjectId("id"),
-    getEmailSegmentById
-  )
+  .get(emailSegmentReadLimiter, validateObjectId("id"), getEmailSegmentById)
   .put(
     emailSegmentWriteLimiter,
     validateObjectId("id"),

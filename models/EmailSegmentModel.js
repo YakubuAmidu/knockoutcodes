@@ -1,10 +1,38 @@
 // models/emailSegmentModel.js
 import mongoose from "mongoose";
 
-/**
- * Email segment schema
- * Stores reusable subscriber/customer groups for email campaigns.
- */
+const EMAIL_SEGMENT_TYPES = [
+  "newsletter",
+  "buyers",
+  "coaching",
+  "vip",
+  "inactive",
+  "manual",
+];
+
+const EMAIL_SEGMENT_STATUSES = ["active", "paused"];
+
+const EMAIL_SEGMENT_RULE_SOURCES = [
+  "all",
+  "newsletter",
+  "orders",
+  "coaching",
+  "manual",
+];
+
+function normalizeTags(tags = []) {
+  if (!Array.isArray(tags)) return [];
+
+  return [
+    ...new Set(
+      tags
+        .map((tag) => String(tag || "").trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 30)
+    ),
+  ];
+}
+
 const emailSegmentSchema = new mongoose.Schema(
   {
     name: {
@@ -25,13 +53,14 @@ const emailSegmentSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["newsletter", "buyers", "coaching", "vip", "inactive", "manual"],
+      enum: EMAIL_SEGMENT_TYPES,
       default: "newsletter",
+      index: true,
     },
 
     status: {
       type: String,
-      enum: ["active", "paused"],
+      enum: EMAIL_SEGMENT_STATUSES,
       default: "active",
       index: true,
     },
@@ -39,7 +68,7 @@ const emailSegmentSchema = new mongoose.Schema(
     rules: {
       source: {
         type: String,
-        enum: ["all", "newsletter", "orders", "coaching", "manual"],
+        enum: EMAIL_SEGMENT_RULE_SOURCES,
         default: "all",
       },
 
@@ -52,6 +81,7 @@ const emailSegmentSchema = new mongoose.Schema(
       tags: {
         type: [String],
         default: [],
+        set: normalizeTags,
       },
     },
 
@@ -59,40 +89,38 @@ const emailSegmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+      index: true,
     },
   },
   { timestamps: true }
 );
 
-/**
- * Cleans segment fields before saving.
- */
 emailSegmentSchema.pre("validate", function (next) {
-  if (this.name) {
-    this.name = String(this.name).trim();
+  if (this.name) this.name = String(this.name).trim();
+
+  if (this.description) {
+    this.description = String(this.description).trim();
   }
 
-  if (this.rules?.tags?.length) {
-    this.rules.tags = [
-      ...new Set(
-        this.rules.tags
-          .map((tag) => String(tag || "").trim().toLowerCase())
-          .filter(Boolean)
-      ),
-    ];
+  if (this.rules?.tags) {
+    this.rules.tags = normalizeTags(this.rules.tags);
   }
 
   next();
 });
 
-/**
- * Indexes for filtering and admin search.
- */
 emailSegmentSchema.index({ type: 1, status: 1 });
 emailSegmentSchema.index({ createdBy: 1, createdAt: -1 });
+emailSegmentSchema.index({ name: "text", description: "text" });
 
 const EmailSegment =
   mongoose.models.EmailSegment ||
   mongoose.model("EmailSegment", emailSegmentSchema);
 
 export default EmailSegment;
+
+export {
+  EMAIL_SEGMENT_TYPES,
+  EMAIL_SEGMENT_STATUSES,
+  EMAIL_SEGMENT_RULE_SOURCES,
+};

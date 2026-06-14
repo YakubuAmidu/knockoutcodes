@@ -1,13 +1,38 @@
 // src/reducers/securityEvents/securityEventReducer.js
-
 import { SECURITY_EVENT_ACTIONS } from "./securityEventActionTypes";
 import { securityEventInitialState } from "./securityEventInitialState";
 
-function updateItem(items, updatedItem) {
-  if (!updatedItem?._id) return items;
+function getUpdatedEvent(payload) {
+  return payload?.item || payload?.event || payload?.data || null;
+}
+
+function updateItem(items, updatedItem, fallbackId = "") {
+  if (!updatedItem?._id && !fallbackId) return items;
+
+  return items.map((item) => {
+    const isMatch = updatedItem?._id
+      ? item._id === updatedItem._id
+      : item._id === fallbackId;
+
+    if (!isMatch) return item;
+
+    return {
+      ...item,
+      ...(updatedItem || {}),
+    };
+  });
+}
+
+function markEventAction(items, eventId, patch = {}) {
+  if (!eventId) return items;
 
   return items.map((item) =>
-    item._id === updatedItem._id ? { ...item, ...updatedItem } : item
+    item._id === eventId
+      ? {
+          ...item,
+          ...patch,
+        }
+      : item
   );
 }
 
@@ -28,11 +53,11 @@ export function securityEventReducer(
         ...state,
         loading: false,
         error: null,
-        items: action.payload?.items || [],
-        page: action.payload?.page || 1,
-        limit: action.payload?.limit || 20,
-        total: action.payload?.total || 0,
-        pages: action.payload?.pages || 0,
+        items: action.payload?.items || action.payload?.data || [],
+        page: Number(action.payload?.page) || 1,
+        limit: Number(action.payload?.limit) || 20,
+        total: Number(action.payload?.total) || 0,
+        pages: Number(action.payload?.pages) || 0,
       };
 
     case SECURITY_EVENT_ACTIONS.FETCH_SECURITY_EVENTS_FAIL:
@@ -51,17 +76,55 @@ export function securityEventReducer(
         ...state,
         actionLoading: true,
         error: null,
+        actionMessage: "",
       };
 
-    case SECURITY_EVENT_ACTIONS.UPDATE_SECURITY_EVENT_REVIEW_SUCCESS:
-    case SECURITY_EVENT_ACTIONS.DEACTIVATE_SECURITY_EVENT_USER_SUCCESS:
-    case SECURITY_EVENT_ACTIONS.BLOCK_SECURITY_EVENT_IP_SUCCESS:
-      case SECURITY_EVENT_ACTIONS.UNBLOCK_SECURITY_EVENT_IP_SUCCESS:
+    case SECURITY_EVENT_ACTIONS.UPDATE_SECURITY_EVENT_REVIEW_SUCCESS: {
+      const updatedEvent = getUpdatedEvent(action.payload);
+
       return {
         ...state,
         actionLoading: false,
-        items: updateItem(state.items, action.payload?.item),
-        actionMessage: action.payload?.message || "Security event updated.",
+        items: updateItem(state.items, updatedEvent),
+        actionMessage: action.payload?.message || "Security event reviewed.",
+      };
+    }
+
+    case SECURITY_EVENT_ACTIONS.DEACTIVATE_SECURITY_EVENT_USER_SUCCESS:
+      return {
+        ...state,
+        actionLoading: false,
+        items: markEventAction(state.items, action.payload?.eventId, {
+          reviewStatus: "resolved",
+          actionTaken: "user_deactivated",
+          adminNote:
+            action.payload?.adminNote ||
+            "User deactivated from admin security review.",
+        }),
+        actionMessage:
+          action.payload?.message || "User account deactivated.",
+      };
+
+    case SECURITY_EVENT_ACTIONS.BLOCK_SECURITY_EVENT_IP_SUCCESS:
+      return {
+        ...state,
+        actionLoading: false,
+        items: markEventAction(state.items, action.payload?.eventId, {
+          reviewStatus: "resolved",
+          actionTaken: "ip_blocked",
+        }),
+        actionMessage: action.payload?.message || "IP address blocked.",
+      };
+
+    case SECURITY_EVENT_ACTIONS.UNBLOCK_SECURITY_EVENT_IP_SUCCESS:
+      return {
+        ...state,
+        actionLoading: false,
+        items: markEventAction(state.items, action.payload?.eventId, {
+          reviewStatus: "resolved",
+          actionTaken: "ip_unblocked",
+        }),
+        actionMessage: action.payload?.message || "IP address unblocked.",
       };
 
     case SECURITY_EVENT_ACTIONS.DELETE_SECURITY_EVENT_SUCCESS:
@@ -79,7 +142,7 @@ export function securityEventReducer(
     case SECURITY_EVENT_ACTIONS.DELETE_SECURITY_EVENT_FAIL:
     case SECURITY_EVENT_ACTIONS.DEACTIVATE_SECURITY_EVENT_USER_FAIL:
     case SECURITY_EVENT_ACTIONS.BLOCK_SECURITY_EVENT_IP_FAIL:
-      case SECURITY_EVENT_ACTIONS.UNBLOCK_SECURITY_EVENT_IP_FAIL:
+    case SECURITY_EVENT_ACTIONS.UNBLOCK_SECURITY_EVENT_IP_FAIL:
       return {
         ...state,
         actionLoading: false,
@@ -123,6 +186,14 @@ export function securityEventReducer(
       return {
         ...state,
         error: null,
+      };
+
+    case SECURITY_EVENT_ACTIONS.CLEAR_SECURITY_EVENT_MESSAGES:
+      return {
+        ...state,
+        error: null,
+        cleanupMessage: "",
+        actionMessage: "",
       };
 
     case SECURITY_EVENT_ACTIONS.RESET_SECURITY_EVENTS:

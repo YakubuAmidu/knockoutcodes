@@ -1309,6 +1309,14 @@ const avatarUrl = useMemo(() => {
             <GhostButton
   $t={t}
   type="button"
+  onClick={() => navigate("/dashboard/products")}
+>
+  My Products
+            </GhostButton>
+            
+            <GhostButton
+  $t={t}
+  type="button"
   onClick={() => navigate("/my-courses")}
 >
   My Purchased Courses

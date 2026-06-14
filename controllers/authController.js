@@ -19,11 +19,6 @@ const JWT_ISSUER = process.env.JWT_ISSUER || "knockoutcodes-api";
 // eslint-disable-next-line no-undef
 const JWT_AUDIENCE = process.env.JWT_AUDIENCE || "knockoutcodes-web";
 
-function getClientUrl() {
-  // eslint-disable-next-line no-undef
-  return process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
-}
-
 function hashToken(token) {
   return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
@@ -177,6 +172,35 @@ function getApproxLocation(ip) {
     : "Location lookup not connected yet";
 }
 
+function formatAccountStatus(status = "disabled") {
+  return String(status || "disabled").replace(/_/g, " ");
+}
+
+function getAccountAccessMessage(user) {
+  const status = user?.accountStatus || "disabled";
+  const reason = String(user?.statusReason || "").trim();
+
+  if (reason) return reason;
+
+  return `Your account is ${formatAccountStatus(
+    status
+  )}. Please contact support if you believe this is a mistake.`;
+}
+
+function sendAccountAccessBlocked(res, user) {
+  clearAuthCookies(res);
+
+  return res.status(403).json({
+    success: false,
+    code: "ACCOUNT_ACCESS_RESTRICTED",
+    message: getAccountAccessMessage(user),
+    accountStatus: user?.accountStatus || "disabled",
+    statusReason: user?.statusReason || "",
+    userId: user?._id,
+    redirectTo: "/account-access-notice",
+  });
+}
+
 /**
  * POST /api/v1/auth/register
  */
@@ -215,7 +239,7 @@ export async function register(req, res) {
       return res.status(409).json({ success: false, message: "An account with that email already exists." });
     }
 
-    const { rawToken, hashedToken } = createEmailVerificationToken();
+    const { hashedToken } = createEmailVerificationToken();
 
     const user = await User.create({
       name,
@@ -234,27 +258,15 @@ export async function register(req, res) {
       type: "REGISTER_SUCCESS",
     });
 
-    const verificationUrl = `${getClientUrl()}/verify-email/${rawToken}`;
-
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.log("EMAIL VERIFICATION URL:", verificationUrl);
-    }
-
     return res.status(201).json({
       success: true,
       message: "Registration successful. Please check your email to verify your account.",
       user: safeUser(user),
-      // eslint-disable-next-line no-undef
-      verificationUrl: process.env.NODE_ENV !== "production" ? verificationUrl : undefined,
     });
   } catch (error) {
     if (error?.code === 11000) {
       return res.status(409).json({ success: false, message: "An account with that email already exists." });
     }
-
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("register error:", error);
 
     return res.status(500).json({ success: false, message: "Registration failed." });
   }
@@ -286,9 +298,23 @@ export async function login(req, res) {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
-    if (user.isActive === false) {
-      return res.status(403).json({ success: false, message: "Account is disabled. Please contact support." });
-    }
+    if (
+  user.isDeleted === true ||
+  user.isActive === false ||
+  user.accountStatus !== "active"
+) {
+  await logSecurityEvent(req, {
+    user: user._id,
+    email: user.email,
+    type: "LOGIN_BLOCKED_ACCOUNT_STATUS",
+    meta: {
+      accountStatus: user.accountStatus || "disabled",
+      reason: user.statusReason || "",
+    },
+  });
+
+  return sendAccountAccessBlocked(res, user);
+}
 
     if (user.isEmailVerified === false && user.emailVerificationToken && user.emailVerificationExpires) {
       return res.status(403).json({
@@ -389,10 +415,7 @@ export async function login(req, res) {
       message: "Login successful.",
       user: safeUser(user),
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("login error:", error);
-
+  } catch {
     return res.status(500).json({ success: false, message: "Login failed." });
   }
 }
@@ -429,10 +452,21 @@ export async function refresh(req, res) {
       "+refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +tokenVersion"
     );
 
-    if (!user || user.isActive === false) {
-      clearAuthCookies(res);
-      return res.status(401).json({ success: false, message: "Authentication required." });
-    }
+    if (!user) {
+  clearAuthCookies(res);
+  return res.status(401).json({
+    success: false,
+    message: "Authentication required.",
+  });
+}
+
+if (
+  user.isDeleted === true ||
+  user.isActive === false ||
+  user.accountStatus !== "active"
+) {
+  return sendAccountAccessBlocked(res, user);
+}
 
     if ((payload.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
       clearAuthCookies(res);
@@ -582,13 +616,8 @@ export async function refresh(req, res) {
       success: true,
       message: "Session refreshed.",
     });
-  } catch (error) {
+  } catch {
     clearAuthCookies(res);
-
-    if (error?.name !== "JsonWebTokenError" && error?.name !== "TokenExpiredError") {
-      // eslint-disable-next-line no-undef
-      if (process.env.NODE_ENV !== "production") console.error("refresh error:", error);
-    }
 
     return res.status(401).json({
       success: false,
@@ -650,10 +679,7 @@ export async function logoutUser(req, res) {
       success: true,
       message: "Logged out successfully.",
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("logout error:", error);
-
+  } catch {
     clearAuthCookies(res);
 
     return res.status(200).json({
@@ -671,18 +697,26 @@ export async function me(req, res) {
     const userId = req.user?._id || req.user?.id;
 
     const user = await User.findById(userId);
-    if (!user || user.isActive === false) {
-      return res.status(404).json({ success: false, message: "User not found." });
-    }
+    if (!user) {
+  return res.status(404).json({
+    success: false,
+    message: "User not found.",
+  });
+}
+
+if (
+  user.isDeleted === true ||
+  user.isActive === false ||
+  user.accountStatus !== "active"
+) {
+  return sendAccountAccessBlocked(res, user);
+}
 
     return res.status(200).json({
       success: true,
       user: safeUser(user),
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("getMe error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to load user profile.",
@@ -726,10 +760,7 @@ export async function getSessions(req, res) {
     });
 
     return res.status(200).json({ success: true, items });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("getSessions error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch sessions.",
@@ -774,10 +805,7 @@ export async function revokeSession(req, res) {
       success: true,
       message: "Session revoked successfully.",
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("revokeSession error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to revoke session.",
@@ -821,10 +849,7 @@ export async function revokeOtherSessions(req, res) {
       message: "Other sessions revoked successfully.",
       revokedCount: result.modifiedCount || 0,
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("revokeOtherSessions error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to revoke other sessions.",
@@ -850,7 +875,7 @@ export async function forgotPassword(req, res) {
       return res.status(200).json({ success: true, message: genericMessage });
     }
 
-    const { rawToken, hashedToken } = createPasswordResetToken();
+    const { hashedToken } = createPasswordResetToken();
 
     user.passwordResetToken = hashedToken;
     user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000);
@@ -862,24 +887,12 @@ export async function forgotPassword(req, res) {
       email: user.email,
       type: "FORGOT_PASSWORD_REQUEST",
     });
-
-    const resetUrl = `${getClientUrl()}/reset-password/${rawToken}`;
-
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.log("PASSWORD RESET URL:", resetUrl);
-    }
-
+    
     return res.status(200).json({
       success: true,
       message: genericMessage,
-      // eslint-disable-next-line no-undef
-      resetUrl: process.env.NODE_ENV !== "production" ? resetUrl : undefined,
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("forgotPassword error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Unable to process password reset request.",
@@ -985,10 +998,7 @@ export async function resetPassword(req, res) {
       success: true,
       message: "Password reset successful. Please log in again.",
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("resetPassword error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Unable to reset password.",
@@ -1040,10 +1050,7 @@ export async function verifyEmail(req, res) {
       success: true,
       message: "Email verified successfully. You can now log in.",
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") console.error("verifyEmail error:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Unable to verify email.",
@@ -1073,7 +1080,7 @@ export async function resendVerificationEmail(req, res) {
       return res.status(200).json({ success: true, message: genericMessage });
     }
 
-    const { rawToken, hashedToken } = createEmailVerificationToken();
+    const { hashedToken } = createEmailVerificationToken();
 
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -1086,25 +1093,11 @@ export async function resendVerificationEmail(req, res) {
       type: "EMAIL_VERIFICATION_RESENT",
     });
 
-    const verificationUrl = `${getClientUrl()}/verify-email/${rawToken}`;
-
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.log("RESEND EMAIL VERIFICATION URL:", verificationUrl);
-    }
-
     return res.status(200).json({
       success: true,
       message: genericMessage,
-      // eslint-disable-next-line no-undef
-      verificationUrl: process.env.NODE_ENV !== "production" ? verificationUrl : undefined,
     });
-  } catch (error) {
-    // eslint-disable-next-line no-undef
-    if (process.env.NODE_ENV !== "production") {
-      console.error("resendVerificationEmail error:", error);
-    }
-
+  } catch{
     return res.status(500).json({
       success: false,
       message: "Unable to process verification request.",

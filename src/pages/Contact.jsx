@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { useToast } from "../components/Toast";
-
 import { useDispatch, useSelector } from "react-redux";
 import {
   updateContactField,
@@ -10,7 +9,6 @@ import {
   resetContactAfterSuccess,
   hydrateContactFromStorage,
 } from "../reducers/contact/contactActions";
-
 import axiosInstance from "../../utils/axiosInstance";
 
 async function sha256Hex(str) {
@@ -49,10 +47,13 @@ export default function Contact() {
   const status = useSelector(
     (state) => state?.contact?.status || { state: "idle", message: "" }
   );
+  const authUser = useSelector(
+    (state) => state?.auth?.user || state?.auth?.currentUser || null
+  );
 
   const [errors, setErrors] = useState({});
   const toast = useToast();
-  const push = toast?.push;
+  const push = toast?.push || toast?.showToast;
 
   const [powChallenge, setPowChallenge] = useState(null);
   const [powReady, setPowReady] = useState(false);
@@ -64,6 +65,8 @@ export default function Contact() {
 
   const COOLDOWN_MS = 12_000;
   const DRAFT_KEY = "kc_contact_draft";
+
+  const isAdmin = String(authUser?.role || "").toLowerCase() === "admin";
 
   useEffect(() => {
     try {
@@ -84,6 +87,31 @@ export default function Contact() {
       // ignore broken localStorage draft
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+
+      const subject = String(form?.subject || "");
+      const message = String(form?.message || "");
+
+      if (!subject && !message) {
+        localStorage.removeItem(DRAFT_KEY);
+        return;
+      }
+
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          subject,
+          message,
+          savedAt: Date.now(),
+        })
+      );
+    } catch {
+      // ignore localStorage issues
+    }
+  }, [form?.subject, form?.message]);
 
   const loadPowChallenge = useCallback(async () => {
     if (powLoadingRef.current) return null;
@@ -139,7 +167,6 @@ export default function Contact() {
     if (Date.now() - tsNum > ttlNum) {
       const freshChallenge = await loadPowChallenge();
       if (!freshChallenge) return null;
-
       return solvePow(cleanEmail);
     }
 
@@ -239,6 +266,13 @@ export default function Contact() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    if (isAdmin) {
+      const msg = "Admin accounts cannot submit public contact requests.";
+      dispatch(setContactStatus("error", msg));
+      notify("Admin blocked", msg, "error");
+      return;
+    }
+
     if (status?.state === "submitting" || powBusy) return;
 
     if (form?.company && String(form.company).trim().length > 0) return;
@@ -277,7 +311,7 @@ export default function Contact() {
         "/contacts",
         {
           name: String(form.name || "").trim(),
-          email: String(form.email || "").trim(),
+          email: String(form.email || "").trim().toLowerCase(),
           phone: String(form.phone || "").trim(),
           subject: String(form.subject || "").trim(),
           message: String(form.message || "").trim(),
@@ -308,7 +342,7 @@ export default function Contact() {
       await loadPowChallenge();
 
       const msg =
-        "Message received ✅ Our team will reply by email as soon as possible, usually within 24 hours.";
+        "Message received. Our team will reply by email as soon as possible, usually within 24 hours.";
 
       dispatch(setContactStatus("success", msg));
       notify("Request received", msg, "success");
@@ -330,175 +364,249 @@ export default function Contact() {
     }
   }
 
-  const isBusy = status?.state === "submitting" || powBusy;
+  const isBusy = status?.state === "submitting" || powBusy || isAdmin;
 
   return (
     <Wrap className="Contact">
-      <Glow />
+      <LuxuryGlowOne />
+      <LuxuryGlowTwo />
+      <PatternOverlay />
 
       <Inner>
         <HookBar aria-hidden="true">
-          <HookBadge>VIP ACCESS</HookBadge>
+          <HookBadge>VIP SUPPORT</HookBadge>
           <HookText>
-            <b>APPLY • CONTACT • ENROLL</b> — Premium support for serious
-            builders.
+            <b>CONTACT • SUPPORT • PARTNERSHIP</b> — Premium help for serious
+            builders, buyers, and members.
           </HookText>
         </HookBar>
 
         <Header>
-          <Eyebrow>KnockoutCodes Support Desk</Eyebrow>
+          <Eyebrow>KnockoutCodes Private Support Desk</Eyebrow>
+
           <Title>
-            <SpanFlash>Talk to the Admin.</SpanFlash> Get Priority Access.
+            Speak With The Team. <span>Get A Clear Reply.</span>
           </Title>
+
           <Subtitle>
-            Pitch your idea, request help, ask about enrollment, or contact the
-            team directly. <Accent>Complete requests get faster replies.</Accent>
+            Need help with an order, product, membership, course access, booking,
+            or partnership? Send a complete request and our team can respond
+            faster with the right answer.
           </Subtitle>
         </Header>
 
-        <Card onSubmit={handleSubmit} noValidate>
-          <BotTrap aria-hidden="true">
-            <label htmlFor="company">Company</label>
-            <input
-              id="company"
-              name="company"
-              type="text"
-              value={form?.company || ""}
-              onChange={handleChange}
-              tabIndex={-1}
-              autoComplete="off"
-            />
-          </BotTrap>
+        <Layout>
+          <InfoPanel>
+            <PanelTop>
+              <PanelBadge>5-Star Contact Experience</PanelBadge>
+              <PanelTitle>Built for serious requests.</PanelTitle>
+              <PanelText>
+                This page is protected with form validation, cooldown control,
+                bot-trap protection, and a browser security challenge before the
+                message is accepted.
+              </PanelText>
+            </PanelTop>
 
-          {!!status?.message && (
-            <Alert $state={status?.state} role="status" aria-live="polite">
-              {status.message}
-            </Alert>
-          )}
+            <FeatureList>
+              <FeatureItem>
+                <FeatureIcon>✓</FeatureIcon>
+                <div>
+                  <strong>Order & product support</strong>
+                  <p>Ask about purchases, delivery, tracking, or product access.</p>
+                </div>
+              </FeatureItem>
 
-          <Row>
-            <Field>
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                name="name"
+              <FeatureItem>
+                <FeatureIcon>✓</FeatureIcon>
+                <div>
+                  <strong>Membership & course help</strong>
+                  <p>Request help with access, enrollment, billing, or account issues.</p>
+                </div>
+              </FeatureItem>
+
+              <FeatureItem>
+                <FeatureIcon>✓</FeatureIcon>
+                <div>
+                  <strong>Partnership inquiries</strong>
+                  <p>Send serious business, brand, training, or collaboration requests.</p>
+                </div>
+              </FeatureItem>
+            </FeatureList>
+
+            <TrustBox>
+              <TrustNumber>24h</TrustNumber>
+              <TrustCopy>
+                Typical reply window for complete and clear requests.
+              </TrustCopy>
+            </TrustBox>
+          </InfoPanel>
+
+          <Card onSubmit={handleSubmit} noValidate>
+            <FormHeader>
+              <FormKicker>Secure Message Form</FormKicker>
+              <FormTitle>Tell us exactly what you need.</FormTitle>
+              <FormText>
+                Complete details help us protect your account and answer faster.
+              </FormText>
+            </FormHeader>
+
+            <BotTrap aria-hidden="true">
+              <label htmlFor="company">Company</label>
+              <input
+                id="company"
+                name="company"
                 type="text"
-                placeholder="e.g., Yakubu Amidu"
-                value={form?.name || ""}
+                value={form?.company || ""}
                 onChange={handleChange}
-                aria-invalid={!!errors.name}
-                aria-describedby={errors.name ? "err-name" : undefined}
-                minLength={2}
-                maxLength={60}
-                required
+                tabIndex={-1}
+                autoComplete="off"
               />
-              {errors.name && <Error id="err-name">{errors.name}</Error>}
-            </Field>
+            </BotTrap>
 
-            <Field>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@domain.com"
-                value={form?.email || ""}
-                onChange={handleChange}
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? "err-email" : undefined}
-                maxLength={70}
-                required
-              />
-              {errors.email && <Error id="err-email">{errors.email}</Error>}
-            </Field>
-          </Row>
+            {isAdmin ? (
+              <Alert $state="error" role="status" aria-live="polite">
+                Admin accounts cannot submit public contact requests. Use the admin
+                dashboard to manage messages.
+              </Alert>
+            ) : null}
 
-          <Row>
-            <Field>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="3105551234"
-                value={form?.phone || ""}
+            {!!status?.message && (
+              <Alert $state={status?.state} role="status" aria-live="polite">
+                {status.message}
+              </Alert>
+            )}
+
+            <Row>
+              <Field>
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="e.g., Yakubu Amidu"
+                  value={form?.name || ""}
+                  onChange={handleChange}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "err-name" : undefined}
+                  minLength={2}
+                  maxLength={60}
+                  disabled={isAdmin}
+                  required
+                />
+                {errors.name && <Error id="err-name">{errors.name}</Error>}
+              </Field>
+
+              <Field>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@domain.com"
+                  value={form?.email || ""}
+                  onChange={handleChange}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "err-email" : undefined}
+                  maxLength={70}
+                  disabled={isAdmin}
+                  required
+                />
+                {errors.email && <Error id="err-email">{errors.email}</Error>}
+              </Field>
+            </Row>
+
+            <Row>
+              <Field>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="3105551234"
+                  value={form?.phone || ""}
+                  onChange={handleChange}
+                  inputMode="numeric"
+                  pattern="\d{10}"
+                  minLength={10}
+                  maxLength={10}
+                  aria-invalid={!!errors.phone}
+                  aria-describedby={errors.phone ? "err-phone" : undefined}
+                  disabled={isAdmin}
+                  required
+                />
+                {errors.phone && <Error id="err-phone">{errors.phone}</Error>}
+              </Field>
+
+              <Field>
+                <Label htmlFor="subject">Subject</Label>
+                <Input
+                  id="subject"
+                  name="subject"
+                  type="text"
+                  placeholder="Order / Membership / Partnership / Support"
+                  value={form?.subject || ""}
+                  onChange={handleChange}
+                  aria-invalid={!!errors.subject}
+                  aria-describedby={errors.subject ? "err-subject" : undefined}
+                  minLength={2}
+                  maxLength={300}
+                  disabled={isAdmin}
+                  required
+                />
+                {errors.subject && (
+                  <Error id="err-subject">{errors.subject}</Error>
+                )}
+              </Field>
+            </Row>
+
+            <Field $full>
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                name="message"
+                rows="6"
+                placeholder="Tell us what happened, what you need, and include any order, product, membership, or account details that can help us respond faster."
+                value={form?.message || ""}
                 onChange={handleChange}
-                inputMode="numeric"
-                pattern="\d{10}"
+                aria-invalid={!!errors.message}
+                aria-describedby={errors.message ? "err-message" : undefined}
                 minLength={10}
-                maxLength={10}
-                aria-invalid={!!errors.phone}
-                aria-describedby={errors.phone ? "err-phone" : undefined}
+                maxLength={2500}
+                disabled={isAdmin}
                 required
               />
-              {errors.phone && <Error id="err-phone">{errors.phone}</Error>}
+              <Counter>{String(form?.message || "").length}/2500</Counter>
+              {errors.message && <Error id="err-message">{errors.message}</Error>}
             </Field>
 
-            <Field>
-              <Label htmlFor="subject">Subject</Label>
-              <Input
-                id="subject"
-                name="subject"
-                type="text"
-                placeholder="Enrollment / Partnership / Support"
-                value={form?.subject || ""}
-                onChange={handleChange}
-                aria-invalid={!!errors.subject}
-                aria-describedby={errors.subject ? "err-subject" : undefined}
-                minLength={2}
-                maxLength={300}
-                required
-              />
-              {errors.subject && (
-                <Error id="err-subject">{errors.subject}</Error>
-              )}
-            </Field>
-          </Row>
+            <SecurityLine>
+              <SecurityDot $ready={powReady && !powBusy && !isAdmin} />
+              {isAdmin
+                ? "Admin submission blocked"
+                : powBusy
+                ? "Running premium security check…"
+                : powReady
+                ? "Security ready"
+                : "Preparing security check…"}
+            </SecurityLine>
 
-          <Field $full>
-            <Label htmlFor="message">Message</Label>
-            <Textarea
-              id="message"
-              name="message"
-              rows="6"
-              placeholder="Tell us exactly what you need. The more detail you give, the faster we can help."
-              value={form?.message || ""}
-              onChange={handleChange}
-              aria-invalid={!!errors.message}
-              aria-describedby={errors.message ? "err-message" : undefined}
-              minLength={10}
-              maxLength={2500}
-              required
-            />
-            <Counter>{String(form?.message || "").length}/2500</Counter>
-            {errors.message && <Error id="err-message">{errors.message}</Error>}
-          </Field>
+            <Actions>
+              <Submit disabled={isBusy} type="submit">
+                {isAdmin ? "Admin Blocked" : isBusy ? "Sending…" : "Send Message"}
+                <Shimmer />
+              </Submit>
 
-          <SecurityLine>
-            <SecurityDot $ready={powReady && !powBusy} />
-            {powBusy
-              ? "Running premium security check…"
-              : powReady
-              ? "Security ready"
-              : "Preparing security check…"}
-          </SecurityLine>
-
-          <Actions>
-            <Submit disabled={isBusy} type="submit">
-              {isBusy ? "Sending…" : "Send Message"}
-              <Shimmer />
-            </Submit>
-
-            <Note>Priority goes to complete, clear requests.</Note>
-          </Actions>
-        </Card>
+              <Note>Clear requests receive faster support.</Note>
+            </Actions>
+          </Card>
+        </Layout>
       </Inner>
     </Wrap>
   );
 }
 
 const rise = keyframes`
-  from { opacity: 0; transform: translateY(14px) scale(.98); }
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 `;
 
@@ -508,14 +616,14 @@ const pulseRing = keyframes`
   100% { box-shadow: 0 0 0 0 rgba(214,182,159,0); }
 `;
 
-const flash = keyframes`
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.35); }
-`;
-
 const sheen = keyframes`
   0% { transform: translateX(-120%); }
   100% { transform: translateX(220%); }
+`;
+
+const float = keyframes`
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -18px, 0); }
 `;
 
 const Wrap = styled.section`
@@ -523,45 +631,61 @@ const Wrap = styled.section`
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 6rem 1.25rem;
+  padding: 7rem 1.25rem 5rem;
   overflow: hidden;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(
-      1000px 520px at 12% -10%,
-      ${({ theme }) => theme.colors.lightBrown}18,
-      transparent 60%
-    ),
-    radial-gradient(
-      850px 520px at 90% 105%,
-      ${({ theme }) => theme.colors.ivory}12,
-      transparent 55%
-    ),
+    radial-gradient(circle at 15% 10%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(circle at 85% 15%, rgba(255, 249, 242, 0.1), transparent 34%),
     linear-gradient(
       180deg,
       ${({ theme }) => theme.colors.darkBrown},
-      ${({ theme }) => theme.colors.cocoa}
+      ${({ theme }) => theme.colors.cocoa} 52%,
+      ${({ theme }) => theme.colors.black}
     );
 `;
 
-const Glow = styled.div`
+const LuxuryGlowOne = styled.div`
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  left: -190px;
+  top: 110px;
+  border-radius: 999px;
+  background: rgba(214, 182, 159, 0.16);
+  filter: blur(22px);
+  animation: ${float} 7s ease-in-out infinite;
+`;
+
+const LuxuryGlowTwo = styled.div`
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  right: -170px;
+  bottom: 80px;
+  border-radius: 999px;
+  background: rgba(255, 249, 242, 0.09);
+  filter: blur(24px);
+  animation: ${float} 8s ease-in-out infinite reverse;
+`;
+
+const PatternOverlay = styled.div`
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 35%),
-    radial-gradient(
-      600px 220px at 50% 0%,
-      ${({ theme }) => theme.colors.lightBrown}18,
-      transparent 58%
-    );
-  mix-blend-mode: screen;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at center, black, transparent 72%);
 `;
 
 const Inner = styled.div`
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: ${({ theme }) => theme.layout.max};
-  z-index: 1;
   animation: ${rise} 0.7s ease both;
 `;
 
@@ -574,10 +698,10 @@ const HookBar = styled.div`
   margin: 0 auto 1.2rem;
   padding: 0.6rem 0.8rem;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
 
   @media (max-width: 560px) {
     align-items: flex-start;
@@ -598,13 +722,14 @@ const HookBadge = styled.span`
     ${({ theme }) => theme.colors.ivory}
   );
   color: ${({ theme }) => theme.colors.black};
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: 0.5px;
   animation: ${pulseRing} 2.4s infinite;
 `;
 
 const HookText = styled.span`
-  opacity: 0.92;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.9;
   font-size: 0.9rem;
   line-height: 1.45;
 `;
@@ -617,59 +742,191 @@ const Header = styled.header`
 const Eyebrow = styled.p`
   margin: 0 0 0.7rem;
   color: ${({ theme }) => theme.colors.lightBrown};
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  font-weight: 950;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-size: 0.78rem;
 `;
 
 const Title = styled.h1`
-  font-size: clamp(2rem, 5vw, 3.45rem);
-  line-height: 1.06;
-  margin: 0 0 0.75rem;
-  letter-spacing: -0.04em;
-  text-shadow: 0 18px 32px rgba(0, 0, 0, 0.38);
-`;
+  max-width: 980px;
+  margin: 0 auto 0.85rem;
+  font-size: clamp(2.3rem, 5.8vw, 5.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+  color: ${({ theme }) => theme.colors.ivory};
+  text-shadow: 0 20px 38px rgba(0, 0, 0, 0.42);
 
-const SpanFlash = styled.span`
-  background: linear-gradient(
-    120deg,
-    ${({ theme }) => theme.colors.ivory},
-    ${({ theme }) => theme.colors.lightBrown}
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: ${flash} 2.2s ease-in-out 2 both;
+  span {
+    display: inline-block;
+    background: linear-gradient(
+      120deg,
+      ${({ theme }) => theme.colors.ivory},
+      ${({ theme }) => theme.colors.lightBrown}
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 `;
 
 const Subtitle = styled.p`
   margin: 0 auto;
-  max-width: 780px;
-  opacity: 0.86;
+  max-width: 820px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.84;
   font-size: 1.05rem;
+  line-height: 1.75;
+`;
+
+const Layout = styled.div`
+  display: grid;
+  grid-template-columns: 0.86fr 1.14fr;
+  gap: 1.1rem;
+  align-items: stretch;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const InfoPanel = styled.aside`
+  position: relative;
+  overflow: hidden;
+  padding: 1.4rem;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  background:
+    linear-gradient(145deg, rgba(214, 182, 159, 0.13), rgba(0, 0, 0, 0.34)),
+    rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+  box-shadow: ${({ theme }) => theme.shadow.glow};
+  backdrop-filter: blur(18px);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12),
+      transparent 36%,
+      rgba(214, 182, 159, 0.08)
+    );
+  }
+`;
+
+const PanelTop = styled.div`
+  position: relative;
+  z-index: 1;
+`;
+
+const PanelBadge = styled.div`
+  width: fit-content;
+  padding: 0.45rem 0.7rem;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  color: ${({ theme }) => theme.colors.black};
+  background: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+`;
+
+const PanelTitle = styled.h2`
+  margin: 1rem 0 0.55rem;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+`;
+
+const PanelText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.76;
   line-height: 1.65;
 `;
 
-const Accent = styled.em`
+const FeatureList = styled.div`
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+`;
+
+const FeatureItem = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  padding: 0.95rem;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 249, 242, 0.09);
+
+  strong {
+    color: ${({ theme }) => theme.colors.ivory};
+    font-weight: 950;
+  }
+
+  p {
+    margin: 0.3rem 0 0;
+    color: ${({ theme }) => theme.colors.ivory};
+    opacity: 0.66;
+    line-height: 1.45;
+    font-size: 0.9rem;
+  }
+`;
+
+const FeatureIcon = styled.span`
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: ${({ theme }) => theme.colors.black};
+  background: ${({ theme }) => theme.colors.lightBrown};
+  font-weight: 950;
+`;
+
+const TrustBox = styled.div`
+  position: relative;
+  z-index: 1;
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(255, 249, 242, 0.08);
+  border: 1px solid rgba(255, 249, 242, 0.12);
+`;
+
+const TrustNumber = styled.div`
   color: ${({ theme }) => theme.colors.lightBrown};
-  font-style: normal;
-  font-weight: 800;
+  font-size: 2.2rem;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+`;
+
+const TrustCopy = styled.p`
+  margin: 0.25rem 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.74;
+  line-height: 1.45;
 `;
 
 const Card = styled.form`
-  margin: 2rem auto 0;
   position: relative;
   display: grid;
   gap: 1rem;
   padding: 1.2rem;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
-    ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255, 255, 255, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.032)),
+    rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 249, 242, 0.13);
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px);
 
   &::before {
     content: "";
@@ -690,6 +947,33 @@ const Card = styled.form`
   }
 `;
 
+const FormHeader = styled.div`
+  position: relative;
+  z-index: 1;
+`;
+
+const FormKicker = styled.div`
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+`;
+
+const FormTitle = styled.h2`
+  margin: 0.45rem 0 0.3rem;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: -0.035em;
+`;
+
+const FormText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.68;
+  line-height: 1.55;
+`;
+
 const BotTrap = styled.div`
   position: absolute;
   left: -9999px;
@@ -700,6 +984,8 @@ const BotTrap = styled.div`
 `;
 
 const Row = styled.div`
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 1rem;
 
@@ -709,8 +995,11 @@ const Row = styled.div`
 `;
 
 const Field = styled.div`
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 0.45rem;
+
   ${({ $full }) =>
     $full &&
     css`
@@ -719,9 +1008,10 @@ const Field = styled.div`
 `;
 
 const Label = styled.label`
+  color: ${({ theme }) => theme.colors.ivory};
   font-size: 0.94rem;
   opacity: 0.92;
-  font-weight: 800;
+  font-weight: 850;
 `;
 
 const fieldStyles = css`
@@ -729,8 +1019,8 @@ const fieldStyles = css`
   border-radius: 16px;
   padding: 0.98rem 1rem;
   outline: none;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 249, 242, 0.13);
+  background: rgba(0, 0, 0, 0.3);
   color: ${({ theme }) => theme.colors.white};
   transition:
     border-color 0.22s ease,
@@ -742,12 +1032,12 @@ const fieldStyles = css`
     0 10px 24px rgba(0, 0, 0, 0.1);
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 249, 242, 0.45);
   }
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.24);
-    background: rgba(0, 0, 0, 0.34);
+    border-color: rgba(255, 249, 242, 0.24);
+    background: rgba(0, 0, 0, 0.36);
   }
 
   &:focus {
@@ -756,6 +1046,11 @@ const fieldStyles = css`
       0 0 0 4px rgba(214, 182, 159, 0.18),
       inset 0 -20px 40px rgba(255, 255, 255, 0.04);
     transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   &[aria-invalid="true"] {
@@ -771,17 +1066,20 @@ const Input = styled.input`
 const Textarea = styled.textarea`
   ${fieldStyles}
   resize: vertical;
-  min-height: 170px;
+  min-height: 180px;
   line-height: 1.65;
 `;
 
 const Counter = styled.span`
   justify-self: end;
+  color: ${({ theme }) => theme.colors.ivory};
   opacity: 0.58;
   font-size: 0.8rem;
 `;
 
 const SecurityLine = styled.div`
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -789,8 +1087,9 @@ const SecurityLine = styled.div`
   margin-top: 0.25rem;
   padding: 0.55rem 0.75rem;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 249, 242, 0.1);
+  color: ${({ theme }) => theme.colors.ivory};
   opacity: 0.86;
   font-size: 0.92rem;
 `;
@@ -801,10 +1100,14 @@ const SecurityDot = styled.span`
   border-radius: 999px;
   background: ${({ $ready }) => ($ready ? "#65ff9a" : "#ffd166")};
   box-shadow: ${({ $ready }) =>
-    $ready ? "0 0 18px rgba(101,255,154,.65)" : "0 0 18px rgba(255,209,102,.55)"};
+    $ready
+      ? "0 0 18px rgba(101,255,154,.65)"
+      : "0 0 18px rgba(255,209,102,.55)"};
 `;
 
 const Actions = styled.div`
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -818,7 +1121,7 @@ const Submit = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  min-height: 50px;
   gap: 0.6rem;
   border: none;
   cursor: pointer;
@@ -850,7 +1153,7 @@ const Submit = styled.button`
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.72;
+    opacity: 0.62;
     transform: none;
   }
 `;
@@ -879,6 +1182,7 @@ const Shimmer = styled.i`
 `;
 
 const Note = styled.span`
+  color: ${({ theme }) => theme.colors.ivory};
   opacity: 0.72;
   font-size: 0.92rem;
 `;
@@ -886,13 +1190,16 @@ const Note = styled.span`
 const Error = styled.span`
   color: #ffb3b3;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 750;
 `;
 
 const Alert = styled.div`
+  position: relative;
+  z-index: 1;
   margin-bottom: 0.2rem;
   border-radius: 16px;
   padding: 0.95rem 1rem;
+  color: ${({ theme }) => theme.colors.ivory};
   background: ${({ $state }) =>
     $state === "success"
       ? "rgba(70, 255, 150, 0.1)"

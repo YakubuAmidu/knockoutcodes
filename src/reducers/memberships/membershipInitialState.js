@@ -9,6 +9,7 @@ export const membershipInitialState = {
 
   mySubscriptionLoading: false,
   mySubscriptionError: "",
+
   mySubscription: {
     hasSubscription: false,
     isActive: false,

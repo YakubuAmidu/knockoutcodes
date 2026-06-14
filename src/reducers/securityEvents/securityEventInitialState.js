@@ -18,6 +18,9 @@ export const securityEventInitialState = {
   filters: {
     type: "",
     email: "",
+    ip: "",
     reviewStatus: "",
+    severity: "",
+    category: "",
   },
 };

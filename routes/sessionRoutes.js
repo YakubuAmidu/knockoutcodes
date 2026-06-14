@@ -1,3 +1,4 @@
+// routes/sessionRoutes.js
 import express from "express";
 import {
   listSessions,
@@ -8,6 +9,7 @@ import {
   updateSessionTrustAdmin,
   revokeSessionAdmin,
   cleanupOldSessionsAdmin,
+  deleteRevokedSessionAdmin,
 } from "../controllers/sessionController.js";
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
@@ -15,11 +17,6 @@ import { csrfRequired } from "../middleware/csrfMiddleware.js";
 import { publicShield, writeShield } from "../middleware/securityShield.js";
 
 const router = express.Router();
-
-/**
- * Mounted at: /api/v1/auth/sessions
- * USER ROUTES ONLY
- */
 
 router.get("/", ...publicShield, authRequired, listSessions);
 
@@ -31,9 +28,6 @@ router.post(
   upsertCurrentSession
 );
 
-/**
- * Keep BOTH routes so your current frontend does not break.
- */
 router.post(
   "/revoke-others",
   ...writeShield,
@@ -49,11 +43,6 @@ router.delete(
   authRequired,
   revokeOtherSessions
 );
-
-/**
- * ADMIN SESSION ROUTES
- * Mounted at: /api/v1/auth/sessions/admin
- */
 
 router.get(
   "/admin",
@@ -72,14 +61,7 @@ router.patch(
   updateSessionTrustAdmin
 );
 
-router.delete(
-  "/admin/cleanup",
-  ...writeShield,
-  csrfRequired,
-  authRequired,
-  adminOnly,
-  cleanupOldSessionsAdmin
-);
+router.delete("/admin/cleanup", authRequired, adminOnly, cleanupOldSessionsAdmin);
 
 router.delete(
   "/admin/:id/revoke",
@@ -89,6 +71,8 @@ router.delete(
   adminOnly,
   revokeSessionAdmin
 );
+
+router.delete("/admin/:id/delete", authRequired, adminOnly, deleteRevokedSessionAdmin);
 
 router.delete(
   "/:id",

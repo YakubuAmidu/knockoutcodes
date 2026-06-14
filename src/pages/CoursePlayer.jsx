@@ -1,15 +1,108 @@
 // src/pages/CoursePlayer.jsx
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import styled, { keyframes } from "styled-components";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
+import ReviewForm from "../components/ReviewForm";
 import { useToast } from "../components/Toast";
+
+const PROGRESS_SAVE_INTERVAL_MS = 12000;
+
+function clampNumber(value, min = 0, max = 100) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(Math.max(n, min), max);
+}
+
+function formatMinutes(minutes) {
+  const n = Number(minutes);
+  if (!Number.isFinite(n) || n <= 0) return "Duration not set";
+
+  const hrs = Math.floor(n / 60);
+  const mins = Math.round(n % 60);
+
+  if (hrs && mins) return `${hrs}h ${mins}m`;
+  if (hrs) return `${hrs}h`;
+  return `${mins} min`;
+}
+
+function isSafeVideoUrl(url) {
+  const value = String(url || "").trim();
+
+  return (
+    /^https?:\/\//i.test(value) ||
+    value.startsWith("/uploads/") ||
+    value.startsWith("/videos/")
+  );
+}
+
+function isDirectVideo(url) {
+  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url || ""));
+}
+
+function getEmbedUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw || !isSafeVideoUrl(raw)) return "";
+
+  try {
+    const parsed = new URL(raw, window.location.origin);
+
+    if (parsed.hostname.includes("youtube.com")) {
+      const videoId = parsed.searchParams.get("v");
+
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+
+      if (parsed.pathname.includes("/shorts/")) {
+        const id = parsed.pathname.split("/shorts/")[1]?.split("/")[0];
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+
+      if (parsed.pathname.includes("/embed/")) return raw;
+    }
+
+    if (parsed.hostname.includes("youtu.be")) {
+      const id = parsed.pathname.replace("/", "");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+
+    if (parsed.hostname.includes("vimeo.com")) {
+      const id = parsed.pathname.split("/").filter(Boolean).pop();
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+
+    return raw;
+  } catch {
+    return raw;
+  }
+}
 
 const CoursePlayer = () => {
   const { courseId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
+
+  const videoRef = useRef(null);
   const lastProgressSentRef = useRef(0);
+  const lastSavedSecondsRef = useRef(0);
+
+  const routeLessonId = location?.state?.lessonId || "";
+
+  const notify = useCallback(
+    (message, type = "error") => {
+      if (toast?.showToast) {
+        toast.showToast(message, type);
+        return;
+      }
+
+      toast?.push?.({
+        title: type === "error" ? "Course Player" : "Success",
+        description: message,
+        variant: type,
+      });
+    },
+    [toast]
+  );
 
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState([]);
@@ -21,9 +114,20 @@ const CoursePlayer = () => {
   const [accessChecked, setAccessChecked] = useState(false);
   const [accessAllowed, setAccessAllowed] = useState(false);
 
+  const [courseProgress, setCourseProgress] = useState(0);
+  const [lessonProgressMap, setLessonProgressMap] = useState({});
+
   const resumeKey = useMemo(
     () => (courseId ? `course_resume_${courseId}` : ""),
     [courseId]
+  );
+
+  const lessonTimeKey = useMemo(
+    () =>
+      courseId && activeLesson?._id
+        ? `course_time_${courseId}_${activeLesson._id}`
+        : "",
+    [courseId, activeLesson?._id]
   );
 
   const sortedLessons = useMemo(() => {
@@ -36,76 +140,109 @@ const CoursePlayer = () => {
 
   const activeIndex = useMemo(() => {
     if (!activeLesson?._id) return -1;
-    return sortedLessons.findIndex((lesson) => lesson._id === activeLesson._id);
+    return sortedLessons.findIndex(
+      (lesson) => String(lesson._id) === String(activeLesson._id)
+    );
   }, [activeLesson, sortedLessons]);
 
-  const courseProgress = useMemo(() => {
-    if (!sortedLessons.length || activeIndex < 0) return 0;
-    return Math.min(
-      100,
-      Math.max(0, Math.round(((activeIndex + 1) / sortedLessons.length) * 100))
-    );
-  }, [activeIndex, sortedLessons.length]);
+  const activeLessonProgress = useMemo(() => {
+    if (!activeLesson?._id) return 0;
+    return clampNumber(lessonProgressMap[activeLesson._id] || 0);
+  }, [activeLesson?._id, lessonProgressMap]);
+
+  const completedLessonsCount = useMemo(() => {
+    return sortedLessons.filter((lesson) => {
+      const value = clampNumber(lessonProgressMap[lesson._id] || 0);
+      return value >= 90;
+    }).length;
+  }, [sortedLessons, lessonProgressMap]);
+
+  const calculatedProgress = useMemo(() => {
+    if (Number.isFinite(Number(courseProgress)) && Number(courseProgress) > 0) {
+      return clampNumber(courseProgress);
+    }
+
+    if (!sortedLessons.length) return 0;
+
+    return clampNumber((completedLessonsCount / sortedLessons.length) * 100);
+  }, [courseProgress, sortedLessons.length, completedLessonsCount]);
 
   const canView = Boolean(course?.isFree || accessAllowed);
+
+  const hasCompletedCourse = Boolean(
+  sortedLessons.length > 0 &&
+    completedLessonsCount === sortedLessons.length &&
+    calculatedProgress >= 90
+);
+
+  const canReview = Boolean(canView && course?._id && hasCompletedCourse);
+  
+  const canSaveProgress = Boolean(accessAllowed && activeLesson?._id);
 
   const loadCourse = useCallback(async () => {
     try {
       setCourseLoading(true);
-      const res = await axiosInstance.get(`/courses/${courseId}`);
 
-      if (res.data?.success && res.data?.course) {
-        setCourse(res.data.course);
+      if (!courseId) {
+        notify("Course ID is missing.", "error");
+        navigate("/my-courses");
+        return;
+      }
+
+      const res = await axiosInstance.get(
+        `/courses/player/${encodeURIComponent(courseId)}`
+      );
+
+      const loadedCourse = res.data?.data || res.data?.course || null;
+      const loadedEnrollment = res.data?.enrollment || null;
+
+      if (res.data?.success && loadedCourse) {
+        setCourse(loadedCourse);
+
+        if (Number.isFinite(Number(loadedEnrollment?.progressPercent))) {
+          setCourseProgress(clampNumber(loadedEnrollment.progressPercent));
+        }
       } else {
-        toast.showToast("Unable to load course.", "error");
+        notify("Unable to load course.", "error");
       }
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
         error?.message ||
         "Failed to load course.";
-      toast.showToast(msg, "error");
+
+      notify(msg, "error");
     } finally {
       setCourseLoading(false);
     }
-  }, [courseId, toast]);
-
-  const sendLessonProgress = useCallback(
-    async (videoElement) => {
-      if (!activeLesson?._id || !canView || !videoElement) return;
-
-      const now = Date.now();
-
-      if (now - lastProgressSentRef.current < 15000) return;
-
-      lastProgressSentRef.current = now;
-
-      const watchedSeconds = Math.floor(videoElement.currentTime || 0);
-      const durationSeconds = Math.floor(videoElement.duration || 0);
-
-      if (!watchedSeconds || !durationSeconds) return;
-
-      try {
-        await axiosInstance.put(`/lesson-progress/${activeLesson._id}`, {
-          watchedSeconds,
-          durationSeconds,
-        });
-      } catch (error) {
-        console.error("Failed to update lesson progress:", error?.message);
-      }
-    },
-    [activeLesson, canView]
-  );
+  }, [courseId, navigate, notify]);
 
   const loadLessons = useCallback(async () => {
     try {
       setLessonsLoading(true);
 
-      const res = await axiosInstance.get(`/lessons/by-course/${courseId}`);
+      if (!courseId) {
+        notify("Course ID is missing.", "error");
+        return;
+      }
+
+      const res = await axiosInstance.get(
+        `/lessons/by-course/${encodeURIComponent(courseId)}`
+      );
 
       if (res.data?.success) {
-        const list = Array.isArray(res.data.data) ? res.data.data : [];
-        const allowed = Boolean(res.data.access?.allowed || course?.isFree);
+        const list = Array.isArray(res.data?.lessons)
+          ? res.data.lessons
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        const allowed = Boolean(
+          res.data?.access?.allowed ||
+            res.data?.hasAccess ||
+            res.data?.isEnrolled ||
+            course?.isFree
+        );
 
         setAccessAllowed(allowed);
         setAccessChecked(true);
@@ -118,19 +255,38 @@ const CoursePlayer = () => {
 
         setLessons(sorted);
 
+        const initialProgress = {};
+        sorted.forEach((lesson) => {
+          if (Number.isFinite(Number(lesson?.progressPercent))) {
+            initialProgress[lesson._id] = clampNumber(lesson.progressPercent);
+          }
+        });
+
+        setLessonProgressMap((prev) => ({
+          ...initialProgress,
+          ...prev,
+        }));
+
         let nextActive = sorted[0] || null;
 
-        if (resumeKey) {
+        if (routeLessonId) {
+          const fromRoute = sorted.find(
+            (lesson) => String(lesson._id) === String(routeLessonId)
+          );
+          if (fromRoute) nextActive = fromRoute;
+        } else if (resumeKey) {
           const savedId = localStorage.getItem(resumeKey);
           if (savedId) {
-            const found = sorted.find((lesson) => lesson._id === savedId);
+            const found = sorted.find(
+              (lesson) => String(lesson._id) === String(savedId)
+            );
             if (found) nextActive = found;
           }
         }
 
         setActiveLesson(nextActive);
       } else {
-        toast.showToast("Unable to load lessons.", "error");
+        notify("Unable to load lessons.", "error");
       }
     } catch (error) {
       const msg =
@@ -138,11 +294,11 @@ const CoursePlayer = () => {
         error?.message ||
         "Failed to load lessons.";
 
-      toast.showToast(msg, "error");
+      notify(msg, "error");
     } finally {
       setLessonsLoading(false);
     }
-  }, [courseId, course?.isFree, resumeKey, toast]);
+  }, [courseId, course?.isFree, resumeKey, routeLessonId, notify]);
 
   useEffect(() => {
     void loadCourse();
@@ -155,8 +311,6 @@ const CoursePlayer = () => {
       if (course.isFree) {
         setAccessAllowed(true);
         setAccessChecked(true);
-        await loadLessons();
-        return;
       }
 
       await loadLessons();
@@ -172,13 +326,125 @@ const CoursePlayer = () => {
 
   useEffect(() => {
     lastProgressSentRef.current = 0;
+    lastSavedSecondsRef.current = 0;
   }, [activeLesson?._id]);
+
+  const updateLocalLessonProgress = useCallback((watchedSeconds, durationSeconds) => {
+    if (!activeLesson?._id || !durationSeconds) return;
+
+    const percent = clampNumber((watchedSeconds / durationSeconds) * 100);
+
+    setLessonProgressMap((prev) => ({
+      ...prev,
+      [activeLesson._id]: Math.max(clampNumber(prev[activeLesson._id] || 0), percent),
+    }));
+
+    if (lessonTimeKey) {
+      localStorage.setItem(lessonTimeKey, String(Math.floor(watchedSeconds)));
+    }
+  }, [activeLesson?._id, lessonTimeKey]);
+
+  const sendLessonProgress = useCallback(
+    async (videoElement, force = false) => {
+      if (!activeLesson?._id || !canView || !canSaveProgress || !videoElement) {
+        return;
+      }
+
+      const watchedSeconds = Math.floor(videoElement.currentTime || 0);
+      const durationSeconds = Math.floor(videoElement.duration || 0);
+
+      if (!watchedSeconds || !durationSeconds) return;
+
+      updateLocalLessonProgress(watchedSeconds, durationSeconds);
+
+      const now = Date.now();
+      const watchedDelta = Math.abs(watchedSeconds - lastSavedSecondsRef.current);
+
+      if (
+        !force &&
+        now - lastProgressSentRef.current < PROGRESS_SAVE_INTERVAL_MS &&
+        watchedDelta < 10
+      ) {
+        return;
+      }
+
+      lastProgressSentRef.current = now;
+      lastSavedSecondsRef.current = watchedSeconds;
+
+      try {
+        const { data } = await axiosInstance.put(
+          `/lessons/progress/${encodeURIComponent(activeLesson._id)}`,
+          {
+            watchedSeconds,
+            durationSeconds,
+          }
+        );
+
+        if (data?.data?.attemptedSkip || data?.accepted === false) {
+  notify(
+    data?.message ||
+      "Please watch the lesson normally before it can be marked complete.",
+    "error"
+  );
+}
+
+        const nextCourseProgress =
+          data?.data?.enrollmentProgressPercent ||
+          data?.enrollmentProgressPercent ||
+          data?.progressPercent;
+
+        if (Number.isFinite(Number(nextCourseProgress))) {
+          setCourseProgress(clampNumber(nextCourseProgress));
+        }
+
+        const completed =
+          durationSeconds > 0 && watchedSeconds / durationSeconds >= 0.9;
+
+        setLessonProgressMap((prev) => ({
+          ...prev,
+          [activeLesson._id]: completed
+            ? 100
+            : Math.max(
+                clampNumber(prev[activeLesson._id] || 0),
+                clampNumber((watchedSeconds / durationSeconds) * 100)
+              ),
+        }));
+      } catch (error) {
+        console.error("Failed to update lesson progress:", error?.message);
+      }
+    },
+    [activeLesson._id, canView, canSaveProgress, updateLocalLessonProgress, notify]
+  );
+
+  const handleLoadedMetadata = useCallback(
+    (event) => {
+      const video = event.currentTarget;
+      if (!lessonTimeKey || !video) return;
+
+      const savedSeconds = Number(localStorage.getItem(lessonTimeKey) || 0);
+
+      if (
+        Number.isFinite(savedSeconds) &&
+        savedSeconds > 3 &&
+        Number.isFinite(video.duration) &&
+        savedSeconds < video.duration - 5
+      ) {
+        video.currentTime = savedSeconds;
+      }
+    },
+    [lessonTimeKey]
+  );
 
   const handleLessonClick = (lesson) => {
     if (!lesson) return;
 
     if (!accessAllowed && !course?.isFree) {
-      toast.showToast("Unlock this course with an active membership.", "error");
+      notify("Unlock this course with an active membership.", "error");
+      return;
+    }
+
+    if (lesson?.isLocked || !lesson?.videoUrl) {
+      notify("This lesson is not available yet.", "error");
       return;
     }
 
@@ -198,14 +464,17 @@ const CoursePlayer = () => {
   };
 
   const getVideoSrc = () => {
-    return (activeLesson && activeLesson.videoUrl) || course?.promoVideo || "";
+    const src = activeLesson?.videoUrl || course?.promoVideo || "";
+    return isSafeVideoUrl(src) ? src : "";
   };
 
   const renderVideo = () => {
     if (!course) {
       return (
         <VideoWrapper>
-          <VideoFallback>Loading course...</VideoFallback>
+          <VideoFallback>
+            <FallbackTitle>Loading course...</FallbackTitle>
+          </VideoFallback>
         </VideoWrapper>
       );
     }
@@ -242,14 +511,37 @@ const CoursePlayer = () => {
       );
     }
 
+    const embedUrl = getEmbedUrl(videoSrc);
+    const direct = isDirectVideo(videoSrc) || videoSrc.startsWith("/uploads/") || videoSrc.startsWith("/videos/");
+
+    if (!direct && embedUrl) {
+      return (
+        <VideoWrapper>
+          <VideoFrame
+            src={embedUrl}
+            title={activeLesson?.title || course?.title || "Course video"}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </VideoWrapper>
+      );
+    }
+
     return (
       <VideoWrapper>
         <Video
+          key={activeLesson?._id || videoSrc}
+          ref={videoRef}
           controls
           controlsList="nodownload"
-          onTimeUpdate={(event) => sendLessonProgress(event.currentTarget)}
-          onPause={(event) => sendLessonProgress(event.currentTarget)}
-          onEnded={(event) => sendLessonProgress(event.currentTarget)}
+          onLoadedMetadata={handleLoadedMetadata}
+          onTimeUpdate={(event) => sendLessonProgress(event.currentTarget, false)}
+          onPause={(event) => sendLessonProgress(event.currentTarget, true)}
+          onEnded={(event) => {
+            sendLessonProgress(event.currentTarget, true);
+            const next = sortedLessons[activeIndex + 1];
+            if (next) setActiveLesson(next);
+          }}
         >
           <source src={videoSrc} type="video/mp4" />
           Your browser does not support the video tag.
@@ -321,14 +613,16 @@ const CoursePlayer = () => {
         <ProgressCard>
           <ProgressTop>
             <span>Course Progress</span>
-            <strong>{courseProgress}%</strong>
+            <strong>{Math.round(calculatedProgress)}%</strong>
           </ProgressTop>
           <ProgressTrack>
-            <ProgressFill $value={courseProgress} />
+            <ProgressFill $value={calculatedProgress} />
           </ProgressTrack>
           <ProgressSmall>
             {activeIndex >= 0
-              ? `Lesson ${activeIndex + 1} of ${sortedLessons.length}`
+              ? `Lesson ${activeIndex + 1} of ${sortedLessons.length} • ${Math.round(
+                  activeLessonProgress
+                )}% watched`
               : "Choose a lesson to begin"}
           </ProgressSmall>
         </ProgressCard>
@@ -346,15 +640,23 @@ const CoursePlayer = () => {
               </NowPlaying>
 
               <PlayerPill>
-                {!accessChecked
-                  ? "Checking"
-                  : canView
-                  ? "Access Granted"
-                  : "Locked"}
+                {!accessChecked ? "Checking" : canView ? "Access Granted" : "Locked"}
               </PlayerPill>
             </PlayerTop>
 
             {renderVideo()}
+
+            {canView && activeLesson ? (
+              <WatchProgressBox>
+                <ProgressTop>
+                  <span>Current Lesson Progress</span>
+                  <strong>{Math.round(activeLessonProgress)}%</strong>
+                </ProgressTop>
+                <ProgressTrack>
+                  <ProgressFill $value={activeLessonProgress} />
+                </ProgressTrack>
+              </WatchProgressBox>
+            ) : null}
 
             <LessonControlRow>
               <ControlButton
@@ -387,9 +689,7 @@ const CoursePlayer = () => {
                   </div>
 
                   <DetailsMeta>
-                    {typeof activeLesson.durationInMinutes === "number"
-                      ? `${activeLesson.durationInMinutes} min`
-                      : "Duration not set"}
+                    {formatMinutes(activeLesson.durationInMinutes)}
                   </DetailsMeta>
                 </DetailsHeader>
 
@@ -410,14 +710,33 @@ const CoursePlayer = () => {
                 <PrimaryButton
                   type="button"
                   onClick={() =>
-                    navigate(`/subscription?courseId=${courseId}`, {
-                      replace: false,
-                    })
+                    navigate(
+                      `/memberships?courseId=${encodeURIComponent(courseId)}`,
+                      { replace: false }
+                    )
                   }
                 >
                   Go to Memberships
                 </PrimaryButton>
               </LockedPanel>
+            ) : null}
+
+            {canReview ? (
+              <ReviewBox>
+                <ReviewEyebrow>Student Review</ReviewEyebrow>
+                <ReviewHeading>Tell the next student the truth.</ReviewHeading>
+                <ReviewText>
+                  Your feedback helps future students know if this course is worth
+                  their time, discipline, and money.
+                </ReviewText>
+
+                <ReviewForm
+  courseId={course._id}
+  courseTitle={course.title || "this course"}
+  canReview={canReview}
+  reviewGateMessage="Finish watching the free course to the end before leaving a verified review."
+/>
+              </ReviewBox>
             ) : null}
           </PlayerCard>
         </MainColumn>
@@ -454,34 +773,35 @@ const CoursePlayer = () => {
               <LessonList>
                 {sortedLessons.map((lesson, index) => {
                   const active = activeLesson?._id === lesson._id;
+                  const progress = clampNumber(lessonProgressMap[lesson._id] || 0);
+                  const complete = progress >= 90;
 
                   return (
                     <LessonItem
                       key={lesson._id}
                       $active={active}
-                      $disabled={!canView}
+                      $disabled={!canView || lesson?.isLocked}
                       onClick={() => handleLessonClick(lesson)}
                     >
                       <LessonNumber $active={active}>
-                        {String(index + 1).padStart(2, "0")}
+                        {complete ? "✓" : String(index + 1).padStart(2, "0")}
                       </LessonNumber>
 
                       <LessonContent>
                         <LessonItemTitle>{lesson.title}</LessonItemTitle>
                         <LessonItemMeta>
-                          {typeof lesson.durationInMinutes === "number"
-                            ? `${lesson.durationInMinutes} min`
-                            : "Duration not set"}
+                          {formatMinutes(lesson.durationInMinutes)}
                         </LessonItemMeta>
+
+                        <MiniProgressTrack>
+                          <MiniProgressFill $value={progress} />
+                        </MiniProgressTrack>
 
                         <LessonTagRow>
                           {lesson.isPreview ? <LessonTag>Preview</LessonTag> : null}
-                          {lesson.isPublished ? (
-                            <LessonTag>Published</LessonTag>
-                          ) : (
-                            <LessonTag>Draft</LessonTag>
-                          )}
+                          {complete ? <LessonTag>Completed</LessonTag> : null}
                           {active ? <LessonTag>Playing</LessonTag> : null}
+                          {lesson?.isLocked ? <LessonTag>Locked</LessonTag> : null}
                         </LessonTagRow>
                       </LessonContent>
                     </LessonItem>
@@ -493,9 +813,11 @@ const CoursePlayer = () => {
             )}
 
             <TipBox>
-              <TipTitle>Smart Resume</TipTitle>
+              <TipTitle>Smart Progress</TipTitle>
               <TipText>
-                Your last selected lesson is saved automatically on this device.
+                Direct video lessons save watch progress automatically. YouTube
+                and Vimeo lessons can play, but exact second-by-second progress
+                depends on direct video tracking.
               </TipText>
             </TipBox>
           </SidebarCard>
@@ -525,21 +847,10 @@ const Page = styled.main`
   min-height: 100vh;
   padding: 96px 16px 56px;
   color: ${({ theme }) => theme.colors.ivory};
-  background: radial-gradient(
-      circle at 15% 8%,
-      rgba(214, 182, 159, 0.18),
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 88% 15%,
-      rgba(90, 56, 37, 0.34),
-      transparent 36%
-    ),
-    linear-gradient(
-      180deg,
-      ${({ theme }) => theme.colors.black},
-      ${({ theme }) => theme.colors.darkBrown}
-    );
+  background:
+    radial-gradient(circle at 15% 8%, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(circle at 88% 15%, rgba(90, 56, 37, 0.34), transparent 36%),
+    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
 `;
 
 const Hero = styled.section`
@@ -674,7 +985,7 @@ const ProgressTrack = styled.div`
 `;
 
 const ProgressFill = styled.div`
-  width: ${({ $value }) => `${$value}%`};
+  width: ${({ $value }) => `${clampNumber($value)}%`};
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(
@@ -806,6 +1117,14 @@ const Video = styled.video`
   background: #000000;
 `;
 
+const VideoFrame = styled.iframe`
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+  background: #000;
+`;
+
 const VideoFallback = styled.div`
   width: 100%;
   height: 100%;
@@ -815,11 +1134,8 @@ const VideoFallback = styled.div`
   text-align: center;
   padding: 22px;
   color: ${({ theme }) => theme.colors.ivory};
-  background: radial-gradient(
-      circle at 20% 0%,
-      rgba(214, 182, 159, 0.22),
-      transparent 38%
-    ),
+  background:
+    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.22), transparent 38%),
     rgba(0, 0, 0, 0.74);
 `;
 
@@ -841,6 +1157,14 @@ const FallbackText = styled.p`
   opacity: 0.76;
   line-height: 1.6;
   font-size: 14px;
+`;
+
+const WatchProgressBox = styled.div`
+  margin-top: 14px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(214, 182, 159, 0.14);
 `;
 
 const LessonControlRow = styled.div`
@@ -1070,6 +1394,25 @@ const LessonItemMeta = styled.span`
   margin-top: 4px;
 `;
 
+const MiniProgressTrack = styled.div`
+  margin-top: 8px;
+  height: 6px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  overflow: hidden;
+  background: rgba(255, 249, 242, 0.12);
+`;
+
+const MiniProgressFill = styled.div`
+  width: ${({ $value }) => `${clampNumber($value)}%`};
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
+`;
+
 const LessonTagRow = styled.div`
   display: flex;
   gap: 6px;
@@ -1167,4 +1510,40 @@ const LoadingText = styled.p`
   opacity: 0.74;
   line-height: 1.65;
   font-size: 14px;
+`;
+
+const ReviewBox = styled.section`
+  margin-top: 18px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 18px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.14), transparent 34%),
+    rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(214, 182, 159, 0.18);
+`;
+
+const ReviewEyebrow = styled.p`
+  margin: 0 0 8px;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+`;
+
+const ReviewHeading = styled.h3`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+`;
+
+const ReviewText = styled.p`
+  margin: 10px 0 16px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+  font-size: 13px;
+  line-height: 1.7;
 `;

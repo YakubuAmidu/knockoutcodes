@@ -1,11 +1,15 @@
 // models/CourseModel.js
 import mongoose from "mongoose";
 
-/**
- * Course schema
- * Stores course content, access level, pricing, Stripe price ID,
- * publishing state, ratings, and membership requirements.
- */
+/* ======================================================
+   🥊 KNOCKOUTCODES COURSE MODEL
+   Stores course content, pricing, access level, publishing,
+   Stripe connection, ratings, and membership requirements.
+====================================================== */
+
+const COURSE_LEVELS = ["beginner", "intermediate", "advance", "complete", "all-levels"];
+const MEMBERSHIP_LEVELS = ["beginner", "intermediate", "advance", "complete", "none"];
+
 const courseSchema = new mongoose.Schema(
   {
     title: {
@@ -19,7 +23,10 @@ const courseSchema = new mongoose.Schema(
     slug: {
       type: String,
       unique: true,
+      sparse: true,
       trim: true,
+      lowercase: true,
+      index: true,
     },
 
     description: {
@@ -52,14 +59,16 @@ const courseSchema = new mongoose.Schema(
 
     level: {
       type: String,
-      enum: ["beginner", "intermediate", "advance", "complete", "all-levels"],
+      enum: COURSE_LEVELS,
       default: "beginner",
+      index: true,
     },
 
     requiredMembershipLevel: {
       type: String,
-      enum: ["beginner", "intermediate", "advance", "complete", "none"],
+      enum: MEMBERSHIP_LEVELS,
       default: "beginner",
+      index: true,
     },
 
     allowSinglePurchase: {
@@ -90,20 +99,14 @@ const courseSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Course price is required"],
       min: [0, "Price cannot be negative"],
+      default: 0,
     },
 
     salePrice: {
-      type: Number,
-      min: [0, "Sale price cannot be negative"],
-      default: null,
-      validate: {
-        validator(value) {
-          if (value == null) return true;
-          return value <= this.price;
-        },
-        message: "Sale price cannot be greater than regular price",
-      },
-    },
+  type: Number,
+  min: [0, "Sale price cannot be negative"],
+  default: null,
+},
 
     isFree: {
       type: Boolean,
@@ -171,6 +174,7 @@ const courseSchema = new mongoose.Schema(
     isFeatured: {
       type: Boolean,
       default: false,
+      index: true,
     },
 
     isPublished: {
@@ -189,69 +193,106 @@ const courseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/**
- * Creates a URL-safe slug from the course title.
- */
+/* ======================================================
+   🧼 CLEAN HELPERS
+====================================================== */
+
 function generateSlug(title) {
   return String(title || "")
     .toLowerCase()
     .trim()
+    .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-/**
- * Cleans string arrays so empty values are not stored.
- */
 function cleanStringArray(value) {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((item) => String(item || "").trim())
-    .filter(Boolean);
-}
-
-/**
- * Normalizes course access values before validation.
- */
-function normalizeCourseAccess(doc) {
-  if (doc.level === "advanced") {
-    doc.level = "advance";
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
-  if (doc.requiredMembershipLevel === "advanced") {
-    doc.requiredMembershipLevel = "advance";
+  if (!Array.isArray(value)) return [];
+
+  return value.map((item) => String(item || "").trim()).filter(Boolean);
+}
+
+function normalizeLevel(value) {
+  const clean = String(value || "").trim().toLowerCase();
+
+  if (clean === "advanced") return "advance";
+  if (clean === "all") return "all-levels";
+
+  return clean;
+}
+
+/* ======================================================
+   🛡️ COURSE ACCESS NORMALIZATION
+====================================================== */
+
+function isValidUrl(value) {
+  if (!value) return true;
+
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeCourseAccess(doc) {
+  doc.level = normalizeLevel(doc.level) || "beginner";
+  doc.requiredMembershipLevel =
+    normalizeLevel(doc.requiredMembershipLevel) || "beginner";
+  
+  if (!isValidUrl(doc.thumbnail)) {
+  doc.thumbnail = "";
+}
+
+if (!isValidUrl(doc.promoVideo)) {
+  doc.promoVideo = "";
+}
+
+  if (!COURSE_LEVELS.includes(doc.level)) {
+    doc.level = "beginner";
+  }
+
+  if (!MEMBERSHIP_LEVELS.includes(doc.requiredMembershipLevel)) {
+    doc.requiredMembershipLevel = "beginner";
   }
 
   if (!doc.requiredMembershipLevel || doc.requiredMembershipLevel === "none") {
-    if (doc.level && doc.level !== "all-levels") {
+    if (doc.level && doc.level !== "all-levels" && !doc.isFree) {
       doc.requiredMembershipLevel = doc.level;
     }
   }
 
   if (doc.isFree) {
+    doc.price = 0;
+    doc.salePrice = null;
     doc.allowSinglePurchase = false;
     doc.requiredMembershipLevel = "none";
+    doc.stripePriceId = "";
   }
 
   doc.equipmentNeeded = cleanStringArray(doc.equipmentNeeded);
   doc.requirements = cleanStringArray(doc.requirements);
   doc.whatYouWillLearn = cleanStringArray(doc.whatYouWillLearn);
-
   doc.tags = cleanStringArray(doc.tags).map((tag) => tag.toLowerCase());
 }
 
-/**
- * Runs before creating or saving a course.
- */
+/* ======================================================
+   ⚙️ MODEL MIDDLEWARE
+====================================================== */
+
 courseSchema.pre("validate", function (next) {
   normalizeCourseAccess(this);
   next();
 });
 
-/**
- * Generates or updates the slug before saving.
- */
 courseSchema.pre("save", function (next) {
   if (this.isModified("title") || !this.slug) {
     this.slug = generateSlug(this.title);
@@ -260,45 +301,50 @@ courseSchema.pre("save", function (next) {
   next();
 });
 
-/**
- * Normalizes updates when admin edits a course.
- */
-courseSchema.pre("findOneAndUpdate", function (next) {
+courseSchema.pre("findOneAndUpdate", async function (next) {
   const update = this.getUpdate() || {};
   const $set = update.$set || update;
 
-  if ($set.level === "advanced") {
-    $set.level = "advance";
+  if ($set.level) {
+    $set.level = normalizeLevel($set.level);
   }
 
-  if ($set.requiredMembershipLevel === "advanced") {
-    $set.requiredMembershipLevel = "advance";
+  if ($set.requiredMembershipLevel) {
+    $set.requiredMembershipLevel = normalizeLevel($set.requiredMembershipLevel);
   }
 
   if ($set.title) {
     $set.slug = generateSlug($set.title);
   }
 
-  if (Array.isArray($set.equipmentNeeded)) {
+  if ($set.equipmentNeeded) {
     $set.equipmentNeeded = cleanStringArray($set.equipmentNeeded);
   }
 
-  if (Array.isArray($set.requirements)) {
+  if ($set.requirements) {
     $set.requirements = cleanStringArray($set.requirements);
   }
 
-  if (Array.isArray($set.whatYouWillLearn)) {
+  if ($set.whatYouWillLearn) {
     $set.whatYouWillLearn = cleanStringArray($set.whatYouWillLearn);
   }
 
-  if (Array.isArray($set.tags)) {
+  if ($set.tags) {
     $set.tags = cleanStringArray($set.tags).map((tag) => tag.toLowerCase());
   }
 
-  if ($set.isFree) {
-    $set.allowSinglePurchase = false;
-    $set.requiredMembershipLevel = "none";
-  }
+  const nextIsFree =
+  $set.isFree !== undefined
+    ? Boolean($set.isFree)
+    : undefined;
+
+if (nextIsFree === true) {
+  $set.price = 0;
+  $set.salePrice = null;
+  $set.allowSinglePurchase = false;
+  $set.requiredMembershipLevel = "none";
+  $set.stripePriceId = "";
+}
 
   if (update.$set) {
     update.$set = $set;
@@ -309,13 +355,16 @@ courseSchema.pre("findOneAndUpdate", function (next) {
   next();
 });
 
-/**
- * Indexes for public course discovery, membership access, and admin filtering.
- */
+/* ======================================================
+   🚀 INDEXES
+====================================================== */
+
+courseSchema.index({ title: "text", description: "text", tags: "text" });
 courseSchema.index({ level: 1, isPublished: 1 });
 courseSchema.index({ requiredMembershipLevel: 1, isPublished: 1 });
 courseSchema.index({ category: 1, isPublished: 1 });
 courseSchema.index({ isFeatured: 1, isPublished: 1 });
+courseSchema.index({ isFree: 1, isPublished: 1 });
 courseSchema.index({ createdAt: -1 });
 
 const Course = mongoose.models.Course || mongoose.model("Course", courseSchema);

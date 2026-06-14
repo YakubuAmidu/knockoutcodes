@@ -1,9 +1,17 @@
-// middleware/blogSecurityMiddleware.js
 import mongoose from "mongoose";
 
-const stripDangerous = (v) => {
-  if (typeof v !== "string") return v;
-  return v.trim().replace(/\0/g, "");
+const ALLOWED_CATEGORIES = new Set([
+  "boxing",
+  "mindset",
+  "conditioning",
+  "nutrition",
+  "lifestyle",
+  "other",
+]);
+
+const stripDangerous = (value) => {
+  if (typeof value !== "string") return value;
+  return value.trim().replace(/\0/g, "");
 };
 
 const stripMongoOperators = (obj) => {
@@ -11,55 +19,103 @@ const stripMongoOperators = (obj) => {
   if (Array.isArray(obj)) return obj.map(stripMongoOperators);
 
   const clean = {};
-  for (const [k, v] of Object.entries(obj)) {
-    // block mongo operator injection and dot-path injection
-    if (k.startsWith("$") || k.includes(".")) continue;
-    clean[k] = stripMongoOperators(v);
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (key.startsWith("$") || key.includes(".")) continue;
+    clean[key] = stripMongoOperators(value);
   }
+
   return clean;
 };
 
+const normalizeBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return Boolean(value);
+};
+
+const isSafeSlug = (value = "") =>
+  /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(String(value).trim().toLowerCase());
+
 export const validateBlogBody = (req, res, next) => {
-    const b = stripMongoOperators(req.body || {});
+  const body = stripMongoOperators(req.body || {});
 
-  // sanitize strings
-  if (typeof b.title === "string") b.title = stripDangerous(b.title);
-  if (typeof b.slug === "string") b.slug = stripDangerous(b.slug);
-  if (typeof b.excerpt === "string") b.excerpt = stripDangerous(b.excerpt);
-  if (typeof b.content === "string") b.content = stripDangerous(b.content);
-  if (typeof b.coverImage === "string") b.coverImage = stripDangerous(b.coverImage);
-  if (typeof b.category === "string") b.category = stripDangerous(b.category);
+  if (typeof body.title === "string") body.title = stripDangerous(body.title);
+  if (typeof body.slug === "string") body.slug = stripDangerous(body.slug).toLowerCase();
+  if (typeof body.excerpt === "string") body.excerpt = stripDangerous(body.excerpt);
+  if (typeof body.content === "string") body.content = stripDangerous(body.content);
+  if (typeof body.coverImage === "string") body.coverImage = stripDangerous(body.coverImage);
+  if (typeof body.category === "string") body.category = stripDangerous(body.category).toLowerCase();
 
-  // normalize tags
-  if (Array.isArray(b.tags)) {
-    b.tags = b.tags
-      .map((t) => (typeof t === "string" ? stripDangerous(t) : ""))
-      .filter(Boolean)
-      .slice(0, 20);
+  if (typeof body.isPublished !== "undefined") {
+    body.isPublished = normalizeBoolean(body.isPublished);
   }
 
-  req.body = b;
+  if (typeof body.featured !== "undefined") {
+    body.featured = normalizeBoolean(body.featured);
+  }
 
-  // required check for create (only if POST)
+  if (Array.isArray(body.tags)) {
+    body.tags = [
+      ...new Set(
+        body.tags
+          .map((tag) => (typeof tag === "string" ? stripDangerous(tag).toLowerCase() : ""))
+          .filter(Boolean)
+          .slice(0, 12)
+      ),
+    ];
+  }
+
+  req.body = body;
+
   if (req.method === "POST") {
-    if (!b.title || !b.content) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Title and content are required" });
-    }
-
-    if (String(b.content).length < 50) {
+    if (!body.title || !body.content) {
       return res.status(400).json({
         success: false,
-        message: "Content should be at least 50 characters",
+        message: "Title and content are required.",
       });
     }
+  }
+
+  if (typeof body.title === "string" && body.title.length > 150) {
+    return res.status(400).json({
+      success: false,
+      message: "Title cannot exceed 150 characters.",
+    });
+  }
+
+  if (typeof body.slug === "string" && body.slug && !isSafeSlug(body.slug)) {
+    return res.status(400).json({
+      success: false,
+      message: "Slug can only contain lowercase letters, numbers, and hyphens.",
+    });
+  }
+
+  if (typeof body.excerpt === "string" && body.excerpt.length > 300) {
+    return res.status(400).json({
+      success: false,
+      message: "Excerpt cannot exceed 300 characters.",
+    });
+  }
+
+  if (typeof body.content === "string" && body.content.length < 50) {
+    return res.status(400).json({
+      success: false,
+      message: "Content should be at least 50 characters.",
+    });
+  }
+
+  if (typeof body.category === "string" && !ALLOWED_CATEGORIES.has(body.category)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid blog category.",
+    });
   }
 
   next();
 };
 
-// Only allow specific fields to be updated (stops malicious updates)
 export const pickAllowedBlogUpdateFields = (req, res, next) => {
   const allowed = new Set([
     "title",
@@ -84,33 +140,43 @@ export const pickAllowedBlogUpdateFields = (req, res, next) => {
   next();
 };
 
-// ✅ Validate routes using :id (ObjectId only)
 export const validateBlogIdParam = (req, res, next) => {
   const { id } = req.params;
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: "Invalid blog id" });
+
+  if (!id || !mongoose.Types.ObjectId.isValid(String(id))) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid blog id.",
+    });
   }
+
   next();
 };
 
-// ✅ Validate routes using :idOrSlug (ObjectId OR slug string)
 export const validateIdOrSlugParam = (req, res, next) => {
-  const { idOrSlug } = req.params;
+  const raw = req.params.idOrSlug;
 
-  if (!idOrSlug) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing blog id or slug" });
+  if (!raw) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing blog id or slug.",
+    });
   }
 
-  // Allow ObjectId
-  if (mongoose.Types.ObjectId.isValid(idOrSlug)) return next();
+  const idOrSlug = String(raw).trim().toLowerCase();
 
-  // Allow slug-like string (basic)
-  if (typeof idOrSlug === "string" && idOrSlug.trim().length >= 2) return next();
+  if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
+    req.params.idOrSlug = idOrSlug;
+    return next();
+  }
 
-  return res
-    .status(400)
-    .json({ success: false, message: "Invalid blog id or slug" });
+  if (isSafeSlug(idOrSlug) && idOrSlug.length >= 2 && idOrSlug.length <= 180) {
+    req.params.idOrSlug = idOrSlug;
+    return next();
+  }
+
+  return res.status(400).json({
+    success: false,
+    message: "Invalid blog id or slug.",
+  });
 };
-

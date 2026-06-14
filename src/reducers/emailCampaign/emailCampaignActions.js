@@ -9,17 +9,29 @@ export const fetchEmailCampaigns =
     try {
       dispatch({ type: EMAIL_CAMPAIGN_ACTIONS.LIST_REQUEST });
 
-      const { data } = await axiosInstance.get(ADMIN_EMAIL_CAMPAIGN_URL, {
+      const response = await axiosInstance.get(ADMIN_EMAIL_CAMPAIGN_URL, {
         params,
       });
 
+      // Handles both:
+      // 1. Normal axios: response.data
+      // 2. Custom axiosInstance that already returns response.data
+      const body = response?.data?.success !== undefined ? response.data : response;
+
+      const campaigns =
+        body?.campaigns ||
+        body?.data?.campaigns ||
+        body?.data ||
+        body?.results ||
+        [];
+
       dispatch({
         type: EMAIL_CAMPAIGN_ACTIONS.LIST_SUCCESS,
-        payload: data?.data || [],
-        meta: data?.pagination || null,
+        payload: Array.isArray(campaigns) ? campaigns : [],
+        meta: body?.pagination || body?.data?.pagination || null,
       });
 
-      return data;
+      return body;
     } catch (error) {
       const message =
         error?.response?.data?.message ||

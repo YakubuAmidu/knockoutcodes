@@ -6,6 +6,9 @@ import {
   getTopCoursesByEnrollments,
   updateEnrollmentProgress,
   verifyStripeEnrollment,
+   getAllEnrollmentsAdmin,
+  updateEnrollmentAdmin,
+  deleteEnrollmentAdmin,
 } from "../controllers/enrollmentController.js";
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
@@ -15,37 +18,79 @@ const router = express.Router();
 /**
  * ADMIN ONLY:
  * Manual enrollment creation.
- * Normal users must enroll through Stripe checkout/webhook.
  */
 router.post("/", authRequired, adminOnly, createEnrollment);
 
 /**
  * USER:
- * Get my enrollments.
+ * Get logged-in user's enrollments.
  */
 router.get("/my", authRequired, getMyEnrollments);
 
 /**
+ * ADMIN:
+ * Top enrolled courses analytics.
+ * Keep before dynamic routes.
+ */
+router.get(
+  "/top-courses",
+  authRequired,
+  adminOnly,
+  getTopCoursesByEnrollments
+);
+
+/**
  * USER:
- * Check if current user owns access to one course.
+ * Check course enrollment/access status.
  */
 router.get("/status/:courseId", authRequired, getEnrollmentStatus);
 
 /**
  * USER:
- * Verify Stripe checkout session and create enrollment if payment succeeded.
+ * Verify Stripe checkout session after successful payment.
  */
-router.post("/verify-stripe-session", authRequired, verifyStripeEnrollment);
+router.post(
+  "/verify-stripe-session",
+  authRequired,
+  verifyStripeEnrollment
+);
 
 /**
  * ADMIN:
- * Analytics/top courses.
+ * Manage all enrollments.
  */
-router.get("/top-courses", authRequired, adminOnly, getTopCoursesByEnrollments);
+router.get(
+  "/admin/manage",
+  authRequired,
+  adminOnly,
+  getAllEnrollmentsAdmin
+);
+
+/**
+ * ADMIN:
+ * Update enrollment.
+ */
+router.put(
+  "/:id",
+  authRequired,
+  adminOnly,
+  updateEnrollmentAdmin
+);
+
+/**
+ * ADMIN:
+ * Delete enrollment.
+ */
+router.delete(
+  "/:id",
+  authRequired,
+  adminOnly,
+  deleteEnrollmentAdmin
+);
 
 /**
  * USER:
- * Update progress only for their own enrollment.
+ * Update progress for owned enrollment only.
  */
 router.put("/:id/progress", authRequired, updateEnrollmentProgress);
 

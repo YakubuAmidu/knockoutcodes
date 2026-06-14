@@ -1,10 +1,17 @@
 // src/pages/MyOrders.jsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { socket, connectUserSocket } from "../../utils/socket";
 import styled, { keyframes } from "styled-components";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import axiosInstance from "../../utils/axiosInstance";
+import ReviewForm from "../components/ReviewForm";
 import { useToast } from "../components/Toast";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchMyOrders,
+  refreshMyOrders,
+  setMyOrdersPage,
+} from "../reducers/myOrders/myOrderActions";
 
 const LIMIT = 12;
 
@@ -61,19 +68,41 @@ function hasTracking(order) {
   );
 }
 
+function getProductIdFromItem(item) {
+  if (!item?.product) return "";
+  if (typeof item.product === "string") return item.product;
+  return item.product?._id || item.product?.id || "";
+}
+
+function canReviewItem(order, item) {
+  const paymentStatus = normalizeStatus(order?.paymentStatus);
+
+  return (
+    paymentStatus === "paid" &&
+    item?.productType === "product" &&
+    item?.productModel === "Product" &&
+    Boolean(getProductIdFromItem(item))
+  );
+}
+
 export default function MyOrders() {
   const navigate = useNavigate();
   const toast = useToast();
   const push = toast?.push || toast?.showToast;
 
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshingId, setRefreshingId] = useState(0);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
 
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  const authUser = useSelector((state) => state.auth?.user || state.auth?.currentUser);
+
+const {
+  orders = [],
+  loading,
+  error,
+  page,
+  pages,
+  total,
+  refreshKey,
+} = useSelector((state) => state.myOrders || {});
 
   const paidCount = useMemo(
     () => orders.filter((order) => normalizeStatus(order?.paymentStatus) === "paid").length,
@@ -90,83 +119,63 @@ export default function MyOrders() {
     [orders]
   );
 
-  const fetchMyOrders = useCallback(async () => {
-    let cancelled = false;
+  useEffect(() => {
+  const controller = new AbortController();
 
-    try {
-      setLoading(true);
-      setError("");
-
-      const { data } = await axiosInstance.get("/orders/my", {
-        params: {
-          page,
-          limit: LIMIT,
-          t: Date.now(),
-        },
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
-
-      if (cancelled) return;
-
-      const items = Array.isArray(data?.data) ? data.data : [];
-
-      setOrders(items);
-      setTotal(Number(data?.pagination?.total || items.length || 0));
-      setPages(Number(data?.pagination?.pages || 1));
-    } catch (err) {
-      if (cancelled) return;
-
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to load your orders. Please try again.";
-
-      setError(message);
-
+  dispatch(fetchMyOrders({ page, signal: controller.signal })).then((res) => {
+    if (!res?.ok && !res?.cancelled && res?.message) {
       push?.({
         title: "Orders error",
-        description: message,
+        description: res.message,
         variant: "error",
       });
-    } finally {
-      if (!cancelled) setLoading(false);
     }
+  });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [page, push]);
-
+  return () => {
+    controller.abort();
+  };
+  }, [dispatch, page, refreshKey, push]);
+  
   useEffect(() => {
-    let alive = true;
+  const userId = authUser?._id || authUser?.id;
 
-    async function run() {
-      if (!alive) return;
-      await fetchMyOrders();
+  if (!userId) return;
+
+  connectUserSocket(userId);
+
+  const handleOrderUpdate = ({ action }) => {
+    if (
+      action === "updated" ||
+      action === "fulfilled" ||
+      action === "cancelled" ||
+      action === "refunded" ||
+      action === "tracking-updated" ||
+      action === "deleted"
+    ) {
+      dispatch(refreshMyOrders());
     }
+  };
 
-    run();
+  socket.on("user:order-updated", handleOrderUpdate);
 
-    return () => {
-      alive = false;
-    };
-  }, [fetchMyOrders, refreshingId]);
+  return () => {
+    socket.off("user:order-updated", handleOrderUpdate);
+  };
+}, [authUser?._id, authUser?.id, dispatch]);
 
-  function refreshOrders() {
-    setRefreshingId((prev) => prev + 1);
-  }
+function refreshOrders() {
+  dispatch(refreshMyOrders());
+}
 
-  function handlePrev() {
-    setPage((prev) => Math.max(1, prev - 1));
-  }
+function handlePrev() {
+  dispatch(setMyOrdersPage(Math.max(1, page - 1)));
+}
 
-  function handleNext() {
-    setPage((prev) => Math.min(pages, prev + 1));
-  }
-
+function handleNext() {
+  dispatch(setMyOrdersPage(Math.min(pages, page + 1)));
+}
+  
   return (
     <Page>
       <GlowOne />
@@ -191,7 +200,7 @@ export default function MyOrders() {
 
             <Subtitle>
               View every product order connected to your account, including payment status,
-              order status, items purchased, quantity, total paid, transaction reference, and order date.
+              order status, items purchased, quantity, total paid, shipping details, reviews, and order date.
             </Subtitle>
 
             <HeroActions>
@@ -326,13 +335,8 @@ export default function MyOrders() {
                       </OrderIdentity>
 
                       <OrderStatusRow>
-                        <PaymentBadge data-status={paymentStatus}>
-                          {paymentStatus}
-                        </PaymentBadge>
-
-                        <StatusBadge data-status={orderStatus}>
-                          {orderStatus}
-                        </StatusBadge>
+                        <PaymentBadge data-status={paymentStatus}>{paymentStatus}</PaymentBadge>
+                        <StatusBadge data-status={orderStatus}>{orderStatus}</StatusBadge>
                       </OrderStatusRow>
                     </OrderTop>
 
@@ -384,112 +388,135 @@ export default function MyOrders() {
                     </DetailsGrid>
 
                     {hasTracking(order) ? (
-  <TrackingBox>
-    <Label>Shipping & Tracking</Label>
+                      <TrackingBox>
+                        <Label>Shipping & Tracking</Label>
 
-    <TrackingGrid>
-      <DetailBox>
-        <DetailLabel>Carrier</DetailLabel>
-        <DetailValue>{order?.shipping?.carrier || "—"}</DetailValue>
-      </DetailBox>
+                        <TrackingGrid>
+                          <DetailBox>
+                            <DetailLabel>Carrier</DetailLabel>
+                            <DetailValue>{order?.shipping?.carrier || "—"}</DetailValue>
+                          </DetailBox>
 
-      <DetailBox>
-        <DetailLabel>Tracking Number</DetailLabel>
-        <DetailValue>{order?.shipping?.trackingNumber || "—"}</DetailValue>
-      </DetailBox>
+                          <DetailBox>
+                            <DetailLabel>Tracking Number</DetailLabel>
+                            <DetailValue>{order?.shipping?.trackingNumber || "—"}</DetailValue>
+                          </DetailBox>
 
-      <DetailBox>
-        <DetailLabel>Shipped At</DetailLabel>
-        <DetailValue>{formatDateTime(order?.shipping?.shippedAt)}</DetailValue>
-      </DetailBox>
+                          <DetailBox>
+                            <DetailLabel>Shipped At</DetailLabel>
+                            <DetailValue>{formatDateTime(order?.shipping?.shippedAt)}</DetailValue>
+                          </DetailBox>
 
-      <DetailBox>
-        <DetailLabel>Status</DetailLabel>
-        <DetailValue>{order?.status || "processing"}</DetailValue>
-      </DetailBox>
-    </TrackingGrid>
+                          <DetailBox>
+                            <DetailLabel>Status</DetailLabel>
+                            <DetailValue>{order?.status || "processing"}</DetailValue>
+                          </DetailBox>
+                        </TrackingGrid>
 
-    {order?.shipping?.trackingUrl ? (
-      <TrackingLink
-        href={order.shipping.trackingUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Track Package
-      </TrackingLink>
-    ) : null}
-  </TrackingBox>
-) : (
-  <TrackingBox>
-    <Label>Shipping & Tracking</Label>
-    <TrackingEmpty>
-      Tracking will appear here once your order is shipped.
-    </TrackingEmpty>
-  </TrackingBox>
+                        {order?.shipping?.trackingUrl ? (
+                          <TrackingLink
+                            href={order.shipping.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Track Package
+                          </TrackingLink>
+                        ) : null}
+                      </TrackingBox>
+                    ) : (
+                      <TrackingBox>
+                        <Label>Shipping & Tracking</Label>
+                        <TrackingEmpty>
+                          Tracking will appear here once your order is shipped.
+                        </TrackingEmpty>
+                      </TrackingBox>
                     )}
-                    
-      {order?.shippingAddress ? (
-  <TrackingBox>
-    <Label>Shipping Address</Label>
 
-    <TrackingGrid>
-      <DetailBox>
-        <DetailLabel>Name</DetailLabel>
-        <DetailValue>{order.shippingAddress.fullName || "—"}</DetailValue>
-      </DetailBox>
+                    {order?.shippingAddress ? (
+                      <TrackingBox>
+                        <Label>Shipping Address</Label>
 
-      <DetailBox>
-        <DetailLabel>Email</DetailLabel>
-        <DetailValue>{order.shippingAddress.email || "—"}</DetailValue>
-      </DetailBox>
+                        <TrackingGrid>
+                          <DetailBox>
+                            <DetailLabel>Name</DetailLabel>
+                            <DetailValue>{order.shippingAddress.fullName || "—"}</DetailValue>
+                          </DetailBox>
 
-      <DetailBox>
-        <DetailLabel>Phone</DetailLabel>
-        <DetailValue>{order.shippingAddress.phone || "—"}</DetailValue>
-      </DetailBox>
+                          <DetailBox>
+                            <DetailLabel>Email</DetailLabel>
+                            <DetailValue>{order.shippingAddress.email || "—"}</DetailValue>
+                          </DetailBox>
 
-      <DetailBox>
-        <DetailLabel>Country</DetailLabel>
-        <DetailValue>{order.shippingAddress.country || "—"}</DetailValue>
-      </DetailBox>
-    </TrackingGrid>
+                          <DetailBox>
+                            <DetailLabel>Phone</DetailLabel>
+                            <DetailValue>{order.shippingAddress.phone || "—"}</DetailValue>
+                          </DetailBox>
 
-    <AddressLine>
-      {[
-        order.shippingAddress.line1,
-        order.shippingAddress.line2,
-        order.shippingAddress.city,
-        order.shippingAddress.state,
-        order.shippingAddress.postalCode,
-      ]
-        .filter(Boolean)
-        .join(", ") || "—"}
-    </AddressLine>
-  </TrackingBox>
-) : null}
+                          <DetailBox>
+                            <DetailLabel>Country</DetailLabel>
+                            <DetailValue>{order.shippingAddress.country || "—"}</DetailValue>
+                          </DetailBox>
+                        </TrackingGrid>
+
+                        <AddressLine>
+                          {[
+                            order.shippingAddress.line1,
+                            order.shippingAddress.line2,
+                            order.shippingAddress.city,
+                            order.shippingAddress.state,
+                            order.shippingAddress.postalCode,
+                          ]
+                            .filter(Boolean)
+                            .join(", ") || "—"}
+                        </AddressLine>
+                      </TrackingBox>
+                    ) : null}
 
                     <ItemSection>
                       <Label>Items In This Order</Label>
 
                       <ItemStack>
-                        {itemList.map((item, idx) => (
-                          <ItemLine key={`${orderId}-${item?.product || idx}`}>
-                            <ItemDot />
-                            <ItemText>
-                              <span>{item?.title || "Purchased item"}</span>
-                              <small>
-                                Qty {item?.quantity || 1} •{" "}
-                                {formatCurrency(item?.unitPrice, item?.currency || currency)} each
-                              </small>
-                            </ItemText>
-                            <ItemTotal>
-                              {formatCurrency(
-                                Number(item?.unitPrice || 0) * Number(item?.quantity || 1),
-                                item?.currency || currency
-                              )}
-                            </ItemTotal>
-                          </ItemLine>
-                        ))}
+                        {itemList.map((item, idx) => {
+                          const productId = getProductIdFromItem(item);
+                          const canReview = canReviewItem(order, item);
+
+                          return (
+                            <ItemLine key={`${orderId}-${productId || idx}`}>
+                              <ItemDot />
+
+                              <ItemText>
+                                <span>{item?.title || "Purchased item"}</span>
+
+                                <small>
+                                  Qty {item?.quantity || 1} •{" "}
+                                  {formatCurrency(item?.unitPrice, item?.currency || currency)} each
+                                </small>
+
+                                {canReview ? (
+                                  <ReviewSlot>
+                                    <ReviewForm
+                                      type="product"
+                                      productId={productId}
+                                      productTitle={item?.title || "this product"}
+                                      onSuccess={refreshOrders}
+                                    />
+
+                                    <ReviewNote>
+                                      Verified purchase review. Only paid customers can submit.
+                                    </ReviewNote>
+                                  </ReviewSlot>
+                                ) : null}
+                              </ItemText>
+
+                              <ItemTotal>
+                                {formatCurrency(
+                                  Number(item?.unitPrice || 0) * Number(item?.quantity || 1),
+                                  item?.currency || currency
+                                )}
+                              </ItemTotal>
+                            </ItemLine>
+                          );
+                        })}
                       </ItemStack>
                     </ItemSection>
 
@@ -513,10 +540,10 @@ export default function MyOrders() {
                     </OrderInfoGrid>
 
                     {order?.couponCode ? (
-  <OrderFooter>
-    <FooterChip>Coupon: {order.couponCode}</FooterChip>
-  </OrderFooter>
-) : null}
+                      <OrderFooter>
+                        <FooterChip>Coupon: {order.couponCode}</FooterChip>
+                      </OrderFooter>
+                    ) : null}
                   </OrderCard>
                 );
               })}
@@ -562,7 +589,11 @@ const Page = styled.main`
   background:
     radial-gradient(circle at 14% 8%, rgba(214, 182, 159, 0.2), transparent 38%),
     radial-gradient(circle at 86% 16%, rgba(90, 56, 37, 0.32), transparent 42%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, ${({ theme }) => theme.colors.black} 86%);
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      ${({ theme }) => theme.colors.black} 86%
+    );
 `;
 
 const GlowOne = styled.div`
@@ -674,7 +705,11 @@ const PrimaryButton = styled.button`
   min-height: 45px;
   padding: 0 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -904,6 +939,9 @@ const OrderCard = styled.article`
   position: relative;
   overflow: hidden;
   padding: 16px;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
@@ -915,7 +953,6 @@ const OrderCard = styled.article`
   flex-direction: column;
 
   &:hover {
-    transform: translateY(-2px);
     border-color: rgba(214, 182, 159, 0.34);
     box-shadow: ${({ theme }) => theme.shadow.soft};
   }
@@ -1033,10 +1070,18 @@ const ItemStack = styled.div`
 
 const ItemLine = styled.div`
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: flex-start;
   color: ${({ theme }) => theme.colors.ivory};
   font-size: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 249, 242, 0.06);
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
 `;
 
 const ItemDot = styled.span`
@@ -1048,26 +1093,37 @@ const ItemDot = styled.span`
 `;
 
 const ItemText = styled.div`
-  display: grid;
-  gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
+  width: 100%;
 
   span {
     font-weight: 850;
-    line-height: 1.35;
+    line-height: 1.45;
+    word-break: break-word;
   }
 
   small {
     color: ${({ theme }) => theme.colors.ivory};
     opacity: 0.62;
-    line-height: 1.35;
+    line-height: 1.45;
+    word-break: break-word;
   }
 `;
 
 const ItemTotal = styled.div`
-  grid-column: 2;
+  margin-top: 4px;
   color: ${({ theme }) => theme.colors.lightBrown};
   font-weight: 950;
+  font-size: 12px;
+  white-space: nowrap;
+
+  @media (max-width: 480px) {
+    grid-column: 2 / -1;
+    white-space: normal;
+  }
 `;
 
 const OrderInfoGrid = styled.div`
@@ -1183,14 +1239,6 @@ const FooterChip = styled.div`
   font-weight: 900;
 `;
 
-const FooterNote = styled.p`
-  margin: 0;
-  color: ${({ theme }) => theme.colors.ivory};
-  opacity: 0.68;
-  font-size: 12px;
-  line-height: 1.45;
-`;
-
 const StateBox = styled.div`
   margin-top: 14px;
   padding: 24px;
@@ -1286,6 +1334,10 @@ const TrackingGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const TrackingLink = styled.a`
@@ -1325,4 +1377,78 @@ const AddressLine = styled.div`
   font-size: 12px;
   line-height: 1.5;
   word-break: break-word;
+`;
+
+const ReviewSlot = styled.div`
+  position: relative;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(214, 182, 159, 0.06);
+  border: 1px solid rgba(214, 182, 159, 0.14);
+  overflow: hidden;
+  isolation: isolate;
+  transform: none !important;
+  backface-visibility: hidden;
+  box-shadow: none !important;
+
+  &:hover,
+  &:focus,
+  &:focus-within,
+  &:active {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  form,
+  div,
+  section,
+  article {
+    transform: none !important;
+  }
+
+  button {
+    max-width: 100%;
+    transform: none !important;
+  }
+
+  button:hover {
+    transform: none !important;
+  }
+
+  /* Fix close X button overflow */
+  button[aria-label="Close"],
+  .close-btn,
+  .review-close-btn {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    border: 1px solid rgba(214, 182, 159, 0.22) !important;
+    z-index: 20;
+  }
+`;
+
+const ReviewNote = styled.small`
+  display: block;
+  margin-top: 8px;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.58;
+  font-size: 11px;
+  line-height: 1.5;
 `;

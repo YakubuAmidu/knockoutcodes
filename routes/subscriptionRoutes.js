@@ -1,8 +1,5 @@
-// routes/subscriptionRoutes.js
-
 import express from "express";
-import { authRequired } from "../middleware/authMiddleware.js";
-
+import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
 import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 
 import {
@@ -12,13 +9,14 @@ import {
   switchMembershipPlan,
   cancelMySubscription,
   stripeWebhook,
+
+  getAllSubscriptionsAdmin,
+  createSubscriptionAdmin,
+  updateSubscriptionAdmin,
+  deleteSubscriptionAdmin,
 } from "../controllers/subscriptionController.js";
 
 const router = express.Router();
-
-/* -------------------------------------------------------------------------- */
-/*                               SYSTEM HEALTH                                */
-/* -------------------------------------------------------------------------- */
 
 router.get("/ping", (_req, res) => {
   res.status(200).json({
@@ -27,15 +25,6 @@ router.get("/ping", (_req, res) => {
   });
 });
 
-/* -------------------------------------------------------------------------- */
-/*                         CUSTOMER MEMBERSHIP FLOW                           */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Premium membership checkout
- * ✅ Logged-in users only
- * ❌ Admins blocked from becoming members
- */
 router.post(
   "/checkout",
   authRequired,
@@ -43,30 +32,38 @@ router.post(
   createCheckoutSession
 );
 
-/**
- * Get my current subscription
- * ✅ Logged-in users only
- */
+router.get("/me", authRequired, getMySubscription);
+
 router.get(
-  "/me",
+  "/admin/manage",
   authRequired,
-  getMySubscription
+  adminOnly,
+  getAllSubscriptionsAdmin
 );
 
-/**
- * Confirm Stripe checkout session
- * ✅ Logged-in users only
- */
-router.get(
-  "/confirm",
+router.post(
+  "/admin/manage",
   authRequired,
-  confirmCheckoutSession
+  adminOnly,
+  createSubscriptionAdmin
 );
 
-/**
- * Switch membership plan
- * ❌ Admins blocked
- */
+router.put(
+  "/:id",
+  authRequired,
+  adminOnly,
+  updateSubscriptionAdmin
+);
+
+router.delete(
+  "/:id",
+  authRequired,
+  adminOnly,
+  deleteSubscriptionAdmin
+);
+
+router.get("/confirm", authRequired, confirmCheckoutSession);
+
 router.patch(
   "/switch",
   authRequired,
@@ -74,14 +71,7 @@ router.patch(
   switchMembershipPlan
 );
 
-/**
- * Cancel my subscription
- */
-router.patch(
-  "/cancel",
-  authRequired,
-  cancelMySubscription
-);
+router.patch("/cancel", authRequired, cancelMySubscription);
 
 export default router;
 export { stripeWebhook };

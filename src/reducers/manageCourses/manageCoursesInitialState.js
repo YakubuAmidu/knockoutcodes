@@ -2,6 +2,7 @@
 
 export const manageCoursesInitialState = {
   courses: [],
+
   meta: {
     total: 0,
     page: 1,

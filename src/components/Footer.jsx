@@ -349,6 +349,40 @@ const Status = styled.small`
       : "rgba(255,249,242,0.85)"};
 `;
 
+const LiveHint = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.colors.lightBrown};
+
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: ${({ theme }) => theme.colors.lightBrown};
+    box-shadow: 0 0 18px rgba(214, 182, 159, 0.9);
+    animation: pulseLive 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulseLive {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.85);
+      opacity: 0.55;
+    }
+  }
+`;
+
 export default function Footer() {
   const toast = useToast();
   const dispatch = useDispatch();
@@ -359,6 +393,7 @@ export default function Footer() {
 
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState(""); // honeypot
+  const [website, setWebsite] = useState(""); // honeypot
   const [status, setStatus] = useState({ type: null, text: "" });
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -425,10 +460,10 @@ if (Date.now() - mountedAt < 1500) {
 
   try {
     // honeypot triggered → pretend success (quietly)
-    if (company) {
-      setStatus({ type: "success", text: "Subscribed." });
-      return;
-    }
+    if (company || website) {
+  setStatus({ type: "success", text: "Subscribed." });
+  return;
+}
 
     const cleanEmail = String(email).trim().toLowerCase();
 
@@ -476,18 +511,18 @@ if (!cleanEmail) {
 
     const result = await Promise.race([
       dispatch(
-        subscribeToNewsletter(cleanEmail, {
-          source: "footer",
-          company: "",
-          website: "",
-        })
+       subscribeToNewsletter(cleanEmail, {
+  source: "footer",
+  company,
+  website,
+})
       ),
       timeout,
     ]);
 
     // result is returned from the thunk
     if (result?.ok) {
-      const msg = "You’re in. Watch your inbox for elite drops.";
+      const msg = "You’re in. The next elite drop is coming to your inbox.";
       setStatus({ type: "success", text: msg });
 
       try {
@@ -543,6 +578,25 @@ if (!cleanEmail) {
       return;
     }
 
+        if (result?.status === 403) {
+      const msg =
+        result?.message ||
+        "Admin accounts cannot subscribe to the newsletter. Please use a regular user account.";
+
+      setStatus({ type: "error", text: msg });
+
+      toast.push({
+        title: "Admin action blocked",
+        description: msg,
+        variant: "error",
+        duration: 3200,
+      });
+
+      setCooldownMode("other");
+      setCooldownUntil(Date.now() + 6000);
+      return;
+    }
+
     // Default failure
     const msg = result?.message || "Subscription failed. Please try again.";
     setStatus({ type: "error", text: msg });
@@ -587,11 +641,13 @@ if (!cleanEmail) {
             <Brand>
               <div className="kicker">Luxury • Discipline • Results</div>
               <div className="name">KnockoutCodes</div>
-              <div className="tagline">Train • Fight • Win</div>
+              <div className="tagline">
+  Discipline creates champions. Precision creates legends.
+</div>
               <div className="desc">
-                Elite boxing coaching, premium programs, and high-impact lessons.
-                Book 1-on-1 sessions, take online courses, and download the e-book.
-              </div>
+  Premium boxing education, elite-level coaching, powerful training systems,
+  and luxury digital experiences designed for serious fighters and disciplined minds.
+</div>
             </Brand>
 
             {/* Explore */}
@@ -605,7 +661,7 @@ if (!cleanEmail) {
                   <Link to="/products">Shop</Link>
                 </li>
                 <li>
-                  <Link to="/courses">Couses</Link>
+                  <Link to="/courses">Courses</Link>
                 </li>
                 <li>
                   <Link to="/ebook">Ebooks</Link>
@@ -631,9 +687,13 @@ if (!cleanEmail) {
 
             {/* Newsletter */}
             <Col>
-              <h4>Newsletter</h4>
+              <h4>Elite Newsletter Access</h4>
               <SubscribeCard onSubmit={handleSubscribe} aria-live="polite">
-                <label htmlFor="email">Get elite tips &amp; premium drops</label>
+                <LiveHint>
+  <span />
+  Private drops live
+</LiveHint>
+                <label htmlFor="email">Join the elite list before the next drop</label>
 
                 {/* Honeypot (hidden) */}
                 <input
@@ -652,12 +712,28 @@ if (!cleanEmail) {
                   aria-hidden="true"
                 />
 
+                <input
+  type="text"
+  tabIndex={-1}
+  autoComplete="off"
+  value={website}
+  onChange={(e) => setWebsite(e.target.value)}
+  style={{
+    position: "absolute",
+    left: "-9999px",
+    opacity: 0,
+    height: 0,
+    width: 0,
+  }}
+  aria-hidden="true"
+/>
+
                 <div className="row">
                   <Input
                     id="email"
                     type="email"
                     name="email"
-                    placeholder="Enter your email"
+                    placeholder="Your best email"
                     required
                     value={email}
                     onBlur={() => {
@@ -676,19 +752,20 @@ if (!cleanEmail) {
                     aria-invalid={status.type === "error" ? "true" : "false"}
                   />
                   <Button
-                    type="submit"
-                    aria-label="Subscribe"
-                    // ✅ CHANGED: still disables during cooldown, but "already" cooldown won’t show "Please wait…"
-                    disabled={
-                      reduxLoading || (isCoolingDown && cooldownMode !== "already")
-                    }
-                  >
-                    {reduxLoading
-                      ? "Subscribing…"
-                      : isCoolingDown && cooldownMode !== "already"
-                      ? "Please wait…"
-                      : "Send"}
-                  </Button>
+  type="submit"
+  aria-label="Subscribe"
+  disabled={
+    reduxLoading ||
+    submitting ||
+    (isCoolingDown && cooldownMode !== "already")
+  }
+>
+  {reduxLoading || submitting
+    ? "Subscribing…"
+    : isCoolingDown && cooldownMode !== "already"
+    ? "Please wait…"
+    : "Join"}
+</Button>
                 </div>
 
                 {status.text ? (

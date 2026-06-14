@@ -1,9 +1,28 @@
 // controllers/orderController.js
 import Order from "../models/OrderModel.js";
-import { stripe } from "../config/stripe.js";
 import Product from "../models/ProductModel.js";
+import { stripe } from "../config/stripe.js";
+import { getIO } from "../config/socket.js";
 
-const sanitizeOrderForUser = (order) => {
+/* =========================================================
+   HELPERS
+========================================================= */
+const ORDER_LOCKED_STATUSES = ["cancelled", "refunded"];
+
+function isLockedOrder(order) {
+  return ORDER_LOCKED_STATUSES.includes(
+    String(order?.status || "").toLowerCase()
+  );
+}
+
+function sendLockedOrder(res) {
+  return res.status(409).json({
+    success: false,
+    message: "This order is locked because it is already cancelled or refunded.",
+  });
+}
+
+function sanitizeOrderForUser(order) {
   if (!order) return null;
 
   const o = order.toObject ? order.toObject() : order;
@@ -27,26 +46,39 @@ const sanitizeOrderForUser = (order) => {
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
   };
-};
+}
 
-// @desc    Create a new order
-// @route   POST /api/orders
-// @access  Private (user)
-// @desc    Create a new order
-// @route   POST /api/orders
-// @access  Private (user)
+function emitOrderRealtime(order, action = "updated") {
+  try {
+    const io = getIO?.();
+
+    if (!io || !order) return;
+
+    const safeOrder = order.toObject ? order.toObject() : order;
+    const userId = safeOrder.user?._id || safeOrder.user;
+
+    io.emit("admin:order-updated", {
+      action,
+      order: safeOrder,
+    });
+
+    if (userId) {
+      io.to(`user:${String(userId)}`).emit("user:order-updated", {
+        action,
+        order: sanitizeOrderForUser(safeOrder),
+      });
+    }
+  } catch {
+      // Ignore order realtime emit failure.
+  }
+}
+
+/* =========================================================
+   CREATE PENDING ORDER
+========================================================= */
 export const createOrder = async (req, res) => {
   try {
-    const {
-      items,
-      subtotal,
-      discount = 0,
-      total,
-      currency = "USD",
-      couponCode = "",
-    } = req.body;
-
-    const userId = req.user?._id;
+    const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
@@ -55,41 +87,62 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+
+    if (!items.length) {
       return res.status(400).json({
         success: false,
         message: "Order must contain at least one item.",
       });
     }
 
-    if (subtotal === undefined || subtotal === null || Number(subtotal) < 0) {
+    const safeItems = items
+      .map((item) => ({
+        productType: item.productType,
+        product: item.product,
+        productModel: item.productModel,
+        title: String(item.title || "").trim(),
+        quantity: Math.max(1, Number(item.quantity || 1)),
+        unitPrice: Math.max(0, Number(item.unitPrice || 0)),
+        currency: String(item.currency || "USD").toUpperCase(),
+      }))
+      .filter(
+        (item) =>
+          item.productType &&
+          item.product &&
+          item.productModel &&
+          item.title &&
+          Number.isFinite(item.quantity) &&
+          Number.isFinite(item.unitPrice)
+      );
+
+    if (!safeItems.length) {
       return res.status(400).json({
         success: false,
-        message: "Valid subtotal is required.",
+        message: "No valid order items provided.",
       });
     }
 
-    if (total === undefined || total === null || Number(total) < 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid total is required.",
-      });
-    }
+    const subtotal = safeItems.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0
+    );
+
+    const discount = Math.max(0, Number(req.body?.discount || 0));
 
     const order = await Order.create({
       user: userId,
-      items,
-      subtotal: Number(subtotal),
-      discount: Number(discount || 0),
-      total: Number(total),
-      currency: String(currency || "USD").toUpperCase(),
-      couponCode,
+      items: safeItems,
+      subtotal,
+      discount,
+      total: Math.max(0, subtotal - discount),
+      currency: safeItems[0]?.currency || "USD",
+      couponCode: String(req.body?.couponCode || "").trim().toUpperCase(),
 
-      // ✅ Safe defaults only
       paymentStatus: "pending",
       paymentMethod: "stripe",
       transactionId: "",
-      stripeSessionId: "",
+      stripeSessionId: undefined,
       status: "new",
       note: "",
       isSeenByAdmin: false,
@@ -106,12 +159,10 @@ export const createOrder = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Order created successfully.",
+      message: "Pending order created successfully.",
       data: sanitizeOrderForUser(order),
     });
-  } catch (error) {
-    console.error("Error creating order:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to create order.",
@@ -119,9 +170,9 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// @desc    Get all orders (admin) with filters & pagination
-// @route   GET /api/orders
-// @access  Private/Admin
+/* =========================================================
+   ADMIN: GET ALL ORDERS
+========================================================= */
 export const getOrders = async (req, res) => {
   try {
     const {
@@ -137,79 +188,67 @@ export const getOrders = async (req, res) => {
 
     const query = {};
 
-    if (userId) {
-      query.user = userId;
-    }
-
-    if (paymentStatus) {
-      query.paymentStatus = paymentStatus;
-    }
-
-    if (status) {
-      query.status = status;
-    }
+    if (userId) query.user = userId;
+    if (paymentStatus) query.paymentStatus = paymentStatus;
+    if (status) query.status = status;
 
     if (startDate || endDate) {
       query.createdAt = {};
-      if (startDate) {
-        query.createdAt.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.createdAt.$lte = new Date(endDate);
-      }
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    // simple search in transactionId or couponCode
     if (search) {
       query.$or = [
         { transactionId: { $regex: search, $options: "i" } },
         { couponCode: { $regex: search, $options: "i" } },
+        { stripeSessionId: { $regex: search, $options: "i" } },
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const numericPage = Math.max(1, Number(page) || 1);
+    const numericLimit = Math.max(1, Math.min(100, Number(limit) || 10));
+    const skip = (numericPage - 1) * numericLimit;
 
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("user", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(numericLimit),
       Order.countDocuments(query),
     ]);
 
     return res.status(200).json({
       success: true,
-      message: "Orders fetched successfully",
+      message: "Orders fetched successfully.",
       data: orders,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        pages: Math.ceil(total / Number(limit)),
+        page: numericPage,
+        limit: numericLimit,
+        pages: Math.max(1, Math.ceil(total / numericLimit)),
       },
     });
-  } catch (error) {
-    console.error("Error fetching orders:", error);
+  } catch {
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch orders",
-      error: error.message,
+      message: "Failed to fetch orders.",
     });
   }
 };
 
-// @desc    Get orders for the current logged-in user
-// @route   GET /api/orders/my
-// @access  Private (user)
+/* =========================================================
+   USER: GET MY ORDERS
+========================================================= */
 export const getMyOrders = async (req, res) => {
   try {
-    const userId = req.user?._id;
+    const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Authentication required",
+        message: "Authentication required.",
       });
     }
 
@@ -217,16 +256,11 @@ export const getMyOrders = async (req, res) => {
 
     const query = { user: userId };
 
-    if (status) {
-      query.status = status;
-    }
+    if (status) query.status = status;
+    if (paymentStatus) query.paymentStatus = paymentStatus;
 
-    if (paymentStatus) {
-      query.paymentStatus = paymentStatus;
-    }
-
-    const numericPage = Number(page) || 1;
-    const numericLimit = Number(limit) || 10;
+    const numericPage = Math.max(1, Number(page) || 1);
+    const numericLimit = Math.max(1, Math.min(50, Number(limit) || 10));
     const skip = (numericPage - 1) * numericLimit;
 
     const [orders, total] = await Promise.all([
@@ -239,142 +273,341 @@ export const getMyOrders = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "My orders fetched successfully",
+      message: "My orders fetched successfully.",
       data: orders.map(sanitizeOrderForUser),
       pagination: {
         total,
         page: numericPage,
         limit: numericLimit,
-        pages: Math.ceil(total / numericLimit),
+        pages: Math.max(1, Math.ceil(total / numericLimit)),
       },
     });
-  } catch (error) {
-    console.error("Error fetching my orders:", error);
+  } catch {
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch my orders",
-      error: error.message,
+      message: "Failed to fetch my orders.",
     });
   }
 };
 
-// @desc    Get single order by ID
-// @route   GET /api/orders/:id
-// @access  Private (user can see own, admin can see all)
+/* =========================================================
+   USER/ADMIN: GET SINGLE ORDER
+========================================================= */
 export const getOrder = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const order = await Order.findById(id).populate("user", "name email");
+    const order = await Order.findById(req.params.id).populate(
+      "user",
+      "name email"
+    );
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found",
+        message: "Order not found.",
       });
     }
 
-    // If not admin, ensure user owns the order
-    if (
-      !req.user ||
-      (req.user.role !== "admin" &&
-        order.user &&
-        order.user._id.toString() !== req.user._id.toString())
-    ) {
+    const isAdmin = req.user?.role === "admin";
+    const ownsOrder =
+      order.user && String(order.user._id || order.user) === String(req.user?._id);
+
+    if (!isAdmin && !ownsOrder) {
       return res.status(403).json({
         success: false,
-        message: "Not authorized to view this order",
+        message: "Not authorized to view this order.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Order fetched successfully",
-      data: req.user.role === "admin" ? order : sanitizeOrderForUser(order),
+      message: "Order fetched successfully.",
+      data: isAdmin ? order : sanitizeOrderForUser(order),
     });
-  } catch (error) {
-    console.error("Error fetching order:", error);
+  } catch {
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch order",
-      error: error.message,
+      message: "Failed to fetch order.",
     });
   }
 };
 
-// @desc    Update order (admin only, for status/payment updates)
-// @route   PUT /api/orders/:id
-// @access  Private/Admin
-// @desc    Update order (admin only)
-// @route   PUT /api/orders/:id
-// @access  Private/Admin
+/* =========================================================
+   ADMIN: UPDATE ORDER SAFELY
+========================================================= */
 export const updateOrder = async (req, res) => {
   try {
-    const { id } = req.params;
+    const existing = await Order.findById(req.params.id);
 
-   const allowedFields = [
-  "status",
-  "paymentStatus",
-  "note",
-  "isSeenByAdmin",
-  "shipping",
-];
-
-    const updateData = {};
-
-    // ✅ Only allow approved fields
-    for (const key of allowedFields) {
-      if (req.body[key] !== undefined) {
-        updateData[key] = req.body[key];
-      }
-    }
-
-    // ✅ Prevent dangerous empty updates
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({
+    if (!existing) {
+      return res.status(404).json({
         success: false,
-        message: "No valid fields provided for update.",
+        message: "Order not found.",
       });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      {
-        $set: updateData,
-      },
-      {
-        new: true,
-        runValidators: true,
+    if (isLockedOrder(existing)) {
+      return sendLockedOrder(res);
+    }
+
+    const allowedStatuses = [
+      "new",
+      "processing",
+      "fulfilled",
+      "shipped",
+      "delivered",
+      "completed",
+      "cancelled",
+      "refunded",
+      "on_hold",
+    ];
+
+    const allowedPaymentStatuses = ["pending", "paid", "failed", "refunded"];
+
+    const status = req.body?.status;
+    const paymentStatus = req.body?.paymentStatus;
+    const note = req.body?.note;
+    const isSeenByAdmin = req.body?.isSeenByAdmin;
+
+    if (status !== undefined) {
+      const nextStatus = String(status).toLowerCase();
+
+      if (!allowedStatuses.includes(nextStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid order status.",
+        });
       }
+
+      existing.status = nextStatus;
+    }
+
+    if (paymentStatus !== undefined) {
+      const nextPaymentStatus = String(paymentStatus).toLowerCase();
+
+      if (!allowedPaymentStatuses.includes(nextPaymentStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid payment status.",
+        });
+      }
+
+      if (existing.paymentStatus !== "paid" && nextPaymentStatus === "paid") {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Payment cannot be manually marked as paid. Stripe confirmation must verify payment.",
+        });
+      }
+
+      existing.paymentStatus = nextPaymentStatus;
+    }
+
+    if (note !== undefined) {
+      existing.note = String(note || "").trim().slice(0, 500);
+    }
+
+    if (isSeenByAdmin !== undefined) {
+      existing.isSeenByAdmin = Boolean(isSeenByAdmin);
+    }
+
+    const order = await existing.save();
+    await order.populate("user", "name email");
+    emitOrderRealtime(order, "updated");
+
+    return res.status(200).json({
+      success: true,
+      message: "Order updated successfully.",
+      data: order,
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update order.",
+    });
+  }
+};
+
+/* =========================================================
+   ADMIN: MARK SEEN
+========================================================= */
+export const markOrderAsSeen = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { $set: { isSeenByAdmin: true } },
+      { new: true, runValidators: true }
     ).populate("user", "name email");
+    emitOrderRealtime(order, "seen");
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found",
+        message: "Order not found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Order updated successfully",
+      message: "Order marked as seen.",
       data: order,
     });
-  } catch (error) {
-    console.error("Error updating order:", error);
-
+  } catch {
     return res.status(500).json({
       success: false,
-      message: "Failed to update order",
-      error: error.message,
+      message: "Failed to mark order as seen.",
     });
   }
 };
 
+/* =========================================================
+   ADMIN: FULFILL ORDER
+========================================================= */
+export const fulfillOrder = async (req, res) => {
+  try {
+    const existing = await Order.findById(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    if (isLockedOrder(existing)) {
+      return sendLockedOrder(res);
+    }
+
+    if (existing.paymentStatus !== "paid") {
+      return res.status(409).json({
+        success: false,
+        message: "Only paid orders can be fulfilled.",
+      });
+    }
+
+    existing.status = "fulfilled";
+    existing.isSeenByAdmin = true;
+    existing.note = req.body?.note || existing.note || "Order fulfilled by admin.";
+
+    const order = await existing.save();
+    await order.populate("user", "name email");
+    emitOrderRealtime(order, "fulfilled");
+
+    return res.status(200).json({
+      success: true,
+      message: "Order fulfilled successfully.",
+      data: order,
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fulfill order.",
+    });
+  }
+};
+
+/* =========================================================
+   ADMIN: CANCEL ORDER
+========================================================= */
+export const cancelOrder = async (req, res) => {
+  try {
+    const existing = await Order.findById(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    if (isLockedOrder(existing)) {
+      return sendLockedOrder(res);
+    }
+
+    if (existing.status === "fulfilled" || existing.status === "shipped") {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This order is already fulfilled or shipped. Refund it instead of cancelling it.",
+      });
+    }
+
+    existing.status = "cancelled";
+    existing.isSeenByAdmin = true;
+    existing.note = req.body?.note || existing.note || "Order cancelled by admin.";
+
+    const order = await existing.save();
+    await order.populate("user", "name email");
+    emitOrderRealtime(order, "cancelled");
+
+    return res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully.",
+      data: order,
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cancel order.",
+    });
+  }
+};
+
+/* =========================================================
+   ADMIN: REFUND ORDER STATUS
+========================================================= */
+export const refundOrder = async (req, res) => {
+  try {
+    const existing = await Order.findById(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    if (String(existing.paymentStatus).toLowerCase() !== "paid") {
+      return res.status(409).json({
+        success: false,
+        message: "Only paid orders can be marked as refunded.",
+      });
+    }
+
+    if (String(existing.status).toLowerCase() === "refunded") {
+      return res.status(409).json({
+        success: false,
+        message: "This order is already refunded.",
+      });
+    }
+
+    existing.status = "refunded";
+    existing.paymentStatus = "refunded";
+    existing.isSeenByAdmin = true;
+    existing.note =
+      req.body?.note || existing.note || "Order marked as refunded by admin.";
+
+    const order = await existing.save();
+    await order.populate("user", "name email");
+    emitOrderRealtime(order, "refunded");
+
+    return res.status(200).json({
+      success: true,
+      message: "Order marked as refunded.",
+      data: order,
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to refund order.",
+    });
+  }
+};
+
+/* =========================================================
+   ADMIN: TRACKING UPDATE
+========================================================= */
 export const updateOrderTracking = async (req, res) => {
   try {
-    const { id } = req.params;
-
     const allowedCarriers = ["", "usps", "ups", "fedex", "dhl", "other"];
 
     const carrier = String(req.body?.carrier || "").toLowerCase().trim();
@@ -388,24 +621,67 @@ export const updateOrderTracking = async (req, res) => {
       });
     }
 
-    const updateData = {
-      "shipping.carrier": carrier,
-      "shipping.trackingNumber": trackingNumber,
-      "shipping.trackingUrl": trackingUrl,
-      "shipping.required": true,
-      isSeenByAdmin: true,
+    const existing = await Order.findById(req.params.id);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found.",
+      });
+    }
+
+    if (isLockedOrder(existing)) {
+      return sendLockedOrder(res);
+    }
+
+    if (existing.paymentStatus !== "paid") {
+      return res.status(409).json({
+        success: false,
+        message: "Tracking can only be added to paid orders.",
+      });
+    }
+
+    existing.shipping = {
+      ...(existing.shipping?.toObject?.() || existing.shipping || {}),
+      required: true,
+      carrier,
+      trackingNumber,
+      trackingUrl,
+      shippedAt: trackingNumber
+        ? existing.shipping?.shippedAt || new Date()
+        : existing.shipping?.shippedAt || null,
+      deliveredAt: existing.shipping?.deliveredAt || null,
     };
 
     if (trackingNumber) {
-      updateData.status = "shipped";
-      updateData["shipping.shippedAt"] = new Date();
+      existing.status = "shipped";
     }
 
-    const order = await Order.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).populate("user", "name email");
+    existing.isSeenByAdmin = true;
+
+    const order = await existing.save();
+    await order.populate("user", "name email");
+    emitOrderRealtime(order, "tracking-updated");
+
+    return res.status(200).json({
+      success: true,
+      message: "Tracking updated successfully.",
+      data: order,
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update tracking.",
+    });
+  }
+};
+
+/* =========================================================
+   ADMIN: DELETE ORDER
+========================================================= */
+export const deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id);
 
     if (!order) {
       return res.status(404).json({
@@ -414,200 +690,29 @@ export const updateOrderTracking = async (req, res) => {
       });
     }
 
+    emitOrderRealtime(order, "deleted");
+
     return res.status(200).json({
       success: true,
-      message: "Tracking updated successfully.",
-      data: order,
+      message: "Order deleted successfully.",
     });
-  } catch (error) {
-    console.error("updateOrderTracking error:", error);
+  } catch {
     return res.status(500).json({
       success: false,
-      message: "Failed to update tracking.",
+      message: "Failed to delete order.",
     });
   }
 };
 
-// @desc    Mark order as seen by admin
-// @route   PATCH /api/orders/:id/seen
-// @access  Private/Admin
-export const markOrderAsSeen = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { $set: { isSeenByAdmin: true } },
-      { new: true, runValidators: true }
-    ).populate("user", "name email");
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Order marked as seen.",
-      data: order,
-    });
-  } catch (error) {
-    console.error("markOrderAsSeen error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to mark order as seen.",
-    });
-  }
-};
-
-// @desc    Fulfill order
-// @route   PATCH /api/orders/:id/fulfill
-// @access  Private/Admin
-export const fulfillOrder = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          status: "fulfilled",
-          isSeenByAdmin: true,
-          note: req.body?.note || "Order fulfilled by admin.",
-        },
-      },
-      { new: true, runValidators: true }
-    ).populate("user", "name email");
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Order fulfilled successfully.",
-      data: order,
-    });
-  } catch (error) {
-    console.error("fulfillOrder error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fulfill order.",
-    });
-  }
-};
-
-// @desc    Cancel order
-// @route   PATCH /api/orders/:id/cancel
-// @access  Private/Admin
-export const cancelOrder = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          status: "cancelled",
-          isSeenByAdmin: true,
-          note: req.body?.note || "Order cancelled by admin.",
-        },
-      },
-      { new: true, runValidators: true }
-    ).populate("user", "name email");
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Order cancelled successfully.",
-      data: order,
-    });
-  } catch (error) {
-    console.error("cancelOrder error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to cancel order.",
-    });
-  }
-};
-
-// @desc    Mark order as refunded
-// @route   PATCH /api/orders/:id/refund
-// @access  Private/Admin
-export const refundOrder = async (req, res) => {
-  try {
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          status: "refunded",
-          paymentStatus: "refunded",
-          isSeenByAdmin: true,
-          note: req.body?.note || "Order marked as refunded by admin.",
-        },
-      },
-      { new: true, runValidators: true }
-    ).populate("user", "name email");
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Order marked as refunded.",
-      data: order,
-    });
-  } catch (error) {
-    console.error("refundOrder error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to refund order.",
-    });
-  }
-};
-
-// @desc    Delete order (admin only)
-// @route   DELETE /api/orders/:id
-// @access  Private/Admin
-export const deleteOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const order = await Order.findByIdAndDelete(id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Order deleted successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting order:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete order",
-      error: error.message,
-    });
-  }
-};
-
+/* =========================================================
+   STRIPE PRODUCT ORDER CONFIRMATION
+========================================================= */
 export const confirmProductOrder = async (req, res) => {
   try {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
 
@@ -630,9 +735,6 @@ export const confirmProductOrder = async (req, res) => {
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const customerDetails = session.customer_details || {};
-    const address = customerDetails.address || {};
-
     const isPaid =
       session?.status === "complete" && session?.payment_status === "paid";
 
@@ -654,13 +756,11 @@ export const confirmProductOrder = async (req, res) => {
       });
     }
 
-    const transactionId = String(session.payment_intent || session.id);
-
     let order = await Order.findOne({
-  user: userId,
-  stripeSessionId: session.id,
-  paymentStatus: "paid",
-}).lean();
+      user: userId,
+      stripeSessionId: session.id,
+      paymentStatus: "paid",
+    }).lean();
 
     if (order) {
       return res.status(200).json({
@@ -671,7 +771,6 @@ export const confirmProductOrder = async (req, res) => {
       });
     }
 
-    // ✅ FALLBACK: create order if webhook has not created it yet
     let parsedItems = [];
 
     try {
@@ -695,7 +794,7 @@ export const confirmProductOrder = async (req, res) => {
 
     const products = await Product.find({
       _id: { $in: productIds },
-      isDeleted: false,
+      isDeleted: { $ne: true },
       isActive: true,
     });
 
@@ -735,53 +834,57 @@ export const confirmProductOrder = async (req, res) => {
       });
     }
 
-   order = await Order.findOneAndUpdate(
-  { stripeSessionId: session.id },
-  {
-    $setOnInsert: {
-      user: userId,
-      stripeSessionId: session.id,
-      items: orderItems,
-      subtotal,
-      discount: 0,
-      total: subtotal,
-      currency,
-      paymentStatus: "paid",
-      paymentMethod: "stripe",
-      transactionId,
-      couponCode: "",
-      note: "Created by confirm fallback after Stripe payment.",
-      status: "processing",
-      isSeenByAdmin: false,
+    const customerDetails = session.customer_details || {};
+    const address = customerDetails.address || {};
+    const transactionId = String(session.payment_intent || session.id);
 
-      shippingAddress: {
-  fullName: customerDetails.name || "",
-  email: customerDetails.email || "",
-  phone: customerDetails.phone || "",
-  line1: address.line1 || "",
-  line2: address.line2 || "",
-  city: address.city || "",
-  state: address.state || "",
-  postalCode: address.postal_code || "",
-  country: address.country || "",
-},
+    order = await Order.findOneAndUpdate(
+      { stripeSessionId: session.id },
+      {
+        $setOnInsert: {
+          user: userId,
+          stripeSessionId: session.id,
+          items: orderItems,
+          subtotal,
+          discount: 0,
+          total: subtotal,
+          currency,
+          paymentStatus: "paid",
+          paymentMethod: "stripe",
+          transactionId,
+          couponCode: "",
+          note: "Created by confirm fallback after Stripe payment.",
+          status: "processing",
+          isSeenByAdmin: false,
 
-shipping: {
-  required: true,
-  carrier: "",
-  trackingNumber: "",
-  trackingUrl: "",
-  shippedAt: null,
-  deliveredAt: null,
-},
-    },
-  },
-  {
-    upsert: true,
-    new: true,
-    runValidators: true,
-  }
-).lean();
+          shippingAddress: {
+            fullName: customerDetails.name || "",
+            email: customerDetails.email || "",
+            phone: customerDetails.phone || "",
+            line1: address.line1 || "",
+            line2: address.line2 || "",
+            city: address.city || "",
+            state: address.state || "",
+            postalCode: address.postal_code || "",
+            country: address.country || "",
+          },
+
+          shipping: {
+            required: true,
+            carrier: "",
+            trackingNumber: "",
+            trackingUrl: "",
+            shippedAt: null,
+            deliveredAt: null,
+          },
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      }
+    ).lean();
 
     return res.status(200).json({
       success: true,
@@ -790,8 +893,6 @@ shipping: {
       order: sanitizeOrderForUser(order),
     });
   } catch (error) {
-    console.error("confirmProductOrder error:", error);
-
     return res.status(500).json({
       success: false,
       message: error?.message || "Could not confirm product order.",
@@ -813,4 +914,3 @@ export default {
   refundOrder,
   updateOrderTracking,
 };
-

@@ -1,4 +1,5 @@
 // app.js
+
 import express from "express";
 import cors from "cors";
 import securityHeaders from "./config/helmet.js";
@@ -12,18 +13,20 @@ import process from "node:process";
 import path from "path";
 import { fileURLToPath } from "url";
 import mongoSanitize from "express-mongo-sanitize";
-import { blockBlockedIps } from "./middleware/blockedIpMiddleware.js";
 
-// ✅ Middlewares
+import { blockBlockedIps } from "./middleware/blockedIpMiddleware.js";
+import { optionalAuth } from "./middleware/authMiddleware.js";
+import { maintenanceMiddleware } from "./middleware/maintenanceMiddleware.js";
 import { csrfRequired } from "./middleware/csrfMiddleware.js";
+
 import {
   slowApi,
   coursesReadLimiter,
   checkoutLimiter,
 } from "./middleware/abuseProtection.js";
+
 import { suspiciousRequestMiddleware } from "./middleware/suspeciousRequestMiddleware.js";
 
-// ✅ Routes
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
@@ -52,22 +55,19 @@ import EmailSegmentRoutes from "./routes/emailSegmentRoutes.js";
 import EmailSubscriberRoutes from "./routes/emailSubscriberRoutes.js";
 import EmailTemplateRoutes from "./routes/emailTemplateRoutes.js";
 import LessonProgressRoutes from "./routes/lessonProgressRoutes.js";
-import SystemSettingRoutes from "./routes/systemRoutes.js";
+import SystemSettingRoutes from "./routes/systemSettingRoutes.js";
 import SecurityEventRoutes from "./routes/securityEventRoutes.js";
+import systemCleanupRoutes from "./routes/systemCleanupRoutes.js";
+import Revenue from "./routes/revenueRoutes.js";
 
-// ✅ Enrollment Stripe webhook handler
 import { stripeWebhookHandler } from "./controllers/enrollmentController.js";
 
 const app = express();
-
 const isProd = process.env.NODE_ENV === "production";
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-/**
- * ✅ CORS
- */
 const explicitOrigins = [
   "https://silver-pasca-64a87c.netlify.app",
   "https://knockoutcodes.com",
@@ -98,15 +98,9 @@ app.use(
   })
 );
 
-/**
- * ✅ SECURITY HEADERS
- */
 app.use(securityHeaders());
 app.use(suspiciousRequestMiddleware);
 
-/**
- * ✅ GLOBAL API RATE LIMIT
- */
 const globalApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProd ? 400 : 1200,
@@ -119,16 +113,14 @@ const globalApiLimiter = rateLimit({
   skip: (req) =>
     req.originalUrl === "/health" ||
     req.originalUrl === "/" ||
-    req.originalUrl.startsWith("/api/v1/system/status") ||
+    req.originalUrl.startsWith("/api/v1/system") ||
+    req.originalUrl.startsWith("/api/v1/system-cleanup") ||
     req.originalUrl.startsWith("/api/v1/subscriptions/webhook") ||
     req.originalUrl.startsWith("/api/v1/enrollments/webhook/stripe"),
 });
 
 app.use("/api", globalApiLimiter);
 
-/**
- * ✅ STRIPE WEBHOOKS MUST BE BEFORE express.json()
- */
 app.post(
   "/api/v1/subscriptions/webhook",
   express.raw({ type: "application/json" }),
@@ -141,53 +133,24 @@ app.post(
   stripeWebhookHandler
 );
 
-/**
- * ✅ BODY PARSERS
- */
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
-
-/**
- * ✅ COOKIES BEFORE CSRF
- */
 app.use(cookieParser());
-
-/**
- * ✅ BLOCKED IP CHECK
- */
 app.use(blockBlockedIps);
-
-/**
- * ✅ SANITIZE + HPP
- */
 app.use(mongoSanitize({ replaceWith: "_" }));
 app.use(hpp());
-
-/**
- * ✅ CSRF AFTER cookies, BEFORE routes
- */
 app.use(csrfRequired);
-
-/**
- * ✅ COMPRESSION + LOGS
- */
 app.use(compression());
 
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
-/**
- * ✅ STATIC UPLOADS
- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/**
- * ✅ ROOT / HEALTH
- */
 app.get("/", (_req, res) => {
   res.status(200).json({
     ok: true,
@@ -203,31 +166,39 @@ app.get("/health", (_req, res) => {
   });
 });
 
-/**
- * ✅ NO CACHE FOR SENSITIVE ROUTES
- */
 app.use((req, res, next) => {
   const p = req.path || "";
 
   if (
-  p.startsWith("/api/v1/auth") ||
-  p.startsWith("/api/v1/admin") ||
-  p.startsWith("/api/v1/dashboard") ||
-  p.startsWith("/api/v1/enrollments") ||
-  p.startsWith("/api/v1/checkout") ||
-  p.startsWith("/api/v1/orders")
-) {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-}
+    p.startsWith("/api/v1/auth") ||
+    p.startsWith("/api/v1/admin") ||
+    p.startsWith("/api/v1/dashboard") ||
+    p.startsWith("/api/v1/enrollments") ||
+    p.startsWith("/api/v1/checkout") ||
+    p.startsWith("/api/v1/orders") ||
+    p.startsWith("/api/v1/system") ||
+    p.startsWith("/api/v1/system-cleanup")
+  ) {
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
 
   next();
 });
 
 /**
- * ✅ ROUTES
+ * Must stay before maintenanceMiddleware.
  */
+app.use("/api/v1/system", SystemSettingRoutes);
+app.use("/api/v1/system-cleanup", systemCleanupRoutes);
+
+app.use(optionalAuth);
+app.use(maintenanceMiddleware);
+
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/contacts", contactRoutes);
@@ -250,25 +221,18 @@ app.use("/api/v1/checkout", slowApi, checkoutLimiter, checkoutRoutes);
 app.use("/api/v1/auth/sessions", sessionRoutes);
 app.use("/api/v1/dashboard", userDashboardRoutes);
 app.use("/api/v1/test-mail", testMailRoutes);
-app.use("/api/v1/email-campaigns/preview", emailCampaignPreviewRoutes);
+app.use("/api/v1/email-campaign-preview", emailCampaignPreviewRoutes);
 app.use("/api/v1/admin/email-campaigns", EmailCampaignRoutes);
 app.use("/api/v1/admin/email-segments", EmailSegmentRoutes);
 app.use("/api/v1/admin/email-subscribers", EmailSubscriberRoutes);
 app.use("/api/v1/admin/email-templates", EmailTemplateRoutes);
 app.use("/api/v1/lesson-progress", LessonProgressRoutes);
-app.use("/api/v1/system", SystemSettingRoutes);
 app.use("/api/v1/security-events", SecurityEventRoutes);
 
-/**
- * ✅ 404
- */
 app.use((_req, _res, next) => {
   next(createError(404, "Route not found"));
 });
 
-/**
- * ✅ ERROR HANDLER
- */
 app.use((err, _req, res) => {
   const status = err.status || 500;
   const message = err.message || "Server error";

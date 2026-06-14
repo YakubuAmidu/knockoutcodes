@@ -14,44 +14,105 @@ import {
   refundOrder,
   updateOrderTracking,
 } from "../controllers/orderController.js";
+
 import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
+import validateObjectId from "../middleware/validateObjectId.js";
 
 const router = express.Router();
 
-/**
- * Customer order creation
- * ✅ Logged-in users only
- * ❌ Admins blocked from placing customer orders
- */
-router.post(
-  "/",
-  authRequired,
-  preventAdminPurchase,
-  createOrder
-);
+/* =========================================================
+   🧾 CUSTOMER ORDER CREATION
+   Logged-in users only.
+   Admins are blocked from placing customer orders.
+========================================================= */
+router.post("/", authRequired, preventAdminPurchase, createOrder);
 
-// User: get own orders
+/* =========================================================
+   👤 CUSTOMER PRIVATE ORDERS
+   Must stay before "/:id".
+========================================================= */
 router.get("/my", authRequired, getMyOrders);
 
-// Admin: get all orders
-router.get("/", authRequired, adminOnly, getOrders);
-
+/* =========================================================
+   ✅ PRODUCT CHECKOUT CONFIRMATION
+   Stripe success page verifies payment + MongoDB order.
+========================================================= */
 router.get("/confirm-product", authRequired, confirmProductOrder);
 
-// Admin: special order workflow actions
-router.patch("/:id/seen", authRequired, adminOnly, markOrderAsSeen);
-router.patch("/:id/fulfill", authRequired, adminOnly, fulfillOrder);
-router.patch("/:id/cancel", authRequired, adminOnly, cancelOrder);
-router.patch("/:id/refund", authRequired, adminOnly, refundOrder);
-router.patch("/:id/tracking", authRequired, adminOnly, updateOrderTracking);
+/* =========================================================
+   👑 ADMIN ORDER VAULT
+   Admin can view all orders.
+========================================================= */
+router.get("/", authRequired, adminOnly, getOrders);
 
-// User/Admin: get single order
-router.get("/:id", authRequired, getOrder);
+/* =========================================================
+   👑 ADMIN WORKFLOW ACTIONS
+   Every ":id" route validates MongoDB ObjectId first.
+========================================================= */
+router.patch(
+  "/:id/seen",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  markOrderAsSeen
+);
 
-// Admin: update & delete order
-router.put("/:id", authRequired, adminOnly, updateOrder);
-router.delete("/:id", authRequired, adminOnly, deleteOrder);
+router.patch(
+  "/:id/fulfill",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  fulfillOrder
+);
+
+router.patch(
+  "/:id/cancel",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  cancelOrder
+);
+
+router.patch(
+  "/:id/refund",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  refundOrder
+);
+
+router.patch(
+  "/:id/tracking",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  updateOrderTracking
+);
+
+/* =========================================================
+   🔐 SINGLE ORDER VIEW
+   Backend controller allows owner or admin only.
+========================================================= */
+router.get("/:id", authRequired, validateObjectId("id"), getOrder);
+
+/* =========================================================
+   👑 ADMIN UPDATE / DELETE
+========================================================= */
+router.put(
+  "/:id",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  updateOrder
+);
+
+router.delete(
+  "/:id",
+  authRequired,
+  adminOnly,
+  validateObjectId("id"),
+  deleteOrder
+);
 
 export default router;
-

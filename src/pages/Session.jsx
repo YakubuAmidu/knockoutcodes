@@ -29,10 +29,10 @@ export default function Session() {
   const [activeModal, setActiveModal] = useState(null);
 
   const [filters, setFilters] = useState({
-  status: "all",
-  email: "",
-  trusted: "",
-});
+    status: "all",
+    email: "",
+    trusted: "",
+  });
 
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
@@ -64,13 +64,15 @@ export default function Session() {
       );
 
       setSessions(Array.isArray(data?.items) ? data.items : []);
-      setTotal(data?.total || 0);
-      setPages(data?.pages || 1);
+      setTotal(Number(data?.total) || 0);
+      setPages(Number(data?.pages) || 1);
     } catch (error) {
       toast?.error?.(
         error?.response?.data?.message || "Failed to load admin sessions."
       );
       setSessions([]);
+      setTotal(0);
+      setPages(1);
     } finally {
       setLoading(false);
     }
@@ -79,6 +81,20 @@ export default function Session() {
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape" && activeModal && !actionLoading) {
+        setActiveModal(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [activeModal, actionLoading]);
 
   const stats = useMemo(() => {
     return {
@@ -95,9 +111,10 @@ export default function Session() {
   }
 
   async function handleTrust(session) {
-    if (!session?.id) return;
+    if (!session?.id || session.status === "revoked") return;
 
     setActionLoading(true);
+
     try {
       const { data } = await axiosInstance.patch(
         `/auth/sessions/admin/${session.id}/trust`,
@@ -120,9 +137,10 @@ export default function Session() {
   }
 
   async function handleRevoke(session) {
-    if (!session?.id) return;
+    if (!session?.id || session.status === "revoked") return;
 
     setActionLoading(true);
+
     try {
       const { data } = await axiosInstance.delete(
         `/auth/sessions/admin/${session.id}/revoke`,
@@ -144,16 +162,49 @@ export default function Session() {
     }
   }
 
+  async function handleDelete(session) {
+  if (!session?.id) return;
+
+  if (session.status !== "revoked") {
+    toast?.error?.("Only revoked sessions can be deleted.");
+    return;
+  }
+
+  setActionLoading(true);
+
+  try {
+    const { data } = await axiosInstance.delete(
+      `/auth/sessions/admin/${session.id}/delete`,
+      { data: { confirm: true } }
+    );
+
+    setSessions((prev) => prev.filter((item) => item.id !== data.deletedId));
+
+    toast?.success?.(data?.message || "Revoked session deleted.");
+    setActiveModal(null);
+
+    await fetchSessions();
+  } catch (error) {
+    toast?.error?.(
+      error?.response?.data?.message || "Failed to delete revoked session."
+    );
+  } finally {
+    setActionLoading(false);
+  }
+}
+
   async function handleCleanup() {
     setActionLoading(true);
+
     try {
-      const { data } = await axiosInstance.delete("/auth/sessions/admin/cleanup", {
-        data: { days: 1 },
-      });
+      const { data } = await axiosInstance.delete(
+        "/auth/sessions/admin/cleanup",
+        { data: { days: 1 } }
+      );
 
       toast?.success?.(data?.message || "Old sessions cleaned.");
       setActiveModal(null);
-      fetchSessions();
+      await fetchSessions();
     } catch (error) {
       toast?.error?.(
         error?.response?.data?.message || "Failed to cleanup sessions."
@@ -233,6 +284,7 @@ export default function Session() {
                 value={filters.email}
                 onChange={(e) => updateFilter("email", e.target.value)}
                 placeholder="Search user email..."
+                autoComplete="off"
               />
             </Field>
 
@@ -296,7 +348,8 @@ export default function Session() {
                       <td>
                         <Strong>{session.deviceName || "Device"}</Strong>
                         <Small>
-                          {session.browser || "Unknown"} • {session.os || "Unknown"}
+                          {session.browser || "Unknown"} •{" "}
+                          {session.os || "Unknown"}
                         </Small>
                         <Small>{session.userAgent || "No user agent"}</Small>
                       </td>
@@ -307,18 +360,18 @@ export default function Session() {
                       </td>
 
                       <td>
-  <BadgeStack>
-    <StatusBadge data-status={session.status}>
-      {session.status}
-    </StatusBadge>
+                        <BadgeStack>
+                          <StatusBadge data-status={session.status}>
+                            {session.status || "unknown"}
+                          </StatusBadge>
 
-    {session.isTrusted ? (
-      <TrustBadge>Trusted</TrustBadge>
-    ) : (
-      <UntrustBadge>Untrusted</UntrustBadge>
-    )}
-  </BadgeStack>
-</td>
+                          {session.isTrusted ? (
+                            <TrustBadge>Trusted</TrustBadge>
+                          ) : (
+                            <UntrustBadge>Untrusted</UntrustBadge>
+                          )}
+                        </BadgeStack>
+                      </td>
 
                       <td>
                         <Strong>Last Active</Strong>
@@ -345,7 +398,9 @@ export default function Session() {
                             onClick={() =>
                               setActiveModal({ type: "trust", session })
                             }
-                            disabled={actionLoading}
+                            disabled={
+                              actionLoading || session.status === "revoked"
+                            }
                           >
                             {session.isTrusted ? "Untrust" : "Trust"}
                           </MiniButton>
@@ -355,9 +410,23 @@ export default function Session() {
                             onClick={() =>
                               setActiveModal({ type: "revoke", session })
                             }
-                            disabled={actionLoading || session.status === "revoked"}
+                            disabled={
+                              actionLoading || session.status === "revoked"
+                            }
                           >
                             Revoke
+                          </MiniDanger>
+
+                          <MiniDanger
+                            type="button"
+                            onClick={() =>
+                              setActiveModal({ type: "delete", session })
+                            }
+                            disabled={
+                              actionLoading || session.status !== "revoked"
+                            }
+                          >
+                            Delete
                           </MiniDanger>
                         </ActionGroup>
                       </td>
@@ -371,7 +440,7 @@ export default function Session() {
           <Pagination>
             <PageBtn
               onClick={() => setPage((p) => Math.max(p - 1, 1))}
-              disabled={page <= 1 || loading}
+              disabled={page <= 1 || loading || actionLoading}
             >
               Previous
             </PageBtn>
@@ -382,7 +451,7 @@ export default function Session() {
 
             <PageBtn
               onClick={() => setPage((p) => Math.min(p + 1, pages || 1))}
-              disabled={page >= pages || loading}
+              disabled={page >= pages || loading || actionLoading}
             >
               Next
             </PageBtn>
@@ -410,16 +479,56 @@ export default function Session() {
               {activeModal.type === "details" && (
                 <>
                   <ModalEyebrow>Session Details</ModalEyebrow>
-                  <ModalTitle>{activeModal.session?.deviceName}</ModalTitle>
+                  <ModalTitle>
+                    {activeModal.session?.deviceName || "Device Session"}
+                  </ModalTitle>
+
                   <DetailGrid>
-                    <Detail><b>User:</b> {activeModal.session?.user?.email || "—"}</Detail>
-                    <Detail><b>Browser:</b> {activeModal.session?.browser || "—"}</Detail>
-                    <Detail><b>OS:</b> {activeModal.session?.os || "—"}</Detail>
-                    <Detail><b>IP:</b> {activeModal.session?.ip || "—"}</Detail>
-                    <Detail><b>Location:</b> {activeModal.session?.approxLocation || "—"}</Detail>
-                    <Detail><b>Status:</b> {activeModal.session?.status || "—"}</Detail>
-                    <Detail><b>Trusted:</b> {activeModal.session?.isTrusted ? "Yes" : "No"}</Detail>
-                    <Detail><b>Reason:</b> {activeModal.session?.revokedReason || "—"}</Detail>
+                    <Detail>
+                      <b>User:</b> {activeModal.session?.user?.email || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>Name:</b> {activeModal.session?.user?.name || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>Role:</b> {activeModal.session?.user?.role || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>Browser:</b> {activeModal.session?.browser || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>OS:</b> {activeModal.session?.os || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>IP:</b> {activeModal.session?.ip || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>Location:</b>{" "}
+                      {activeModal.session?.approxLocation || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>Status:</b> {activeModal.session?.status || "—"}
+                    </Detail>
+                    <Detail>
+                      <b>Trusted:</b>{" "}
+                      {activeModal.session?.isTrusted ? "Yes" : "No"}
+                    </Detail>
+                    <Detail>
+                      <b>Last Active:</b>{" "}
+                      {formatDate(activeModal.session?.lastActiveAt)}
+                    </Detail>
+                    <Detail>
+                      <b>Created:</b>{" "}
+                      {formatDate(activeModal.session?.createdAt)}
+                    </Detail>
+                    <Detail>
+                      <b>Revoked:</b>{" "}
+                      {formatDate(activeModal.session?.revokedAt)}
+                    </Detail>
+                    <Detail>
+                      <b>Reason:</b>{" "}
+                      {activeModal.session?.revokedReason || "—"}
+                    </Detail>
                   </DetailGrid>
 
                   <ModalActions>
@@ -438,6 +547,7 @@ export default function Session() {
                       ? "Mark this session untrusted?"
                       : "Mark this session trusted?"}
                   </ModalTitle>
+
                   <ModalText>
                     This does not change login access by itself. It helps admin
                     review which devices are known and safe.
@@ -453,7 +563,10 @@ export default function Session() {
 
                     <ModalConfirm
                       onClick={() => handleTrust(activeModal.session)}
-                      disabled={actionLoading}
+                      disabled={
+                        actionLoading ||
+                        activeModal.session?.status === "revoked"
+                      }
                     >
                       {actionLoading ? "Saving..." : "Confirm"}
                     </ModalConfirm>
@@ -465,6 +578,7 @@ export default function Session() {
                 <>
                   <ModalEyebrow>Revoke Session</ModalEyebrow>
                   <ModalTitle>Remove this device access?</ModalTitle>
+
                   <ModalText>
                     This signs out this device/session. Use this for unknown,
                     suspicious, old, or unsafe access.
@@ -480,9 +594,43 @@ export default function Session() {
 
                     <ModalDelete
                       onClick={() => handleRevoke(activeModal.session)}
-                      disabled={actionLoading}
+                      disabled={
+                        actionLoading ||
+                        activeModal.session?.status === "revoked"
+                      }
                     >
                       {actionLoading ? "Revoking..." : "Revoke Session"}
+                    </ModalDelete>
+                  </ModalActions>
+                </>
+              )}
+
+              {activeModal.type === "delete" && (
+                <>
+                  <ModalEyebrow>Delete Session</ModalEyebrow>
+                  <ModalTitle>Permanently delete this revoked session?</ModalTitle>
+
+                  <ModalText>
+                    This removes the revoked session record from the admin list.
+                    Active sessions cannot be deleted from here.
+                  </ModalText>
+
+                  <ModalActions>
+                    <ModalCancel
+                      onClick={() => setActiveModal(null)}
+                      disabled={actionLoading}
+                    >
+                      Cancel
+                    </ModalCancel>
+
+                    <ModalDelete
+                      onClick={() => handleDelete(activeModal.session)}
+                      disabled={
+                        actionLoading ||
+                        activeModal.session?.status !== "revoked"
+                      }
+                    >
+                      {actionLoading ? "Deleting..." : "Delete Session"}
                     </ModalDelete>
                   </ModalActions>
                 </>
@@ -492,8 +640,10 @@ export default function Session() {
                 <>
                   <ModalEyebrow>Cleanup</ModalEyebrow>
                   <ModalTitle>Delete old revoked sessions?</ModalTitle>
+
                   <ModalText>
-                    This deletes revoked sessions older than 1 day. Active sessions will not be deleted.
+                    This deletes revoked sessions older than 1 day. Active
+                    sessions will not be deleted.
                   </ModalText>
 
                   <ModalActions>
@@ -803,6 +953,13 @@ const UntrustBadge = styled(StatusBadge)`
   border-color: rgba(255, 255, 255, 0.13);
 `;
 
+const BadgeStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+`;
+
 const ActionGroup = styled.div`
   min-width: 190px;
   display: flex;
@@ -811,7 +968,6 @@ const ActionGroup = styled.div`
   flex-wrap: wrap;
   gap: 8px;
 `;
-
 
 const MiniButton = styled.button`
   min-width: 76px;
@@ -855,6 +1011,11 @@ const Pagination = styled.div`
   align-items: center;
   gap: 12px;
   margin-top: 20px;
+
+  @media (max-width: 520px) {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 `;
 
 const PageBtn = styled.button`
@@ -888,6 +1049,8 @@ const ModalOverlay = styled(motion.div)`
 
 const ModalCard = styled(motion.div)`
   width: min(94vw, 560px);
+  max-height: 86vh;
+  overflow-y: auto;
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 28px;
   background:
@@ -928,6 +1091,7 @@ const Detail = styled.div`
   border-radius: ${({ theme }) => theme.radius.md};
   background: rgba(0, 0, 0, 0.28);
   color: rgba(255, 249, 242, 0.82);
+  word-break: break-word;
 
   b {
     color: ${({ theme }) => theme.colors.lightBrown};
@@ -939,6 +1103,10 @@ const ModalActions = styled.div`
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+
+  @media (max-width: 520px) {
+    flex-direction: column;
+  }
 `;
 
 const ModalCancel = styled.button`
@@ -949,6 +1117,11 @@ const ModalCancel = styled.button`
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 950;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 `;
 
 const ModalConfirm = styled(ModalCancel)`
@@ -960,11 +1133,4 @@ const ModalConfirm = styled(ModalCancel)`
 const ModalDelete = styled(ModalConfirm)`
   background: #ffdede;
   color: #3d120f;
-`;
-
-const BadgeStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
 `;

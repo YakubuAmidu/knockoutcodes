@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// src/pages/ManageLesson.jsx
+import { useEffect, useMemo, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useDispatch, useSelector } from "react-redux";
 import axiosInstance from "../../utils/axiosInstance";
@@ -12,6 +13,8 @@ import {
   clearManageLessonMessages,
 } from "../reducers/manageLesson/manageLessonActions";
 
+const emptyResource = { label: "", url: "" };
+
 const emptyForm = {
   course: "",
   title: "",
@@ -21,17 +24,33 @@ const emptyForm = {
   order: "",
   isPreview: false,
   isPublished: true,
+  resources: [],
 };
 
 export default function ManageLesson() {
   const dispatch = useDispatch();
   const toast = useToast();
+  const isSubmittingRef = useRef(false);
 
-  const { lessons, loading, creating, updating, deleting, error, successMessage } =
-    useSelector((state) => state.manageLessons);
+  const {
+    lessons,
+    loading,
+    creating,
+    updating,
+    deleting,
+    error,
+    successMessage,
+    totalLessons,
+    publishedLessons,
+    draftLessons,
+    previewLessons,
+  } = useSelector((state) => state.manageLessons);
 
   const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [form, setForm] = useState(emptyForm);
   const [editingLesson, setEditingLesson] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -39,7 +58,7 @@ export default function ManageLesson() {
   useEffect(() => {
     dispatch(fetchManageLessons());
     loadCourses();
-  }, [dispatch]);
+  }, [dispatch, loadCourses]);
 
   useEffect(() => {
     if (successMessage) {
@@ -53,25 +72,51 @@ export default function ManageLesson() {
     }
   }, [successMessage, error, toast, dispatch]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadCourses = async () => {
     try {
-      const res = await axiosInstance.get("/courses");
-      const list = Array.isArray(res.data?.courses)
-        ? res.data.courses
-        : Array.isArray(res.data?.data)
-        ? res.data.data
+      setCoursesLoading(true);
+
+      const { data } = await axiosInstance.get("/courses");
+
+      const list = Array.isArray(data?.courses)
+        ? data.courses
+        : Array.isArray(data?.data)
+        ? data.data
         : [];
+
       setCourses(list);
     } catch {
       toast.showToast("Courses could not be loaded.", "error");
+    } finally {
+      setCoursesLoading(false);
     }
   };
 
   const filteredLessons = useMemo(() => {
     const value = search.toLowerCase().trim();
 
-    return [...lessons]
+    return [...(lessons || [])]
       .filter((lesson) => {
+        const lessonCourseId =
+          lesson.course?._id || lesson.course || lesson.courseId || "";
+
+        if (courseFilter !== "all" && lessonCourseId !== courseFilter) {
+          return false;
+        }
+
+        if (statusFilter === "published" && lesson.isPublished === false) {
+          return false;
+        }
+
+        if (statusFilter === "draft" && lesson.isPublished !== false) {
+          return false;
+        }
+
+        if (statusFilter === "preview" && lesson.isPreview !== true) {
+          return false;
+        }
+
         if (!value) return true;
 
         return (
@@ -81,16 +126,31 @@ export default function ManageLesson() {
         );
       })
       .sort((a, b) => {
-        const ao = typeof a.order === "number" ? a.order : 999999;
-        const bo = typeof b.order === "number" ? b.order : 999999;
-        return ao - bo;
+        const courseA = a.course?.title || "";
+        const courseB = b.course?.title || "";
+
+        if (courseA !== courseB) {
+          return courseA.localeCompare(courseB);
+        }
+
+        const orderA = typeof a.order === "number" ? a.order : 999999;
+        const orderB = typeof b.order === "number" ? b.order : 999999;
+
+        return orderA - orderB;
       });
-  }, [lessons, search]);
+  }, [lessons, search, courseFilter, statusFilter]);
 
   const resetForm = () => {
     setForm(emptyForm);
     setEditingLesson(null);
     setShowForm(false);
+    isSubmittingRef.current = false;
+  };
+
+  const openCreateForm = () => {
+    setEditingLesson(null);
+    setForm(emptyForm);
+    setShowForm(true);
   };
 
   const handleChange = (event) => {
@@ -99,6 +159,31 @@ export default function ManageLesson() {
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleResourceChange = (index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      resources: prev.resources.map((resource, resourceIndex) =>
+        resourceIndex === index
+          ? { ...resource, [field]: value }
+          : resource
+      ),
+    }));
+  };
+
+  const addResource = () => {
+    setForm((prev) => ({
+      ...prev,
+      resources: [...prev.resources, emptyResource],
+    }));
+  };
+
+  const removeResource = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      resources: prev.resources.filter((_, resourceIndex) => resourceIndex !== index),
     }));
   };
 
@@ -114,35 +199,86 @@ export default function ManageLesson() {
       order: lesson.order ?? "",
       isPreview: Boolean(lesson.isPreview),
       isPublished: lesson.isPublished !== false,
+      resources: Array.isArray(lesson.resources) ? lesson.resources : [],
     });
 
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const validateForm = () => {
+    if (!form.course) {
+      toast.showToast("Please select a course.", "error");
+      return false;
+    }
+
+    if (!form.title.trim()) {
+      toast.showToast("Lesson title is required.", "error");
+      return false;
+    }
+
+    if (form.title.trim().length < 3) {
+      toast.showToast("Lesson title must be at least 3 characters.", "error");
+      return false;
+    }
+
+    if (Number(form.durationInMinutes || 0) < 0) {
+      toast.showToast("Duration cannot be negative.", "error");
+      return false;
+    }
+
+    if (Number(form.order || 0) < 0) {
+      toast.showToast("Order cannot be negative.", "error");
+      return false;
+    }
+
+    const invalidResource = form.resources.find(
+      (resource) => resource.url && !/^https?:\/\//i.test(resource.url.trim())
+    );
+
+    if (invalidResource) {
+      toast.showToast("Resource URLs must start with http:// or https://.", "error");
+      return false;
+    }
+
+    if (form.videoUrl && !/^https?:\/\//i.test(form.videoUrl.trim())) {
+      toast.showToast("Video URL must start with http:// or https://.", "error");
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.course) {
-      toast.showToast("Please select a course.", "error");
-      return;
-    }
+    if (isSubmittingRef.current) return;
+    if (!validateForm()) return;
 
-    if (!form.title.trim()) {
-      toast.showToast("Lesson title is required.", "error");
-      return;
-    }
+    isSubmittingRef.current = true;
 
     const payload = {
-      ...form,
       course: form.course,
-      courseId: form.course,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      videoUrl: form.videoUrl.trim(),
       durationInMinutes: Number(form.durationInMinutes || 0),
       order: Number(form.order || 0),
+      isPreview: Boolean(form.isPreview),
+      isPublished: Boolean(form.isPublished),
+      resources: form.resources
+        .map((resource) => ({
+          label: String(resource.label || "").trim(),
+          url: String(resource.url || "").trim(),
+        }))
+        .filter((resource) => resource.label || resource.url),
     };
 
     const result = editingLesson?._id
       ? await dispatch(updateManageLesson(editingLesson._id, payload))
       : await dispatch(createManageLesson(payload));
+
+    isSubmittingRef.current = false;
 
     if (result?.success) {
       resetForm();
@@ -151,7 +287,7 @@ export default function ManageLesson() {
 
   const handleDelete = async (lesson) => {
     const confirmDelete = window.confirm(
-      `Delete "${lesson.title}"? This cannot be undone.`
+      `Delete "${lesson.title}"? This will also remove its progress records.`
     );
 
     if (!confirmDelete) return;
@@ -166,23 +302,30 @@ export default function ManageLesson() {
           <Eyebrow>KnockoutCodes Admin Lessons</Eyebrow>
           <Title>Manage Lessons Like a Champion</Title>
           <Text>
-            Create, organize, update, and protect every course lesson from one
-            premium command center.
+            Create, organize, update, publish, preview, and protect every course lesson
+            from one premium command center.
           </Text>
         </HeroContent>
 
         <HeroStats>
           <StatCard>
             <span>Total Lessons</span>
-            <strong>{lessons.length}</strong>
+            <strong>{totalLessons ?? lessons.length}</strong>
           </StatCard>
+
           <StatCard>
             <span>Published</span>
-            <strong>{lessons.filter((l) => l.isPublished !== false).length}</strong>
+            <strong>{publishedLessons ?? 0}</strong>
           </StatCard>
+
           <StatCard>
             <span>Drafts</span>
-            <strong>{lessons.filter((l) => l.isPublished === false).length}</strong>
+            <strong>{draftLessons ?? 0}</strong>
+          </StatCard>
+
+          <StatCard>
+            <span>Previews</span>
+            <strong>{previewLessons ?? 0}</strong>
           </StatCard>
         </HeroStats>
       </Hero>
@@ -194,7 +337,23 @@ export default function ManageLesson() {
           placeholder="Search lessons, courses, descriptions..."
         />
 
-        <PrimaryButton type="button" onClick={() => setShowForm(true)}>
+        <Select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
+          <option value="all">All Courses</option>
+          {courses.map((course) => (
+            <option key={course._id} value={course._id}>
+              {course.title}
+            </option>
+          ))}
+        </Select>
+
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+          <option value="preview">Preview</option>
+        </Select>
+
+        <PrimaryButton type="button" onClick={openCreateForm}>
           + Create Lesson
         </PrimaryButton>
       </Toolbar>
@@ -216,9 +375,16 @@ export default function ManageLesson() {
 
           <Grid>
             <Field>
-              <Label>Course</Label>
-              <Select name="course" value={form.course} onChange={handleChange}>
-                <option value="">Select course</option>
+              <Label>Course *</Label>
+              <Select
+                name="course"
+                value={form.course}
+                onChange={handleChange}
+                disabled={coursesLoading}
+              >
+                <option value="">
+                  {coursesLoading ? "Loading courses..." : "Select course"}
+                </option>
                 {courses.map((course) => (
                   <option key={course._id} value={course._id}>
                     {course.title}
@@ -228,11 +394,12 @@ export default function ManageLesson() {
             </Field>
 
             <Field>
-              <Label>Lesson Title</Label>
+              <Label>Lesson Title *</Label>
               <Input
                 name="title"
                 value={form.title}
                 onChange={handleChange}
+                maxLength={160}
                 placeholder="Example: Elite Footwork Foundation"
               />
             </Field>
@@ -243,6 +410,7 @@ export default function ManageLesson() {
                 name="videoUrl"
                 value={form.videoUrl}
                 onChange={handleChange}
+                maxLength={500}
                 placeholder="https://..."
               />
             </Field>
@@ -251,6 +419,7 @@ export default function ManageLesson() {
               <Label>Duration Minutes</Label>
               <Input
                 type="number"
+                min="0"
                 name="durationInMinutes"
                 value={form.durationInMinutes}
                 onChange={handleChange}
@@ -262,6 +431,7 @@ export default function ManageLesson() {
               <Label>Order</Label>
               <Input
                 type="number"
+                min="0"
                 name="order"
                 value={form.order}
                 onChange={handleChange}
@@ -298,9 +468,54 @@ export default function ManageLesson() {
               name="description"
               value={form.description}
               onChange={handleChange}
+              maxLength={2000}
               placeholder="Describe what the student will learn..."
             />
+            <Counter>{form.description.length}/2000</Counter>
           </Field>
+
+          <ResourceBox>
+            <ResourceHeader>
+              <div>
+                <SmallLabel>Resources</SmallLabel>
+                <ResourceTitle>Optional lesson materials</ResourceTitle>
+              </div>
+
+              <GhostButton type="button" onClick={addResource}>
+                + Add Resource
+              </GhostButton>
+            </ResourceHeader>
+
+            {form.resources.length === 0 ? (
+              <ResourceEmpty>No resources added yet.</ResourceEmpty>
+            ) : (
+              form.resources.map((resource, index) => (
+                <ResourceGrid key={`${index}-${resource.label}`}>
+                  <Input
+                    value={resource.label}
+                    onChange={(e) =>
+                      handleResourceChange(index, "label", e.target.value)
+                    }
+                    maxLength={120}
+                    placeholder="Resource label"
+                  />
+
+                  <Input
+                    value={resource.url}
+                    onChange={(e) =>
+                      handleResourceChange(index, "url", e.target.value)
+                    }
+                    maxLength={500}
+                    placeholder="https://resource-link.com"
+                  />
+
+                  <DangerButton type="button" onClick={() => removeResource(index)}>
+                    Remove
+                  </DangerButton>
+                </ResourceGrid>
+              ))
+            )}
+          </ResourceBox>
 
           <SubmitRow>
             <GhostButton type="button" onClick={resetForm}>
@@ -346,7 +561,9 @@ export default function ManageLesson() {
 
                 <MetaRow>
                   <Meta>{lesson.durationInMinutes || 0} min</Meta>
-                  {lesson.isPreview ? <Meta>Preview</Meta> : <Meta>Premium</Meta>}
+                  <Meta>{lesson.isPreview ? "Preview" : "Premium"}</Meta>
+                  <Meta>{lesson.videoUrl ? "Video Added" : "No Video Yet"}</Meta>
+                  <Meta>{lesson.resources?.length || 0} resources</Meta>
                 </MetaRow>
 
                 <ActionRow>
@@ -471,10 +688,14 @@ const Toolbar = styled.section`
   max-width: ${({ theme }) => theme.layout.max || "1180px"};
   margin: 0 auto 18px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 190px 160px auto;
   gap: 12px;
 
-  @media (max-width: 680px) {
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 620px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -572,6 +793,7 @@ const Grid = styled.div`
 const Field = styled.label`
   display: grid;
   gap: 8px;
+  margin-top: 14px;
 `;
 
 const Label = styled.span`
@@ -613,6 +835,13 @@ const Textarea = styled.textarea`
   outline: none;
 `;
 
+const Counter = styled.span`
+  justify-self: end;
+  color: ${({ theme }) => theme.colors.lightBrown};
+  font-size: 11px;
+  font-weight: 800;
+`;
+
 const CheckRow = styled.div`
   display: flex;
   align-items: center;
@@ -626,6 +855,49 @@ const CheckLabel = styled.label`
   gap: 8px;
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 800;
+`;
+
+const ResourceBox = styled.div`
+  margin-top: 18px;
+  border-radius: ${({ theme }) => theme.radius.xl};
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 249, 242, 0.1);
+`;
+
+const ResourceHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+
+  @media (max-width: 620px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const ResourceTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 950;
+`;
+
+const ResourceEmpty = styled.p`
+  margin: 14px 0 0;
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.7;
+`;
+
+const ResourceGrid = styled.div`
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1.6fr auto;
+  gap: 10px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const SubmitRow = styled.div`
@@ -749,16 +1021,16 @@ const GhostButton = styled.button`
   cursor: pointer;
   padding: 0 14px;
   font-weight: 950;
-`;
-
-const DangerButton = styled(GhostButton)`
-  border-color: rgba(255, 80, 80, 0.35);
-  color: #ffb4b4;
 
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
   }
+`;
+
+const DangerButton = styled(GhostButton)`
+  border-color: rgba(255, 80, 80, 0.35);
+  color: #ffb4b4;
 `;
 
 const StateBox = styled.div`

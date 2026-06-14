@@ -1,5 +1,6 @@
 // src/pages/ManageContacts.jsx
 import React, { useEffect, useMemo, useRef } from "react";
+import { socket, connectUserSocket } from "../../utils/socket";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../components/Toast";
@@ -69,6 +70,10 @@ export default function ManageContacts() {
   const { push } = useToast();
   const dispatch = useDispatch();
 
+  const authUser = useSelector(
+  (state) => state.auth?.user || state.auth?.currentUser || null
+);
+
   const store = useSelector((state) => state.manageContacts || {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const contacts = store.contacts || [];
@@ -116,29 +121,49 @@ export default function ManageContacts() {
     dispatch(fetchManageContacts({ silent: false }));
   }, [dispatch]);
 
-  // ✅ Safe polling (auto pauses while busy)
-  const pollRef = useRef(null);
   useEffect(() => {
-    const busy = saving || deleting || bulkUpdating || replying;
+  const adminId = authUser?._id || authUser?.id;
 
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
+  if (adminId) {
+    connectUserSocket(adminId);
+  } else if (!socket.connected) {
+    socket.connect();
+  }
+
+  const handleContactsRefresh = ({ action }) => {
+    dispatch(fetchManageContacts({ silent: true }));
+
+    if (action === "created") {
+      push({
+        title: "New contact received",
+        description: "A new support request just arrived.",
+        variant: "success",
+      });
     }
 
-    if (busy) return;
+    if (action === "user-replied") {
+      push({
+        title: "User replied",
+        description: "A contact thread has a new user reply.",
+        variant: "info",
+      });
+    }
 
-    pollRef.current = setInterval(() => {
-      dispatch(fetchManageContacts({ silent: true }));
-    }, 12_000);
+    if (action === "admin-replied") {
+      push({
+        title: "Reply synced",
+        description: "Admin reply updated in real time.",
+        variant: "success",
+      });
+    }
+  };
 
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
-  }, [dispatch, saving, deleting, bulkUpdating, replying]);
+  socket.on("admin:contacts-refresh", handleContactsRefresh);
+
+  return () => {
+    socket.off("admin:contacts-refresh", handleContactsRefresh);
+  };
+}, [authUser?._id, authUser?.id, dispatch, push]);
 
   // ✅ Scroll thread to bottom when thread updates (null-safe)
   const threadEndRef = useRef(null);
@@ -548,6 +573,14 @@ export default function ManageContacts() {
                     {replying ? "Sending…" : "Send Reply"}
                   </SendBtn>
 
+                  <ShortcutBtn
+  type="button"
+  onClick={() => dispatch(updateReplyDraft(""))}
+  disabled={replying || !String(replyDraft).trim()}
+>
+  Clear Reply
+</ShortcutBtn>
+
                   <MiniInfo>Reply sends into thread + marks Seen + marks Replied.</MiniInfo>
                 </ReplyActions>
               </ReplyWrap>
@@ -627,6 +660,14 @@ export default function ManageContacts() {
                 >
                   {deleting ? "Deleting…" : "Delete"}
                 </DeleteButton>
+
+                <SaveButton
+  as="a"
+  href={`mailto:${selectedContact?.email || ""}`}
+  disabled={!selectedContact?.email}
+>
+  Email User
+</SaveButton>
 
                 <HintText>Thread updates live. No reload needed.</HintText>
               </ActionsRow>

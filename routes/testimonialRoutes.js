@@ -2,9 +2,11 @@ import express from "express";
 import {
   getTestimonial,
   getAllTestimonials,
+  getAllTestimonialsAdmin,
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  approveTestimonial,
 } from "../controllers/testimonialController.js";
 import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
@@ -16,17 +18,10 @@ import { antiBot } from "../middleware/antiBotMiddleware.js";
 
 const router = express.Router();
 
-/**
- * PUBLIC (Frontend uses this to display testimonials)
- * ✅ add read limiter to reduce scraping/hammering
- */
 router.get("/", testimonialsReadLimiter, getAllTestimonials);
 
-/**
- * Public testimonial creation
- * ✅ Real customers only
- * ❌ Admins blocked
- */
+router.get("/admin", authRequired, adminOnly, getAllTestimonialsAdmin);
+
 router.post(
   "/",
   authRequired,
@@ -36,13 +31,9 @@ router.post(
   createTestimonial
 );
 
-/**
- * ADMIN-ONLY CRUD
- */
 router.get("/:id", authRequired, adminOnly, getTestimonial);
 router.put("/:id", authRequired, adminOnly, updateTestimonial);
+router.patch("/:id/approve", authRequired, adminOnly, approveTestimonial);
 router.delete("/:id", authRequired, adminOnly, deleteTestimonial);
 
 export default router;
-
-

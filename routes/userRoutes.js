@@ -1,4 +1,3 @@
-// routes/userRoutes.js
 import express from "express";
 import {
   getUsers,
@@ -9,6 +8,10 @@ import {
   updateMe,
   updateMyAvatar,
   changeMyPassword,
+  updateUserStatus,
+  forceLogoutUser,
+  softDeleteUser,
+  restoreUser,
 } from "../controllers/userController.js";
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
@@ -34,18 +37,12 @@ const uploadShield = [
   noSqlShield,
 ];
 
-/**
- * USER SELF ROUTES
- */
+/* =========================
+   User Self Routes
+========================= */
 router.get("/me", ...publicShield, authRequired, getMe);
 
-router.patch(
-  "/me",
-  ...writeShield,
-  csrfRequired,
-  authRequired,
-  updateMe
-);
+router.patch("/me", ...writeShield, csrfRequired, authRequired, updateMe);
 
 router.post(
   "/me/avatar",
@@ -64,9 +61,9 @@ router.patch(
   changeMyPassword
 );
 
-/**
- * ADMIN ROUTES
- */
+/* =========================
+   Admin Routes
+========================= */
 router.get("/", ...publicShield, authRequired, adminOnly, getUsers);
 
 router.get("/:id", ...publicShield, authRequired, adminOnly, getUser);
@@ -78,6 +75,42 @@ router.patch(
   authRequired,
   adminOnly,
   updateUser
+);
+
+router.patch(
+  "/:id/status",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  updateUserStatus
+);
+
+router.patch(
+  "/:id/force-logout",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  forceLogoutUser
+);
+
+router.patch(
+  "/:id/soft-delete",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  softDeleteUser
+);
+
+router.patch(
+  "/:id/restore",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  restoreUser
 );
 
 router.delete(

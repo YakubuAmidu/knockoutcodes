@@ -14,7 +14,7 @@ import { useToast } from "../components/Toast";
 const MyCourses = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { push } = useToast();
+  const toast = useToast();
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,13 +35,14 @@ const MyCourses = () => {
   useEffect(() => {
     if (!error) return;
 
-    push({
+    toast?.push?.({
       title: "My Courses",
       description: error,
       variant: "error",
     });
-  }, [error, push]);
+  }, [error, toast]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeEnrollments = Array.isArray(enrollments) ? enrollments : [];
 
   const formatDate = (value) => {
@@ -74,6 +75,15 @@ const MyCourses = () => {
     }
   };
 
+  function renderStars(ratingAverage) {
+  const rating = Number(ratingAverage) || 0;
+  const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
+
+  return Array.from({ length: 5 }, (_, index) =>
+    index + 1 <= fullStars ? "★" : "☆"
+  ).join("");
+}
+
   const normalizeText = (value) =>
     String(value || "")
       .replaceAll("-", " ")
@@ -93,8 +103,13 @@ const MyCourses = () => {
     return typeof course === "string" ? course : course?._id;
   };
 
-  const getProgress = (enrollment) =>
-    Math.min(Math.max(Number(enrollment?.progressPercent || 0), 0), 100);
+  const getProgress = (enrollment) => {
+  const value = Number(enrollment?.progressPercent);
+
+  if (!Number.isFinite(value)) return 0;
+
+  return Math.min(Math.max(value, 0), 100);
+};
 
   const getStatusLabel = (status) => {
     switch (status) {
@@ -145,10 +160,13 @@ const MyCourses = () => {
   }, [safeEnrollments]);
 
   const filteredEnrollments = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = searchTerm.trim().toLowerCase().slice(0, 120);
 
     const list = safeEnrollments.filter((item) => {
-      const course = item.course || {};
+      const course =
+  item?.course && typeof item.course === "object"
+    ? item.course
+    : {};
       const title = String(course.title || "").toLowerCase();
       const level = String(course.level || "").toLowerCase();
       const instructor = String(course.instructor || "").toLowerCase();
@@ -183,8 +201,8 @@ const MyCourses = () => {
       }
 
       return (
-        new Date(b.startedAt || b.createdAt || 0).getTime() -
-        new Date(a.startedAt || a.createdAt || 0).getTime()
+        new Date(b?.startedAt || b?.createdAt || 0).getTime() -
+        new Date(a?.startedAt || a?.createdAt || 0).getTime()
       );
     });
   }, [safeEnrollments, searchTerm, statusFilter, sortBy]);
@@ -193,7 +211,7 @@ const MyCourses = () => {
     const courseId = getCourseId(enrollment);
 
     if (!courseId) {
-      push({
+      toast?.push?.({
         title: "Course not found",
         description: "This enrollment has no linked course document.",
         variant: "error",
@@ -201,7 +219,7 @@ const MyCourses = () => {
       return;
     }
 
-    navigate(`/course-player/${courseId}`, {
+    navigate(`/course-player/${encodeURIComponent(courseId)}`, {
       state: {
         courseId,
         enrollmentId: enrollment._id,
@@ -213,7 +231,7 @@ const MyCourses = () => {
     const courseId = getCourseId(enrollment);
 
     if (!courseId) {
-      push({
+      toast?.push?.({
         title: "Course not found",
         description: "This enrollment has no linked course document.",
         variant: "error",
@@ -221,13 +239,13 @@ const MyCourses = () => {
       return;
     }
 
-    navigate(`/my-courses/${courseId}`, {
-      state: {
-        courseId,
-        enrollmentId: enrollment._id,
-        enrollment,
-      },
-    });
+    navigate(`/my-courses/${encodeURIComponent(courseId)}`, {
+  state: {
+    courseId,
+    enrollmentId: enrollment._id,
+    enrollment,
+  },
+});
   };
 
   return (
@@ -377,8 +395,11 @@ const MyCourses = () => {
 
             <Grid>
               {filteredEnrollments.map((enrollment) => {
-                const course = enrollment.course || {};
                 const courseId = getCourseId(enrollment);
+                const course =
+  enrollment?.course && typeof enrollment.course === "object"
+    ? enrollment.course
+    : {};
                 const image = getCourseImage(course);
                 const progress = getProgress(enrollment);
                 const currency = enrollment.currency || "USD";
@@ -393,8 +414,18 @@ const MyCourses = () => {
                   enrollment.paymentPlan || "one-time"
                 );
 
+                const numericRating = Number(course.ratingAverage) || 0;
+                const numericRatingCount = Number(course.ratingCount) || 0;
+                const enrolledCount =
+  typeof course.studentsCount === "number" ? course.studentsCount : 0;
+
+const isBestSeller =
+  Boolean(course.isFeatured) ||
+  (numericRating >= 4.7 && numericRatingCount >= 20);
+
                 return (
-                  <Card key={enrollment._id || courseId}>
+                  <Card
+                    key={enrollment?._id || courseId}>
                     <ThumbWrap>
                       {image ? (
                         <Thumb
@@ -417,11 +448,16 @@ const MyCourses = () => {
                         <Badge>{course.category || "Course"}</Badge>
 
                         <BadgeRightGroup>
-                          <OwnedBadge>Purchased</OwnedBadge>
-                          <StatusBadge $status={enrollment.status}>
-                            {getStatusLabel(enrollment.status)}
-                          </StatusBadge>
-                        </BadgeRightGroup>
+  <OwnedBadge>Purchased</OwnedBadge>
+
+  {isBestSeller ? (
+    <BestSellerBadge>Best Seller</BestSellerBadge>
+  ) : null}
+
+  <StatusBadge $status={enrollment.status}>
+    {getStatusLabel(enrollment.status)}
+  </StatusBadge>
+</BadgeRightGroup>
                       </BadgeRow>
 
                       <HookStrip>
@@ -449,7 +485,17 @@ const MyCourses = () => {
                         </MetaPill>
                         <MetaPill>Plan: {paymentPlan}</MetaPill>
                         <MetaPill>Paid: {pricePaid}</MetaPill>
+                        <MetaPill>{enrolledCount} enrolled</MetaPill>
                       </MetaRow>
+
+                      <RatingRow>
+  <Stars>{renderStars(course.ratingAverage)}</Stars>
+
+  <RatingText>
+    {numericRating > 0 ? `${numericRating.toFixed(1)}/5` : "New"}
+    {numericRatingCount > 0 ? ` • ${numericRatingCount} reviews` : ""}
+  </RatingText>
+</RatingRow>
 
                       <InfoGrid>
                         <InfoItem>
@@ -951,6 +997,11 @@ const Badge = styled.span`
   border: 1px solid rgba(255, 255, 255, 0.22);
 `;
 
+const BestSellerBadge = styled(Badge)`
+  background: rgba(255, 215, 122, 0.92);
+  color: ${({ theme }) => theme.colors.black};
+`;
+
 const OwnedBadge = styled(Badge)`
   background: rgba(255, 249, 242, 0.94);
   color: ${({ theme }) => theme.colors.black};
@@ -1022,6 +1073,24 @@ const MetaRow = styled.div`
   margin-bottom: 12px;
 `;
 
+const RatingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  margin-bottom: 12px;
+`;
+
+const Stars = styled.span`
+  font-size: 14px;
+  color: #ffd97a;
+`;
+
+const RatingText = styled.span`
+  color: ${({ theme }) => theme.colors.ivory};
+  opacity: 0.78;
+`;
+
 const MetaPill = styled.span`
   padding: 6px 9px;
   border-radius: ${({ theme }) => theme.radius.pill};
@@ -1067,7 +1136,8 @@ const InfoValue = styled.div`
   font-weight: 850;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+  white-space: normal;
 `;
 
 const ProgressSection = styled.div`

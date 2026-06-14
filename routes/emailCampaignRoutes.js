@@ -1,3 +1,4 @@
+// routes/emailCampaignRoutes.js
 import express from "express";
 import rateLimit from "express-rate-limit";
 
@@ -30,11 +31,13 @@ import {
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
 import { requireCsrf } from "../middleware/csrfMiddleware.js";
+
 import {
   requireJsonContent,
   adminRequestHardening,
   adminDeleteHardening,
 } from "../middleware/requestHardening.js";
+
 import validateObjectId from "../middleware/validateObjectId.js";
 
 const router = express.Router();
@@ -57,7 +60,7 @@ const emailCampaignReadLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many requests. Please slow down.",
+    message: "Too many email campaign requests. Please slow down.",
   },
 });
 
@@ -77,6 +80,7 @@ router.get("/track/open", publicTrackingLimiter, trackEmailOpen);
 router.get("/track/click", publicTrackingLimiter, trackEmailClick);
 
 router.get("/unsubscribe", unsubscribeEmail);
+
 router.post(
   "/unsubscribe",
   emailCampaignWriteLimiter,
@@ -114,6 +118,43 @@ router
     createEmailCampaign
   );
 
+router.put(
+  "/:id/schedule",
+  emailCampaignWriteLimiter,
+  validateObjectId("id"),
+  requireJsonContent,
+  ...adminRequestHardening,
+  requireCsrf,
+  scheduleEmailCampaign
+);
+
+router.put(
+  "/:id/pause",
+  emailCampaignWriteLimiter,
+  validateObjectId("id"),
+  ...adminRequestHardening,
+  requireCsrf,
+  pauseEmailCampaign
+);
+
+router.post(
+  "/:id/send",
+  emailCampaignWriteLimiter,
+  validateObjectId("id"),
+  ...adminRequestHardening,
+  requireCsrf,
+  sendEmailCampaignNow
+);
+
+router.post(
+  "/:id/retry",
+  emailCampaignWriteLimiter,
+  validateObjectId("id"),
+  ...adminRequestHardening,
+  requireCsrf,
+  retryFailedCampaign
+);
+
 router
   .route("/:id")
   .get(emailCampaignReadLimiter, validateObjectId("id"), getEmailCampaignById)
@@ -132,45 +173,5 @@ router
     requireCsrf,
     deleteEmailCampaign
   );
-
-router.put(
-  "/:id/schedule",
-  emailCampaignWriteLimiter,
-  validateObjectId("id"),
-  requireJsonContent,
-  ...adminRequestHardening,
-  requireCsrf,
-  scheduleEmailCampaign
-);
-
-router.put(
-  "/:id/pause",
-  emailCampaignWriteLimiter,
-  validateObjectId("id"),
-  requireJsonContent,
-  ...adminRequestHardening,
-  requireCsrf,
-  pauseEmailCampaign
-);
-
-router.post(
-  "/:id/send",
-  emailCampaignWriteLimiter,
-  validateObjectId("id"),
-  requireJsonContent,
-  ...adminRequestHardening,
-  requireCsrf,
-  sendEmailCampaignNow
-);
-
-router.post(
-  "/:id/retry",
-  emailCampaignWriteLimiter,
-  validateObjectId("id"),
-  requireJsonContent,
-  ...adminRequestHardening,
-  requireCsrf,
-  retryFailedCampaign
-);
 
 export default router;

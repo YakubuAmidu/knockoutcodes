@@ -1,4 +1,3 @@
-// src/reducers/adminCoachings/adminCoachingsReducer.js
 import { ADMIN_COACHINGS_ACTIONS } from "./adminCoachingActionTypes";
 import {
   ADMIN_COACHINGS_UI_KEY,
@@ -7,56 +6,91 @@ import {
 
 const ALLOWED_UI_KEYS = ["q", "page", "limit", "sort"];
 
+function cleanUI(ui = {}) {
+  return {
+    q: String(ui.q || "").trim().slice(0, 60),
+    page: Math.max(1, Number(ui.page) || 1),
+    limit: Math.min(100, Math.max(10, Number(ui.limit) || 20)),
+    sort: ui.sort === "createdAt" ? "createdAt" : "-createdAt",
+  };
+}
+
 function persistUI(ui) {
   try {
     if (typeof window === "undefined") return;
+
+    const cleaned = cleanUI(ui);
     const safe = {};
-    for (const k of ALLOWED_UI_KEYS) safe[k] = ui[k];
+
+    for (const key of ALLOWED_UI_KEYS) {
+      safe[key] = cleaned[key];
+    }
+
     localStorage.setItem(ADMIN_COACHINGS_UI_KEY, JSON.stringify(safe));
   } catch {
-    // ignore
+    // Ignore localStorage errors.
   }
-};
+}
 
-function upsert(items, nextItem) {
+function upsert(items = [], nextItem) {
   const id = String(nextItem?._id || "");
-  if (!id) return items;
+  if (!id) return Array.isArray(items) ? items : [];
 
-  const idx = items.findIndex((x) => String(x?._id) === id);
-  if (idx === -1) return [nextItem, ...items];
+  const safeItems = Array.isArray(items) ? items : [];
+  const idx = safeItems.findIndex((x) => String(x?._id || "") === id);
 
-  const copy = items.slice();
+  if (idx === -1) return [nextItem, ...safeItems];
+
+  const copy = safeItems.slice();
   copy[idx] = { ...copy[idx], ...nextItem };
+
   return copy;
 }
 
-export function adminCoachingsReducer(state = adminCoachingsInitialState, action) {
+export function adminCoachingsReducer(
+  state = adminCoachingsInitialState,
+  action = {}
+) {
   switch (action.type) {
     case ADMIN_COACHINGS_ACTIONS.HYDRATE_UI: {
       const next =
-        action.payload && typeof action.payload === "object" ? action.payload : {};
-      const nextUI = { ...state.ui, ...next };
+        action.payload && typeof action.payload === "object"
+          ? action.payload
+          : {};
+
+      const nextUI = cleanUI({ ...state.ui, ...next });
       persistUI(nextUI);
+
       return { ...state, ui: nextUI };
     }
 
     case ADMIN_COACHINGS_ACTIONS.SET_UI_FIELD: {
       const { name, value } = action.payload || {};
-      if (!name) return state;
 
-      const nextUI = { ...state.ui, [name]: value };
+      if (!ALLOWED_UI_KEYS.includes(name)) return state;
+
+      const nextUI = cleanUI({ ...state.ui, [name]: value });
       persistUI(nextUI);
+
       return { ...state, ui: nextUI };
     }
 
     case ADMIN_COACHINGS_ACTIONS.FETCH_START:
-      return { ...state, status: { state: "loading", message: "" } };
+      return {
+        ...state,
+        status: { state: "loading", message: "" },
+      };
 
     case ADMIN_COACHINGS_ACTIONS.FETCH_SUCCESS: {
       const payload =
-        action.payload && typeof action.payload === "object" ? action.payload : {};
+        action.payload && typeof action.payload === "object"
+          ? action.payload
+          : {};
+
       const items = Array.isArray(payload.items) ? payload.items : [];
-      const total = Number.isFinite(Number(payload.total)) ? Number(payload.total) : 0;
+      const total = Number.isFinite(Number(payload.total))
+        ? Math.max(0, Number(payload.total))
+        : items.length;
 
       return {
         ...state,
@@ -67,14 +101,28 @@ export function adminCoachingsReducer(state = adminCoachingsInitialState, action
 
     case ADMIN_COACHINGS_ACTIONS.FETCH_ERROR: {
       const msg = String(action.payload || "Failed to fetch coachings.");
-      return { ...state, status: { state: "error", message: msg } };
+
+      return {
+        ...state,
+        status: { state: "error", message: msg },
+      };
     }
 
     case ADMIN_COACHINGS_ACTIONS.UPSERT_ITEM: {
       const item = action.payload;
+
       return {
         ...state,
-        data: { ...state.data, items: upsert(state.data.items, item) },
+        data: {
+          ...state.data,
+          items: upsert(state.data?.items, item),
+          total:
+            state.data?.items?.some(
+              (x) => String(x?._id || "") === String(item?._id || "")
+            )
+              ? state.data.total
+              : Number(state.data?.total || 0) + 1,
+        },
       };
     }
 
@@ -82,21 +130,35 @@ export function adminCoachingsReducer(state = adminCoachingsInitialState, action
       const id = String(action.payload || "");
       if (!id) return state;
 
+      const currentItems = Array.isArray(state.data?.items)
+        ? state.data.items
+        : [];
+
+      const existed = currentItems.some((x) => String(x?._id || "") === id);
+
       return {
         ...state,
         data: {
           ...state.data,
-          items: state.data.items.filter((x) => String(x?._id) !== id),
-          total: Math.max(0, (state.data.total || 0) - 1),
+          items: currentItems.filter((x) => String(x?._id || "") !== id),
+          total: existed
+            ? Math.max(0, Number(state.data?.total || 0) - 1)
+            : Math.max(0, Number(state.data?.total || 0)),
         },
       };
     }
 
     case ADMIN_COACHINGS_ACTIONS.SET_SELECTED_ID:
-      return { ...state, selectedId: action.payload || null };
+      return {
+        ...state,
+        selectedId: action.payload ? String(action.payload) : null,
+      };
 
     case ADMIN_COACHINGS_ACTIONS.RESET_STATUS:
-      return { ...state, status: { state: "idle", message: "" } };
+      return {
+        ...state,
+        status: { state: "idle", message: "" },
+      };
 
     default:
       return state;

@@ -18,6 +18,15 @@ const router = express.Router();
 
 router.get("/", ...publicShield, authRequired, adminOnly, getSecurityEvents);
 
+router.delete(
+  "/cleanup",
+  ...writeShield,
+  csrfRequired,
+  authRequired,
+  adminOnly,
+  deleteOldSecurityEvents
+);
+
 router.patch(
   "/:id/review",
   ...writeShield,
@@ -45,13 +54,13 @@ router.patch(
   blockIpFromSecurityEvent
 );
 
-router.delete(
-  "/cleanup",
+router.patch(
+  "/:id/unblock-ip",
   ...writeShield,
   csrfRequired,
   authRequired,
   adminOnly,
-  deleteOldSecurityEvents
+  unblockIpFromSecurityEvent
 );
 
 router.delete(
@@ -61,15 +70,6 @@ router.delete(
   authRequired,
   adminOnly,
   deleteSecurityEvent
-);
-
-router.patch(
-  "/:id/unblock-ip",
-  ...writeShield,
-  csrfRequired,
-  authRequired,
-  adminOnly,
-  unblockIpFromSecurityEvent
 );
 
 export default router;

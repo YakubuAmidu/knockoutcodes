@@ -2,16 +2,19 @@
 import React from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
-import image1 from '../assets/advance.png';
-import image2 from '../assets/beyond.png';
-import image3 from '../assets/boxing1.png';
-import image4 from '../assets/worldclass.png';
-import image5 from '../assets/image5.png';
-import image6 from '../assets/image6.png';
 
-// =======================
-// Default Static Data (updated)
-// =======================
+import image1 from "../assets/advance.png";
+import image2 from "../assets/beyond.png";
+import image3 from "../assets/boxing1.png";
+import image4 from "../assets/worldclass.png";
+import image5 from "../assets/image5.png";
+import image6 from "../assets/image6.png";
+
+// =====================================================
+// KNOCKOUTCODES • PREMIUM BOXING E-BOOK SALES DATA
+// Luxury product shelf built for curiosity, authority,
+// clean conversion, and high-trust checkout flow.
+// =====================================================
 const GUMROAD_SHELF =
   "https://aurora45.gumroad.com/?_gl=1*1wsndhj*_ga*MzE4NDI0Njg2LjE3NDMwNTI5Mzc.*_ga_6LJN6D94N6*czE3NjIxMjM3NjQkbzE3MyRnMSR0MTc2MjEyMzc3MiRqNTIkbDAkaDA.";
 
@@ -22,127 +25,200 @@ const defaultItems = [
     price: 39,
     image: image1,
     url: GUMROAD_SHELF,
-    highlights: ["Elite combos & setups", "Defense → counter chains", "Fight IQ drills"],
+    badge: "Elite Level",
+    hook: "For fighters ready to stop looking basic.",
+    highlights: [
+      "Elite combos & setups",
+      "Defense into counter chains",
+      "Fight IQ drills",
+    ],
   },
   {
     id: "beyond-the-ring",
     title: "Beyond The Ring",
-    price: 49, // ✅ updated to match PDF verdict
+    price: 49,
     image: image2,
     url: GUMROAD_SHELF,
-    highlights: ["Wealth & leadership", "Branding & legacy", "Life after boxing"],
+    badge: "Legacy Builder",
+    hook: "Boxing is the skill. Legacy is the mission.",
+    highlights: [
+      "Wealth & leadership",
+      "Branding & legacy",
+      "Life after boxing",
+    ],
   },
   {
     id: "how-to-become-a-boxer-for-beginners",
     title: "How To Become A Boxer – For Beginners",
-    price: 19, // ✅ updated to match PDF verdict
+    price: 19,
     image: image3,
     url: GUMROAD_SHELF,
-    highlights: ["Day-1 fundamentals", "Footwork, guard, jabs", "Home & gym variations"],
+    badge: "Start Here",
+    hook: "Your first clean step into real boxing.",
+    highlights: [
+      "Day-1 fundamentals",
+      "Footwork, guard, jabs",
+      "Home & gym variations",
+    ],
   },
   {
     id: "world-champion-boxing-blueprint",
     title: "World Champion Boxing Blueprint",
-    price: 59, // ✅ updated to match PDF verdict
+    price: 59,
     image: image4,
     url: GUMROAD_SHELF,
-    highlights: ["Rankings & pathways", "Team, media, sponsors", "Business & career map"],
+    badge: "Champion Path",
+    hook: "The roadmap most fighters never get shown.",
+    highlights: [
+      "Rankings & pathways",
+      "Team, media, sponsors",
+      "Business & career map",
+    ],
   },
   {
-    id: "ight-strategy-game-planning",
+    id: "fight-strategy-game-planning",
     title: "Fight Strategy & Game Planning",
     price: 39,
     image: image5,
     url: GUMROAD_SHELF,
-    highlights: ["Opponent analysis", "Round-by-round planning", "Fight IQ adjustments"],
+    badge: "Fight IQ",
+    hook: "Win before the first bell rings.",
+    highlights: [
+      "Opponent analysis",
+      "Round-by-round planning",
+      "Fight IQ adjustments",
+    ],
   },
   {
-    id: "ight-ready-conditioning",
+    id: "fight-ready-conditioning",
     title: "Fight-Ready Conditioning",
     price: 35,
     image: image6,
     url: GUMROAD_SHELF,
-    highlights: ["Endless stamina", "Explosive power", "Fight-camp conditioning"],
-  }
+    badge: "Camp Ready",
+    hook: "Gas tank, power, pressure — built round by round.",
+    highlights: [
+      "Endless stamina",
+      "Explosive power",
+      "Fight-camp conditioning",
+    ],
+  },
 ];
 
-// =======================
-// Component
-// =======================
-export default function Ebook({ items = defaultItems, shelfUrl = GUMROAD_SHELF }) {
+// =====================================================
+// PREMIUM BOXING E-BOOK PAGE
+// Designed as a luxury product shelf with strong hook,
+// trust signals, curiosity copy, and clean Gumroad CTAs.
+// =====================================================
+export default function Ebook({
+  items = defaultItems,
+  shelfUrl = GUMROAD_SHELF,
+}) {
   return (
     <Wrap>
       <Hero
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
       >
-        <Tag>KnockoutCodes E-Books</Tag>
-        <Title>Premium Boxing E-Books</Title>
+        <Eyebrow>KnockoutCodes • Premium Boxing Library</Eyebrow>
+
+        <Title>
+          Most Fighters Train Hard.
+          <span> Few Train With A Blueprint.</span>
+        </Title>
+
         <Sub>
-          Instant downloads. Pro techniques, clean layouts, and step-by-step drills that hit harder.
-          Learn, train, repeat — then level up.
+          Premium boxing e-books built for fighters, beginners, coaches, and
+          disciplined people who want sharper technique, stronger fight IQ, and
+          a more professional training system.
         </Sub>
+
+        <HeroActions>
+          <PrimaryHeroCta
+            href={shelfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View all KnockoutCodes boxing e-books on Gumroad"
+            whileHover={{ y: -2 }}
+            whileTap={{ y: 0 }}
+          >
+            Enter The Boxing Library
+          </PrimaryHeroCta>
+
+          <TrustLine>
+            Instant access • Secure checkout • Train at your pace
+          </TrustLine>
+        </HeroActions>
+
         <Badges>
-          <Badge>Instant Access</Badge>
-          <Badge>Secure Checkout</Badge>
-          <Badge>Lifetime Updates</Badge>
+          <Badge>Premium PDFs</Badge>
+          <Badge>Step-by-step drills</Badge>
+          <Badge>Fight IQ focused</Badge>
+          <Badge>Beginner to advanced</Badge>
         </Badges>
       </Hero>
 
       <Grid
         initial="hidden"
         whileInView="show"
-        viewport={{ once: true, amount: 0.2 }}
+        viewport={{ once: true, amount: 0.18 }}
         variants={{
           hidden: { opacity: 0 },
           show: {
             opacity: 1,
-            transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+            transition: { staggerChildren: 0.08, delayChildren: 0.12 },
           },
         }}
       >
-        {items.map((b) => (
+        {items.map((book) => (
           <Card
-            key={b.id}
-            variants={{ hidden: { y: 18, opacity: 0 }, show: { y: 0, opacity: 1 } }}
-            whileHover={{ y: -6, rotateX: 0.5, rotateY: -0.5 }}
+            key={book.id}
+            variants={{
+              hidden: { y: 18, opacity: 0 },
+              show: { y: 0, opacity: 1 },
+            }}
+            whileHover={{ y: -7 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
           >
-            <CardGlow aria-hidden />
+            <CardGlow aria-hidden="true" />
+
             <Thumb>
+              <ProductBadge>{book.badge}</ProductBadge>
+
               <img
-                src={b.image}
-                alt={`${b.title} cover`}
+                src={book.image}
+                alt={`${book.title} cover`}
                 width={800}
                 height={620}
                 loading="lazy"
               />
-              <Shine aria-hidden />
+
+              <Shine aria-hidden="true" />
             </Thumb>
 
             <CardBody>
-              <CardTitle>{b.title}</CardTitle>
+              <CardTitle>{book.title}</CardTitle>
+              <CardHook>{book.hook}</CardHook>
 
               <Highlights>
-                {(b.highlights || []).slice(0, 3).map((h, i) => (
-                  <li key={i}>• {h}</li>
+                {(book.highlights || []).slice(0, 3).map((highlight, index) => (
+                  <li key={`${book.id}-${index}`}>{highlight}</li>
                 ))}
               </Highlights>
 
               <MetaRow>
-                <Price>${Number(b.price).toFixed(2)}</Price>
-                <Ctas>
-                  <BuyButton
-                    as="a"
-                    href={b.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Buy ${b.title} on Gumroad`}
-                  >
-                    Buy on Gumroad
-                  </BuyButton>
-                </Ctas>
+                <Price>${Number(book.price).toFixed(2)}</Price>
+
+                <BuyButton
+                  as="a"
+                  href={book.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Buy ${book.title} on Gumroad`}
+                >
+                  Get Ebook
+                </BuyButton>
               </MetaRow>
             </CardBody>
           </Card>
@@ -151,45 +227,60 @@ export default function Ebook({ items = defaultItems, shelfUrl = GUMROAD_SHELF }
 
       <InfoStrip>
         <InfoItem>
-          <InfoTitle>What you get</InfoTitle>
+          <InfoKicker>01</InfoKicker>
+          <InfoTitle>What You Get</InfoTitle>
           <InfoText>
-            PDF e-book, lifetime access, structured chapters, drills & checklists, and bonus links to
-            follow-along videos where available.
+            Clean PDF training guides, structured chapters, boxing drills,
+            checklists, and clear cues you can use immediately.
           </InfoText>
         </InfoItem>
+
         <InfoItem>
-          <InfoTitle>Who it’s for</InfoTitle>
+          <InfoKicker>02</InfoKicker>
+          <InfoTitle>Who It’s For</InfoTitle>
           <InfoText>
-            Beginners leveling up fundamentals, and pros tightening technique — clear cues, fight IQ,
-            and conditioning bursts built in.
+            Beginners, disciplined athletes, fitness fighters, and boxers who
+            want more than random workouts.
           </InfoText>
         </InfoItem>
+
         <InfoItem>
-          <InfoTitle>Results</InfoTitle>
+          <InfoKicker>03</InfoKicker>
+          <InfoTitle>The Result</InfoTitle>
           <InfoText>
-            Sharper form, cleaner power, smarter footwork, and higher ring confidence. Train with intent.
+            Sharper fundamentals, smarter training, cleaner power, better
+            conditioning, and stronger confidence.
           </InfoText>
         </InfoItem>
       </InfoStrip>
 
-      <MotionShelfCta
-        href={shelfUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Browse all KnockoutCodes e-books on Gumroad"
-        whileHover={{ y: -2 }}
-        whileTap={{ y: 0 }}
-      >
-        Purchase • View All on Gumroad
-      </MotionShelfCta>
+      <ClosingCta>
+        <ClosingTitle>Build The Fighter Before The Fight.</ClosingTitle>
+        <ClosingText>
+          Choose the blueprint that matches your level, then train with purpose.
+        </ClosingText>
+
+        <MotionShelfCta
+          href={shelfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Browse all KnockoutCodes e-books on Gumroad"
+          whileHover={{ y: -2 }}
+          whileTap={{ y: 0 }}
+        >
+          View All E-Books On Gumroad
+        </MotionShelfCta>
+      </ClosingCta>
     </Wrap>
   );
 }
 
-// =======================
-// Styled
-// =======================
-const Wrap = styled.div`
+// =====================================================
+// LUXURY STYLED COMPONENTS
+// Dark cocoa atmosphere, ivory highlights, premium cards,
+// clean mobile layout, and high-trust checkout buttons.
+// =====================================================
+const Wrap = styled.main`
   --bg: ${({ theme }) => theme.colors.darkBrown};
   --surface: ${({ theme }) => theme.colors.brown};
   --accent: ${({ theme }) => theme.colors.lightBrown};
@@ -204,55 +295,106 @@ const Wrap = styled.div`
   --shadow-glow: ${({ theme }) => theme.shadow.glow};
   --max: ${({ theme }) => theme.layout.max};
 
-  background: radial-gradient(1200px 800px at 20% 0%, rgba(214,182,159,0.12), transparent 60%),
-              radial-gradient(800px 600px at 90% 10%, rgba(214,182,159,0.08), transparent 60%),
-              var(--bg);
   min-height: 100%;
+  padding: 78px 24px 96px;
   color: var(--ivory);
-  padding: 72px 24px 96px;
   display: grid;
   place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(214, 182, 159, 0.16), transparent 34%),
+    radial-gradient(circle at 85% 8%, rgba(255, 249, 242, 0.08), transparent 30%),
+    linear-gradient(180deg, #160b06 0%, var(--bg) 42%, #080403 100%);
 `;
 
 const Hero = styled(motion.header)`
-  max-width: var(--max);
   width: 100%;
+  max-width: var(--max);
   text-align: center;
-  margin-bottom: 36px;
+  margin-bottom: 42px;
 `;
 
-const Tag = styled.span`
-  display: inline-block;
-  padding: 6px 12px;
+const Eyebrow = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: var(--glass);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,0.08);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(214, 182, 159, 0.28);
   color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.25);
 `;
 
 const Title = styled.h1`
-  margin: 14px 0 10px;
-  font-size: clamp(32px, 5vw, 54px);
-  line-height: 1.05;
-  background: linear-gradient(180deg, var(--ivory), var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.12);
+  max-width: 980px;
+  margin: 18px auto 14px;
+  font-size: clamp(38px, 6vw, 76px);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+  color: var(--ivory);
+
+  span {
+    display: block;
+    background: linear-gradient(180deg, var(--ivory), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 `;
 
 const Sub = styled.p`
   max-width: 820px;
   margin: 0 auto;
-  opacity: 0.9;
+  color: rgba(255, 249, 242, 0.82);
+  font-size: clamp(15px, 1.7vw, 18px);
+  line-height: 1.75;
+`;
+
+const HeroActions = styled.div`
+  margin-top: 22px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+`;
+
+const PrimaryHeroCta = styled(motion.a)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 24px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: linear-gradient(180deg, var(--ivory) 0%, var(--accent) 100%);
+  color: var(--black);
+  border: 1px solid rgba(255, 249, 242, 0.6);
+  text-decoration: none;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+  box-shadow:
+    0 18px 46px rgba(214, 182, 159, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+
+  &:focus-visible {
+    outline: 0;
+    box-shadow:
+      0 0 0 3px rgba(0, 0, 0, 0.8),
+      0 0 0 5px var(--ivory),
+      0 18px 46px rgba(214, 182, 159, 0.35);
+  }
+`;
+
+const TrustLine = styled.p`
+  margin: 0;
+  color: rgba(255, 249, 242, 0.62);
+  font-size: 13px;
 `;
 
 const Badges = styled.div`
-  margin-top: 16px;
+  margin-top: 20px;
   display: inline-flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -261,260 +403,337 @@ const Badges = styled.div`
 
 const Badge = styled.span`
   font-size: 12px;
-  padding: 6px 10px;
+  padding: 7px 11px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--ivory);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.065),
+    rgba(255, 255, 255, 0.025)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: rgba(255, 249, 242, 0.88);
 `;
 
 const Grid = styled(motion.section)`
-  max-width: var(--max);
   width: 100%;
-  margin: 22px auto 40px;
+  max-width: var(--max);
+  margin: 24px auto 42px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1080px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
   }
 `;
 
 const Card = styled(motion.article)`
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-glow);
-  overflow: hidden;
   position: relative;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.065),
+    rgba(255, 255, 255, 0.025)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  box-shadow: var(--shadow-glow);
   transform-style: preserve-3d;
-  transition: box-shadow 220ms ease;
 
   &:hover {
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 24px 60px rgba(0,0,0,0.35);
+    border-color: rgba(214, 182, 159, 0.34);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 26px 70px rgba(0, 0, 0, 0.45);
   }
 `;
 
 const CardGlow = styled.i`
   position: absolute;
   inset: -2px;
-  border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(600px 200px at 30% 0%, rgba(214,182,159,0.22), transparent 50%),
-              radial-gradient(400px 160px at 80% 0%, rgba(214,182,159,0.15), transparent 50%);
+  border-radius: inherit;
+  background:
+    radial-gradient(520px 180px at 30% 0%, rgba(214, 182, 159, 0.22), transparent 52%),
+    radial-gradient(380px 150px at 85% 0%, rgba(255, 249, 242, 0.08), transparent 55%);
 `;
 
-/* ===== UPDATED: taller, clearer images + hover effects + strike-through line ===== */
 const Thumb = styled.div`
   position: relative;
   width: 100%;
-  height: 420px;                /* much taller for clear visibility */
-  background: var(--cocoa);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  height: 430px;
   overflow: hidden;
-  cursor: pointer;
-
-  /* strike-through line (hidden until hover) */
-  &::after {
-    content: "";
-    position: absolute;
-    left: -8%;
-    right: -8%;
-    top: 50%;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.8);
-    transform: translateY(-50%) scaleX(0);
-    transform-origin: center;
-    transition: transform 380ms cubic-bezier(0.22,1,0.36,1);
-    pointer-events: none;
-  }
+  background:
+    radial-gradient(circle at 50% 0%, rgba(214, 182, 159, 0.16), transparent 42%),
+    var(--cocoa);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
   img {
     width: 100%;
     height: 100%;
-    object-fit: contain;        /* keeps full cover artwork visible */
-    transform: scale(1.02);
-    transition: transform 380ms cubic-bezier(0.22,1,0.36,1), filter 220ms ease;
+    object-fit: contain;
     display: block;
+    padding: 12px;
+    transform: scale(1.015);
+    transition:
+      transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 220ms ease;
   }
 
   ${Card}:hover & img {
-    transform: scale(1.07);
-    filter: brightness(1.06);
-  }
-
-  ${Card}:hover &::after {
-    transform: translateY(-50%) scaleX(1);  /* show strike-through on hover */
+    transform: scale(1.06);
+    filter: brightness(1.07) contrast(1.03);
   }
 
   @media (max-width: 720px) {
-    height: 360px;
+    height: 370px;
   }
 `;
 
+const ProductBadge = styled.span`
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  left: 14px;
+  padding: 7px 11px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(0, 0, 0, 0.66);
+  color: var(--accent);
+  border: 1px solid rgba(214, 182, 159, 0.34);
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
 const Shine = styled.span`
-  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.06) 35%, transparent 52%);
-  transform: translateX(-60%);
-  transition: transform 600ms cubic-bezier(0.22,1,0.36,1);
-  ${Card}:hover & { transform: translateX(0%); }
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.08) 36%,
+    transparent 54%
+  );
+  transform: translateX(-70%);
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  ${Card}:hover & {
+    transform: translateX(18%);
+  }
 `;
 
 const CardBody = styled.div`
-  padding: 16px 16px 18px;
+  position: relative;
+  z-index: 2;
+  padding: 18px 18px 20px;
 `;
 
 const CardTitle = styled.h3`
-  font-size: 18px;
-  line-height: 1.25;
+  margin: 0 0 7px;
   color: var(--ivory);
-  margin: 2px 0 10px;
+  font-size: 19px;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+`;
+
+const CardHook = styled.p`
+  margin: 0 0 13px;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 700;
 `;
 
 const Highlights = styled.ul`
-  margin: 0 0 14px;
-  padding-left: 0;
+  margin: 0 0 16px;
+  padding: 0;
   list-style: none;
-  color: rgba(255,255,255,0.8);
-  font-size: 14px;
   display: grid;
-  gap: 4px;
+  gap: 7px;
+  color: rgba(255, 249, 242, 0.82);
+  font-size: 14px;
+
+  li {
+    position: relative;
+    padding-left: 18px;
+  }
+
+  li::before {
+    content: "✦";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--accent);
+    font-size: 12px;
+  }
 `;
 
 const MetaRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 14px;
+
+  @media (max-width: 420px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
 `;
 
 const Price = styled.div`
-  font-weight: 700;
-  font-size: 18px;
   color: var(--accent);
-`;
-
-const Ctas = styled.div`
-  display: inline-flex;
-  gap: 8px;
+  font-size: 20px;
+  font-weight: 950;
 `;
 
 const BuyButton = styled(motion.button)`
-  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 12px 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(214, 182, 159, 0.7);
+  border: 1px solid rgba(214, 182, 159, 0.72);
   background: linear-gradient(180deg, var(--ivory) 0%, var(--accent) 100%);
   color: var(--black);
-  font-weight: 800;
+  font-weight: 950;
   letter-spacing: 0.02em;
   cursor: pointer;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   box-shadow:
-    0 10px 24px rgba(214, 182, 159, 0.35),
-    inset 0 0 0 1px rgba(255,255,255,0.45);
-  transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+    0 12px 28px rgba(214, 182, 159, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    box-shadow 150ms ease;
 
   &:hover {
     transform: translateY(-2px);
-    filter: brightness(1.04);
+    filter: brightness(1.05);
     box-shadow:
-      0 14px 34px rgba(214, 182, 159, 0.45),
-      inset 0 0 0 1px rgba(255,255,255,0.55);
+      0 16px 36px rgba(214, 182, 159, 0.42),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.55);
   }
 
   &:active {
     transform: translateY(0);
-    filter: brightness(0.98);
   }
 
   &:focus-visible {
     outline: 0;
     box-shadow:
-      0 0 0 2px rgba(0,0,0,0.8),
+      0 0 0 2px rgba(0, 0, 0, 0.8),
       0 0 0 4px var(--ivory),
-      0 12px 28px rgba(214,182,159,0.5);
+      0 14px 34px rgba(214, 182, 159, 0.46);
   }
 `;
 
 const InfoStrip = styled.section`
-  max-width: var(--max);
   width: 100%;
-  margin: 8px auto 22px;
+  max-width: var(--max);
+  margin: 8px auto 28px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  @media (max-width: 720px) {
+  @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
 const InfoItem = styled.div`
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 20px;
   border-radius: var(--r-lg);
-  padding: 16px 16px 18px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.025)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.09);
+`;
+
+const InfoKicker = styled.span`
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: rgba(214, 182, 159, 0.72);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
 `;
 
 const InfoTitle = styled.h4`
-  margin: 0 0 6px;
+  margin: 0 0 7px;
   color: var(--accent);
+  font-size: 17px;
 `;
 
 const InfoText = styled.p`
   margin: 0;
-  color: rgba(255,255,255,0.86);
+  color: rgba(255, 249, 242, 0.83);
+  line-height: 1.65;
+`;
+
+const ClosingCta = styled.section`
+  width: 100%;
+  max-width: 880px;
+  text-align: center;
+  margin-top: 18px;
+  padding: 30px 20px 0;
+`;
+
+const ClosingTitle = styled.h2`
+  margin: 0 0 8px;
+  color: var(--ivory);
+  font-size: clamp(26px, 4vw, 44px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+`;
+
+const ClosingText = styled.p`
+  margin: 0 auto 20px;
+  max-width: 620px;
+  color: rgba(255, 249, 242, 0.75);
+  line-height: 1.65;
 `;
 
 const ShelfCtaBase = styled.a`
-  margin-top: 18px;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 22px;
+  justify-content: center;
+  padding: 16px 24px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: linear-gradient(180deg, var(--ivory) 0%, var(--accent) 100%);
-  border: 1px solid rgba(214, 182, 159, 0.7);
+  border: 1px solid rgba(214, 182, 159, 0.72);
   color: var(--black);
-  font-weight: 900;
+  font-weight: 950;
   text-decoration: none;
-  box-shadow:
-    0 12px 28px rgba(214, 182, 159, 0.4),
-    inset 0 0 0 1px rgba(255,255,255,0.45);
   letter-spacing: 0.02em;
-  will-change: transform, filter, box-shadow;
+  box-shadow:
+    0 16px 38px rgba(214, 182, 159, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 
   &:hover {
     filter: brightness(1.05);
-    transform: translateY(-2px);
     box-shadow:
-      0 16px 36px rgba(214, 182, 159, 0.5),
-      inset 0 0 0 1px rgba(255,255,255,0.55);
-  }
-
-  &:active {
-    transform: translateY(0);
-    filter: brightness(0.98);
+      0 20px 48px rgba(214, 182, 159, 0.48),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.55);
   }
 
   &:focus-visible {
     outline: 0;
     box-shadow:
-      0 0 0 2px rgba(0,0,0,0.8),
+      0 0 0 2px rgba(0, 0, 0, 0.8),
       0 0 0 4px var(--ivory),
-      0 16px 40px rgba(214,182,159,0.55);
+      0 18px 46px rgba(214, 182, 159, 0.5);
   }
 `;
 

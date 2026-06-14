@@ -4,26 +4,31 @@ import mongoose from "mongoose";
 /**
  * Enrollment Model
  * ----------------
- * Stores course access for a user after a successful purchase
- * or after membership-based access is verified.
+ * Stores course access after:
+ * 1. Single course purchase
+ * 2. Free course access
+ * 3. Admin manual enrollment
+ *
+ * IMPORTANT:
+ * Membership subscriptions should NOT create permanent enrollments.
+ * Membership access is checked from UserSubscription.
  */
 const enrollmentSchema = new mongoose.Schema(
   {
-    // User who owns this course enrollment
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Enrollment must belong to a user"],
+      index: true,
     },
 
-    // Course connected to this enrollment
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
       required: [true, "Enrollment must belong to a course"],
+      index: true,
     },
 
-    // Stripe checkout session used for payment verification
     stripeSessionId: {
       type: String,
       trim: true,
@@ -32,7 +37,20 @@ const enrollmentSchema = new mongoose.Schema(
       default: undefined,
     },
 
-    // Amount paid during checkout
+    stripePaymentIntentId: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+
+    stripeCustomerId: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+
     pricePaid: {
       type: Number,
       required: true,
@@ -40,7 +58,6 @@ const enrollmentSchema = new mongoose.Schema(
       min: [0, "Price paid cannot be negative"],
     },
 
-    // Payment currency
     currency: {
       type: String,
       trim: true,
@@ -49,15 +66,13 @@ const enrollmentSchema = new mongoose.Schema(
       maxlength: 10,
     },
 
-    // How the course access was granted
     paymentPlan: {
       type: String,
-      enum: ["one-time", "monthly", "yearly", "lifetime"],
+      enum: ["one-time", "monthly", "yearly", "lifetime", "free"],
       default: "one-time",
       index: true,
     },
 
-    // Payment verification status
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
@@ -65,7 +80,6 @@ const enrollmentSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Enrollment access status
     status: {
       type: String,
       enum: ["active", "completed", "cancelled", "expired"],
@@ -73,15 +87,20 @@ const enrollmentSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Optional rating attached to the enrollment
+    accessType: {
+      type: String,
+      enum: ["single-course", "free", "admin"],
+      default: "single-course",
+      index: true,
+    },
+
     rating: {
       type: Number,
       min: [1, "Rating must be at least 1"],
       max: [5, "Rating cannot be more than 5"],
-      default: 5,
+      default: null,
     },
 
-    // Optional review/comment
     review: {
       type: String,
       trim: true,
@@ -89,7 +108,6 @@ const enrollmentSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Course progress percentage
     progressPercent: {
       type: Number,
       min: [0, "Progress cannot be negative"],
@@ -97,7 +115,6 @@ const enrollmentSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Enrollment timeline
     startedAt: {
       type: Date,
       default: Date.now,
@@ -124,20 +141,42 @@ const enrollmentSchema = new mongoose.Schema(
   }
 );
 
-/**
- * Prevent duplicate course enrollments for the same user.
- */
+/* ======================================================
+   CLEANUP
+====================================================== */
+
+enrollmentSchema.pre("validate", function (next) {
+  if (this.currency) {
+    this.currency = String(this.currency).trim().toUpperCase();
+  }
+
+  if (this.progressPercent >= 100 && this.status !== "completed") {
+    this.status = "completed";
+    this.completedAt = this.completedAt || new Date();
+  }
+
+  if (this.status === "completed" && !this.completedAt) {
+    this.completedAt = new Date();
+  }
+
+  if (this.expiresAt && new Date(this.expiresAt).getTime() < Date.now()) {
+    this.status = "expired";
+  }
+
+  next();
+});
+
+/* ======================================================
+   INDEXES
+====================================================== */
+
 enrollmentSchema.index({ user: 1, course: 1 }, { unique: true });
 
-/**
- * Speed up dashboard and "My Courses" queries.
- */
 enrollmentSchema.index({ user: 1, status: 1, createdAt: -1 });
 enrollmentSchema.index({ course: 1, status: 1 });
+enrollmentSchema.index({ user: 1, paymentStatus: 1, status: 1 });
+enrollmentSchema.index({ course: 1, paymentStatus: 1, status: 1 });
 
-/**
- * Prevent model overwrite errors during development/hot reload.
- */
 const Enrollment =
   mongoose.models.Enrollment ||
   mongoose.model("Enrollment", enrollmentSchema);

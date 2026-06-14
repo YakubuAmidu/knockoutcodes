@@ -279,8 +279,14 @@ export default function UserDashboard() {
 >
   My Courses
               </GhostButton>
-              <GhostButton type="button" onClick={() => navigate("/dashboard/orders")}>
+              <GhostButton type="button" onClick={() => navigate("/dashboard/products")}>
   My Products
+              </GhostButton>
+              <GhostButton
+  type="button"
+  onClick={() => navigate("/my-messages")}
+>
+  My Messages
 </GhostButton>
               <GhostButton type="button" onClick={() => navigate("/courses")}>
                 Explore Courses
@@ -484,9 +490,9 @@ export default function UserDashboard() {
                 <InfoCard>
                   <InfoLabel>Products</InfoLabel>
                   <InfoValue>{stats?.productsCount ?? 0} items</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/products")}>
-                    View Products
-                  </SmallButton>
+                  <SmallButton type="button" onClick={() => navigate("/dashboard/products")}>
+  My Products
+</SmallButton>
                 </InfoCard>
 
                 <InfoCard>

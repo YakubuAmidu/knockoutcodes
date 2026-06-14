@@ -33,15 +33,34 @@ export default function AdminRoute() {
     return <div style={{ minHeight: "60vh" }} />;
   }
 
-  if (!isAuthenticated || user?.isActive === false) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{ from: getReturnTo(location) }}
-      />
-    );
-  }
+  if (!isAuthenticated) {
+  return (
+    <Navigate
+      to="/login"
+      replace
+      state={{ from: getReturnTo(location) }}
+    />
+  );
+}
+
+if (
+  user?.isDeleted === true ||
+  user?.isActive === false ||
+  user?.accountStatus !== "active"
+) {
+  return (
+    <Navigate
+      to="/account-access-notice"
+      replace
+      state={{
+        accountStatus: user?.accountStatus || "restricted",
+        message:
+          user?.statusReason ||
+          "Your account access has been restricted.",
+      }}
+    />
+  );
+}
 
   if (!isAdmin) {
     return <Navigate to="/user-profile" replace />;

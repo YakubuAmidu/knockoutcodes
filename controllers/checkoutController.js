@@ -17,10 +17,6 @@ const asyncHandler = (fn) => async (req, res, next) => {
 // eslint-disable-next-line no-undef
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
 
-if (!STRIPE_KEY) {
-  console.error("❌ STRIPE_SECRET_KEY is missing in your .env");
-}
-
 const stripe = new Stripe(STRIPE_KEY || "");
 
 function normalizeLevel(value) {
@@ -63,7 +59,7 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
   if (!STRIPE_KEY) {
     return res.status(500).json({
       success: false,
-      message: "Stripe is not configured. Missing STRIPE_SECRET_KEY in .env",
+      message: "Payment service is not configured.",
     });
   }
 
@@ -173,8 +169,15 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     // ✅ Helps Stripe show shipping-related customer info
     billing_address_collection: "auto",
 
-    success_url: `${FRONTEND_URL}/product/success?session_id={CHECKOUT_SESSION_ID}&kind=products`,
-    cancel_url: `${FRONTEND_URL}/cart`,
+  success_url:
+  `${FRONTEND_URL}/order/success` +
+  `?session_id={CHECKOUT_SESSION_ID}` +
+  `&kind=products`,
+
+cancel_url:
+  `${FRONTEND_URL}/order/failed` +
+  `?canceled=true` +
+  `&kind=products`,
 
     metadata: {
       type: "products",
@@ -200,7 +203,7 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
   if (!STRIPE_KEY) {
     return res.status(500).json({
       success: false,
-      message: "Stripe is not configured. Missing STRIPE_SECRET_KEY in .env",
+      message: "Payment service is not configured.",
     });
   }
 

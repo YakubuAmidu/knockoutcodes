@@ -14,11 +14,19 @@ export function emailTemplateReducer(
         successMessage: null,
       };
 
+    case EMAIL_TEMPLATE_ACTIONS.DETAILS_REQUEST:
+      return {
+        ...state,
+        detailsLoading: true,
+        error: null,
+      };
+
     case EMAIL_TEMPLATE_ACTIONS.CREATE_REQUEST:
       return {
         ...state,
         creating: true,
         error: null,
+        success: false,
         successMessage: null,
       };
 
@@ -27,6 +35,7 @@ export function emailTemplateReducer(
         ...state,
         updating: true,
         error: null,
+        success: false,
         successMessage: null,
       };
 
@@ -35,6 +44,7 @@ export function emailTemplateReducer(
         ...state,
         deleting: true,
         error: null,
+        success: false,
         successMessage: null,
       };
 
@@ -42,7 +52,24 @@ export function emailTemplateReducer(
       return {
         ...state,
         loading: false,
-        templates: action.payload || [],
+        templates: action.payload?.templates || [],
+        summary: {
+          ...state.summary,
+          ...(action.payload?.summary || {}),
+        },
+        pagination: {
+          ...state.pagination,
+          ...(action.payload?.pagination || {}),
+        },
+        error: null,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.DETAILS_SUCCESS:
+      return {
+        ...state,
+        detailsLoading: false,
+        selectedTemplate: action.payload,
+        error: null,
       };
 
     case EMAIL_TEMPLATE_ACTIONS.CREATE_SUCCESS:
@@ -50,6 +77,7 @@ export function emailTemplateReducer(
         ...state,
         creating: false,
         templates: [action.payload, ...state.templates],
+        success: true,
         successMessage: "Template created successfully",
       };
 
@@ -64,6 +92,7 @@ export function emailTemplateReducer(
           state.selectedTemplate?._id === action.payload._id
             ? action.payload
             : state.selectedTemplate,
+        success: true,
         successMessage: "Template updated successfully",
       };
 
@@ -74,6 +103,11 @@ export function emailTemplateReducer(
         templates: state.templates.filter(
           (template) => template._id !== action.payload
         ),
+        selectedTemplate:
+          state.selectedTemplate?._id === action.payload
+            ? null
+            : state.selectedTemplate,
+        success: true,
         successMessage: "Template deleted successfully",
       };
 
@@ -81,6 +115,13 @@ export function emailTemplateReducer(
       return {
         ...state,
         loading: false,
+        error: action.payload,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.DETAILS_FAIL:
+      return {
+        ...state,
+        detailsLoading: false,
         error: action.payload,
       };
 
@@ -111,6 +152,55 @@ export function emailTemplateReducer(
         selectedTemplate: action.payload,
       };
 
+    case EMAIL_TEMPLATE_ACTIONS.CLEAR_SELECTED:
+      return {
+        ...state,
+        selectedTemplate: null,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.SET_SEARCH:
+      return {
+        ...state,
+        search: action.payload,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.SET_CATEGORY:
+      return {
+        ...state,
+        category: action.payload,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.SET_STATUS:
+      return {
+        ...state,
+        status: action.payload,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.SET_SORT:
+      return {
+        ...state,
+        sort: action.payload,
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.SET_PAGE:
+      return {
+        ...state,
+        pagination: {
+          ...state.pagination,
+          page: action.payload,
+        },
+      };
+
+    case EMAIL_TEMPLATE_ACTIONS.SET_LIMIT:
+      return {
+        ...state,
+        pagination: {
+          ...state.pagination,
+          limit: action.payload,
+          page: 1,
+        },
+      };
+
     case EMAIL_TEMPLATE_ACTIONS.CLEAR_ERROR:
       return {
         ...state,
@@ -120,6 +210,7 @@ export function emailTemplateReducer(
     case EMAIL_TEMPLATE_ACTIONS.RESET_SUCCESS:
       return {
         ...state,
+        success: false,
         successMessage: null,
       };
 

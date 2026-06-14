@@ -1,24 +1,21 @@
-// models/MembershipModel.js
 import mongoose from "mongoose";
 
 const MEMBERSHIP_LEVELS = ["beginner", "intermediate", "advance", "complete"];
 
-/**
- * Creates a clean URL-safe slug.
- */
+function sanitizeText(value) {
+  if (value == null) return "";
+  return String(value).replace(/\s+/g, " ").trim();
+}
+
 function generateSlug(input = "") {
-  return String(input)
+  return sanitizeText(input)
     .toLowerCase()
-    .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-/**
- * Normalizes membership levels.
- */
 function normalizeLevel(value = "") {
-  const clean = String(value).trim().toLowerCase();
+  const clean = sanitizeText(value).toLowerCase();
 
   if (clean === "advanced") return "advance";
   if (clean.includes("beginner")) return "beginner";
@@ -29,15 +26,27 @@ function normalizeLevel(value = "") {
   return clean;
 }
 
-/**
- * Membership Model
- * ----------------
- * Stores public membership plans and Stripe recurring price IDs.
- * These plans control which course level a user can unlock.
- */
+async function createUniqueSlug(doc, baseValue) {
+  const base = generateSlug(baseValue) || generateSlug(doc.membershipId) || "membership";
+
+  let slug = base;
+  let count = 0;
+
+  while (
+    await mongoose.models.Membership.exists({
+      slug,
+      _id: { $ne: doc._id },
+    })
+  ) {
+    count += 1;
+    slug = `${base}-${count}`;
+  }
+
+  return slug;
+}
+
 const membershipSchema = new mongoose.Schema(
   {
-    // System-safe ID used for access checks
     membershipId: {
       type: String,
       required: [true, "Membership id is required"],
@@ -45,83 +54,83 @@ const membershipSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       enum: MEMBERSHIP_LEVELS,
+      set: normalizeLevel,
     },
 
-    // Course access level this membership unlocks
     accessLevel: {
       type: String,
       required: [true, "Access level is required"],
       trim: true,
       lowercase: true,
       enum: MEMBERSHIP_LEVELS,
+      set: normalizeLevel,
     },
 
-    // Public title shown on membership cards
     title: {
       type: String,
       required: [true, "Title is required"],
       trim: true,
       minlength: [3, "Title must be at least 3 characters"],
       maxlength: [180, "Title cannot exceed 180 characters"],
+      set: sanitizeText,
     },
 
-    // Instructor/academy name
     instructor: {
       type: String,
       trim: true,
       maxlength: [120, "Instructor cannot exceed 120 characters"],
       default: "KnockoutCodes Academy",
+      set: sanitizeText,
     },
 
-    // Default display price
     priceLabel: {
       type: String,
       required: [true, "Price label is required"],
       trim: true,
       maxlength: [60, "Price label cannot exceed 60 characters"],
+      set: sanitizeText,
     },
 
-    // Monthly display price
     monthlyPriceLabel: {
       type: String,
       trim: true,
       maxlength: [60, "Monthly price label cannot exceed 60 characters"],
       default: "",
+      set: sanitizeText,
     },
 
-    // Yearly display price
     yearlyPriceLabel: {
       type: String,
       trim: true,
       maxlength: [60, "Yearly price label cannot exceed 60 characters"],
       default: "",
+      set: sanitizeText,
     },
 
-    // Default Stripe price ID, usually monthly
     stripePriceId: {
       type: String,
       trim: true,
-      maxlength: [120, "Stripe price ID cannot exceed 120 characters"],
+      maxlength: [160, "Stripe price ID cannot exceed 160 characters"],
       default: "",
+      set: sanitizeText,
     },
 
-    // Stripe recurring monthly price ID
     stripePriceIdMonthly: {
       type: String,
       trim: true,
-      maxlength: [120, "Monthly Stripe price ID cannot exceed 120 characters"],
+      maxlength: [160, "Monthly Stripe price ID cannot exceed 160 characters"],
       default: "",
+      set: sanitizeText,
     },
 
-    // Stripe recurring yearly price ID
     stripePriceIdYearly: {
       type: String,
       trim: true,
-      maxlength: [120, "Yearly Stripe price ID cannot exceed 120 characters"],
+      maxlength: [160, "Yearly Stripe price ID cannot exceed 160 characters"],
       default: "",
+      set: sanitizeText,
     },
 
-    // Public trust rating shown on card
     rating: {
       type: Number,
       min: [0, "Rating cannot be negative"],
@@ -129,88 +138,100 @@ const membershipSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Public enrolled/student count
+    ratingAverage: {
+  type: Number,
+  default: 0,
+  min: 0,
+  max: 5,
+},
+
+ratingCount: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+
     enrolled: {
       type: Number,
       min: [0, "Enrolled count cannot be negative"],
       default: 0,
     },
 
-    // Short marketing description
     short: {
       type: String,
       required: [true, "Short description is required"],
       trim: true,
       minlength: [10, "Short description must be at least 10 characters"],
       maxlength: [700, "Short description cannot exceed 700 characters"],
+      set: sanitizeText,
     },
 
-    // Card bullet points
     meta: {
       type: [String],
       default: [],
+      validate: {
+        validator(value) {
+          return Array.isArray(value) && value.length <= 12;
+        },
+        message: "Meta cannot exceed 12 items",
+      },
     },
 
-    // Small card symbol
     glyph: {
       type: String,
       trim: true,
       maxlength: [8, "Glyph cannot exceed 8 characters"],
       default: "KC",
+      set: sanitizeText,
     },
 
-    // Left card badge
     badgeLeft: {
       type: String,
       trim: true,
       maxlength: [40, "Left badge cannot exceed 40 characters"],
       default: "KnockoutCodes",
+      set: sanitizeText,
     },
 
-    // Right card badge
     badgeRight: {
       type: String,
       trim: true,
       maxlength: [40, "Right badge cannot exceed 40 characters"],
       default: "Membership",
+      set: sanitizeText,
     },
 
-    // Marks featured/highlighted plan
     highlight: {
       type: Boolean,
       default: false,
       index: true,
     },
 
-    // Public URL slug
     slug: {
       type: String,
       trim: true,
       lowercase: true,
       unique: true,
-      index: true,
     },
 
-    // Controls public visibility
     isPublished: {
       type: Boolean,
       default: true,
       index: true,
     },
 
-    // Controls featured sorting/placement
     isFeatured: {
       type: Boolean,
       default: false,
     },
 
-    // Manual sort order
     sortOrder: {
       type: Number,
       default: 0,
+      min: [-9999, "Sort order is too low"],
+      max: [9999, "Sort order is too high"],
     },
 
-    // Admin who created the plan
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -223,9 +244,6 @@ const membershipSchema = new mongoose.Schema(
   }
 );
 
-/**
- * Normalize fields before validation.
- */
 membershipSchema.pre("validate", function (next) {
   if (this.membershipId) {
     this.membershipId = normalizeLevel(this.membershipId);
@@ -249,97 +267,100 @@ membershipSchema.pre("validate", function (next) {
 
   if (Array.isArray(this.meta)) {
     this.meta = this.meta
-      .map((item) => String(item || "").trim())
+      .map((item) => sanitizeText(item))
       .filter(Boolean)
       .slice(0, 12);
   }
 
+  this.rating = Math.max(0, Math.min(5, Number(this.rating || 0)));
+  this.enrolled = Math.max(0, Math.floor(Number(this.enrolled || 0)));
+
   next();
 });
 
-/**
- * Generate unique slug before saving.
- */
 membershipSchema.pre("save", async function (next) {
-  if (this.isModified("membershipId") || this.isModified("title") || !this.slug) {
-    const base = generateSlug(this.membershipId || this.title);
-
-    let slug = base;
-    let count = 0;
-
-    while (
-      await mongoose.models.Membership.exists({
-        slug,
-        _id: { $ne: this._id },
-      })
-    ) {
-      count += 1;
-      slug = `${base}-${count}`;
+  try {
+    if (this.isModified("membershipId") || this.isModified("title") || !this.slug) {
+      this.slug = await createUniqueSlug(this, this.membershipId || this.title);
     }
 
-    this.slug = slug;
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  next();
 });
 
-/**
- * Normalize safe update fields and regenerate slug when needed.
- */
-membershipSchema.pre("findOneAndUpdate", function (next) {
-  const update = this.getUpdate() || {};
-  const $set = update.$set || update;
+membershipSchema.pre("findOneAndUpdate", async function (next) {
+  try {
+    const update = this.getUpdate() || {};
+    const $set = update.$set || update;
 
-  delete $set.createdBy;
+    delete $set.createdBy;
 
-  if ($set.membershipId) {
-    $set.membershipId = normalizeLevel($set.membershipId);
+    if ($set.membershipId) {
+      $set.membershipId = normalizeLevel($set.membershipId);
+    }
+
+    if ($set.accessLevel) {
+      $set.accessLevel = normalizeLevel($set.accessLevel);
+    }
+
+    if (!$set.accessLevel && $set.membershipId) {
+      $set.accessLevel = $set.membershipId;
+    }
+
+    if (!$set.monthlyPriceLabel && $set.priceLabel) {
+      $set.monthlyPriceLabel = $set.priceLabel;
+    }
+
+    if (!$set.stripePriceId && $set.stripePriceIdMonthly) {
+      $set.stripePriceId = $set.stripePriceIdMonthly;
+    }
+
+    if (Array.isArray($set.meta)) {
+      $set.meta = $set.meta
+        .map((item) => sanitizeText(item))
+        .filter(Boolean)
+        .slice(0, 12);
+    }
+
+    if ($set.rating !== undefined) {
+      $set.rating = Math.max(0, Math.min(5, Number($set.rating || 0)));
+    }
+
+    if ($set.enrolled !== undefined) {
+      $set.enrolled = Math.max(0, Math.floor(Number($set.enrolled || 0)));
+    }
+
+    if ($set.membershipId || $set.title) {
+      const existing = await this.model.findOne(this.getQuery()).select("_id membershipId title");
+
+      if (existing) {
+        const baseValue = $set.membershipId || existing.membershipId || $set.title || existing.title;
+        $set.slug = await createUniqueSlug(existing, baseValue);
+      }
+    }
+
+    if (update.$set) {
+      update.$set = $set;
+      this.setUpdate(update);
+    } else {
+      this.setUpdate($set);
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  if ($set.accessLevel) {
-    $set.accessLevel = normalizeLevel($set.accessLevel);
-  }
-
-  if (!$set.accessLevel && $set.membershipId) {
-    $set.accessLevel = $set.membershipId;
-  }
-
-  if (!$set.stripePriceId && $set.stripePriceIdMonthly) {
-    $set.stripePriceId = $set.stripePriceIdMonthly;
-  }
-
-  if ($set.membershipId || $set.title) {
-    $set.slug = generateSlug($set.membershipId || $set.title);
-  }
-
-  if (Array.isArray($set.meta)) {
-    $set.meta = $set.meta
-      .map((item) => String(item || "").trim())
-      .filter(Boolean)
-      .slice(0, 12);
-  }
-
-  if (update.$set) {
-    update.$set = $set;
-  } else {
-    this.setUpdate($set);
-  }
-
-  next();
 });
 
-/**
- * Query performance indexes.
- */
 membershipSchema.index({ membershipId: 1, isPublished: 1 });
 membershipSchema.index({ accessLevel: 1, isPublished: 1 });
 membershipSchema.index({ isFeatured: 1, sortOrder: 1 });
 membershipSchema.index({ sortOrder: 1, createdAt: -1 });
 
-/**
- * Prevent model overwrite errors during development/hot reload.
- */
 const Membership =
   mongoose.models.Membership || mongoose.model("Membership", membershipSchema);
 
+export { MEMBERSHIP_LEVELS, normalizeLevel };
 export default Membership;
