@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Blog from "../models/blogModel.js";
+import Blog from "../models/BlogModel.js";
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(String(id));
 

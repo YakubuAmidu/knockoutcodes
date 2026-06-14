@@ -3,7 +3,7 @@ import EmailSubscriber, {
   EMAIL_SUBSCRIBER_STATUSES,
   EMAIL_SUBSCRIBER_SOURCES,
   isValidEmail,
-} from "../models/emailSubscriberModel.js";
+} from "../models/EmailSubscriberModel.js";
 
 function cleanString(value, maxLength = 500) {
   if (value === undefined || value === null) return "";

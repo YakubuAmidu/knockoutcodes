@@ -1,7 +1,7 @@
 // controllers/emailCampaignAnalyticsController.js
 import mongoose from "mongoose";
-import EmailCampaign from "../models/emailCampaignModel.js";
-import EmailCampaignLog from "../models/emailCampaignLogModel.js";
+import EmailCampaign from "../models/EmailCampaignModel.js";
+import EmailCampaignLog from "../models/EmailCampaignLogModel.js";
 
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);

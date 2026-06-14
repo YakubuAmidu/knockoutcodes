@@ -1,7 +1,7 @@
 // controllers/emailCampaignController.js
 import mongoose from "mongoose";
 import EmailCampaign from "../models/EmailCampaignModel.js";
-import EmailSubscriber from "../models/emailSubscriberModel.js";
+import EmailSubscriber from "../models/EmailSubscriberModel.js";
 
 const ALLOWED_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "paused"];
 const ALLOWED_AUDIENCE_TYPES = ["all", "newsletter", "customers", "manual"];

@@ -1,7 +1,7 @@
 // controllers/systemSettingController.js
 
 import mongoose from "mongoose";
-import SystemSetting from "../models/systemSettingModel.js";
+import SystemSetting from "../models/SystemSettingModel.js";
 import { emitMaintenanceUpdate } from "../config/socket.js";
 
 const DEFAULT_TITLE = "KnockoutCodes is upgrading";

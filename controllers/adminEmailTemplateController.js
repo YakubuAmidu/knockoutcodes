@@ -3,7 +3,7 @@ import EmailTemplate, {
   EMAIL_TEMPLATE_CATEGORIES,
   EMAIL_TEMPLATE_STATUSES,
   isValidHttpUrl,
-} from "../models/emailTemplateModel.js";
+} from "../models/EmailTemplateModel.js";
 
 function cleanString(value, maxLength = 5000) {
   if (value === undefined || value === null) return "";
