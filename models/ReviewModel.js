@@ -119,7 +119,6 @@ reviewSchema.pre("validate", function (next) {
  * Do not add `index: true` above for these same fields.
  * This avoids duplicate index warnings in Mongoose.
  */
-reviewSchema.index({ user: 1 });
 reviewSchema.index({ reviewType: 1 });
 reviewSchema.index({ course: 1 });
 reviewSchema.index({ product: 1 });
