@@ -33,7 +33,7 @@ import axiosInstance from "../../utils/axiosInstance.js";
 // ===== Base URLs (used) =====
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api/v1";
+    "https://knockoutcodes.onrender.com/api/v1";
 
 const ME_ENDPOINT = "/users/me";
 
