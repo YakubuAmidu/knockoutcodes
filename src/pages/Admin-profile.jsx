@@ -697,17 +697,23 @@ async function ensureCsrf() {
 const previewUrl = useMemo(() => {
   if (avatarPreview) return avatarPreview;
 
-  const a = String(profile.avatarField || "");
+  const a = String(profile.avatarField || "").trim();
 
   if (!a) {
     return "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=512&auto=format&fit=crop";
   }
 
-  const BASE = import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:5000";
+  const API_URL =
+    String(import.meta.env.VITE_API_BASE_URL || "").trim() ||
+    "https://knockoutcodes.onrender.com/api/v1";
 
-  const imageUrl = a.startsWith("http")
-    ? a
-    : `${BASE}${a.startsWith("/") ? a : `/${a}`}`;
+  const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, "");
+
+  const cleanAvatar = a.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
+
+  const imageUrl = cleanAvatar.startsWith("http")
+    ? cleanAvatar
+    : `${API_ORIGIN}${cleanAvatar.startsWith("/") ? cleanAvatar : `/${cleanAvatar}`}`;
 
   return `${imageUrl}?v=${me?.updatedAt || Date.now()}`;
 }, [avatarPreview, profile.avatarField, me?.updatedAt]);
