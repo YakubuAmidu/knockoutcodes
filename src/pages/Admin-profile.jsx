@@ -549,61 +549,6 @@ async function ensureCsrf() {
     usersState || {};
 
   // ----- SECURITY GUARD: verify via backend to prevent bounce -----
-  useEffect(() => {
-    let alive = true;
-
-    const verify = async () => {
-      try {
-        const r = await fetch(`${API_BASE_URL}${ME_ENDPOINT}`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!alive) return;
-
-        if (!r.ok) {
-          window.location.replace("/login");
-          return;
-        }
-
-        const j = await r.json().catch(() => ({}));
-        const raw = j?.data;
-        const user = raw?.user || raw || {};
-        const role = user.role || "user";
-
-        if (role !== "admin") {
-          window.location.replace("/admin/profile");
-          return;
-        }
-
-        const currentUrl = window.location.href;
-        window.history.replaceState({ protected: true }, document.title, currentUrl);
-      } catch {
-        window.location.replace("/login");
-      }
-    };
-
-    verify();
-
-    const onPageShow = (e) => {
-      const navEntries = performance.getEntriesByType("navigation");
-      const navType = navEntries[0]?.type;
-
-      if (e.persisted || navType === "back_forward") {
-        verify();
-      }
-    };
-    const onPopState = () => verify();
-
-    window.addEventListener("pageshow", onPageShow);
-    window.addEventListener("popstate", onPopState);
-
-    return () => {
-      alive = false;
-      window.removeEventListener("pageshow", onPageShow);
-      window.removeEventListener("popstate", onPopState);
-    };
-  }, []);
 
   // ✅ 1) Hydrate from localStorage (fast reload + keeps avatar on refresh)
   useEffect(() => {
