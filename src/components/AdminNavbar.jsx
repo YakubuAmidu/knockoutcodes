@@ -184,7 +184,7 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
                   </SidebarLogoutButton>
                 ) : (
                   <SidebarProfileLink
-                    to={isAdmin ? "/admin/dashboard" : "/user-profile"}
+                    to={isAdmin ? "/admin/profile" : "/user-profile"}
                     onClick={handleNavClick}
                   >
                     {isAdmin ? "Admin Dashboard" : "Profile"}
