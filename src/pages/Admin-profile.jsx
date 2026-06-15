@@ -572,7 +572,7 @@ async function ensureCsrf() {
         const role = user.role || "user";
 
         if (role !== "admin") {
-          window.location.replace("/user-profile");
+          window.location.replace("/admin/profile");
           return;
         }
 
