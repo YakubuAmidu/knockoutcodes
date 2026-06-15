@@ -1,10 +1,10 @@
 // src/components/MaintenanceGate.jsx
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import axiosInstance from "../../utils/axiosInstance";
-
-import Maintenance from "../pages/Maintenance";
 import { useAuth } from "../context/AuthContext";
+
+const Maintenance = lazy(() => import("../pages/Maintenance"));
 
 let cachedStatus = null;
 let cachedAt = 0;
@@ -95,14 +95,25 @@ const MaintenanceGate = ({ children }) => {
   const adminCanPass = maintenanceMode && allowAdminAccess && user && isAdmin;
 
   if (maintenanceMode && !adminCanPass) {
-    return (
+  return (
+    <Suspense
+      fallback={
+        <GateLoading>
+          <div>
+            <Spinner />
+            <LoadingTitle>Loading maintenance page...</LoadingTitle>
+          </div>
+        </GateLoading>
+      }
+    >
       <Maintenance
         title={status?.maintenanceTitle}
         message={status?.maintenanceMessage}
         updatedAt={status?.updatedAt}
       />
-    );
-  }
+    </Suspense>
+  );
+}
 
   return children;
 };
