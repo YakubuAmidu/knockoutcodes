@@ -1365,7 +1365,7 @@ async function handleLogout() {
                 <Btn
                   type="button"
                   onClick={() =>
-                    navigate("/admin-courses")
+                    navigate("/admin/courses")
                   }
                 >
                   Open Courses
@@ -1373,7 +1373,7 @@ async function handleLogout() {
                 <Btn
                   type="button"
                   $variant="ghost"
-                  onClick={() => navigate("/admin-contacts")}
+                  onClick={() => navigate("/admin/contacts")}
                 >
                   Open Messages
                 </Btn>

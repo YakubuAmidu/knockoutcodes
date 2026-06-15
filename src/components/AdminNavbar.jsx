@@ -107,7 +107,7 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
                 Logout
               </LogoutButton>
             ) : (
-              <ProfileButton to={isAdmin ? "/admin/dashboard" : "/user-profile"}>
+              <ProfileButton to={isAdmin ? "/admin/profile" : "/user-profile"}>
                 {isAdmin ? "Admin" : "Profile"}
               </ProfileButton>
             )}

@@ -313,9 +313,7 @@ function AppShell() {
             <Route path="/admin/coachings" element={<ManageCoaching />} />
             <Route path="/admin/products" element={<ManageProducts />} />
             <Route path="/admin/email-campaigns" element={<AdminEmailCampaign />} />
-            <Route
-              path="/admin/email-campaigns/create"
-              element={<AdminEmailCampaign />}
+            <Route path="/admin/email-campaigns/create" element={<AdminEmailCampaign />}
             />
             <Route
               path="/admin/email-subscribers"
@@ -346,11 +344,11 @@ function AppShell() {
               path="/admin/system-cleanup"
               element={<AdminSystemCleanup />}
             />
-            <Route path="admin/memberships" element={<ManageMembership />} />
+            <Route path="/admin/memberships" element={<ManageMembership />} />
 
-            <Route path="admin/enrollments" element={<ManageEnrollment />} />
+            <Route path="/admin/enrollments" element={<ManageEnrollment />} />
 
-            <Route path="admin/user-subscriptions" element={<ManageUserSubscription />} />
+            <Route path="/admin/user-subscriptions" element={<ManageUserSubscription />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/home" replace />} />
