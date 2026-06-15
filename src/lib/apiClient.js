@@ -4,7 +4,7 @@ import axios from "axios";
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL &&
     String(import.meta.env.VITE_API_BASE_URL).trim()) ||
-  "http://localhost:5000/api/v1";
+  "https://knockoutcodes.onrender.com/api/v1";
 
 function getCookie(name) {
   if (typeof document === "undefined") return "";

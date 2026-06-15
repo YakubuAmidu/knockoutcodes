@@ -135,6 +135,7 @@ export default function Coaching() {
   const form = useSelector((s) => s.coaching?.form);
   const status = useSelector((s) => s.coaching?.status);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeForm = form || {
     fullName: "",
     email: "",
