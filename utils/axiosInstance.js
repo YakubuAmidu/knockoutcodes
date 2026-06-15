@@ -4,13 +4,21 @@ import axios from "axios";
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_API_URL ||
-    "https://knockoutcodes.onrender.com/api/v1";
+  "https://knockoutcodes.onrender.com/api/v1";
 
 const axiosInstance = axios.create({
   baseURL,
   withCredentials: true,
   timeout: 15000,
 });
+
+function safeJsonParse(value) {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
 
 function getCookie(name) {
   try {
@@ -57,17 +65,15 @@ let didBroadcastAuthFail = false;
 let csrfTokenMemory = "";
 
 async function ensureCsrfCookie() {
-  // 1. Localhost/dev may still allow reading csrfToken from document.cookie
   const existingCookieToken = getCookie("csrfToken");
+
   if (existingCookieToken) {
     csrfTokenMemory = existingCookieToken;
     return existingCookieToken;
   }
 
-  // 2. Production Netlify cannot read Render cookies, so use memory token
   if (csrfTokenMemory) return csrfTokenMemory;
 
-  // 3. Request CSRF from backend. Backend sets cookie AND returns csrfToken in JSON.
   if (!csrfBootstrapPromise) {
     csrfBootstrapPromise = axios
       .get(`${baseURL}/auth/csrf`, {
@@ -177,29 +183,29 @@ axiosInstance.interceptors.request.use(
     config.headers = config.headers || {};
 
     const storedUser =
-  JSON.parse(localStorage.getItem("user") || "null") ||
-  JSON.parse(localStorage.getItem("userInfo") || "null") ||
-  JSON.parse(localStorage.getItem("adminInfo") || "null");
+      safeJsonParse(localStorage.getItem("user")) ||
+      safeJsonParse(localStorage.getItem("userInfo")) ||
+      safeJsonParse(localStorage.getItem("adminInfo"));
 
-const token =
-  storedUser?.token ||
-  storedUser?.accessToken ||
-  localStorage.getItem("token") ||
-  localStorage.getItem("accessToken");
+    const token =
+      storedUser?.token ||
+      storedUser?.accessToken ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("accessToken");
 
-if (token) {
-  config.headers.Authorization = `Bearer ${token}`;
-}
-    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     config.headers["X-Client-Fingerprint"] = getFingerprint();
 
     if (isUnsafe) {
       const csrfToken = await ensureCsrfCookie();
 
       if (csrfToken) {
-  config.headers["X-CSRF-Token"] = csrfToken;
-  config.headers["x-csrf-token"] = csrfToken;
-}
+        config.headers["X-CSRF-Token"] = csrfToken;
+        config.headers["x-csrf-token"] = csrfToken;
+      }
 
       config.headers["X-Request-Intent"] = "user-action";
     }
@@ -246,10 +252,10 @@ axiosInstance.interceptors.response.use(
           ...originalConfig,
           _csrfRetry: true,
           headers: {
-  ...(originalConfig.headers || {}),
-  "X-CSRF-Token": csrfToken || getCookie("csrfToken") || "",
-  "x-csrf-token": csrfToken || getCookie("csrfToken") || "",
-},
+            ...(originalConfig.headers || {}),
+            "X-CSRF-Token": csrfToken || getCookie("csrfToken") || "",
+            "x-csrf-token": csrfToken || getCookie("csrfToken") || "",
+          },
         });
       } catch {
         return Promise.reject(error);
@@ -263,35 +269,35 @@ axiosInstance.interceptors.response.use(
       !isLogoutEndpoint(url);
 
     if (shouldTryRefresh) {
-  try {
-    await refreshSession();
+      try {
+        await refreshSession();
 
-    return axiosInstance.request({
-      ...originalConfig,
-      _retry: true,
-    });
-  } catch (refreshError) {
-    broadcastAuthExpired(
-      refreshError?.response?.status || 401,
-      refreshError?.response?.data?.message ||
-        "Session expired. Please login again."
-    );
+        return axiosInstance.request({
+          ...originalConfig,
+          _retry: true,
+        });
+      } catch (refreshError) {
+        broadcastAuthExpired(
+          refreshError?.response?.status || 401,
+          refreshError?.response?.data?.message ||
+            "Session expired. Please login again."
+        );
 
-    return Promise.reject(error);
-  }
-}
+        return Promise.reject(error);
+      }
+    }
 
     const shouldBroadcast =
       (status === 401 || status === 419) &&
       !isAuthEndpoint(url) &&
       !isRefreshEndpoint(url);
 
-   if (shouldBroadcast && !isPublicPage()) {
-  broadcastAuthExpired(
-    status,
-    message || "Session expired. Please login again."
-  );
-}
+    if (shouldBroadcast && !isPublicPage()) {
+      broadcastAuthExpired(
+        status,
+        message || "Session expired. Please login again."
+      );
+    }
 
     return Promise.reject(error);
   }

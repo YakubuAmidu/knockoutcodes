@@ -155,6 +155,9 @@ import { manageMembershipsInitialState } from "./manageMembership/manageMembersh
 import { adminStatsReducer } from "./adminStats/adminStatsReducer";
 import { adminStatsInitialState } from "./adminStats/adminStatsInitialState";
 
+import { manageRevenueReducer } from "./manageRevenue/manageRevenueReducer";
+import { manageRevenueInitialState } from "./manageRevenue/manageRevenueInitialState";
+
 /* =========================================================
    SAFE REDUCER WRAPPER
    Keeps each reducer connected to its own initial state.
@@ -281,5 +284,10 @@ export const rootReducer = combineReducers({
   adminStats: withInitialState(
   adminStatsReducer,
   adminStatsInitialState
+  ),
+
+  manageRevenue: withInitialState(
+  manageRevenueReducer,
+  manageRevenueInitialState
 ),
 });

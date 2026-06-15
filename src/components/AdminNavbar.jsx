@@ -37,6 +37,7 @@ const adminSidebarLinks = [
   { label: "Manage Memberships", to: "/admin/memberships" },
   { label: "Manage Enrollments", to: "/admin/enrollments" },
   { label: "Manage Subscriptions", to: "/admin/user-subscriptions" },
+  { label: "Manage Revenues", to: "/admin/revenues" },
 ];
 
 const AdminNavbar = ({ currentUser, onLogout }) => {

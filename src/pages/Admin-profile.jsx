@@ -30,11 +30,6 @@ import axiosInstance from "../../utils/axiosInstance.js";
  * - Persists to localStorage so refresh keeps user + image
  */
 
-// ===== Base URLs (used) =====
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-    "https://knockoutcodes.onrender.com/api/v1";
-
 const ME_ENDPOINT = "/users/me";
 
 // ✅ Same avatar endpoint pattern as your UserProfile
@@ -77,14 +72,6 @@ const useBrand = (theme) =>
     }),
     [theme]
   );
-
-async function safeJson(res) {
-  try {
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
 
 function persistMe(user) {
   try {
@@ -503,29 +490,24 @@ function readCookie(name) {
 }
 
 async function ensureCsrf() {
-  // 1) already cached in memory?
   if (csrfRef.current) return csrfRef.current;
 
-  // 2) cookie already exists?
   const fromCookie = readCookie("csrfToken");
+
   if (fromCookie) {
     csrfRef.current = fromCookie;
     return fromCookie;
   }
 
-  // 3) request CSRF cookie from backend
-  const res = await fetch(`${API_BASE_URL}/auth/csrf`, {
-    method: "GET",
-    credentials: "include",
-  });
+  const { data } = await axiosInstance.get("/auth/csrf");
 
-  const body = await safeJson(res);
-  if (!res.ok) {
-    throw new Error(body?.message || "Unable to issue CSRF token.");
-  }
+  const token =
+    data?.csrfToken ||
+    data?.token ||
+    data?.data?.csrfToken ||
+    data?.data?.token ||
+    readCookie("csrfToken");
 
-  // backend returns { csrfToken }, and also sets cookie
-  const token = body?.csrfToken || readCookie("csrfToken");
   if (!token) {
     throw new Error("CSRF token missing after issuance.");
   }
@@ -533,7 +515,6 @@ async function ensureCsrf() {
   csrfRef.current = token;
   return token;
 }
-
 
   // ✅ Use toast EXACTLY like Cart.jsx
   const toast = useToast();
@@ -582,19 +563,9 @@ async function ensureCsrf() {
     (async () => {
       dispatch(userMeRequest());
       try {
-        const res = await fetch(`${API_BASE_URL}${ME_ENDPOINT}`, {
-          method: "GET",
-          credentials: "include",
+        const { data: body } = await axiosInstance.get(ME_ENDPOINT, {
           signal: controller.signal,
         });
-
-        const body = await safeJson(res);
-
-        if (!res.ok) {
-          const msg = body?.message || "Failed to load admin profile.";
-          dispatch(userMeFail(msg));
-          return;
-        }
 
         const raw = body?.data || body || {};
         const user = raw?.user || raw || null;
@@ -752,17 +723,15 @@ const previewUrl = useMemo(() => {
 
   const csrf = await ensureCsrf();
 
-const res = await fetch(`${API_BASE_URL}${AVATAR_ENDPOINT}`, {
-  method: "POST",
-  credentials: "include",
-  headers: { "x-csrf-token": csrf },
-  body: fd,
-});
-
-  const body = await safeJson(res);
-  if (!res.ok) {
-    throw new Error(body?.message || "Avatar upload failed.");
+const { data: body } = await axiosInstance.post(
+  AVATAR_ENDPOINT,
+  fd,
+  {
+    headers: {
+      "x-csrf-token": csrf,
+    },
   }
+);
 
   const raw = body?.data || body || {};
   const updatedUser = raw?.user || raw || null;
@@ -799,17 +768,15 @@ const res = await fetch(`${API_BASE_URL}${AVATAR_ENDPOINT}`, {
 
     const csrf = await ensureCsrf();
 
-    const res = await fetch(`${API_BASE_URL}${ME_ENDPOINT}`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", "x-csrf-token": csrf },
-      body: JSON.stringify(payload),
-    });
-
-    const body = await safeJson(res);
-    if (!res.ok) {
-      throw new Error(body?.message || "Failed to update profile.");
-    }
+    const { data: body } = await axiosInstance.patch(
+  ME_ENDPOINT,
+  payload,
+  {
+    headers: {
+      "x-csrf-token": csrf,
+    },
+  }
+);
 
     const raw = body?.data || body || {};
     const updatedUser = raw?.user || raw || null;
@@ -910,9 +877,11 @@ const res = await fetch(`${API_BASE_URL}${AVATAR_ENDPOINT}`, {
 
       setPasswords({ current: "", next: "", confirm: "" });
     } catch (err) {
-      const msg = err.response.data.message ||
-        err.response.data.error ||
-        err.message || "Password update failed";
+      const msg =
+  err?.response?.data?.message ||
+  err?.response?.data?.error ||
+  err?.message ||
+  "Password update failed";
       
       pushToast({
         title: "Password update failed",
@@ -935,15 +904,15 @@ async function handleLogout() {
       csrf = null;
     }
 
-    await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(csrf ? { "x-csrf-token": csrf } : {}),
-      },
-      body: JSON.stringify({}),
-    }).catch(() => {});
+    await axiosInstance.post(
+  "/auth/logout",
+  {},
+  {
+    headers: csrf
+      ? { "x-csrf-token": csrf }
+      : {},
+  }
+).catch(() => {});
   } finally {
     try {
       localStorage.removeItem("token");

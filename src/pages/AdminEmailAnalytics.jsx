@@ -42,6 +42,7 @@ function AdminEmailAnalytics() {
 
   const cards = analytics?.cards || {};
   const engagement = analytics?.engagement || {};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const recentCampaigns = Array.isArray(analytics?.recentCampaigns)
     ? analytics.recentCampaigns
     : [];

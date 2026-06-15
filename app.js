@@ -58,7 +58,7 @@ import LessonProgressRoutes from "./routes/lessonProgressRoutes.js";
 import SystemSettingRoutes from "./routes/systemSettingRoutes.js";
 import SecurityEventRoutes from "./routes/securityEventRoutes.js";
 import systemCleanupRoutes from "./routes/systemCleanupRoutes.js";
-import Revenue from "./routes/revenueRoutes.js";
+import RevenueRoutes from "./routes/revenueRoutes.js";
 
 import { stripeWebhookHandler } from "./controllers/enrollmentController.js";
 
@@ -228,6 +228,7 @@ app.use("/api/v1/admin/email-subscribers", EmailSubscriberRoutes);
 app.use("/api/v1/admin/email-templates", EmailTemplateRoutes);
 app.use("/api/v1/lesson-progress", LessonProgressRoutes);
 app.use("/api/v1/security-events", SecurityEventRoutes);
+app.use("/api/v1/admin/revenue", RevenueRoutes);
 
 app.use((_req, _res, next) => {
   next(createError(404, "Route not found"));

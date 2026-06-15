@@ -7,9 +7,9 @@ import theme from "../Styles/theme";
 import { fetchTestimonials } from "../reducers/testimonial/testimonialActions";
 
 const API_ORIGIN =
-  import.meta.env.VITE_API_ORIGIN ||
-  import.meta.env.VITE_API_BASE_URL?.replace("/api/v1", "") ||
-  "http://localhost:5000";
+  String(import.meta.env.VITE_API_BASE_URL || "")
+    .trim()
+    .replace(/\/api\/v1\/?$/, "") || "https://knockoutcodes.onrender.com";
 
 function getImageUrl(value) {
   const img = String(value || "").trim();

@@ -3,14 +3,16 @@ import { useMemo, useRef } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
+import axiosInstance from "../../utils/axiosInstance";
 
 import { useToast } from "../components/Toast";
 import { getCsrfToken } from "../../utils/csrf";
 import { COACHING_ACTIONS } from "../reducers/coaching/coachingActionTypes";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1"
-).replace(/\/$/, "");
+// const API_BASE_URL = (
+//   String(import.meta.env.VITE_API_BASE_URL || "").trim() ||
+//   "https://knockoutcodes.onrender.com/api/v1"
+// ).replace(/\/$/, "");
 
 const COACHING_ENDPOINT = "/coachings";
 
@@ -435,38 +437,16 @@ export default function Coaching() {
 
       const csrfToken = await getCsrfToken();
 
-      const res = await fetch(`${API_BASE_URL}${COACHING_ENDPOINT}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-Requested-With": "fetch",
-          "X-Form-TS": String(Date.now()),
-          "X-Honey": "",
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify(payload),
-        credentials: "include",
-        signal: controller.signal,
-      });
-
-      let data = {};
-      const text = await res.text();
-
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = { message: text };
-        }
-      }
-
-      if (!res.ok) {
-        const msg = data?.message || `Request failed (${res.status})`;
-        setStatus({ state: "error", message: msg });
-        if (typeof showToast === "function") showToast(msg, "error");
-        return;
-      }
+      const { data } = await axiosInstance.post(COACHING_ENDPOINT, payload, {
+  headers: {
+    Accept: "application/json",
+    "X-Requested-With": "axios",
+    "X-Form-TS": String(Date.now()),
+    "X-Honey": "",
+    "X-CSRF-Token": csrfToken,
+  },
+  signal: controller.signal,
+});
 
       const successMsg =
         data?.message || "Request received. We’ll email you shortly.";
