@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import apiClient from "../lib/apiClient";
-import theme from "../styles/theme.js";
 
 const EMPTY_FORM = {
   user: "",
@@ -444,14 +443,16 @@ const Page = styled.main`
   min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34rem),
-    linear-gradient(135deg, ${theme.colors.black}, ${theme.colors.darkBrown});
-  color: ${theme.colors.white};
+    linear-gradient(135deg,
+    ${({ theme }) => theme.colors.black}, 
+    ${({ theme }) => theme.darkBrown};
+  ${({ theme }) => theme.colors.white};
   padding: 48px 0;
 `;
 
 const Shell = styled.div`
-  width: ${theme.layout.gutter};
-  max-width: ${theme.layout.max};
+  width: ${({ theme }) => theme.colors.gutter};
+  max-width: ${({ theme }) => theme.layout.max};
   margin: 0 auto;
 `;
 
@@ -461,10 +462,10 @@ const Hero = styled.section`
   gap: 24px;
   align-items: center;
   padding: 34px;
-  border-radius: ${theme.radius.xl};
+  border-radius: ${({ theme }) => theme.radius.xl};
   background: linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
   border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: ${theme.shadow.glow};
+  box-shadow: ${({ theme }) => theme.shadow.glow};
 
   @media (max-width: 760px) {
     flex-direction: column;
@@ -473,7 +474,7 @@ const Hero = styled.section`
 `;
 
 const Eyebrow = styled.p`
-  color: ${theme.colors.lightBrown};
+  color: ${({ theme }) => theme.colors.lightBrown};
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.78rem;
@@ -504,11 +505,11 @@ const StatsGrid = styled.section`
 `;
 
 const StatCard = styled.div`
-  background: ${theme.colors.ivory};
-  color: ${theme.colors.darkBrown};
-  border-radius: ${theme.radius.lg};
+  background: ${({ theme }) => theme.colors.ivory};
+  color: ${({ theme }) => theme.colors.darkBrown}
+  border-radius: ${({ theme }) => theme.radius.lg};
   padding: 22px;
-  box-shadow: ${theme.shadow.soft};
+  box-shadow: ${({ theme }) => theme.shadow.soft};
 
   strong {
     display: block;
@@ -516,7 +517,7 @@ const StatCard = styled.div`
   }
 
   span {
-    color: ${theme.colors.brown};
+    color: ${({ theme }) => theme.colors.brown}
     font-weight: 800;
   }
 `;
@@ -524,10 +525,10 @@ const StatCard = styled.div`
 const Panel = styled.section`
   background: rgba(255,255,255,0.075);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: ${theme.radius.xl};
+  border-radius: ${({ theme }) => theme.radius.xl};
   padding: 26px;
   margin-top: 24px;
-  box-shadow: ${theme.shadow.hard};
+  box-shadow: ${({ theme }) => theme.shadow.hard};
   backdrop-filter: blur(14px);
 `;
 
@@ -559,7 +560,7 @@ const Field = styled.div`
   label {
     display: block;
     margin-bottom: 8px;
-    color: ${theme.colors.lightBrown};
+    color: ${({ theme }) => theme.colors.lightBrown};
     font-weight: 800;
     font-size: 0.85rem;
   }
@@ -568,10 +569,10 @@ const Field = styled.div`
   select {
     width: 100%;
     border: 1px solid rgba(255,255,255,0.14);
-    border-radius: ${theme.radius.md};
+    border-radius: ${({ theme }) => theme.radius.md};
     padding: 14px 15px;
     background: rgba(0,0,0,0.34);
-    color: ${theme.colors.white};
+    color: ${({ theme }) => theme.colors.white};
     outline: none;
   }
 
@@ -586,7 +587,7 @@ const CheckField = styled.label`
   align-items: center;
   gap: 10px;
   padding-top: 28px;
-  color: ${theme.colors.white};
+  color: ${({ theme }) => theme.colors.white};
   font-weight: 800;
 
   input {
@@ -604,10 +605,10 @@ const Toolbar = styled.div`
   input,
   select {
     border: 1px solid rgba(255,255,255,0.14);
-    border-radius: ${theme.radius.md};
+    border-radius: ${({ theme }) => theme.radius.md};
     padding: 14px 15px;
     background: rgba(0,0,0,0.34);
-    color: ${theme.colors.white};
+    color: ${({ theme }) => theme.colors.white};
     outline: none;
   }
 
@@ -618,7 +619,7 @@ const Toolbar = styled.div`
 
 const ButtonBase = styled.button`
   border: 0;
-  border-radius: ${theme.radius.pill};
+  border-radius: ${({ theme }) => theme.radius.pill};
   padding: 13px 18px;
   font-weight: 900;
   cursor: pointer;
@@ -635,8 +636,8 @@ const ButtonBase = styled.button`
 `;
 
 const PrimaryButton = styled(ButtonBase)`
-  background: ${theme.colors.lightBrown};
-  color: ${theme.colors.darkBrown};
+  background: ${({ theme }) => theme.colors.lightBrown};
+  color: ${({ theme }) => theme.colors.darkBrown};
 `;
 
 const RefreshButton = styled(PrimaryButton)`
@@ -645,7 +646,7 @@ const RefreshButton = styled(PrimaryButton)`
 
 const GhostButton = styled(ButtonBase)`
   background: rgba(255,255,255,0.08);
-  color: ${theme.colors.white};
+  color: ${({ theme }) => theme.colors.white};
   border: 1px solid rgba(255,255,255,0.16);
 `;
 
@@ -668,7 +669,7 @@ const Actions = styled.div`
 const Alert = styled.div`
   margin: 22px 0;
   padding: 15px 18px;
-  border-radius: ${theme.radius.md};
+  border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ $error }) =>
     $error ? "rgba(255,80,80,0.14)" : "rgba(120,255,180,0.12)"};
   border: 1px solid ${({ $error }) =>
@@ -692,7 +693,7 @@ const TableWrap = styled.div`
   }
 
   th {
-    color: ${theme.colors.lightBrown};
+    color: ${({ theme }) => theme.colors.lightBrown};
     font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -706,7 +707,7 @@ const TableWrap = styled.div`
 const Badge = styled.span`
   display: inline-flex;
   padding: 7px 11px;
-  border-radius: ${theme.radius.pill};
+  border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 0.78rem;
   font-weight: 900;
   background: ${({ $status }) =>
