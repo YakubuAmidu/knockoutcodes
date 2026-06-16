@@ -74,25 +74,22 @@ function getCookie(name) {
   }
 }
 
-async function ensureCsrfToken() {
+async function ensureCsrfToken(force = false) {
   const fromCookie = getCookie("csrfToken");
-  if (fromCookie) return fromCookie;
 
-  const res = await fetch(API_BASE_URL + CSRF_ENDPOINT, {
+  if (!force && fromCookie) return fromCookie;
+
+  const { res, body } = await rawApiFetch(CSRF_ENDPOINT, {
     method: "GET",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-    },
   });
 
-  const body = await safeJson(res);
+  if (!res.ok) return getCookie("csrfToken") || "";
 
   return (
-    body?.token ||
     body?.csrfToken ||
-    body?.data?.token ||
+    body?.token ||
     body?.data?.csrfToken ||
+    body?.data?.token ||
     getCookie("csrfToken") ||
     ""
   );
@@ -137,6 +134,23 @@ function initialsAvatarDataUrl(nameOrEmail) {
   return canvas.toDataURL("image/png");
 }
 
+async function rawApiFetch(path, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+
+  const headers = new Headers(options.headers || {});
+  headers.set("Accept", "application/json");
+
+  const res = await fetch(API_BASE_URL + path, {
+    credentials: "include",
+    ...options,
+    method,
+    headers,
+  });
+
+  const body = await safeJson(res);
+  return { res, body };
+}
+
 /**
  * Centralized secure fetch:
  * - Uses httpOnly cookie auth by default (credentials: include)
@@ -154,21 +168,18 @@ async function apiFetch(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("Accept", "application/json");
 
-  // ✅ Never set Content-Type manually for FormData
   if (!isFormData && unsafe && !headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
   }
 
-  // ✅ CSRF for unsafe methods
   if (unsafe) {
-  const csrfToken = await ensureCsrfToken();
+    const csrfToken = await ensureCsrfToken(false);
 
-  if (csrfToken) {
-    headers.set("x-csrf-token", csrfToken);
+    if (csrfToken) {
+      headers.set("x-csrf-token", csrfToken);
+    }
   }
-}
 
-  // ✅ Only allow Bearer token in localhost/dev
   if (isLocalhost()) {
     const token =
       localStorage.getItem("token") ||
@@ -180,15 +191,32 @@ async function apiFetch(path, options = {}) {
     }
   }
 
-  const res = await fetch(API_BASE_URL + path, {
-    credentials: "include",
+  let result = await rawApiFetch(path, {
     ...options,
     method,
     headers,
   });
 
-  const body = await safeJson(res);
-  return { res, body };
+  // ✅ Production safety retry if cookie/header was missing or stale
+  if (
+    unsafe &&
+    result.res.status === 403 &&
+    String(result.body?.message || "").toLowerCase().includes("csrf")
+  ) {
+    const freshToken = await ensureCsrfToken(true);
+
+    if (freshToken) {
+      headers.set("x-csrf-token", freshToken);
+
+      result = await rawApiFetch(path, {
+        ...options,
+        method,
+        headers,
+      });
+    }
+  }
+
+  return result;
 }
 
 export default function UserProfile() {
@@ -307,24 +335,11 @@ export default function UserProfile() {
   /**
    * ✅ Ensure CSRF cookie exists (best effort)
    */
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        if (!getCookie("csrfToken")) {
-          await apiFetch(CSRF_ENDPOINT, { method: "GET" });
-        }
-      } catch {
-        // ignore
-      }
-      if (!alive) return;
-    })();
-
-    return () => {
-      alive = false;
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    };
-  }, []);
+ useEffect(() => {
+  return () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  };
+}, []);
 
   // ✅ Hydrate Redux from localStorage first (fast reload), then fetch real profile
   useEffect(() => {
