@@ -455,7 +455,9 @@ if (freshUser.isActive === false) {
   };
 
   const handleAccessUpdated = (data = {}) => {
-    console.log("ACCOUNT ACCESS UPDATED RECEIVED:", data);
+    if (import.meta.env.DEV) {
+  console.log("ACCOUNT ACCESS UPDATED RECEIVED:", data);
+}
 
     const nextStatus = data.accountStatus || "restricted";
     const nextMessage =

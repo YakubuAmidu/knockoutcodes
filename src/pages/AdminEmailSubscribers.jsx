@@ -80,7 +80,7 @@ function AdminEmailSubscribers() {
         })
       );
     }
-  }, [dispatch, isAuthenticated, isAdmin, filter, sort]);
+  }, [dispatch, isAuthenticated, isAdmin, filter, sort, search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -98,7 +98,7 @@ function AdminEmailSubscribers() {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [dispatch, isAuthenticated, isAdmin, search]);
+  }, [dispatch, isAuthenticated, isAdmin, search, filter, sort]);
 
   useEffect(() => {
     if (error) {
@@ -127,8 +127,9 @@ function AdminEmailSubscribers() {
     }
 
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [selectedSubscriber]);
+  }, [handleClear, selectedSubscriber]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeSubscribers = Array.isArray(subscribers) ? subscribers : [];
 
   const filteredSubscribers = useMemo(() => {
@@ -205,10 +206,11 @@ function AdminEmailSubscribers() {
     await dispatch(getEmailSubscriberDetails(subscriber._id));
   };
 
-  const handleClear = () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps, no-undef
+  const handleClear = useCallback(() => {
     dispatch(clearSelectedEmailSubscriber());
     setFormData(DEFAULT_FORM);
-  };
+  });
 
   const handleUpdate = async () => {
     if (!selectedSubscriber?._id) {

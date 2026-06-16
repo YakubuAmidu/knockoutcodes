@@ -60,14 +60,16 @@ export default function ReviewForm({
       comment: comment.trim(),
     };
 
-    console.log("REVIEW DEBUG:", {
-  type,
-  courseId,
-  productId,
-  targetId,
-  courseTitle,
-  productTitle,
-});
+    if (import.meta.env.DEV) {
+      console.log("REVIEW DEBUG:", {
+        type,
+        courseId,
+        productId,
+        targetId,
+        courseTitle,
+        productTitle,
+      });
+    }
 
     const result = isProductReview
       ? await dispatch(createProductReview({ productId, ...payload }))
