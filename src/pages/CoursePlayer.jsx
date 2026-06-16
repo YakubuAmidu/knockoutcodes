@@ -413,7 +413,7 @@ const CoursePlayer = () => {
         console.error("Failed to update lesson progress:", error?.message);
       }
     },
-    [activeLesson._id, canView, canSaveProgress, updateLocalLessonProgress, notify]
+    [activeLesson?._id, canView, canSaveProgress, updateLocalLessonProgress, notify]
   );
 
   const handleLoadedMetadata = useCallback(
