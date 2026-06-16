@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import apiClient from "../lib/apiClient";
-import theme from "../styles/theme";
+import theme from "../styles/theme.js";
 
 const EMPTY_FORM = {
   user: "",
