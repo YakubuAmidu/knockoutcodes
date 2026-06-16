@@ -74,6 +74,30 @@ function getCookie(name) {
   }
 }
 
+async function ensureCsrfToken() {
+  const fromCookie = getCookie("csrfToken");
+  if (fromCookie) return fromCookie;
+
+  const res = await fetch(API_BASE_URL + CSRF_ENDPOINT, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const body = await safeJson(res);
+
+  return (
+    body?.token ||
+    body?.csrfToken ||
+    body?.data?.token ||
+    body?.data?.csrfToken ||
+    getCookie("csrfToken") ||
+    ""
+  );
+}
+
 /**
  * Create a local “initials avatar” data URL (no email leakage, no external calls).
  */
@@ -137,11 +161,12 @@ async function apiFetch(path, options = {}) {
 
   // ✅ CSRF for unsafe methods
   if (unsafe) {
-    const csrfToken = getCookie("csrfToken");
-    if (csrfToken) {
-      headers.set("x-csrf-token", csrfToken);
-    }
+  const csrfToken = await ensureCsrfToken();
+
+  if (csrfToken) {
+    headers.set("x-csrf-token", csrfToken);
   }
+}
 
   // ✅ Only allow Bearer token in localhost/dev
   if (isLocalhost()) {
@@ -385,7 +410,9 @@ export default function UserProfile() {
       setAvatarBust(Date.now());
     } catch (e) {
       if (e?.name === "AbortError") return;
-      console.error("Profile fetch failed:", e);
+      if (import.meta.env.DEV) {
+  console.error("Profile update failed:", e);
+}
       dispatch(userMeFail("Network error. Please try again."));
     }
   })();
@@ -447,7 +474,9 @@ export default function UserProfile() {
         }
       } catch (e) {
         if (!alive) return;
-        console.warn("Support summary fetch failed:", e);
+        if (import.meta.env.DEV) {
+          console.warn("Support summary fetch failed:", e);
+        }
         setSupport((p) => ({ ...p, loading: false }));
       }
     };
@@ -542,7 +571,9 @@ const avatarUrl = useMemo(() => {
     try {
       await apiFetch(LOGOUT_ENDPOINT, { method: "POST" });
     } catch (e) {
-      console.warn("Logout request failed:", e);
+      if (import.meta.env.DEV) {
+        console.warn("Logout request failed:", e);
+      }
     }
 
     // ✅ clear your profile cache (keep your current behavior)
@@ -832,7 +863,9 @@ const avatarUrl = useMemo(() => {
     dispatch(setUserEditMode(false));
     showToast("Profile updated successfully.", "success");
   } catch (e) {
-    console.error("Profile update failed:", e);
+    if (import.meta.env.DEV) {
+  console.error("Profile update failed:", e);
+}
     const msg = e?.message || "Failed to save changes.";
     dispatch(userSaveFail(msg));
     showToast(msg, "error");
@@ -951,7 +984,9 @@ const avatarUrl = useMemo(() => {
         if (list.length === 0) setDevicesError("No sessions found.");
       }
     } catch (e) {
-      console.warn("Sessions fetch failed:", e);
+      if (import.meta.env.DEV) {
+        console.warn("Session fetch failed:", e);
+      }
       setDevices([]);
       setDevicesError("Network error loading devices. Please try again.");
       showToast("Network error loading devices. Please try again.", "error");

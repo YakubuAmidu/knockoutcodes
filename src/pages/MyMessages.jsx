@@ -610,7 +610,7 @@ export default function MyMessages() {
       socket.off(eventName, refreshInbox);
     });
   };
-}, [dispatch, selectedId, authUser, pushToast]);
+}, [dispatch, selectedId, authUser, pushToast, DEBUG_SOCKET]);
 
   const handleOpen = async (id) => {
     if (!id) return;
