@@ -27,7 +27,7 @@ import {
 
 // -----------------------------
 const API_BASE_URL =
-  axiosInstance.defaults.baseURL || "http://localhost:5000/api/v1";
+  axiosInstance.defaults.baseURL || "https://knockoutcodes.onrender.com/api/v1";
 
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
