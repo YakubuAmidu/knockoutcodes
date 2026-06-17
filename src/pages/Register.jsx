@@ -59,7 +59,7 @@ export default function Register() {
       password: "register_password",
       confirmPassword: "register_confirm_password",
     }),
-    []
+    [],
   );
 
   const [showPassword, setShowPassword] = useState(false);
@@ -136,7 +136,7 @@ export default function Register() {
 
       showToast(
         "Account created successfully. Please verify your email before logging in.",
-        "success"
+        "success",
       );
 
       safeSetLocalStorage("lastRegisteredEmail", payload.email);
@@ -161,12 +161,12 @@ export default function Register() {
 
   const canSubmit = Boolean(
     String(form.name || "").trim() &&
-      normalizeEmail(form.email) &&
-      form.password &&
-      form.confirmPassword &&
-      form.password === form.confirmPassword &&
-      form.password.length >= 8 &&
-      !loading
+    normalizeEmail(form.email) &&
+    form.password &&
+    form.confirmPassword &&
+    form.password === form.confirmPassword &&
+    form.password.length >= 8 &&
+    !loading,
   );
 
   return (
@@ -217,8 +217,8 @@ export default function Register() {
               <MiniBadge>Start Strong</MiniBadge>
               <Title>Create your account</Title>
               <Caption>
-                Premium access for users and admins. Clean, secure, and built
-                to move like a serious platform.
+                Premium access for users and admins. Clean, secure, and built to
+                move like a serious platform.
               </Caption>
             </FormTop>
 
@@ -274,7 +274,9 @@ export default function Register() {
                   <ToggleButton
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     aria-pressed={showPassword}
                   >
                     {showPassword ? "Hide" : "Show"}
@@ -311,7 +313,11 @@ export default function Register() {
               </Field>
             </Row>
 
-            <Submit type="submit" disabled={!canSubmit} aria-disabled={!canSubmit}>
+            <Submit
+              type="submit"
+              disabled={!canSubmit}
+              aria-disabled={!canSubmit}
+            >
               {loading ? "Creating account…" : "Create Premium Access"}
             </Submit>
 
@@ -428,11 +434,7 @@ const BrandPanel = styled.aside`
       rgba(214, 182, 159, 0.3),
       transparent 43%
     ),
-    linear-gradient(
-      135deg,
-      rgba(90, 56, 37, 0.82),
-      rgba(0, 0, 0, 0.92)
-    );
+    linear-gradient(135deg, rgba(90, 56, 37, 0.82), rgba(0, 0, 0, 0.92));
 
   border: 1px solid rgba(214, 182, 159, 0.2);
   box-shadow: ${({ theme }) => theme.shadow.hard};
@@ -546,12 +548,11 @@ const BrandFoot = styled.div`
 
 const Panel = styled.div`
   width: 100%;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.035)
-    );
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.035)
+  );
   border: 1px solid rgba(214, 182, 159, 0.18);
   backdrop-filter: blur(18px);
   border-radius: ${({ theme }) => theme.radius.xl};
@@ -591,7 +592,8 @@ const Form = styled.form`
       transparent 34%,
       rgba(255, 249, 242, 0.18)
     );
-    -webkit-mask: linear-gradient(#000 0 0) content-box,
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
       linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -690,8 +692,11 @@ const Field = styled.div`
     color: ${({ theme }) => theme.colors.ivory};
     padding: 0 14px;
     outline: none;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease,
-      transform 0.12s ease, background 0.2s ease;
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.12s ease,
+      background 0.2s ease;
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.38);
@@ -742,20 +747,22 @@ const Submit = styled.button`
   margin-top: 6px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background:
-    radial-gradient(
-      120% 160% at 10% 0%,
-      ${({ theme }) => theme.colors.ivory},
-      ${({ theme }) => theme.colors.lightBrown} 42%,
-      ${({ theme }) => theme.colors.brown}
-    );
+  background: radial-gradient(
+    120% 160% at 10% 0%,
+    ${({ theme }) => theme.colors.ivory},
+    ${({ theme }) => theme.colors.lightBrown} 42%,
+    ${({ theme }) => theme.colors.brown}
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   box-shadow: ${({ theme }) => theme.shadow.soft};
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease,
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
     opacity 0.2s ease;
 
   &:hover {

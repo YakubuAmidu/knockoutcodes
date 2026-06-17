@@ -7,23 +7,20 @@ function calculateStats(lessons = []) {
   return {
     totalLessons: lessons.length,
 
-    publishedLessons: lessons.filter(
-      (lesson) => lesson?.isPublished !== false
-    ).length,
+    publishedLessons: lessons.filter((lesson) => lesson?.isPublished !== false)
+      .length,
 
-    draftLessons: lessons.filter(
-      (lesson) => lesson?.isPublished === false
-    ).length,
+    draftLessons: lessons.filter((lesson) => lesson?.isPublished === false)
+      .length,
 
-    previewLessons: lessons.filter(
-      (lesson) => lesson?.isPreview === true
-    ).length,
+    previewLessons: lessons.filter((lesson) => lesson?.isPreview === true)
+      .length,
   };
 }
 
 export const manageLessonReducer = (
   state = manageLessonInitialState,
-  action
+  action,
 ) => {
   switch (action.type) {
     /**
@@ -39,9 +36,7 @@ export const manageLessonReducer = (
       };
 
     case MANAGE_LESSON_ACTIONS.LESSONS_SUCCESS: {
-      const lessons = Array.isArray(action.payload)
-        ? action.payload
-        : [];
+      const lessons = Array.isArray(action.payload) ? action.payload : [];
 
       return {
         ...state,
@@ -75,7 +70,7 @@ export const manageLessonReducer = (
       const lesson = action.payload;
 
       const lessonExists = state.lessons.some(
-        (item) => item?._id === lesson?._id
+        (item) => item?._id === lesson?._id,
       );
 
       const updatedLessons = lessonExists
@@ -116,9 +111,7 @@ export const manageLessonReducer = (
       const updatedLesson = action.payload;
 
       const updatedLessons = state.lessons.map((lesson) =>
-        lesson?._id === updatedLesson?._id
-          ? updatedLesson
-          : lesson
+        lesson?._id === updatedLesson?._id ? updatedLesson : lesson,
       );
 
       return {
@@ -156,7 +149,7 @@ export const manageLessonReducer = (
       const lessonId = action.payload;
 
       const updatedLessons = state.lessons.filter(
-        (lesson) => lesson?._id !== lessonId
+        (lesson) => lesson?._id !== lessonId,
       );
 
       return {
@@ -164,9 +157,7 @@ export const manageLessonReducer = (
         deleting: false,
         lessons: updatedLessons,
         selectedLesson:
-          state.selectedLesson?._id === lessonId
-            ? null
-            : state.selectedLesson,
+          state.selectedLesson?._id === lessonId ? null : state.selectedLesson,
         successMessage: "Lesson deleted successfully.",
         lastDeletedLessonId: lessonId,
         error: null,

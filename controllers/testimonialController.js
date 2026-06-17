@@ -233,7 +233,9 @@ export async function getAllTestimonials(req, res) {
       Testimonial.countDocuments({ approved: true }),
 
       Testimonial.find({ approved: true })
-        .select("_id imageUrl message rating name approved user createdAt updatedAt")
+        .select(
+          "_id imageUrl message rating name approved user createdAt updatedAt",
+        )
         .populate("user", userPublicFields)
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -431,7 +433,7 @@ export async function approveTestimonial(req, res) {
     const testimonial = await Testimonial.findByIdAndUpdate(
       id,
       { approved: Boolean(approved) },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .populate("user", userPublicFields)
       .lean();

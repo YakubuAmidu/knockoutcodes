@@ -41,7 +41,7 @@ export function cartReducer(state, action) {
         ? state.items.map((x) =>
             x.cartItemId === incomingId
               ? { ...x, qty: clampQty((x.qty || 1) + (incoming.qty || 1)) }
-              : x
+              : x,
           )
         : [{ ...incoming, qty: clampQty(incoming.qty || 1) }, ...state.items];
 
@@ -56,7 +56,7 @@ export function cartReducer(state, action) {
       const nextItems = state.items.map((x) =>
         x.cartItemId === cartItemId
           ? { ...x, qty: clampQty(qty), updatedAt: new Date().toISOString() }
-          : x
+          : x,
       );
 
       persist(nextItems);

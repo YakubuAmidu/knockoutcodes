@@ -26,9 +26,13 @@ function normalizeTags(tags = []) {
   return [
     ...new Set(
       tags
-        .map((tag) => String(tag || "").trim().toLowerCase())
+        .map((tag) =>
+          String(tag || "")
+            .trim()
+            .toLowerCase(),
+        )
         .filter(Boolean)
-        .slice(0, 30)
+        .slice(0, 30),
     ),
   ];
 }
@@ -92,7 +96,7 @@ const emailSegmentSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 emailSegmentSchema.pre("validate", function (next) {

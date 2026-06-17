@@ -8,27 +8,27 @@ function buildAnalytics(users = []) {
     total: safeUsers.length,
 
     active: safeUsers.filter(
-      (u) => u.accountStatus === "active" && !u.isDeleted
+      (u) => u.accountStatus === "active" && !u.isDeleted,
     ).length,
 
     suspended: safeUsers.filter(
-      (u) => u.accountStatus === "suspended" && !u.isDeleted
+      (u) => u.accountStatus === "suspended" && !u.isDeleted,
     ).length,
 
     onHold: safeUsers.filter(
-      (u) => u.accountStatus === "on_hold" && !u.isDeleted
+      (u) => u.accountStatus === "on_hold" && !u.isDeleted,
     ).length,
 
     banned: safeUsers.filter(
-      (u) => u.accountStatus === "banned" && !u.isDeleted
+      (u) => u.accountStatus === "banned" && !u.isDeleted,
     ).length,
 
     deactivated: safeUsers.filter(
-      (u) => u.accountStatus === "deactivated" && !u.isDeleted
+      (u) => u.accountStatus === "deactivated" && !u.isDeleted,
     ).length,
 
     admins: safeUsers.filter(
-      (u) => String(u.role || "").toLowerCase() === "admin"
+      (u) => String(u.role || "").toLowerCase() === "admin",
     ).length,
 
     verifiedUsers: safeUsers.filter((u) => u.isEmailVerified === true).length,
@@ -50,13 +50,13 @@ function replaceUser(users = [], updatedUser) {
   if (!updatedId) return safeUsers;
 
   const exists = safeUsers.some(
-    (user) => String(getUserId(user)) === String(updatedId)
+    (user) => String(getUserId(user)) === String(updatedId),
   );
 
   if (!exists) return [updatedUser, ...safeUsers];
 
   return safeUsers.map((user) =>
-    String(getUserId(user)) === String(updatedId) ? updatedUser : user
+    String(getUserId(user)) === String(updatedId) ? updatedUser : user,
   );
 }
 
@@ -266,7 +266,7 @@ export function manageUserReducer(state = manageUserInitialState, action) {
 
       const updatedUsers = Array.isArray(state.users)
         ? state.users.filter(
-            (user) => String(getUserId(user)) !== String(deletedId)
+            (user) => String(getUserId(user)) !== String(deletedId),
           )
         : [];
 

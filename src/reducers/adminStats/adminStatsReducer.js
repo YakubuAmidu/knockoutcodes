@@ -6,10 +6,7 @@ import {
   ADMIN_STATS_RESET,
 } from "./adminStatsActionTypes";
 
-export const adminStatsReducer = (
-  state = adminStatsInitialState,
-  action
-) => {
+export const adminStatsReducer = (state = adminStatsInitialState, action) => {
   switch (action.type) {
     case ADMIN_STATS_REQUEST:
       return {

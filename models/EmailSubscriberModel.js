@@ -17,7 +17,9 @@ const EMAIL_SUBSCRIBER_SOURCES = [
 
 function isValidEmail(email) {
   return /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/.test(
-    String(email || "").trim().toLowerCase()
+    String(email || "")
+      .trim()
+      .toLowerCase(),
   );
 }
 
@@ -27,8 +29,13 @@ function normalizeTags(tags = []) {
   return [
     ...new Set(
       tags
-        .map((tag) => String(tag || "").trim().toLowerCase().slice(0, 40))
-        .filter(Boolean)
+        .map((tag) =>
+          String(tag || "")
+            .trim()
+            .toLowerCase()
+            .slice(0, 40),
+        )
+        .filter(Boolean),
     ),
   ].slice(0, 30);
 }
@@ -209,7 +216,7 @@ const emailSubscriberSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 emailSubscriberSchema.pre("validate", function (next) {
@@ -260,13 +267,17 @@ emailSubscriberSchema.pre("validate", function (next) {
 
 emailSubscriberSchema.methods.addActivity = function addActivity(
   action,
-  message = ""
+  message = "",
 ) {
   this.activityLog = [
     ...(this.activityLog || []),
     {
-      action: String(action || "").trim().slice(0, 80),
-      message: String(message || "").trim().slice(0, 500),
+      action: String(action || "")
+        .trim()
+        .slice(0, 80),
+      message: String(message || "")
+        .trim()
+        .slice(0, 500),
       createdAt: new Date(),
     },
   ].slice(-50);

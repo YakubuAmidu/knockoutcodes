@@ -15,7 +15,7 @@ router.post(
   authRequired,
   adminOnly,
   csrfRequired,
-  cleanupDatabaseIndexes
+  cleanupDatabaseIndexes,
 );
 
 export default router;

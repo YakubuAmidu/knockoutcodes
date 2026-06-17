@@ -32,7 +32,9 @@ export default function ReviewForm({
   const isProductReview = type === "product";
   const targetId = isProductReview ? productId : courseId;
   const targetTitle =
-    productTitle || courseTitle || (isProductReview ? "this product" : "this course");
+    productTitle ||
+    courseTitle ||
+    (isProductReview ? "this product" : "this course");
 
   const canSubmit = useMemo(() => {
     return (
@@ -104,7 +106,9 @@ export default function ReviewForm({
             </Close>
 
             <Eyebrow>
-              {isProductReview ? "Verified Product Review" : "Verified Student Review"}
+              {isProductReview
+                ? "Verified Product Review"
+                : "Verified Student Review"}
             </Eyebrow>
 
             <Title>
@@ -174,7 +178,7 @@ export default function ReviewForm({
       ) : null}
     </Wrap>
   );
-};
+}
 
 const pop = keyframes`
   from { opacity: 0; transform: translateY(18px) scale(0.96); }
@@ -226,8 +230,16 @@ const Modal = styled.div`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: clamp(22px, 4vw, 38px);
   background:
-    radial-gradient(circle at 18% 0%, rgba(214, 182, 159, 0.2), transparent 36%),
-    linear-gradient(145deg, ${({ theme }) => theme.colors.cocoa}, ${({ theme }) => theme.colors.black});
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(214, 182, 159, 0.2),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      ${({ theme }) => theme.colors.cocoa},
+      ${({ theme }) => theme.colors.black}
+    );
   border: 1px solid rgba(255, 249, 242, 0.14);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   animation: ${pop} 0.25s ease both;
@@ -307,7 +319,9 @@ const StarButton = styled.button`
   color: ${({ $active }) => ($active ? "#ffd97a" : "rgba(255,249,242,0.25)")};
   font-size: 34px;
   line-height: 1;
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     transform: translateY(-2px) scale(1.08);

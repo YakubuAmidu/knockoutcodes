@@ -42,11 +42,16 @@ export const validateBlogBody = (req, res, next) => {
   const body = stripMongoOperators(req.body || {});
 
   if (typeof body.title === "string") body.title = stripDangerous(body.title);
-  if (typeof body.slug === "string") body.slug = stripDangerous(body.slug).toLowerCase();
-  if (typeof body.excerpt === "string") body.excerpt = stripDangerous(body.excerpt);
-  if (typeof body.content === "string") body.content = stripDangerous(body.content);
-  if (typeof body.coverImage === "string") body.coverImage = stripDangerous(body.coverImage);
-  if (typeof body.category === "string") body.category = stripDangerous(body.category).toLowerCase();
+  if (typeof body.slug === "string")
+    body.slug = stripDangerous(body.slug).toLowerCase();
+  if (typeof body.excerpt === "string")
+    body.excerpt = stripDangerous(body.excerpt);
+  if (typeof body.content === "string")
+    body.content = stripDangerous(body.content);
+  if (typeof body.coverImage === "string")
+    body.coverImage = stripDangerous(body.coverImage);
+  if (typeof body.category === "string")
+    body.category = stripDangerous(body.category).toLowerCase();
 
   if (typeof body.isPublished !== "undefined") {
     body.isPublished = normalizeBoolean(body.isPublished);
@@ -60,9 +65,11 @@ export const validateBlogBody = (req, res, next) => {
     body.tags = [
       ...new Set(
         body.tags
-          .map((tag) => (typeof tag === "string" ? stripDangerous(tag).toLowerCase() : ""))
+          .map((tag) =>
+            typeof tag === "string" ? stripDangerous(tag).toLowerCase() : "",
+          )
           .filter(Boolean)
-          .slice(0, 12)
+          .slice(0, 12),
       ),
     ];
   }
@@ -106,7 +113,10 @@ export const validateBlogBody = (req, res, next) => {
     });
   }
 
-  if (typeof body.category === "string" && !ALLOWED_CATEGORIES.has(body.category)) {
+  if (
+    typeof body.category === "string" &&
+    !ALLOWED_CATEGORIES.has(body.category)
+  ) {
     return res.status(400).json({
       success: false,
       message: "Invalid blog category.",

@@ -27,7 +27,7 @@ function safeParseDraft(raw) {
 const draft = safeParseDraft(
   typeof window !== "undefined"
     ? localStorage.getItem(CONTACT_STORAGE_KEY)
-    : null
+    : null,
 );
 
 export const contactInitialState = {

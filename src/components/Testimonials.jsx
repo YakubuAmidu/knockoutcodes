@@ -72,60 +72,60 @@ export default function Testimonials() {
   }, [dispatch]);
 
   const displayItems = useMemo(() => {
-  const list = testimonials?.length ? testimonials : fallbackTestimonials;
+    const list = testimonials?.length ? testimonials : fallbackTestimonials;
 
-  return list.map((t, index) => {
-    const userData =
-      typeof t.user === "object" && t.user !== null
-        ? t.user
-        : typeof t.createdBy === "object" && t.createdBy !== null
-        ? t.createdBy
-        : typeof t.postedBy === "object" && t.postedBy !== null
-        ? t.postedBy
-        : {};
+    return list.map((t, index) => {
+      const userData =
+        typeof t.user === "object" && t.user !== null
+          ? t.user
+          : typeof t.createdBy === "object" && t.createdBy !== null
+            ? t.createdBy
+            : typeof t.postedBy === "object" && t.postedBy !== null
+              ? t.postedBy
+              : {};
 
-    const firstLastName = `${userData.firstName || ""} ${
-      userData.lastName || ""
-    }`.trim();
+      const firstLastName = `${userData.firstName || ""} ${
+        userData.lastName || ""
+      }`.trim();
 
-    const name =
-  String(
-    t.name ||
-      t.fullName ||
-      t.username ||
-      t.clientName ||
-      t.customerName ||
-      t.displayName ||
-      userData.name ||
-      userData.fullName ||
-      userData.username ||
-      userData.displayName ||
-      firstLastName ||
-      userData.email?.split("@")[0] ||
-      ""
-  ).trim() || "Verified Member";
+      const name =
+        String(
+          t.name ||
+            t.fullName ||
+            t.username ||
+            t.clientName ||
+            t.customerName ||
+            t.displayName ||
+            userData.name ||
+            userData.fullName ||
+            userData.username ||
+            userData.displayName ||
+            firstLastName ||
+            userData.email?.split("@")[0] ||
+            "",
+        ).trim() || "Verified Member";
 
-    return {
-      id: t._id || t.id || `testimonial-${index}`,
-      name,
-      initials: getInitials(name),
-      imageUrl: getImageUrl(
-        t.imageUrl ||
-          t.image ||
-          t.photo ||
-          t.avatar ||
-          t.profileImage ||
-          userData.image ||
-          userData.photo ||
-          userData.avatar ||
-          userData.profileImage
-      ),
-      comment: String(t.comment || t.message || t.review || "").trim(),
-      rating: Math.max(1, Math.min(5, Number(t.rating ?? 5))),
-      createdAt: t.createdAt || t.updatedAt || null,
-    };
-  });
-}, [testimonials]);
+      return {
+        id: t._id || t.id || `testimonial-${index}`,
+        name,
+        initials: getInitials(name),
+        imageUrl: getImageUrl(
+          t.imageUrl ||
+            t.image ||
+            t.photo ||
+            t.avatar ||
+            t.profileImage ||
+            userData.image ||
+            userData.photo ||
+            userData.avatar ||
+            userData.profileImage,
+        ),
+        comment: String(t.comment || t.message || t.review || "").trim(),
+        rating: Math.max(1, Math.min(5, Number(t.rating ?? 5))),
+        createdAt: t.createdAt || t.updatedAt || null,
+      };
+    });
+  }, [testimonials]);
 
   const hasLoop = displayItems.length > 1;
 
@@ -151,15 +151,17 @@ export default function Testimonials() {
 
         {user ? (
           <FormShell>
-            <TestimonialForm onSubmitted={() => dispatch(fetchTestimonials())} />
+            <TestimonialForm
+              onSubmitted={() => dispatch(fetchTestimonials())}
+            />
           </FormShell>
         ) : (
           <LoginPrompt>
             <span>MEMBERS ONLY</span>
             <h2>Your result deserves a premium spotlight.</h2>
             <p>
-              Login to share your testimonial. Once approved by admin, your story
-              can appear on the public KnockoutCodes wall.
+              Login to share your testimonial. Once approved by admin, your
+              story can appear on the public KnockoutCodes wall.
             </p>
             <a href="/login">Login to Share Your Result</a>
           </LoginPrompt>
@@ -234,7 +236,12 @@ function TestimonialCard({ testimonial }) {
           </Rating>
         </TopRow>
 
-        <Quote>“{testimonial.comment || "Powerful results. Real discipline. Real progress."}”</Quote>
+        <Quote>
+          “
+          {testimonial.comment ||
+            "Powerful results. Real discipline. Real progress."}
+          ”
+        </Quote>
 
         <FooterRow>
           <SmallBadge>Premium Review</SmallBadge>
@@ -257,9 +264,22 @@ const Page = styled.section`
   color: ${theme.colors.white};
   padding: 7rem 2rem;
   background:
-    radial-gradient(circle at 18% 10%, rgba(214, 182, 159, 0.24), transparent 34%),
-    radial-gradient(circle at 86% 18%, rgba(255, 249, 242, 0.12), transparent 28%),
-    linear-gradient(135deg, ${theme.colors.black} 0%, ${theme.colors.darkBrown} 55%, ${theme.colors.black} 100%);
+    radial-gradient(
+      circle at 18% 10%,
+      rgba(214, 182, 159, 0.24),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 86% 18%,
+      rgba(255, 249, 242, 0.12),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      ${theme.colors.black} 0%,
+      ${theme.colors.darkBrown} 55%,
+      ${theme.colors.black} 100%
+    );
 `;
 
 const LuxuryGlowOne = styled.div`
@@ -394,7 +414,11 @@ const Card = styled.article`
   overflow: hidden;
   border-radius: ${theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 249, 242, 0.12), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 249, 242, 0.12),
+      rgba(255, 255, 255, 0.035)
+    ),
     ${theme.colors.cocoa};
   color: ${theme.colors.ivory};
   border: 1px solid rgba(255, 255, 255, 0.11);
@@ -416,7 +440,11 @@ const ImageArea = styled.div`
   aspect-ratio: 16 / 10;
   overflow: hidden;
   background:
-    radial-gradient(circle at 30% 20%, rgba(214, 182, 159, 0.28), transparent 36%),
+    radial-gradient(
+      circle at 30% 20%,
+      rgba(214, 182, 159, 0.28),
+      transparent 36%
+    ),
     linear-gradient(135deg, ${theme.colors.black}, ${theme.colors.darkBrown});
 `;
 
@@ -440,7 +468,11 @@ const InitialAvatar = styled.div`
   place-items: center;
   color: ${theme.colors.black};
   background:
-    radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.78), transparent 26%),
+    radial-gradient(
+      circle at 35% 20%,
+      rgba(255, 255, 255, 0.78),
+      transparent 26%
+    ),
     linear-gradient(135deg, ${theme.colors.lightBrown}, ${theme.colors.ivory});
   font-size: clamp(3rem, 7vw, 5rem);
   font-weight: 950;
@@ -452,7 +484,11 @@ const ImageShade = styled.div`
   inset: 0;
   background:
     linear-gradient(to top, rgba(0, 0, 0, 0.68), transparent 58%),
-    radial-gradient(circle at 20% 15%, rgba(214, 182, 159, 0.16), transparent 32%);
+    radial-gradient(
+      circle at 20% 15%,
+      rgba(214, 182, 159, 0.16),
+      transparent 32%
+    );
   pointer-events: none;
 `;
 
@@ -556,7 +592,11 @@ const LoginPrompt = styled.div`
   padding: 1.6rem;
   border-radius: ${theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 249, 242, 0.11), rgba(255, 255, 255, 0.025)),
+    linear-gradient(
+      145deg,
+      rgba(255, 249, 242, 0.11),
+      rgba(255, 255, 255, 0.025)
+    ),
     rgba(0, 0, 0, 0.48);
   border: 1px solid rgba(214, 182, 159, 0.24);
   box-shadow: ${theme.shadow.glow};

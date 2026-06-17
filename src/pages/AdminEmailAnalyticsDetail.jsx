@@ -15,26 +15,26 @@ function AdminEmailAnalyticsDetail() {
   const lastErrorRef = useRef("");
 
   const {
-  campaignLoading = false,
-  selectedCampaign = null,
-  campaignTotals = {},
-  campaignRates = {},
-  recentEvents = [],
-  campaignError = "",
-} = useSelector((state) => state.emailAnalytics || {});
+    campaignLoading = false,
+    selectedCampaign = null,
+    campaignTotals = {},
+    campaignRates = {},
+    recentEvents = [],
+    campaignError = "",
+  } = useSelector((state) => state.emailAnalytics || {});
 
-const loading = campaignLoading;
-const error = campaignError;
+  const loading = campaignLoading;
+  const error = campaignError;
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
-const detailData = selectedCampaign
-  ? {
-      campaign: selectedCampaign,
-      totals: campaignTotals,
-      engagement: campaignRates,
-      recentActivity: recentEvents,
-    }
-  : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const detailData = selectedCampaign
+    ? {
+        campaign: selectedCampaign,
+        totals: campaignTotals,
+        engagement: campaignRates,
+        recentActivity: recentEvents,
+      }
+    : null;
 
   useEffect(() => {
     if (!id) {
@@ -131,7 +131,9 @@ const detailData = selectedCampaign
                 {campaign?.status || "draft"}
               </StatusBadge>
 
-              <MetaText>Created: {formatDateTime(campaign?.createdAt)}</MetaText>
+              <MetaText>
+                Created: {formatDateTime(campaign?.createdAt)}
+              </MetaText>
 
               {campaign?.sentAt && (
                 <MetaText>Sent: {formatDateTime(campaign.sentAt)}</MetaText>
@@ -150,7 +152,7 @@ const detailData = selectedCampaign
                   <p>Recipients</p>
                   <h2>
                     {formatNumber(
-                      totals?.recipients ?? campaign?.totalRecipients
+                      totals?.recipients ?? campaign?.totalRecipients,
                     )}
                   </h2>
                 </Card>
@@ -202,7 +204,9 @@ const detailData = selectedCampaign
                 <LogHeader>
                   <div>
                     <h3>Recent Activity</h3>
-                    <p>See opens, clicks, unsubscribes, bounces, and failures.</p>
+                    <p>
+                      See opens, clicks, unsubscribes, bounces, and failures.
+                    </p>
                   </div>
 
                   <StatusBadge $status={campaign?.status || "draft"}>
@@ -271,8 +275,16 @@ const Page = styled.main`
   min-height: 100vh;
   padding: 3rem 1.5rem;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 35%),
-    radial-gradient(circle at top right, rgba(90, 56, 37, 0.2), transparent 30%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(90, 56, 37, 0.2),
+      transparent 30%
+    ),
     ${({ theme }) => theme.colors.black};
   color: ${({ theme }) => theme.colors.white};
 `;

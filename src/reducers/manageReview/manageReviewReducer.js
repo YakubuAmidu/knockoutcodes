@@ -33,7 +33,7 @@ function updateReviewInList(reviews, updatedReview) {
   if (!updatedReview?._id) return reviews;
 
   return reviews.map((review) =>
-    review._id === updatedReview._id ? updatedReview : review
+    review._id === updatedReview._id ? updatedReview : review,
   );
 }
 
@@ -90,7 +90,7 @@ export function manageReviewReducer(state = manageReviewInitialState, action) {
 
     case MANAGE_REVIEW_DELETE_SUCCESS: {
       const reviews = state.reviews.filter(
-        (review) => review._id !== action.payload
+        (review) => review._id !== action.payload,
       );
 
       return {

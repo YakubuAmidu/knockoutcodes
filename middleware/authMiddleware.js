@@ -120,39 +120,40 @@ export async function authRequired(req, res, next) {
 
     // ✅ CRITICAL: Check DB (this is the upgrade)
     const user = await User.findById(decoded._id)
-  .select(
-    "_id role isActive tokenVersion isDeleted accountStatus statusReason"
-  )
-  .lean();
+      .select(
+        "_id role isActive tokenVersion isDeleted accountStatus statusReason",
+      )
+      .lean();
 
-if (!user) {
-  return res.status(401).json({
-    success: false,
-    message: "Account not found.",
-  });
-}
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Account not found.",
+      });
+    }
 
-/* =========================
+    /* =========================
    ACCOUNT ACCESS RESTRICTED
 ========================= */
-if (
-  user.isDeleted === true ||
-  user.isActive === false ||
-  user.accountStatus !== "active"
-) {
-  return res.status(403).json({
-    success: false,
-    code: "ACCOUNT_ACCESS_RESTRICTED",
-    message:
-      user.statusReason ||
-      `Your account is ${String(
-        user.accountStatus || "restricted"
-      ).replace(/_/g, " ")}.`,
-    accountStatus: user.accountStatus || "restricted",
-    statusReason: user.statusReason || "",
-    redirectTo: "/account-access-notice",
-  });
-}
+    if (
+      user.isDeleted === true ||
+      user.isActive === false ||
+      user.accountStatus !== "active"
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_ACCESS_RESTRICTED",
+        message:
+          user.statusReason ||
+          `Your account is ${String(user.accountStatus || "restricted").replace(
+            /_/g,
+            " ",
+          )}.`,
+        accountStatus: user.accountStatus || "restricted",
+        statusReason: user.statusReason || "",
+        redirectTo: "/account-access-notice",
+      });
+    }
 
     // ✅ CRITICAL: Token version check (kills old sessions)
     if (Number(user.tokenVersion || 0) !== Number(decoded.tokenVersion || 0)) {
@@ -204,18 +205,18 @@ export async function optionalAuth(req, _res, next) {
     const decoded = verifyAccessToken(token);
 
     const user = await User.findById(decoded._id)
-  .select("_id role isActive tokenVersion isDeleted accountStatus")
-  .lean();
+      .select("_id role isActive tokenVersion isDeleted accountStatus")
+      .lean();
 
-if (
-  !user ||
-  user.isDeleted === true ||
-  user.isActive === false ||
-  user.accountStatus !== "active"
-) {
-  req.user = null;
-  return next();
-}
+    if (
+      !user ||
+      user.isDeleted === true ||
+      user.isActive === false ||
+      user.accountStatus !== "active"
+    ) {
+      req.user = null;
+      return next();
+    }
 
     if (Number(user.tokenVersion || 0) !== Number(decoded.tokenVersion || 0)) {
       req.user = null;
@@ -243,7 +244,10 @@ if (
  */
 export async function adminOnly(req, res, next) {
   try {
-    if (!req.user?._id || !mongoose.Types.ObjectId.isValid(String(req.user._id))) {
+    if (
+      !req.user?._id ||
+      !mongoose.Types.ObjectId.isValid(String(req.user._id))
+    ) {
       return res.status(401).json({
         success: false,
         message: "Authentication required.",
@@ -261,12 +265,12 @@ export async function adminOnly(req, res, next) {
       });
     }
 
-   if (!["admin", "superadmin"].includes(String(user.role))) {
-  return res.status(403).json({
-    success: false,
-    message: "Admin access required.",
-  });
-}
+    if (!["admin", "superadmin"].includes(String(user.role))) {
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required.",
+      });
+    }
 
     req.user = buildSafeRequestUser({
       _id: user._id,

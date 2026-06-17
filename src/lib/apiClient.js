@@ -77,7 +77,7 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
@@ -106,7 +106,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export function setAuthToken(token) {
@@ -162,7 +162,7 @@ export function attach401Handler(onUnauthorized) {
       }
 
       return Promise.reject(error);
-    }
+    },
   );
 }
 
@@ -249,7 +249,7 @@ export async function confirmCheckoutSession(sessionId, options = {}) {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
       },
-    }
+    },
   );
 
   return data;
@@ -278,7 +278,7 @@ export async function confirmProductCheckoutSession(sessionId, options = {}) {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
       },
-    }
+    },
   );
 
   return data;

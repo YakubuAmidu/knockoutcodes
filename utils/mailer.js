@@ -15,7 +15,9 @@ function requiredEnv(name) {
 function optionalEnv(name, fallback = "") {
   // eslint-disable-next-line no-undef
   const value = process.env[name];
-  return value === undefined || value === null ? fallback : String(value).trim();
+  return value === undefined || value === null
+    ? fallback
+    : String(value).trim();
 }
 
 function parseBoolean(value, fallback = false) {
@@ -31,7 +33,9 @@ function parseNumber(value, fallback) {
 function sanitizeHeaderValue(value, fieldName) {
   if (value === undefined || value === null) return "";
 
-  const clean = String(value).replace(/[\r\n]+/g, " ").trim();
+  const clean = String(value)
+    .replace(/[\r\n]+/g, " ")
+    .trim();
 
   if (!clean) return "";
 
@@ -144,21 +148,21 @@ export function createTransport() {
 
     connectionTimeout: parseNumber(
       optionalEnv("SMTP_CONNECTION_TIMEOUT", "10000"),
-      10000
+      10000,
     ),
     greetingTimeout: parseNumber(
       optionalEnv("SMTP_GREETING_TIMEOUT", "10000"),
-      10000
+      10000,
     ),
     socketTimeout: parseNumber(
       optionalEnv("SMTP_SOCKET_TIMEOUT", "15000"),
-      15000
+      15000,
     ),
 
     tls: {
       rejectUnauthorized: parseBoolean(
         optionalEnv("SMTP_TLS_REJECT_UNAUTHORIZED", "true"),
-        true
+        true,
       ),
     },
   });
@@ -172,15 +176,7 @@ export async function verifyMailTransport() {
   return true;
 }
 
-export async function sendMail({
-  to,
-  cc,
-  bcc,
-  subject,
-  html,
-  text,
-  replyTo,
-}) {
+export async function sendMail({ to, cc, bcc, subject, html, text, replyTo }) {
   const transporter = createTransport();
 
   // eslint-disable-next-line no-undef

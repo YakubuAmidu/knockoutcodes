@@ -50,7 +50,7 @@ router.post(
   csrfRequired,
   authRequired,
   handleAvatarUpload,
-  updateMyAvatar
+  updateMyAvatar,
 );
 
 router.patch(
@@ -58,7 +58,7 @@ router.patch(
   ...writeShield,
   csrfRequired,
   authRequired,
-  changeMyPassword
+  changeMyPassword,
 );
 
 /* =========================
@@ -74,7 +74,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  updateUser
+  updateUser,
 );
 
 router.patch(
@@ -83,7 +83,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  updateUserStatus
+  updateUserStatus,
 );
 
 router.patch(
@@ -92,7 +92,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  forceLogoutUser
+  forceLogoutUser,
 );
 
 router.patch(
@@ -101,7 +101,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  softDeleteUser
+  softDeleteUser,
 );
 
 router.patch(
@@ -110,7 +110,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  restoreUser
+  restoreUser,
 );
 
 router.delete(
@@ -119,7 +119,7 @@ router.delete(
   csrfRequired,
   authRequired,
   adminOnly,
-  deleteUser
+  deleteUser,
 );
 
 export default router;

@@ -20,12 +20,7 @@ import CompleteImg from "../assets/knockoutcodes-complete-access-pass.png";
 
 const PAGE_SIZE = 8;
 
-const VALID_MEMBERSHIPS = [
-  "beginner",
-  "intermediate",
-  "advance",
-  "complete",
-];
+const VALID_MEMBERSHIPS = ["beginner", "intermediate", "advance", "complete"];
 
 const VALID_BILLING_PERIODS = ["monthly", "yearly"];
 
@@ -46,7 +41,7 @@ function renderStars(ratingAverage) {
   const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
 
   return Array.from({ length: 5 }, (_, index) =>
-    index + 1 <= fullStars ? "★" : "☆"
+    index + 1 <= fullStars ? "★" : "☆",
   ).join("");
 }
 
@@ -57,14 +52,16 @@ function safeMoney(n) {
 }
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level;
 }
 
 function pickLocalCourseImage(course) {
   const key = String(
-    course?.slug || course?.title || course?._id || ""
+    course?.slug || course?.title || course?._id || "",
   ).toLowerCase();
 
   if (key.includes("beginner")) return BeginnerImg;
@@ -127,26 +124,26 @@ const Courses = () => {
 
   const searchParams = useMemo(
     () => new URLSearchParams(location.search),
-    [location.search]
+    [location.search],
   );
 
- const membershipIdFromUrl = String(searchParams.get("membershipId") || "")
-  .trim()
-  .toLowerCase();
+  const membershipIdFromUrl = String(searchParams.get("membershipId") || "")
+    .trim()
+    .toLowerCase();
 
-const billingPeriodFromUrl = String(searchParams.get("billingPeriod") || "")
-  .trim()
-  .toLowerCase();
+  const billingPeriodFromUrl = String(searchParams.get("billingPeriod") || "")
+    .trim()
+    .toLowerCase();
 
-const selectedMembershipId = VALID_MEMBERSHIPS.includes(membershipIdFromUrl)
-  ? membershipIdFromUrl
-  : "";
+  const selectedMembershipId = VALID_MEMBERSHIPS.includes(membershipIdFromUrl)
+    ? membershipIdFromUrl
+    : "";
 
-const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
-  billingPeriodFromUrl
-)
-  ? billingPeriodFromUrl
-  : "";
+  const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
+    billingPeriodFromUrl,
+  )
+    ? billingPeriodFromUrl
+    : "";
 
   const membershipQueryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -169,7 +166,7 @@ const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
       billingPeriod: selectedBillingPeriod,
       fromMembershipFlow: Boolean(selectedMembershipId),
     }),
-    [selectedMembershipId, selectedBillingPeriod]
+    [selectedMembershipId, selectedBillingPeriod],
   );
 
   const {
@@ -185,12 +182,12 @@ const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
   } = useSelector((state) => state.courses);
 
   useEffect(() => {
-  dispatch(fetchCourses());
+    dispatch(fetchCourses());
 
-  return () => {
-    dispatch(resetCourseState());
-  };
-}, [dispatch]);
+    return () => {
+      dispatch(resetCourseState());
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     if (!isAuthenticated || authLoading) {
@@ -201,28 +198,25 @@ const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
     let mounted = true;
 
     async function loadMyAccess() {
-  try {
-    const { data } = await axiosInstance.get("/enrollments/my");
+      try {
+        const { data } = await axiosInstance.get("/enrollments/my");
 
-    const enrollments =
-      data?.enrollments ||
-      data?.data ||
-      [];
+        const enrollments = data?.enrollments || data?.data || [];
 
-    const enrollmentIds = new Set(
-      enrollments
-        .map((enrollment) => enrollment?.course?._id || enrollment?.course)
-        .filter(Boolean)
-        .map(String)
-    );
+        const enrollmentIds = new Set(
+          enrollments
+            .map((enrollment) => enrollment?.course?._id || enrollment?.course)
+            .filter(Boolean)
+            .map(String),
+        );
 
-    if (!mounted) return;
+        if (!mounted) return;
 
-    setAccessCourseIds(enrollmentIds);
-  } catch {
-    if (mounted) setAccessCourseIds(new Set());
-  }
-}
+        setAccessCourseIds(enrollmentIds);
+      } catch {
+        if (mounted) setAccessCourseIds(new Set());
+      }
+    }
 
     loadMyAccess();
 
@@ -357,8 +351,8 @@ const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
       });
 
       navigate(`/course-player/${encodeURIComponent(found._id)}`, {
-  replace: true,
-});
+        replace: true,
+      });
       return;
     }
 
@@ -406,25 +400,28 @@ const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
   const goPrev = () => setPage((p) => Math.max(1, p - 1));
 
   const goToCourseDetails = (course, extraState = {}) => {
-  const courseId = course?._id;
+    const courseId = course?._id;
 
-  if (!courseId) {
-    toast?.push?.({
-      title: "Course Error",
-      description: "Course ID is missing. Please refresh and try again.",
-      variant: "danger",
-    });
-    return;
-  }
+    if (!courseId) {
+      toast?.push?.({
+        title: "Course Error",
+        description: "Course ID is missing. Please refresh and try again.",
+        variant: "danger",
+      });
+      return;
+    }
 
-  navigate(`/courses/${encodeURIComponent(courseId)}${membershipQueryString}`, {
-    state: {
-      course,
-      ...membershipState,
-      ...extraState,
-    },
-  });
-};
+    navigate(
+      `/courses/${encodeURIComponent(courseId)}${membershipQueryString}`,
+      {
+        state: {
+          course,
+          ...membershipState,
+          ...extraState,
+        },
+      },
+    );
+  };
 
   const handleEnroll = (course) => {
     if (authLoading || checkoutLoading || !course) return;
@@ -440,17 +437,17 @@ const selectedBillingPeriod = VALID_BILLING_PERIODS.includes(
 
       const courseId = course?._id;
 
-if (!courseId) {
-  toast?.push?.({
-    title: "Course Error",
-    description: "Course ID is missing. Please refresh and try again.",
-    variant: "danger",
-  });
-  return;
-}
+      if (!courseId) {
+        toast?.push?.({
+          title: "Course Error",
+          description: "Course ID is missing. Please refresh and try again.",
+          variant: "danger",
+        });
+        return;
+      }
 
-navigate(`/course-player/${encodeURIComponent(courseId)}`);
-return;
+      navigate(`/course-player/${encodeURIComponent(courseId)}`);
+      return;
     }
 
     if (course?.isFree) {
@@ -469,7 +466,7 @@ return;
 
       const returnPath = selectedMembershipId
         ? `/courses?enroll=${encodeURIComponent(idForReturn)}&membershipId=${encodeURIComponent(
-            selectedMembershipId
+            selectedMembershipId,
           )}&billingPeriod=${encodeURIComponent(selectedBillingPeriod)}`
         : `/courses?enroll=${encodeURIComponent(idForReturn)}`;
 
@@ -517,7 +514,8 @@ return;
           <HeroContent>
             <Eyebrow>KnockoutCodes Premium Academy</Eyebrow>
             <Title>
-              Stop Training Random. Build Fighter-Level Skill With A Real System.
+              Stop Training Random. Build Fighter-Level Skill With A Real
+              System.
             </Title>
             <Subtitle>
               Every course is built to sharpen your stance, hands, footwork,
@@ -532,10 +530,7 @@ return;
             ) : null}
 
             <HeroActions>
-              <HeroButton
-                type="button"
-                onClick={() => navigate("/courses")}
-              >
+              <HeroButton type="button" onClick={() => navigate("/courses")}>
                 Explore Courses
               </HeroButton>
 
@@ -577,7 +572,9 @@ return;
           <StatusPill>
             <strong>{selectedMembershipId ? "ON" : "5★"}</strong>
             <span>
-              {selectedMembershipId ? "Membership Flow" : "Premium Training Feel"}
+              {selectedMembershipId
+                ? "Membership Flow"
+                : "Premium Training Feel"}
             </span>
           </StatusPill>
         </StatusBar>
@@ -643,7 +640,8 @@ return;
                   Boolean(checkoutLoading) &&
                   String(activeCheckoutId) === String(_id);
 
-                const ownsCourse = Boolean(_id) && accessCourseIds.has(String(_id));
+                const ownsCourse =
+                  Boolean(_id) && accessCourseIds.has(String(_id));
                 const membershipLevel = getRequiredMembershipLevel(course);
 
                 return (
@@ -651,10 +649,10 @@ return;
                     <ThumbWrap>
                       <Thumb
                         src={
-  thumbnail ||
-  pickLocalCourseImage(course) ||
-  "/images/default-course.jpg"
-}
+                          thumbnail ||
+                          pickLocalCourseImage(course) ||
+                          "/images/default-course.jpg"
+                        }
                         alt={title || "Course thumbnail"}
                         loading="lazy"
                       />
@@ -665,7 +663,9 @@ return;
                         <Badge>{category || "Course"}</Badge>
 
                         <BadgeRightGroup>
-                          {ownsCourse ? <OwnedBadge>Unlocked</OwnedBadge> : null}
+                          {ownsCourse ? (
+                            <OwnedBadge>Unlocked</OwnedBadge>
+                          ) : null}
                           {selectedMembershipId && !ownsCourse ? (
                             <SelectedBadge>Selected Plan</SelectedBadge>
                           ) : null}
@@ -688,9 +688,13 @@ return;
                         {level ? (
                           <MetaPill>Level: {normalizeLevel(level)}</MetaPill>
                         ) : null}
-                        {durationLabel ? <MetaPill>{durationLabel}</MetaPill> : null}
+                        {durationLabel ? (
+                          <MetaPill>{durationLabel}</MetaPill>
+                        ) : null}
                         <MetaPill>{enrolledCount} enrolled</MetaPill>
-                        {ownsCourse ? <MetaPill>Access Unlocked</MetaPill> : null}
+                        {ownsCourse ? (
+                          <MetaPill>Access Unlocked</MetaPill>
+                        ) : null}
                         {!isFree ? (
                           <MetaPill>Membership: {membershipLevel}</MetaPill>
                         ) : null}
@@ -710,7 +714,9 @@ return;
                       <RatingRow>
                         <Stars>{renderStars(ratingAverage)}</Stars>
                         <RatingText>
-                          {numericRating > 0 ? `${numericRating.toFixed(1)}/5` : "New"}
+                          {numericRating > 0
+                            ? `${numericRating.toFixed(1)}/5`
+                            : "New"}
                           {numericRatingCount > 0
                             ? ` • ${numericRatingCount} ratings`
                             : ""}
@@ -748,12 +754,12 @@ return;
                           {isThisCourseCheckingOut
                             ? "Redirecting..."
                             : ownsCourse
-                            ? "Watch Now"
-                            : selectedMembershipId
-                            ? "Choose Course"
-                            : isFree
-                            ? "Start Free"
-                            : "Enroll Now"}
+                              ? "Watch Now"
+                              : selectedMembershipId
+                                ? "Choose Course"
+                                : isFree
+                                  ? "Start Free"
+                                  : "Enroll Now"}
                         </PrimaryButton>
                       </Footer>
                     </Body>
@@ -804,9 +810,17 @@ const fadeUp = keyframes`
 const PageWrap = styled.section`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 14%, rgba(90, 56, 37, 0.42), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   color: ${({ theme }) => theme.colors.white};
   display: flex;
   justify-content: center;
@@ -836,7 +850,11 @@ const HeroContent = styled.div`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.82), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -930,7 +948,11 @@ const HeroPanel = styled.aside`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 22px;
   background:
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.14), transparent 34%),
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.14),
+      transparent 34%
+    ),
     rgba(0, 0, 0, 0.38);
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -1084,7 +1106,10 @@ const Card = styled.article`
   display: flex;
   flex-direction: column;
   min-height: 560px;
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
 
   &:hover {
     transform: translateY(-6px);
@@ -1119,7 +1144,11 @@ const ImageShade = styled.div`
   inset: 0;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.12), transparent 38%);
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.12),
+      transparent 38%
+    );
 `;
 
 const BadgeRow = styled.div`
@@ -1329,7 +1358,10 @@ const Button = styled.button`
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
 
   &:disabled {
     cursor: not-allowed;

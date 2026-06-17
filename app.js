@@ -33,7 +33,9 @@ import contactRoutes from "./routes/contactRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import coachingRoutes from "./routes/coachingRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
-import subscriptionRoutes, { stripeWebhook } from "./routes/subscriptionRoutes.js";
+import subscriptionRoutes, {
+  stripeWebhook,
+} from "./routes/subscriptionRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import adminStatsRoutes from "./routes/adminStatsRoutes.js";
@@ -73,7 +75,9 @@ const explicitOrigins = [
   "https://knockoutcodes.com",
   "https://www.knockoutcodes.com",
   ...(process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+    ? process.env.CORS_ORIGINS.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     : []),
 ];
 
@@ -95,7 +99,7 @@ app.use(
       return callback(createError(403, "Not allowed by CORS"));
     },
     credentials: true,
-  })
+  }),
 );
 
 app.use(securityHeaders());
@@ -124,13 +128,13 @@ app.use("/api", globalApiLimiter);
 app.post(
   "/api/v1/subscriptions/webhook",
   express.raw({ type: "application/json" }),
-  stripeWebhook
+  stripeWebhook,
 );
 
 app.post(
   "/api/v1/enrollments/webhook/stripe",
   express.raw({ type: "application/json" }),
-  stripeWebhookHandler
+  stripeWebhookHandler,
 );
 
 app.use(express.json({ limit: "1mb" }));
@@ -181,7 +185,7 @@ app.use((req, res, next) => {
   ) {
     res.setHeader(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
+      "no-store, no-cache, must-revalidate, proxy-revalidate",
     );
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");

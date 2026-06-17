@@ -27,7 +27,7 @@ function cleanTags(tags = []) {
       tags
         .map((tag) => cleanString(tag, 40).toLowerCase())
         .filter(Boolean)
-        .slice(0, 30)
+        .slice(0, 30),
     ),
   ];
 }
@@ -68,7 +68,11 @@ function buildSegmentPayload(body = {}, isCreate = false) {
   }
 
   if (body.rules !== undefined) {
-    if (!body.rules || typeof body.rules !== "object" || Array.isArray(body.rules)) {
+    if (
+      !body.rules ||
+      typeof body.rules !== "object" ||
+      Array.isArray(body.rules)
+    ) {
       const error = new Error("Rules must be an object");
       error.statusCode = 400;
       throw error;
@@ -92,7 +96,9 @@ function buildSegmentPayload(body = {}, isCreate = false) {
       const minOrders = Number(body.rules.minOrders);
 
       if (!Number.isFinite(minOrders) || minOrders < 0) {
-        const error = new Error("Minimum orders must be a valid positive number");
+        const error = new Error(
+          "Minimum orders must be a valid positive number",
+        );
         error.statusCode = 400;
         throw error;
       }
@@ -290,10 +296,14 @@ export async function updateEmailSegment(req, res, next) {
       }
     }
 
-    const segment = await EmailSegment.findByIdAndUpdate(req.params.id, payload, {
-      new: true,
-      runValidators: true,
-    });
+    const segment = await EmailSegment.findByIdAndUpdate(
+      req.params.id,
+      payload,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     if (!segment) {
       return res.status(404).json({

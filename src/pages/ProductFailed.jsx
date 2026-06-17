@@ -32,41 +32,38 @@ export default function ProductFailed() {
           {canceled
             ? "No worries. Your cart is still safe. You can return and finish whenever you are ready."
             : sessionId
-? "Stripe started the checkout process, but the payment did not fully complete or confirm."
-: "Something stopped the payment from completing. Your order was not confirmed yet."}
+              ? "Stripe started the checkout process, but the payment did not fully complete or confirm."
+              : "Something stopped the payment from completing. Your order was not confirmed yet."}
         </Subtitle>
 
         <Card>
           <Icon>!</Icon>
 
           <CardTitle>
-            {canceled ? "Your order was not placed." : "Your payment needs attention."}
+            {canceled
+              ? "Your order was not placed."
+              : "Your payment needs attention."}
           </CardTitle>
 
           <CardText>
-  We only create a confirmed order after Stripe verifies payment and
-  MongoDB safely stores the order.
-
-  {sessionId ? (
-    <>
-      {" "}
-      A checkout session was detected, but payment confirmation was not
-      completed yet.
-    </>
-  ) : null}
-
-  {" "}
-  If money was charged but this page appeared, check My Orders first
-  before retrying checkout.
-</CardText>
+            We only create a confirmed order after Stripe verifies payment and
+            MongoDB safely stores the order.
+            {sessionId ? (
+              <>
+                {" "}
+                A checkout session was detected, but payment confirmation was
+                not completed yet.
+              </>
+            ) : null}{" "}
+            If money was charged but this page appeared, check My Orders first
+            before retrying checkout.
+          </CardText>
 
           <Actions>
             <PrimaryLink to="/cart">Return To Cart</PrimaryLink>
             {sessionId ? (
-  <PrimaryLink to="/checkout/recover">
-    Recover Checkout
-  </PrimaryLink>
-) : null}
+              <PrimaryLink to="/checkout/recover">Recover Checkout</PrimaryLink>
+            ) : null}
             <GhostLink to="/products">Continue Shopping</GhostLink>
             <GhostLink to="/dashboard/my-orders">Check My Orders</GhostLink>
           </Actions>
@@ -88,9 +85,17 @@ const Page = styled.main`
   padding: 104px 18px 86px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 10%, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(
+      circle at 18% 10%,
+      rgba(214, 182, 159, 0.2),
+      transparent 38%
+    ),
     radial-gradient(circle at 80% 18%, rgba(90, 56, 37, 0.34), transparent 42%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, ${({ theme }) => theme.colors.black} 82%);
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      ${({ theme }) => theme.colors.black} 82%
+    );
 `;
 
 const GlowOne = styled.div`
@@ -168,7 +173,11 @@ const Card = styled.div`
   padding: 24px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.035)
+    ),
     rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 249, 242, 0.13);
   box-shadow: ${({ theme }) => theme.shadow.glow};

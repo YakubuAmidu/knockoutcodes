@@ -9,7 +9,13 @@ function sleep(ms) {
 }
 
 function getSubscriptionPayload(payload) {
-  return payload?.subscription || payload?.data?.subscription || payload?.data || payload || null;
+  return (
+    payload?.subscription ||
+    payload?.data?.subscription ||
+    payload?.data ||
+    payload ||
+    null
+  );
 }
 
 export default function MembershipSuccess() {
@@ -48,20 +54,29 @@ export default function MembershipSuccess() {
           const data = await getMySubscription({ signal: controller.signal });
           const activeSub = data?.data || data?.subscription || data;
 
-          if (activeSub?.isActive || ["active", "trialing"].includes(String(activeSub?.status || "").toLowerCase())) {
+          if (
+            activeSub?.isActive ||
+            ["active", "trialing"].includes(
+              String(activeSub?.status || "").toLowerCase(),
+            )
+          ) {
             setSubscription(activeSub);
             setStatus("success");
-            setMessage("Membership confirmed. Your premium access is now unlocked.");
+            setMessage(
+              "Membership confirmed. Your premium access is now unlocked.",
+            );
             return;
           }
 
-          setMessage(`Payment confirmed. Unlocking your membership… (${attempt}/12)`);
+          setMessage(
+            `Payment confirmed. Unlocking your membership… (${attempt}/12)`,
+          );
           await sleep(1100);
         }
 
         setStatus("processing");
         setMessage(
-          "Stripe confirmed your payment, but your membership is still syncing. Check your dashboard shortly."
+          "Stripe confirmed your payment, but your membership is still syncing. Check your dashboard shortly.",
         );
       } catch (err) {
         if (err?.name === "CanceledError" || err?.name === "AbortError") return;
@@ -70,7 +85,7 @@ export default function MembershipSuccess() {
         setMessage(
           err?.response?.data?.message ||
             err?.message ||
-            "We could not verify your membership right now."
+            "We could not verify your membership right now.",
         );
       }
     }
@@ -108,18 +123,18 @@ export default function MembershipSuccess() {
           {isSuccess
             ? "Access unlocked. You’re officially inside."
             : isError
-            ? "Membership needs attention."
-            : "Hold tight. We’re unlocking your access."}
+              ? "Membership needs attention."
+              : "Hold tight. We’re unlocking your access."}
         </Title>
 
         <Subtitle>
           {isSuccess
             ? "Your payment was verified and your premium membership is now active."
             : isProcessing
-            ? "Stripe confirmed payment. Your account access is still syncing."
-            : isError
-            ? "Something blocked the final membership confirmation."
-            : "First we verify Stripe. Then we confirm your membership. Then we unlock your premium access."}
+              ? "Stripe confirmed payment. Your account access is still syncing."
+              : isError
+                ? "Something blocked the final membership confirmation."
+                : "First we verify Stripe. Then we confirm your membership. Then we unlock your premium access."}
         </Subtitle>
 
         <Card>
@@ -131,10 +146,10 @@ export default function MembershipSuccess() {
             {isSuccess
               ? "Your membership is active."
               : isError
-              ? "Verification did not complete."
-              : isProcessing
-              ? "Membership is still processing."
-              : "Checking your membership now."}
+                ? "Verification did not complete."
+                : isProcessing
+                  ? "Membership is still processing."
+                  : "Checking your membership now."}
           </CardTitle>
 
           <CardText>{message}</CardText>
@@ -179,9 +194,17 @@ const Page = styled.main`
   padding: 104px 18px 86px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 10%, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(
+      circle at 18% 10%,
+      rgba(214, 182, 159, 0.2),
+      transparent 38%
+    ),
     radial-gradient(circle at 80% 18%, rgba(90, 56, 37, 0.34), transparent 42%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, ${({ theme }) => theme.colors.black} 82%);
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      ${({ theme }) => theme.colors.black} 82%
+    );
 `;
 
 const GlowOne = styled.div`
@@ -259,7 +282,11 @@ const Card = styled.div`
   padding: 24px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.035)
+    ),
     rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 249, 242, 0.13);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -274,7 +301,9 @@ const Icon = styled.div`
   place-items: center;
   border-radius: 999px;
   background: ${({ $status }) =>
-    $status === "success" ? "rgba(214, 182, 159, 0.22)" : "rgba(0, 0, 0, 0.35)"};
+    $status === "success"
+      ? "rgba(214, 182, 159, 0.22)"
+      : "rgba(0, 0, 0, 0.35)"};
   border: 1px solid rgba(214, 182, 159, 0.28);
   color: ${({ theme }) => theme.colors.lightBrown};
   font-size: 34px;
@@ -345,7 +374,11 @@ const PrimaryLink = styled(Link)`
   align-items: center;
   justify-content: center;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
   text-decoration: none;
   font-weight: 950;

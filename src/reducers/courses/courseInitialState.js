@@ -14,4 +14,4 @@ export const courseInitialState = {
 
   // - Enrollment
   enrollSuccess: false,
-}
+};

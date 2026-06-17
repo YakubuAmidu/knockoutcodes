@@ -5,16 +5,22 @@ import EmailUnsubscribe from "../models/EmailUnsubScribeModel.js";
 
 function isValidEmail(email) {
   return /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/.test(
-    String(email || "").trim().toLowerCase()
+    String(email || "")
+      .trim()
+      .toLowerCase(),
   );
 }
 
 function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeAudienceType(value) {
-  const normalized = String(value || "newsletter").trim().toLowerCase();
+  const normalized = String(value || "newsletter")
+    .trim()
+    .toLowerCase();
   const allowed = ["manual", "newsletter", "customers", "all"];
   return allowed.includes(normalized) ? normalized : "newsletter";
 }
@@ -24,9 +30,7 @@ function uniqueEmails(list = []) {
 }
 
 async function getNewsletterEmails() {
-  const subscribers = await Newsletter.find({})
-    .select("email")
-    .lean();
+  const subscribers = await Newsletter.find({}).select("email").lean();
 
   return uniqueEmails(subscribers.map((item) => item?.email));
 }
@@ -73,12 +77,10 @@ export async function resolveCampaignRecipients(campaign) {
     .lean();
 
   const unsubscribedSet = new Set(
-    unsubscribedDocs
-      .map((item) => normalizeEmail(item?.email))
-      .filter(Boolean)
+    unsubscribedDocs.map((item) => normalizeEmail(item?.email)).filter(Boolean),
   );
 
   return recipients.filter(
-    (email) => !unsubscribedSet.has(normalizeEmail(email))
+    (email) => !unsubscribedSet.has(normalizeEmail(email)),
   );
 }

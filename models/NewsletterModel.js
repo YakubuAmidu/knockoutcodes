@@ -26,7 +26,10 @@ const newsletterSchema = new mongoose.Schema(
       unique: true,
       index: true,
       maxlength: [160, "Email cannot exceed 160 characters"],
-      set: (value) => String(value || "").trim().toLowerCase(),
+      set: (value) =>
+        String(value || "")
+          .trim()
+          .toLowerCase(),
       validate: {
         validator(value) {
           return EMAIL_REGEX.test(value);
@@ -108,7 +111,7 @@ const newsletterSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 newsletterSchema.index({ isActive: 1, createdAt: -1 });

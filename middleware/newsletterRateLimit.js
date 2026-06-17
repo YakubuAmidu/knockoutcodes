@@ -41,8 +41,7 @@ const buildLimiter = ({
 export const newsletterSubscribeLimiter = buildLimiter({
   windowMs: 15 * 60 * 1000,
   max: 6,
-  message:
-    "Too many newsletter subscription attempts. Please try again later.",
+  message: "Too many newsletter subscription attempts. Please try again later.",
 });
 
 export const newsletterAdminReadLimiter = buildLimiter({

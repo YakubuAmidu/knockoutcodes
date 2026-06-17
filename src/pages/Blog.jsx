@@ -84,14 +84,14 @@ const Blog = () => {
       return list.sort(
         (a, b) =>
           new Date(a.publishedAt || a.createdAt || 0) -
-          new Date(b.publishedAt || b.createdAt || 0)
+          new Date(b.publishedAt || b.createdAt || 0),
       );
     }
 
     return list.sort(
       (a, b) =>
         new Date(b.publishedAt || b.createdAt || 0) -
-        new Date(a.publishedAt || a.createdAt || 0)
+        new Date(a.publishedAt || a.createdAt || 0),
     );
   }, [blogs, sort]);
 
@@ -118,18 +118,20 @@ const Blog = () => {
             pages: 1,
             total: 0,
             limit: pagination.limit,
-          }
+          },
         );
       } else {
         setBlogs([]);
-        setError(res.data?.message || "We couldn’t load the blog feed right now.");
+        setError(
+          res.data?.message || "We couldn’t load the blog feed right now.",
+        );
       }
     } catch (err) {
       setBlogs([]);
       setError(
         err?.response?.data?.message ||
           err?.message ||
-          "Something went wrong while loading the blog feed."
+          "Something went wrong while loading the blog feed.",
       );
     } finally {
       setLoading(false);
@@ -158,8 +160,14 @@ const Blog = () => {
     navigate(`/blog/${blog.slug || blog._id}`);
   };
 
-  const totalViews = blogs.reduce((sum, blog) => sum + Number(blog.views || 0), 0);
-  const totalLikes = blogs.reduce((sum, blog) => sum + Number(blog.likes || 0), 0);
+  const totalViews = blogs.reduce(
+    (sum, blog) => sum + Number(blog.views || 0),
+    0,
+  );
+  const totalLikes = blogs.reduce(
+    (sum, blog) => sum + Number(blog.likes || 0),
+    0,
+  );
 
   return (
     <PageWrap>
@@ -175,8 +183,8 @@ const Blog = () => {
               Style, Mindset & Discipline.
             </PageTitle>
             <Subtitle>
-              Sharp articles built for people who want cleaner movement, stronger
-              confidence, better habits, and a more powerful presence.
+              Sharp articles built for people who want cleaner movement,
+              stronger confidence, better habits, and a more powerful presence.
             </Subtitle>
           </TitleBlock>
 
@@ -236,7 +244,10 @@ const Blog = () => {
         {error && (
           <ErrorBox>
             <span>{error}</span>
-            <RetryBtn type="button" onClick={() => fetchBlogs(pagination.page || 1)}>
+            <RetryBtn
+              type="button"
+              onClick={() => fetchBlogs(pagination.page || 1)}
+            >
               Try Again
             </RetryBtn>
           </ErrorBox>
@@ -285,7 +296,9 @@ const Blog = () => {
 
                       <BadgeRow>
                         <CategoryTag>{blog.category || "boxing"}</CategoryTag>
-                        {blog.featured ? <FeaturedBadge>Featured</FeaturedBadge> : null}
+                        {blog.featured ? (
+                          <FeaturedBadge>Featured</FeaturedBadge>
+                        ) : null}
                       </BadgeRow>
 
                       <HookStrip>Open the full breakdown.</HookStrip>
@@ -293,7 +306,9 @@ const Blog = () => {
 
                     <CardBody>
                       <MetaRow>
-                        <span>{formatDate(blog.publishedAt || blog.createdAt)}</span>
+                        <span>
+                          {formatDate(blog.publishedAt || blog.createdAt)}
+                        </span>
                         <span>{readTime} min read</span>
                       </MetaRow>
 
@@ -329,7 +344,10 @@ const Blog = () => {
                       <CardFooter>
                         <FooterText>Premium article</FooterText>
 
-                        <ReadMoreButton type="button" onClick={() => handleReadMore(blog)}>
+                        <ReadMoreButton
+                          type="button"
+                          onClick={() => handleReadMore(blog)}
+                        >
                           Read <span>↗</span>
                         </ReadMoreButton>
                       </CardFooter>
@@ -396,9 +414,17 @@ const PageWrap = styled.main`
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 10% 6%, rgba(214, 182, 159, 0.22), transparent 34%),
+    radial-gradient(
+      circle at 10% 6%,
+      rgba(214, 182, 159, 0.22),
+      transparent 34%
+    ),
     radial-gradient(circle at 90% 12%, rgba(90, 56, 37, 0.38), transparent 36%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   color: ${({ theme }) => theme.colors.white};
   padding: 100px 20px 80px;
   display: flex;
@@ -409,7 +435,11 @@ const LuxuryGlow = styled.div`
   position: absolute;
   inset: auto -20% -36% -20%;
   height: 460px;
-  background: radial-gradient(circle, rgba(214, 182, 159, 0.18), transparent 62%);
+  background: radial-gradient(
+    circle,
+    rgba(214, 182, 159, 0.18),
+    transparent 62%
+  );
   pointer-events: none;
 `;
 
@@ -436,7 +466,11 @@ const TitleBlock = styled.header`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.82), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 42%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 42%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -479,7 +513,11 @@ const ControlsCard = styled.div`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 20px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.14), transparent 42%),
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(214, 182, 159, 0.14),
+      transparent 42%
+    ),
     rgba(0, 0, 0, 0.42);
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -617,8 +655,11 @@ const Card = styled(motion.article)`
   display: flex;
   flex-direction: column;
   border-radius: ${({ theme }) => theme.radius.xl};
-  background:
-    linear-gradient(150deg, ${({ theme }) => theme.colors.cocoa}, ${({ theme }) => theme.colors.darkBrown});
+  background: linear-gradient(
+    150deg,
+    ${({ theme }) => theme.colors.cocoa},
+    ${({ theme }) => theme.colors.darkBrown}
+  );
   border: 1px solid rgba(255, 249, 242, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   min-height: 540px;
@@ -654,7 +695,11 @@ const ImageShade = styled.span`
   inset: 0;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.74)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.14), transparent 40%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.14),
+      transparent 40%
+    );
 `;
 
 const BadgeRow = styled.div`

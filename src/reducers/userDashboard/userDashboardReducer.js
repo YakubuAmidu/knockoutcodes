@@ -29,7 +29,10 @@ function normalizeDashboardPayload(payload) {
   };
 }
 
-export function userDashboardReducer(state = userDashboardInitialState, action) {
+export function userDashboardReducer(
+  state = userDashboardInitialState,
+  action,
+) {
   switch (action.type) {
     // ===== fetch =====
     case T.USER_DASHBOARD_REQUEST: {
@@ -71,7 +74,7 @@ export function userDashboardReducer(state = userDashboardInitialState, action) 
       const id = action.payload;
 
       const notifications = state.notifications.map((n) =>
-        n?._id === id || n?.id === id ? { ...n, read: true } : n
+        n?._id === id || n?.id === id ? { ...n, read: true } : n,
       );
 
       // keep counts consistent (premium feel)
@@ -92,4 +95,3 @@ export function userDashboardReducer(state = userDashboardInitialState, action) 
       return state;
   }
 }
-

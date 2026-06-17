@@ -53,18 +53,13 @@ router.post(
     textFields: ["goals"],
     nameFields: ["fullName"],
   }),
-  createCoaching
+  createCoaching,
 );
 
 /* =========================
    ADMIN GET ALL COACHINGS
 ========================= */
-router.get(
-  "/admin",
-  authRequired,
-  adminOnly,
-  getAllCoachings
-);
+router.get("/admin", authRequired, adminOnly, getAllCoachings);
 
 /* =========================
    ADMIN GET SINGLE COACHING
@@ -74,7 +69,7 @@ router.get(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  getCoachingById
+  getCoachingById,
 );
 
 /* =========================
@@ -91,7 +86,7 @@ router.put(
   requireJsonContent,
   ...adminRequestHardening,
   validateObjectId("id"),
-  updateCoaching
+  updateCoaching,
 );
 
 /* =========================
@@ -103,7 +98,7 @@ router.delete(
   adminOnly,
   ...adminDeleteHardening,
   validateObjectId("id"),
-  deleteCoaching
+  deleteCoaching,
 );
 
 export default router;

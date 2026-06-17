@@ -38,13 +38,7 @@ router.post("/my/:id/reply", authRequired, requireCsrf, sendMyReply);
 ========================================================= */
 router.get("/", authRequired, adminOnly, getAllContacts);
 
-router.put(
-  "/mark-all-seen",
-  authRequired,
-  adminOnly,
-  requireCsrf,
-  markAllSeen
-);
+router.put("/mark-all-seen", authRequired, adminOnly, requireCsrf, markAllSeen);
 
 router.put("/:id", authRequired, adminOnly, requireCsrf, updateContact);
 router.delete("/:id", authRequired, adminOnly, requireCsrf, deleteContact);

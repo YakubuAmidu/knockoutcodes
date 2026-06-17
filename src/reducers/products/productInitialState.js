@@ -5,4 +5,4 @@ export const productInitialState = {
   deletingId: null,
   error: "",
   selected: null,
-}
+};

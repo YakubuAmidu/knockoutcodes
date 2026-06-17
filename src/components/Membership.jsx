@@ -14,7 +14,9 @@ import { useToast } from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
 
 const normalizePlanSlug = (raw) => {
-  const value = String(raw || "").toLowerCase().trim();
+  const value = String(raw || "")
+    .toLowerCase()
+    .trim();
   if (value === "advanced") return "advance";
   if (value.includes("beginner")) return "beginner";
   if (value.includes("intermediate")) return "intermediate";
@@ -95,7 +97,9 @@ const Memberships = () => {
 
   const isAdmin =
     ["admin", "superadmin"].includes(
-      String(loggedInUser?.role || loggedInUser?.user?.role || "").toLowerCase()
+      String(
+        loggedInUser?.role || loggedInUser?.user?.role || "",
+      ).toLowerCase(),
     ) || loggedInUser?.isAdmin === true;
 
   const [billingPeriod, setBillingPeriod] = useState("monthly");
@@ -118,11 +122,12 @@ const Memberships = () => {
 
   const activeMembershipId = normalizePlanSlug(mySubscription?.membershipId);
   const activeBillingPeriod = String(
-    mySubscription?.billingPeriod || ""
+    mySubscription?.billingPeriod || "",
   ).toLowerCase();
 
   const hasActiveSubscription =
-    Boolean(mySubscription?.hasSubscription) && Boolean(mySubscription?.isActive);
+    Boolean(mySubscription?.hasSubscription) &&
+    Boolean(mySubscription?.isActive);
 
   const fetchMemberships = useCallback(async () => {
     dispatch({ type: MEMBERSHIP_ACTIONS.FETCH_START });
@@ -196,11 +201,11 @@ const Memberships = () => {
 
     return list.map((membership) => {
       const membershipId = normalizePlanSlug(
-        membership?.membershipId || membership?.accessLevel
+        membership?.membershipId || membership?.accessLevel,
       );
 
       const accessLevel = normalizePlanSlug(
-        membership?.accessLevel || membership?.membershipId
+        membership?.accessLevel || membership?.membershipId,
       );
 
       const monthlyPrice =
@@ -222,7 +227,7 @@ const Memberships = () => {
           membership?.membershipId ||
           membership?.id ||
           membership?._id ||
-          ""
+          "",
       );
 
       return {
@@ -241,18 +246,18 @@ const Memberships = () => {
         yearlyPrice,
         price: billingPeriod === "yearly" ? yearlyPrice : monthlyPrice,
         rating: Number(
-  membership?.ratingAverage ||
-    membership?.averageRating ||
-    membership?.rating ||
-    0
-),
-enrolled: Number(membership?.enrolled || membership?.studentCount || 0),
-reviewCount: Number(
-  membership?.ratingCount ||
-    membership?.reviewCount ||
-    membership?.totalReviews ||
-    0
-),
+          membership?.ratingAverage ||
+            membership?.averageRating ||
+            membership?.rating ||
+            0,
+        ),
+        enrolled: Number(membership?.enrolled || membership?.studentCount || 0),
+        reviewCount: Number(
+          membership?.ratingCount ||
+            membership?.reviewCount ||
+            membership?.totalReviews ||
+            0,
+        ),
         short:
           membership?.short ||
           membership?.description ||
@@ -275,7 +280,7 @@ reviewCount: Number(
       const membershipId = normalizePlanSlug(
         membership.membershipId ||
           membership.accessLevel ||
-          membership.membershipDbId
+          membership.membershipDbId,
       );
 
       if (!membershipId) {
@@ -359,7 +364,7 @@ reviewCount: Number(
       requiredMembershipFromState,
       billingPeriod,
       toast,
-    ]
+    ],
   );
 
   const handleSwitchPlan = useCallback(
@@ -379,7 +384,7 @@ reviewCount: Number(
       const membershipId = normalizePlanSlug(
         membership.membershipId ||
           membership.accessLevel ||
-          membership.membershipDbId
+          membership.membershipDbId,
       );
 
       if (!membershipId) {
@@ -438,22 +443,22 @@ reviewCount: Number(
       billingPeriod,
       fetchMySubscription,
       fetchMemberships,
-    ]
+    ],
   );
 
   const handleCancelMembership = useCallback(async () => {
     if (isAdmin) {
-  toast?.push?.({
-    title: "Admins cannot manage subscriptions",
-    description:
-      "Admin accounts cannot subscribe, switch, cancel, or purchase memberships.",
-    variant: "danger",
-  });
-  return;
+      toast?.push?.({
+        title: "Admins cannot manage subscriptions",
+        description:
+          "Admin accounts cannot subscribe, switch, cancel, or purchase memberships.",
+        variant: "danger",
+      });
+      return;
     }
-    
+
     const ok = window.confirm(
-      "Cancel membership? Your access will stay active until the end of your billing period."
+      "Cancel membership? Your access will stay active until the end of your billing period.",
     );
 
     if (!ok) return;
@@ -558,7 +563,11 @@ reviewCount: Number(
           </StatusBar>
 
           <InfoBar>
-            <InlineBtn type="button" onClick={fetchMemberships} disabled={loading}>
+            <InlineBtn
+              type="button"
+              onClick={fetchMemberships}
+              disabled={loading}
+            >
               {loading ? "Refreshing..." : "Refresh Plans"}
             </InlineBtn>
 
@@ -665,8 +674,8 @@ reviewCount: Number(
                       {isCurrentPlan
                         ? "Current Plan"
                         : isRequired
-                        ? "Required"
-                        : plan.badgeLeft}
+                          ? "Required"
+                          : plan.badgeLeft}
                     </Badge>
 
                     <BadgeRightGroup>
@@ -711,7 +720,9 @@ reviewCount: Number(
                       <StatLabel>Students</StatLabel>
                       <Dot />
                       <StatValue>
-                        {plan.__skeleton ? "..." : formatEnrolled(plan.enrolled)}
+                        {plan.__skeleton
+                          ? "..."
+                          : formatEnrolled(plan.enrolled)}
                       </StatValue>
                     </StatPill>
 
@@ -753,8 +764,8 @@ reviewCount: Number(
                     {isCurrentPlan
                       ? "You are already subscribed to this membership. Your access is active."
                       : hasActiveSubscription
-                      ? "Switching updates your active Stripe subscription securely."
-                      : "Choose this membership, select your course, then complete secure Stripe checkout."}
+                        ? "Switching updates your active Stripe subscription securely."
+                        : "Choose this membership, select your course, then complete secure Stripe checkout."}
                   </SecurityNote>
 
                   <Footer>
@@ -789,7 +800,9 @@ reviewCount: Number(
                           handleSwitchPlan(plan);
                         }}
                       >
-                        {isSwitching ? "Switching..." : `Switch to ${billingPeriod}`}
+                        {isSwitching
+                          ? "Switching..."
+                          : `Switch to ${billingPeriod}`}
                       </PrimaryButton>
                     ) : (
                       <PrimaryButton
@@ -823,7 +836,9 @@ reviewCount: Number(
               <ErrorPill>
                 Membership ends on{" "}
                 {mySubscription?.currentPeriodEnd
-                  ? new Date(mySubscription.currentPeriodEnd).toLocaleDateString()
+                  ? new Date(
+                      mySubscription.currentPeriodEnd,
+                    ).toLocaleDateString()
                   : "billing end"}
               </ErrorPill>
             ) : (
@@ -855,7 +870,8 @@ const shine = keyframes`
 
 const PageWrap = styled.section`
   min-height: 100vh;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at top left,
       rgba(214, 182, 159, 0.22),
       transparent 55%
@@ -1147,7 +1163,8 @@ const Thumb = styled.div`
   display: grid;
   place-items: center;
   padding: 18px;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       800px 240px at 15% 10%,
       rgba(214, 182, 159, 0.22),
       transparent 55%

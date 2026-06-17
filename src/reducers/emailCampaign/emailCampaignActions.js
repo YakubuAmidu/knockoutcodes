@@ -16,7 +16,8 @@ export const fetchEmailCampaigns =
       // Handles both:
       // 1. Normal axios: response.data
       // 2. Custom axiosInstance that already returns response.data
-      const body = response?.data?.success !== undefined ? response.data : response;
+      const body =
+        response?.data?.success !== undefined ? response.data : response;
 
       const campaigns =
         body?.campaigns ||
@@ -53,7 +54,7 @@ export const createEmailCampaign = (campaignData) => async (dispatch) => {
 
     const { data } = await axiosInstance.post(
       ADMIN_EMAIL_CAMPAIGN_URL,
-      campaignData
+      campaignData,
     );
 
     dispatch({
@@ -77,67 +78,65 @@ export const createEmailCampaign = (campaignData) => async (dispatch) => {
   }
 };
 
-export const updateEmailCampaign =
-  (id, campaignData) => async (dispatch) => {
-    try {
-      dispatch({ type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_REQUEST });
+export const updateEmailCampaign = (id, campaignData) => async (dispatch) => {
+  try {
+    dispatch({ type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_REQUEST });
 
-      const { data } = await axiosInstance.put(
-        `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}`,
-        campaignData
-      );
+    const { data } = await axiosInstance.put(
+      `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}`,
+      campaignData,
+    );
 
-      dispatch({
-        type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_SUCCESS,
-        payload: data?.data,
-      });
+    dispatch({
+      type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_SUCCESS,
+      payload: data?.data,
+    });
 
-      return data?.data || null;
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to update campaign";
+    return data?.data || null;
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to update campaign";
 
-      dispatch({
-        type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_FAIL,
-        payload: message,
-      });
+    dispatch({
+      type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_FAIL,
+      payload: message,
+    });
 
-      return null;
-    }
-  };
+    return null;
+  }
+};
 
-export const scheduleEmailCampaign =
-  (id, scheduledFor) => async (dispatch) => {
-    try {
-      dispatch({ type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_REQUEST });
+export const scheduleEmailCampaign = (id, scheduledFor) => async (dispatch) => {
+  try {
+    dispatch({ type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_REQUEST });
 
-      const { data } = await axiosInstance.put(
-        `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}/schedule`,
-        { scheduledFor }
-      );
+    const { data } = await axiosInstance.put(
+      `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}/schedule`,
+      { scheduledFor },
+    );
 
-      dispatch({
-        type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_SUCCESS,
-        payload: data?.data,
-      });
+    dispatch({
+      type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_SUCCESS,
+      payload: data?.data,
+    });
 
-      return data?.data || null;
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to schedule campaign";
+    return data?.data || null;
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to schedule campaign";
 
-      dispatch({
-        type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_FAIL,
-        payload: message,
-      });
+    dispatch({
+      type: EMAIL_CAMPAIGN_ACTIONS.UPDATE_FAIL,
+      payload: message,
+    });
 
-      return null;
-    }
-  };
+    return null;
+  }
+};
 
 export const pauseEmailCampaign = (id) => async (dispatch) => {
   try {
@@ -145,7 +144,7 @@ export const pauseEmailCampaign = (id) => async (dispatch) => {
 
     const { data } = await axiosInstance.put(
       `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}/pause`,
-      {}
+      {},
     );
 
     dispatch({
@@ -175,7 +174,7 @@ export const sendEmailCampaign = (id) => async (dispatch) => {
 
     const { data } = await axiosInstance.post(
       `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}/send`,
-      {}
+      {},
     );
 
     dispatch({
@@ -229,7 +228,7 @@ export const deleteEmailCampaign = (id) => async (dispatch) => {
 export const fetchEmailCampaignAnalytics = () => async (dispatch) => {
   try {
     const { data } = await axiosInstance.get(
-      `${ADMIN_EMAIL_CAMPAIGN_URL}/analytics/overview`
+      `${ADMIN_EMAIL_CAMPAIGN_URL}/analytics/overview`,
     );
 
     dispatch({

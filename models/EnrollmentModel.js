@@ -138,7 +138,7 @@ const enrollmentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /* ======================================================
@@ -178,7 +178,6 @@ enrollmentSchema.index({ user: 1, paymentStatus: 1, status: 1 });
 enrollmentSchema.index({ course: 1, paymentStatus: 1, status: 1 });
 
 const Enrollment =
-  mongoose.models.Enrollment ||
-  mongoose.model("Enrollment", enrollmentSchema);
+  mongoose.models.Enrollment || mongoose.model("Enrollment", enrollmentSchema);
 
 export default Enrollment;

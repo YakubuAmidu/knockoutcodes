@@ -8,10 +8,7 @@ import {
   TESTIMONIAL_CLEAR_ERROR,
 } from "./testimonialActionTypes";
 
-export const testimonialReducer = (
-  state = testimonialInitialState,
-  action
-) => {
+export const testimonialReducer = (state = testimonialInitialState, action) => {
   switch (action.type) {
     case TESTIMONIAL_FETCH_START:
       return {

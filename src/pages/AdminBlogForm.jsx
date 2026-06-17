@@ -41,17 +41,17 @@ const AdminBlogForm = () => {
     : 0;
 
   const tagsArray = useMemo(
-  () => [
-    ...new Set(
-      form.tags
-        .split(",")
-        .map((t) => t.trim().toLowerCase())
-        .filter(Boolean)
-        .slice(0, 12)
-    ),
-  ],
-  [form.tags]
-);
+    () => [
+      ...new Set(
+        form.tags
+          .split(",")
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 12),
+      ),
+    ],
+    [form.tags],
+  );
 
   const finalSlug = form.slug.trim()
     ? makeSlug(form.slug)
@@ -62,9 +62,11 @@ const AdminBlogForm = () => {
   const seoWarnings = useMemo(() => {
     const warnings = [];
 
-    if (form.title.trim().length < 12) warnings.push("Title could be stronger.");
+    if (form.title.trim().length < 12)
+      warnings.push("Title could be stronger.");
     if (!form.excerpt.trim()) warnings.push("Add a short excerpt.");
-    if (wordCount < 250) warnings.push("Content is short for a premium article.");
+    if (wordCount < 250)
+      warnings.push("Content is short for a premium article.");
     if (!form.coverImage.trim()) warnings.push("Add a cover image URL.");
     if (tagsArray.length < 2) warnings.push("Add at least 2 tags.");
 
@@ -164,7 +166,7 @@ const AdminBlogForm = () => {
     }
 
     const ok = window.confirm(
-      `Delete this blog permanently?\n\nSlug: ${slug}\n\nThis cannot be undone.`
+      `Delete this blog permanently?\n\nSlug: ${slug}\n\nThis cannot be undone.`,
     );
 
     if (!ok) return;
@@ -197,7 +199,7 @@ const AdminBlogForm = () => {
     if (deleteLoading) return;
 
     const confirmText = window.prompt(
-      'This will delete every blog permanently. Type "DELETE ALL BLOGS" to confirm.'
+      'This will delete every blog permanently. Type "DELETE ALL BLOGS" to confirm.',
     );
 
     if (confirmText !== "DELETE ALL BLOGS") {
@@ -212,9 +214,7 @@ const AdminBlogForm = () => {
     try {
       setDeleteLoading(true);
 
-      await axiosInstance.delete(
-  "/blogs?confirm=DELETE_ALL_BLOGS"
-);
+      await axiosInstance.delete("/blogs?confirm=DELETE_ALL_BLOGS");
 
       push({
         title: "All blogs deleted",
@@ -243,7 +243,8 @@ const AdminBlogForm = () => {
           <Title>Publish A 5-Star Knockout Article</Title>
           <Subtitle>
             Create polished, premium, and professional articles with clean
-            formatting, stronger hooks, live preview, and protected admin actions.
+            formatting, stronger hooks, live preview, and protected admin
+            actions.
           </Subtitle>
         </HeaderRow>
 
@@ -299,7 +300,9 @@ const AdminBlogForm = () => {
             <Field>
               <LabelRow>
                 <Label htmlFor="content">Main Content</Label>
-                <Hint>{wordCount} words • {readTime || 0} min read</Hint>
+                <Hint>
+                  {wordCount} words • {readTime || 0} min read
+                </Hint>
               </LabelRow>
 
               <TextArea
@@ -458,14 +461,18 @@ const AdminBlogForm = () => {
                   {loading ? "Publishing..." : "Publish Blog"} {!loading && "➜"}
                 </PrimaryButton>
 
-                <SecondaryButton type="button" onClick={handleReset} disabled={loading}>
+                <SecondaryButton
+                  type="button"
+                  onClick={handleReset}
+                  disabled={loading}
+                >
                   Reset
                 </SecondaryButton>
 
                 <DangerButton
                   type="button"
                   onClick={handleDeleteOne}
-                   disabled={deleteLoading}
+                  disabled={deleteLoading}
                 >
                   Delete One
                 </DangerButton>
@@ -496,9 +503,17 @@ const Section = styled.section`
   width: 100%;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 14%, rgba(90, 56, 37, 0.42), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   padding: 96px 18px 54px;
   display: flex;
   justify-content: center;
@@ -553,7 +568,11 @@ const Subtitle = styled.p`
 
 const FormCard = styled(motion.form)`
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.12), transparent 42%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.12),
+      transparent 42%
+    ),
     rgba(0, 0, 0, 0.42);
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 24px;

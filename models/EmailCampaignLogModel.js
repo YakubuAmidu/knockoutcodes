@@ -18,7 +18,9 @@ const EMAIL_CAMPAIGN_LOG_STATUSES = [
  */
 function isValidEmail(email) {
   return /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/.test(
-    String(email || "").trim().toLowerCase()
+    String(email || "")
+      .trim()
+      .toLowerCase(),
   );
 }
 
@@ -109,7 +111,7 @@ const emailCampaignLogSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /**

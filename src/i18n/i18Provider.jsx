@@ -1,6 +1,12 @@
 // src/i18n/I18nProvider.jsx
 
-import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { SUPPORTED_LANGUAGES, translations } from "./translations";
 
 const I18nContext = createContext(null);
@@ -21,7 +27,9 @@ function getInitialLang() {
 }
 
 function getByPath(obj, path) {
-  return path.split(".").reduce((acc, k) => (acc && acc[k] != null ? acc[k] : null), obj);
+  return path
+    .split(".")
+    .reduce((acc, k) => (acc && acc[k] != null ? acc[k] : null), obj);
 }
 
 export function I18nProvider({ children }) {
@@ -60,7 +68,7 @@ export function I18nProvider({ children }) {
       // 3) fallback param or key
       return fallback || key;
     },
-    [lang]
+    [lang],
   );
 
   const languageLabel = useMemo(() => {
@@ -75,7 +83,7 @@ export function I18nProvider({ children }) {
       supported: SUPPORTED_LANGUAGES,
       languageLabel,
     }),
-    [lang, setLang, t, languageLabel]
+    [lang, setLang, t, languageLabel],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

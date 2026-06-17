@@ -11,14 +11,15 @@ const ORDER_LOCKED_STATUSES = ["cancelled", "refunded"];
 
 function isLockedOrder(order) {
   return ORDER_LOCKED_STATUSES.includes(
-    String(order?.status || "").toLowerCase()
+    String(order?.status || "").toLowerCase(),
   );
 }
 
 function sendLockedOrder(res) {
   return res.status(409).json({
     success: false,
-    message: "This order is locked because it is already cancelled or refunded.",
+    message:
+      "This order is locked because it is already cancelled or refunded.",
   });
 }
 
@@ -69,7 +70,7 @@ function emitOrderRealtime(order, action = "updated") {
       });
     }
   } catch {
-      // Ignore order realtime emit failure.
+    // Ignore order realtime emit failure.
   }
 }
 
@@ -113,7 +114,7 @@ export const createOrder = async (req, res) => {
           item.productModel &&
           item.title &&
           Number.isFinite(item.quantity) &&
-          Number.isFinite(item.unitPrice)
+          Number.isFinite(item.unitPrice),
       );
 
     if (!safeItems.length) {
@@ -125,7 +126,7 @@ export const createOrder = async (req, res) => {
 
     const subtotal = safeItems.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
-      0
+      0,
     );
 
     const discount = Math.max(0, Number(req.body?.discount || 0));
@@ -137,7 +138,9 @@ export const createOrder = async (req, res) => {
       discount,
       total: Math.max(0, subtotal - discount),
       currency: safeItems[0]?.currency || "USD",
-      couponCode: String(req.body?.couponCode || "").trim().toUpperCase(),
+      couponCode: String(req.body?.couponCode || "")
+        .trim()
+        .toUpperCase(),
 
       paymentStatus: "pending",
       paymentMethod: "stripe",
@@ -264,10 +267,7 @@ export const getMyOrders = async (req, res) => {
     const skip = (numericPage - 1) * numericLimit;
 
     const [orders, total] = await Promise.all([
-      Order.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(numericLimit),
+      Order.find(query).sort({ createdAt: -1 }).skip(skip).limit(numericLimit),
       Order.countDocuments(query),
     ]);
 
@@ -297,7 +297,7 @@ export const getOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).populate(
       "user",
-      "name email"
+      "name email",
     );
 
     if (!order) {
@@ -309,7 +309,8 @@ export const getOrder = async (req, res) => {
 
     const isAdmin = req.user?.role === "admin";
     const ownsOrder =
-      order.user && String(order.user._id || order.user) === String(req.user?._id);
+      order.user &&
+      String(order.user._id || order.user) === String(req.user?._id);
 
     if (!isAdmin && !ownsOrder) {
       return res.status(403).json({
@@ -403,7 +404,9 @@ export const updateOrder = async (req, res) => {
     }
 
     if (note !== undefined) {
-      existing.note = String(note || "").trim().slice(0, 500);
+      existing.note = String(note || "")
+        .trim()
+        .slice(0, 500);
     }
 
     if (isSeenByAdmin !== undefined) {
@@ -435,7 +438,7 @@ export const markOrderAsSeen = async (req, res) => {
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { $set: { isSeenByAdmin: true } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).populate("user", "name email");
     emitOrderRealtime(order, "seen");
 
@@ -486,7 +489,8 @@ export const fulfillOrder = async (req, res) => {
 
     existing.status = "fulfilled";
     existing.isSeenByAdmin = true;
-    existing.note = req.body?.note || existing.note || "Order fulfilled by admin.";
+    existing.note =
+      req.body?.note || existing.note || "Order fulfilled by admin.";
 
     const order = await existing.save();
     await order.populate("user", "name email");
@@ -533,7 +537,8 @@ export const cancelOrder = async (req, res) => {
 
     existing.status = "cancelled";
     existing.isSeenByAdmin = true;
-    existing.note = req.body?.note || existing.note || "Order cancelled by admin.";
+    existing.note =
+      req.body?.note || existing.note || "Order cancelled by admin.";
 
     const order = await existing.save();
     await order.populate("user", "name email");
@@ -610,7 +615,9 @@ export const updateOrderTracking = async (req, res) => {
   try {
     const allowedCarriers = ["", "usps", "ups", "fedex", "dhl", "other"];
 
-    const carrier = String(req.body?.carrier || "").toLowerCase().trim();
+    const carrier = String(req.body?.carrier || "")
+      .toLowerCase()
+      .trim();
     const trackingNumber = String(req.body?.trackingNumber || "").trim();
     const trackingUrl = String(req.body?.trackingUrl || "").trim();
 
@@ -711,7 +718,7 @@ export const confirmProductOrder = async (req, res) => {
   try {
     res.setHeader(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
+      "no-store, no-cache, must-revalidate, proxy-revalidate",
     );
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
@@ -747,7 +754,8 @@ export const confirmProductOrder = async (req, res) => {
       });
     }
 
-    const metaUserId = session?.metadata?.userId || session?.client_reference_id;
+    const metaUserId =
+      session?.metadata?.userId || session?.client_reference_id;
 
     if (String(metaUserId) !== String(userId)) {
       return res.status(403).json({
@@ -804,7 +812,7 @@ export const confirmProductOrder = async (req, res) => {
 
     for (const cartItem of parsedItems) {
       const product = products.find(
-        (p) => String(p._id) === String(cartItem.productId)
+        (p) => String(p._id) === String(cartItem.productId),
       );
 
       if (!product) continue;
@@ -883,7 +891,7 @@ export const confirmProductOrder = async (req, res) => {
         upsert: true,
         new: true,
         runValidators: true,
-      }
+      },
     ).lean();
 
     return res.status(200).json({

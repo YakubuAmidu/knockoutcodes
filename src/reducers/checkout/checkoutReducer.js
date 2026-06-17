@@ -15,7 +15,11 @@ export function checkoutReducer(state = checkoutInitialState, action) {
       };
 
     case CHECKOUT_ACTIONS.ERROR:
-      return { ...state, loading: false, error: action.payload || "Checkout failed." };
+      return {
+        ...state,
+        loading: false,
+        error: action.payload || "Checkout failed.",
+      };
 
     case CHECKOUT_ACTIONS.CLEAR:
       return { ...checkoutInitialState };

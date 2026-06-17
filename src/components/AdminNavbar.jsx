@@ -47,7 +47,7 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
 
   const sidebarLinks = useMemo(
     () => (isAdmin ? adminSidebarLinks : userLinks),
-    [isAdmin]
+    [isAdmin],
   );
 
   const initials = useMemo(() => {
@@ -154,8 +154,12 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
                 <SidebarAvatar>{initials}</SidebarAvatar>
 
                 <SidebarMeta>
-                  <SidebarName>{currentUser?.name || "Guest Fighter"}</SidebarName>
-                  <SidebarRole>{isAdmin ? "Premium Admin Area" : "Athlete Area"}</SidebarRole>
+                  <SidebarName>
+                    {currentUser?.name || "Guest Fighter"}
+                  </SidebarName>
+                  <SidebarRole>
+                    {isAdmin ? "Premium Admin Area" : "Athlete Area"}
+                  </SidebarRole>
                 </SidebarMeta>
               </SidebarHeader>
 
@@ -180,7 +184,10 @@ const AdminNavbar = ({ currentUser, onLogout }) => {
 
               <SidebarFooter>
                 {onLogout ? (
-                  <SidebarLogoutButton type="button" onClick={handleLogoutClick}>
+                  <SidebarLogoutButton
+                    type="button"
+                    onClick={handleLogoutClick}
+                  >
                     Logout
                   </SidebarLogoutButton>
                 ) : (
@@ -215,7 +222,11 @@ const Bar = styled.div`
   overflow-x: clip;
   backdrop-filter: blur(22px);
   background:
-    radial-gradient(circle at 12% 0%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 0%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     linear-gradient(
       130deg,
       ${({ theme }) => theme.colors.black} 0%,
@@ -502,7 +513,11 @@ const SidebarOverlay = styled.div`
   inset: 0;
   z-index: 80;
   background:
-    radial-gradient(circle at top right, rgba(214, 182, 159, 0.18), transparent 35%),
+    radial-gradient(
+      circle at top right,
+      rgba(214, 182, 159, 0.18),
+      transparent 35%
+    ),
     rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(10px);
   display: flex;
@@ -520,13 +535,12 @@ const SidebarPanel = styled.div`
   gap: 18px;
   overflow-y: auto;
 
-  background:
-    linear-gradient(
-      145deg,
-      rgba(0, 0, 0, 0.98),
-      rgba(47, 27, 18, 0.98) 44%,
-      rgba(0, 0, 0, 0.98)
-    );
+  background: linear-gradient(
+    145deg,
+    rgba(0, 0, 0, 0.98),
+    rgba(47, 27, 18, 0.98) 44%,
+    rgba(0, 0, 0, 0.98)
+  );
 
   border-left: 1px solid rgba(214, 182, 159, 0.3);
   box-shadow:

@@ -21,11 +21,11 @@ function hasValidAccess(data) {
 
   return Boolean(
     data?.success &&
-      (enrollmentPaid ||
-        statusPaid ||
-        data?.isEnrolled ||
-        data?.hasAccess ||
-        data?.access?.allowed)
+    (enrollmentPaid ||
+      statusPaid ||
+      data?.isEnrolled ||
+      data?.hasAccess ||
+      data?.access?.allowed),
   );
 }
 
@@ -65,13 +65,13 @@ export default function Enrollment() {
               {
                 courseId,
                 session_id: sessionId,
-              }
+              },
             );
 
             data = res.data;
           } else {
             const res = await axiosInstance.get(
-              `/enrollments/status/${encodeURIComponent(courseId)}`
+              `/enrollments/status/${encodeURIComponent(courseId)}`,
             );
 
             data = res.data;
@@ -96,7 +96,7 @@ export default function Enrollment() {
           setMessage(
             sessionId
               ? `Payment received. Finalizing course access... (${attempt}/12)`
-              : `Checking membership or enrollment access... (${attempt}/12)`
+              : `Checking membership or enrollment access... (${attempt}/12)`,
           );
 
           await sleep(1200);
@@ -108,7 +108,7 @@ export default function Enrollment() {
         setMessage(
           sessionId
             ? "Payment was received, but course access is still finalizing. Please try opening the course again."
-            : "You do not have access to this course yet. Please enroll or choose the correct membership level."
+            : "You do not have access to this course yet. Please enroll or choose the correct membership level.",
         );
       } catch (error) {
         if (cancelled) return;
@@ -138,8 +138,8 @@ export default function Enrollment() {
           {status === "checking"
             ? "Checking Access"
             : status === "success"
-            ? "Access Confirmed"
-            : "Access Issue"}
+              ? "Access Confirmed"
+              : "Access Issue"}
         </Title>
 
         <Text>{message}</Text>

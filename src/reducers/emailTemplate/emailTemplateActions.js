@@ -23,9 +23,7 @@ export const fetchEmailTemplates =
           (state.category === "all" ? "" : state.category) ||
           "",
         status:
-          params.status ||
-          (state.status === "all" ? "" : state.status) ||
-          "",
+          params.status || (state.status === "all" ? "" : state.status) || "",
         sort: params.sort || state.sort || "newest",
       };
 
@@ -178,7 +176,7 @@ export const duplicateEmailTemplate = (template) => async (dispatch) => {
       status: "draft",
       isActive: false,
       notes: template.notes || "",
-    })
+    }),
   );
 };
 

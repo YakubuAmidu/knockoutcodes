@@ -33,22 +33,20 @@ function getBaseUrl(req) {
 
 function safeErrorMessage(error) {
   return String(
-    error?.response?.data?.message ||
-      error?.message ||
-      "Email sending failed"
+    error?.response?.data?.message || error?.message || "Email sending failed",
   ).slice(0, 500);
 }
 
 function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeRecipients(list = []) {
   return [
     ...new Set(
-      (Array.isArray(list) ? list : [])
-        .map(normalizeEmail)
-        .filter(Boolean)
+      (Array.isArray(list) ? list : []).map(normalizeEmail).filter(Boolean),
     ),
   ];
 }
@@ -137,11 +135,13 @@ async function acquireCampaignLock(campaignId) {
     },
     {
       new: true,
-    }
+    },
   );
 
   if (!campaign) {
-    throw new Error("This campaign is already sending or has already been sent");
+    throw new Error(
+      "This campaign is already sending or has already been sent",
+    );
   }
 
   return campaign;
@@ -179,7 +179,11 @@ async function sendCampaignToRecipients({ campaign, recipients, baseUrl }) {
         email,
         status: "pending",
       });
-    } else if (log.status === "sent" || log.status === "clicked" || log.status === "opened") {
+    } else if (
+      log.status === "sent" ||
+      log.status === "clicked" ||
+      log.status === "opened"
+    ) {
       continue;
     } else {
       log.status = "pending";
@@ -200,7 +204,7 @@ async function sendCampaignToRecipients({ campaign, recipients, baseUrl }) {
         ctaUrl: campaign.ctaUrl,
         signature: campaign.signature,
         unsubscribeUrl: `${baseUrl}/api/v1/email-campaigns/unsubscribe?email=${encodeURIComponent(
-          email
+          email,
         )}&campaign=${campaign._id}`,
         logId: log._id.toString(),
         campaignId: campaign._id.toString(),
@@ -221,14 +225,14 @@ async function sendCampaignToRecipients({ campaign, recipients, baseUrl }) {
         mailResult?.messageId ||
           mailResult?.providerMessageId ||
           mailResult?.id ||
-          ""
+          "",
       ).slice(0, 300);
 
       await log.save();
 
       await EmailSubscriber.findOneAndUpdate(
         { email },
-        { $set: { lastEmailSentAt: new Date() } }
+        { $set: { lastEmailSentAt: new Date() } },
       );
 
       totalSent += 1;
@@ -252,8 +256,8 @@ async function sendCampaignToRecipients({ campaign, recipients, baseUrl }) {
     totalSent > 0 && totalFailed > 0
       ? "sent"
       : totalSent > 0
-      ? "sent"
-      : "failed";
+        ? "sent"
+        : "failed";
 
   const updatedCampaign = await releaseCampaignLock(campaign, {
     totalRecipients: safeRecipients.length,
@@ -328,7 +332,8 @@ export const sendEmailCampaignNow = async (req, res, next) => {
       error.message === "No valid recipients found for this campaign" ||
       error.message === "This campaign is already sending" ||
       error.message === "This campaign has already been sent" ||
-      error.message === "This campaign is already sending or has already been sent"
+      error.message ===
+        "This campaign is already sending or has already been sent"
     ) {
       return res.status(400).json({
         success: false,
@@ -379,7 +384,9 @@ export const retryFailedCampaign = async (req, res, next) => {
       status: "failed",
     }).select("email");
 
-    const recipients = normalizeRecipients(failedLogs.map((item) => item.email));
+    const recipients = normalizeRecipients(
+      failedLogs.map((item) => item.email),
+    );
 
     if (!recipients.length) {
       return res.status(400).json({

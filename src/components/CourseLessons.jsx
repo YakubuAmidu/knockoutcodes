@@ -63,7 +63,10 @@ const LessonItem = styled.li`
   );
   border: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease,
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
     background 0.15s ease;
 
   &:hover {
@@ -209,7 +212,7 @@ const CourseLessons = ({ courseId, isEnrolled = false, onSelectLesson }) => {
 
         const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
         const { data } = await axios.get(
-          `${baseUrl}/api/v1/lessons/by-course/${courseId}`
+          `${baseUrl}/api/v1/lessons/by-course/${courseId}`,
         );
 
         if (!isMounted) return;
@@ -269,7 +272,9 @@ const CourseLessons = ({ courseId, isEnrolled = false, onSelectLesson }) => {
             {lessons.map((lesson, index) => {
               const durationLabel = formatDuration(lesson.durationInMinutes);
               const locked =
-                !isEnrolled && !lesson.isPreview && lesson.isPublished !== false;
+                !isEnrolled &&
+                !lesson.isPreview &&
+                lesson.isPublished !== false;
 
               return (
                 <LessonItem

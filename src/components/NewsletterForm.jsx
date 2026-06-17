@@ -21,7 +21,7 @@ export default function NewsletterForm() {
 
   const cleanEmail = useMemo(
     () => form.email.trim().toLowerCase(),
-    [form.email]
+    [form.email],
   );
 
   const handleChange = (e) => {
@@ -109,11 +109,11 @@ export default function NewsletterForm() {
         code === 409
           ? "You are already subscribed."
           : code === 403
-          ? "Admin accounts cannot subscribe to the newsletter."
-          : code === 429
-          ? "Too many attempts. Please wait and try again."
-          : error?.response?.data?.message ||
-            "Please try again in a moment.";
+            ? "Admin accounts cannot subscribe to the newsletter."
+            : code === 429
+              ? "Too many attempts. Please wait and try again."
+              : error?.response?.data?.message ||
+                "Please try again in a moment.";
 
       setStatus({
         type: code === 409 ? "info" : "error",
@@ -219,7 +219,11 @@ const Wrap = styled.section`
   padding: 80px 18px;
   background:
     radial-gradient(circle at top, rgba(214, 182, 159, 0.18), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(90, 56, 37, 0.28), transparent 50%),
+    radial-gradient(
+      circle at bottom right,
+      rgba(90, 56, 37, 0.28),
+      transparent 50%
+    ),
     #050505;
   color: #fff;
 `;
@@ -345,21 +349,21 @@ const Status = styled.div`
     $type === "error"
       ? "rgba(239, 68, 68, 0.12)"
       : $type === "success"
-      ? "rgba(34, 197, 94, 0.12)"
-      : "rgba(214, 182, 159, 0.12)"};
+        ? "rgba(34, 197, 94, 0.12)"
+        : "rgba(214, 182, 159, 0.12)"};
   color: ${({ $type }) =>
     $type === "error"
       ? "#fecaca"
       : $type === "success"
-      ? "#bbf7d0"
-      : "#fff7ed"};
+        ? "#bbf7d0"
+        : "#fff7ed"};
   border: 1px solid
     ${({ $type }) =>
       $type === "error"
         ? "rgba(239, 68, 68, 0.35)"
         : $type === "success"
-        ? "rgba(34, 197, 94, 0.35)"
-        : "rgba(214, 182, 159, 0.35)"};
+          ? "rgba(34, 197, 94, 0.35)"
+          : "rgba(214, 182, 159, 0.35)"};
 `;
 
 const FinePrint = styled.p`

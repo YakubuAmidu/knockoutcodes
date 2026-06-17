@@ -89,12 +89,20 @@ const labelize = (value = "", fallback = "Unknown") => {
 
 const getToastSuccess = (toast, message) => {
   if (toast?.success) return toast.success(message);
-  return toast?.push?.({ title: "Success", description: message, variant: "success" });
+  return toast?.push?.({
+    title: "Success",
+    description: message,
+    variant: "success",
+  });
 };
 
 const getToastError = (toast, message) => {
   if (toast?.error) return toast.error(message);
-  return toast?.push?.({ title: "Error", description: message, variant: "error" });
+  return toast?.push?.({
+    title: "Error",
+    description: message,
+    variant: "error",
+  });
 };
 
 export default function AdminSecurityEvents() {
@@ -146,7 +154,7 @@ export default function AdminSecurityEvents() {
         (item) =>
           item.reviewStatus === "suspicious" ||
           item.severity === "high" ||
-          item.severity === "critical"
+          item.severity === "critical",
       ).length,
     };
   }, [items]);
@@ -162,7 +170,7 @@ export default function AdminSecurityEvents() {
         severity: custom.severity ?? safeFilters.severity,
         category: custom.category ?? safeFilters.category,
         ip: custom.ip ?? safeFilters.ip,
-      })
+      }),
     );
   };
 
@@ -215,7 +223,7 @@ export default function AdminSecurityEvents() {
       setSecurityEventFilters({
         [name]: cleanText(value, 120),
         page: 1,
-      })
+      }),
     );
   };
 
@@ -228,11 +236,16 @@ export default function AdminSecurityEvents() {
   const handleCleanup = () => {
     dispatch(cleanupSecurityEvents({ days: 90 }))
       .then((data) => {
-        getToastSuccess(toast, data?.message || "Old reviewed security events cleaned.");
+        getToastSuccess(
+          toast,
+          data?.message || "Old reviewed security events cleaned.",
+        );
         setShowCleanupModal(false);
         loadEvents({ page: 1 });
       })
-      .catch(() => getToastError(toast, "Unable to cleanup old security events."));
+      .catch(() =>
+        getToastError(toast, "Unable to cleanup old security events."),
+      );
   };
 
   const handleReviewSave = () => {
@@ -242,7 +255,7 @@ export default function AdminSecurityEvents() {
       updateSecurityEventReview(activeModal.event._id, {
         reviewStatus: reviewDraft.reviewStatus,
         adminNote: cleanText(reviewDraft.adminNote, 1000),
-      })
+      }),
     )
       .then((data) => {
         getToastSuccess(toast, data?.message || "Security event reviewed.");
@@ -270,7 +283,7 @@ export default function AdminSecurityEvents() {
     dispatch(
       deactivateSecurityEventUser(activeModal.event._id, {
         adminNote: "User deactivated from admin security review.",
-      })
+      }),
     )
       .then((data) => {
         getToastSuccess(toast, data?.message || "User account deactivated.");
@@ -287,7 +300,7 @@ export default function AdminSecurityEvents() {
       blockSecurityEventIp(activeModal.event._id, {
         reason: "Blocked from admin security event review.",
         adminNote: `IP ${activeModal.event?.ip || ""} blocked from security review.`,
-      })
+      }),
     )
       .then((data) => {
         getToastSuccess(toast, data?.message || "IP address blocked.");
@@ -303,7 +316,7 @@ export default function AdminSecurityEvents() {
     dispatch(
       unblockSecurityEventIp(activeModal.event._id, {
         adminNote: `IP ${activeModal.event?.ip || ""} unblocked from security review.`,
-      })
+      }),
     )
       .then((data) => {
         getToastSuccess(toast, data?.message || "IP address unblocked.");
@@ -326,7 +339,7 @@ export default function AdminSecurityEvents() {
         severity: safeFilters.severity,
         category: safeFilters.category,
         ip: safeFilters.ip,
-      })
+      }),
     ).catch(() => getToastError(toast, "Unable to load that page."));
   };
 
@@ -420,7 +433,11 @@ export default function AdminSecurityEvents() {
 
             <FieldGroup>
               <Label>Event Type</Label>
-              <Select name="type" value={safeFilters.type} onChange={handleFilterChange}>
+              <Select
+                name="type"
+                value={safeFilters.type}
+                onChange={handleFilterChange}
+              >
                 {EVENT_TYPES.map((type) => (
                   <option key={type || "ALL"} value={type}>
                     {type ? labelize(type) : "All Threat Events"}
@@ -511,7 +528,9 @@ export default function AdminSecurityEvents() {
                       </td>
 
                       <td>
-                        <SeverityBadge data-severity={event.severity || "medium"}>
+                        <SeverityBadge
+                          data-severity={event.severity || "medium"}
+                        >
                           {labelize(event.severity || "medium")}
                         </SeverityBadge>
                         <Small>{labelize(event.category || "system")}</Small>
@@ -542,10 +561,14 @@ export default function AdminSecurityEvents() {
                       </td>
 
                       <td>
-                        <StatusBadge data-status={event.reviewStatus || "unreviewed"}>
+                        <StatusBadge
+                          data-status={event.reviewStatus || "unreviewed"}
+                        >
                           {labelize(event.reviewStatus || "unreviewed")}
                         </StatusBadge>
-                        {event.adminNote ? <Small>{event.adminNote}</Small> : null}
+                        {event.adminNote ? (
+                          <Small>{event.adminNote}</Small>
+                        ) : null}
                       </td>
 
                       <td>
@@ -642,12 +665,16 @@ export default function AdminSecurityEvents() {
 
       {activeModal.type === "review" && (
         <ModalOverlay>
-          <ModalCard as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <ModalCard
+            as={motion.div}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
             <ModalEyebrow>Admin Review</ModalEyebrow>
             <ModalTitle>Review this threat event</ModalTitle>
             <ModalText>
-              Add a clear decision note. This keeps the investigation trail clean
-              without changing the original security event.
+              Add a clear decision note. This keeps the investigation trail
+              clean without changing the original security event.
             </ModalText>
 
             <ModalField>
@@ -685,7 +712,11 @@ export default function AdminSecurityEvents() {
             </ModalField>
 
             <ModalActions>
-              <ModalCancel type="button" onClick={closeModal} disabled={actionLoading}>
+              <ModalCancel
+                type="button"
+                onClick={closeModal}
+                disabled={actionLoading}
+              >
                 Cancel
               </ModalCancel>
 
@@ -800,8 +831,16 @@ function ConfirmModal({
 const PageWrap = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(255, 249, 242, 0.08), transparent 36%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(255, 249, 242, 0.08),
+      transparent 36%
+    ),
     linear-gradient(135deg, #000000 0%, #2f1b12 52%, #000000 100%);
   color: #ffffff;
   padding: 48px 0;
@@ -816,7 +855,11 @@ const Shell = styled.div`
 const Hero = styled.section`
   border: 1px solid rgba(214, 182, 159, 0.2);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(214, 182, 159, 0.07)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(214, 182, 159, 0.07)
+    ),
     rgba(255, 255, 255, 0.045);
   border-radius: 32px;
   padding: 38px;
@@ -1235,7 +1278,11 @@ const ModalCard = styled.div`
   border-radius: 30px;
   padding: 30px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(214, 182, 159, 0.07)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(214, 182, 159, 0.07)
+    ),
     #2f1b12;
   border: 1px solid rgba(214, 182, 159, 0.24);
   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.48);

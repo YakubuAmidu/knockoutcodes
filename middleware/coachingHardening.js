@@ -12,7 +12,7 @@ export function enforceOrigin(req, res, next) {
     String(process.env.FRONTEND_URL || "")
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
   if (allow.size === 0) return next();

@@ -113,7 +113,7 @@ const sessionSchema = new Schema(
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
-  }
+  },
 );
 
 sessionSchema.index({ user: 1, sessionKeyHash: 1 }, { unique: true });

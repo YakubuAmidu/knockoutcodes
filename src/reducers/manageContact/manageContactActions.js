@@ -127,10 +127,7 @@ export const saveManageContact = (id, form) => async (dispatch) => {
     }
 
     const updated =
-      res?.data?.contact ||
-      res?.data?.data?.contact ||
-      res?.data?.data ||
-      null;
+      res?.data?.contact || res?.data?.data?.contact || res?.data?.data || null;
 
     dispatch({
       type: T.SAVE_SUCCESS,
@@ -155,7 +152,9 @@ export const sendAdminReply = (id, text) => async (dispatch) => {
   dispatch({ type: T.REPLY_START, payload: { requestId } });
 
   try {
-    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    const clean = String(text || "")
+      .replace(/\s+/g, " ")
+      .trim();
 
     if (!clean) throw new Error("Reply cannot be empty.");
     if (clean.length > 5000) throw new Error("Reply exceeds maximum length.");
@@ -163,7 +162,7 @@ export const sendAdminReply = (id, text) => async (dispatch) => {
     const res = await axiosInstance.post(
       `/contacts/${id}/reply`,
       { message: clean },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
 
     if (!res?.data?.success) {
@@ -171,10 +170,7 @@ export const sendAdminReply = (id, text) => async (dispatch) => {
     }
 
     const updated =
-      res?.data?.contact ||
-      res?.data?.data?.contact ||
-      res?.data?.data ||
-      null;
+      res?.data?.contact || res?.data?.data?.contact || res?.data?.data || null;
 
     dispatch({
       type: T.REPLY_SUCCESS,
@@ -250,7 +246,7 @@ export const markAllContactsSeen = () => async (dispatch, getState) => {
     const optimistic = contacts.map((c) =>
       targets.some((t) => String(t?._id) === String(c?._id))
         ? { ...c, isSeen: true }
-        : c
+        : c,
     );
 
     dispatch({
@@ -266,9 +262,9 @@ export const markAllContactsSeen = () => async (dispatch, getState) => {
           axiosInstance.put(
             `/contacts/${c._id}`,
             { isSeen: true },
-            { headers: { "Content-Type": "application/json" } }
-          )
-        )
+            { headers: { "Content-Type": "application/json" } },
+          ),
+        ),
       );
     }
 

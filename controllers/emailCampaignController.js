@@ -3,7 +3,14 @@ import mongoose from "mongoose";
 import EmailCampaign from "../models/EmailCampaignModel.js";
 import EmailSubscriber from "../models/EmailSubscriberModel.js";
 
-const ALLOWED_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "paused"];
+const ALLOWED_STATUSES = [
+  "draft",
+  "scheduled",
+  "sending",
+  "sent",
+  "failed",
+  "paused",
+];
 const ALLOWED_AUDIENCE_TYPES = ["all", "newsletter", "customers", "manual"];
 
 const EMAIL_REGEX =
@@ -32,15 +39,21 @@ function sanitizeEmailArray(value) {
   return [
     ...new Set(
       rawList
-        .map((email) => String(email || "").trim().toLowerCase())
-        .filter(Boolean)
+        .map((email) =>
+          String(email || "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean),
     ),
   ];
 }
 
 function normalizeAudienceType(value) {
   const normalized = sanitizeString(value, 30).toLowerCase();
-  return ALLOWED_AUDIENCE_TYPES.includes(normalized) ? normalized : "newsletter";
+  return ALLOWED_AUDIENCE_TYPES.includes(normalized)
+    ? normalized
+    : "newsletter";
 }
 
 function parseScheduledDate(value) {
@@ -67,7 +80,9 @@ function validateManualRecipients(audienceType, manualRecipients) {
     return "At least one manual recipient email is required";
   }
 
-  const invalidEmails = manualRecipients.filter((email) => !EMAIL_REGEX.test(email));
+  const invalidEmails = manualRecipients.filter(
+    (email) => !EMAIL_REGEX.test(email),
+  );
 
   if (invalidEmails.length) {
     return `Invalid manual recipient email: ${invalidEmails[0]}`;
@@ -139,7 +154,10 @@ export async function createEmailCampaign(req, res, next) {
       });
     }
 
-    const recipientError = validateManualRecipients(audienceType, manualRecipients);
+    const recipientError = validateManualRecipients(
+      audienceType,
+      manualRecipients,
+    );
 
     if (recipientError) {
       return res.status(400).json({
@@ -158,7 +176,8 @@ export async function createEmailCampaign(req, res, next) {
       body,
       ctaText: sanitizeString(req.body.ctaText, 60) || "Shop Now",
       ctaUrl,
-      signature: sanitizeString(req.body.signature, 120) || "Team KnockoutCodes",
+      signature:
+        sanitizeString(req.body.signature, 120) || "Team KnockoutCodes",
       audienceType,
       manualRecipients,
       status: "draft",
@@ -167,10 +186,9 @@ export async function createEmailCampaign(req, res, next) {
       createdBy: req.user._id,
     });
 
-    const populatedCampaign = await EmailCampaign.findById(campaign._id).populate(
-      "createdBy",
-      "name email"
-    );
+    const populatedCampaign = await EmailCampaign.findById(
+      campaign._id,
+    ).populate("createdBy", "name email");
 
     return res.status(201).json({
       success: true,
@@ -247,7 +265,7 @@ export async function getEmailCampaignById(req, res, next) {
 
     const campaign = await EmailCampaign.findById(req.params.id).populate(
       "createdBy",
-      "name email"
+      "name email",
     );
 
     if (!campaign) {
@@ -311,7 +329,12 @@ export async function updateEmailCampaign(req, res, next) {
       }
     }
 
-    if (!campaign.name || !campaign.subject || !campaign.headline || !campaign.body) {
+    if (
+      !campaign.name ||
+      !campaign.subject ||
+      !campaign.headline ||
+      !campaign.body
+    ) {
       return res.status(400).json({
         success: false,
         message: "Name, subject, headline, and body cannot be empty",
@@ -335,7 +358,7 @@ export async function updateEmailCampaign(req, res, next) {
 
     const recipientError = validateManualRecipients(
       campaign.audienceType,
-      campaign.manualRecipients
+      campaign.manualRecipients,
     );
 
     if (recipientError) {
@@ -373,10 +396,9 @@ export async function updateEmailCampaign(req, res, next) {
 
     await campaign.save();
 
-    const populatedCampaign = await EmailCampaign.findById(campaign._id).populate(
-      "createdBy",
-      "name email"
-    );
+    const populatedCampaign = await EmailCampaign.findById(
+      campaign._id,
+    ).populate("createdBy", "name email");
 
     return res.status(200).json({
       success: true,

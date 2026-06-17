@@ -6,7 +6,9 @@ import mongoose from "mongoose";
  */
 function isValidEmail(email) {
   return /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/.test(
-    String(email || "").trim().toLowerCase()
+    String(email || "")
+      .trim()
+      .toLowerCase(),
   );
 }
 
@@ -47,7 +49,7 @@ const emailUnsubscribeSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /**

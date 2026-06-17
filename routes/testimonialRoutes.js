@@ -28,7 +28,7 @@ router.post(
   preventAdminPurchase,
   testimonialCreateLimiter,
   antiBot({ honeypotField: "website" }),
-  createTestimonial
+  createTestimonial,
 );
 
 router.get("/:id", authRequired, adminOnly, getTestimonial);

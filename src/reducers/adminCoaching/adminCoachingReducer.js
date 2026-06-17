@@ -8,7 +8,9 @@ const ALLOWED_UI_KEYS = ["q", "page", "limit", "sort"];
 
 function cleanUI(ui = {}) {
   return {
-    q: String(ui.q || "").trim().slice(0, 60),
+    q: String(ui.q || "")
+      .trim()
+      .slice(0, 60),
     page: Math.max(1, Number(ui.page) || 1),
     limit: Math.min(100, Math.max(10, Number(ui.limit) || 20)),
     sort: ui.sort === "createdAt" ? "createdAt" : "-createdAt",
@@ -49,7 +51,7 @@ function upsert(items = [], nextItem) {
 
 export function adminCoachingsReducer(
   state = adminCoachingsInitialState,
-  action = {}
+  action = {},
 ) {
   switch (action.type) {
     case ADMIN_COACHINGS_ACTIONS.HYDRATE_UI: {
@@ -116,12 +118,11 @@ export function adminCoachingsReducer(
         data: {
           ...state.data,
           items: upsert(state.data?.items, item),
-          total:
-            state.data?.items?.some(
-              (x) => String(x?._id || "") === String(item?._id || "")
-            )
-              ? state.data.total
-              : Number(state.data?.total || 0) + 1,
+          total: state.data?.items?.some(
+            (x) => String(x?._id || "") === String(item?._id || ""),
+          )
+            ? state.data.total
+            : Number(state.data?.total || 0) + 1,
         },
       };
     }

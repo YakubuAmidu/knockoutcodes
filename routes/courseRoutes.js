@@ -35,7 +35,7 @@ router.get(
   publicShield,
   authRequired,
   adminOnly,
-  getCourses
+  getCourses,
 );
 
 /* =========================
@@ -50,19 +50,14 @@ router
     authRequired,
     adminOnly,
     csrfRequired,
-    createCourse
+    createCourse,
   );
 
 /* =========================
    COURSE PLAYER
    Must stay above "/:id"
 ========================= */
-router.get(
-  "/player/:courseId",
-  publicShield,
-  authRequired,
-  getCoursePlayer
-);
+router.get("/player/:courseId", publicShield, authRequired, getCoursePlayer);
 
 /* =========================
    SINGLE COURSE / UPDATE / DELETE
@@ -76,7 +71,7 @@ router
     authRequired,
     adminOnly,
     csrfRequired,
-    updateCourse
+    updateCourse,
   )
   .delete(
     allowMethods(["DELETE"]),
@@ -84,7 +79,7 @@ router
     authRequired,
     adminOnly,
     csrfRequired,
-    deleteCourse
+    deleteCourse,
   );
 
 export default router;

@@ -20,7 +20,9 @@ const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
 const stripe = new Stripe(STRIPE_KEY || "");
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level;
 }
@@ -155,9 +157,36 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     // ✅ Collect customer shipping address for physical products
     shipping_address_collection: {
       allowed_countries: [
-        "US", "CA", "GB", "AU", "DE", "FR", "IT", "ES", "NL", "BE",
-        "CH", "SE", "NO", "DK", "FI", "IE", "PT", "AT", "PL", "CZ",
-        "JP", "KR", "SG", "NZ", "MX", "BR", "ZA", "AE", "GH", "NG",
+        "US",
+        "CA",
+        "GB",
+        "AU",
+        "DE",
+        "FR",
+        "IT",
+        "ES",
+        "NL",
+        "BE",
+        "CH",
+        "SE",
+        "NO",
+        "DK",
+        "FI",
+        "IE",
+        "PT",
+        "AT",
+        "PL",
+        "CZ",
+        "JP",
+        "KR",
+        "SG",
+        "NZ",
+        "MX",
+        "BR",
+        "ZA",
+        "AE",
+        "GH",
+        "NG",
       ],
     },
 
@@ -169,15 +198,13 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     // ✅ Helps Stripe show shipping-related customer info
     billing_address_collection: "auto",
 
-  success_url:
-  `${FRONTEND_URL}/order/success` +
-  `?session_id={CHECKOUT_SESSION_ID}` +
-  `&kind=products`,
+    success_url:
+      `${FRONTEND_URL}/order/success` +
+      `?session_id={CHECKOUT_SESSION_ID}` +
+      `&kind=products`,
 
-cancel_url:
-  `${FRONTEND_URL}/order/failed` +
-  `?canceled=true` +
-  `&kind=products`,
+    cancel_url:
+      `${FRONTEND_URL}/order/failed` + `?canceled=true` + `&kind=products`,
 
     metadata: {
       type: "products",
@@ -235,7 +262,9 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
   }
 
   if (!course) {
-    course = await Course.findOne({ slug: courseId }).select(courseSelect).lean();
+    course = await Course.findOne({ slug: courseId })
+      .select(courseSelect)
+      .lean();
   }
 
   if (!course) {
@@ -285,11 +314,11 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
 
   if (existingSubscription) {
     const userLevel = normalizeLevel(
-      existingSubscription.accessLevel || existingSubscription.membershipId
+      existingSubscription.accessLevel || existingSubscription.membershipId,
     );
 
     const requiredLevel = normalizeLevel(
-      course.requiredMembershipLevel || course.level || "beginner"
+      course.requiredMembershipLevel || course.level || "beginner",
     );
 
     if (userLevel && requiredLevel && userLevel === requiredLevel) {
@@ -317,9 +346,7 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
     `&courseId=${encodeURIComponent(String(course._id))}`;
 
   const cancelUrl =
-    `${FRONTEND_URL}/subscription/failed` +
-    `?canceled=true` +
-    `&kind=course`;
+    `${FRONTEND_URL}/subscription/failed` + `?canceled=true` + `&kind=course`;
 
   const metadata = {
     type: "course",

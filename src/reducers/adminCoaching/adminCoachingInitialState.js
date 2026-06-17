@@ -9,7 +9,9 @@ const ALLOWED_UI_KEYS = ["q", "page", "limit", "sort"];
 
 function cleanUI(ui = {}) {
   return {
-    q: String(ui.q || "").trim().slice(0, 60),
+    q: String(ui.q || "")
+      .trim()
+      .slice(0, 60),
     page: Math.max(1, Number(ui.page) || 1),
     limit: Math.min(100, Math.max(10, Number(ui.limit) || 20)),
     sort: ui.sort === "createdAt" ? "createdAt" : "-createdAt",

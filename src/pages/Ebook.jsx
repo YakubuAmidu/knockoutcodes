@@ -302,8 +302,16 @@ const Wrap = styled.main`
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 15% 0%, rgba(214, 182, 159, 0.16), transparent 34%),
-    radial-gradient(circle at 85% 8%, rgba(255, 249, 242, 0.08), transparent 30%),
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(214, 182, 159, 0.16),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 85% 8%,
+      rgba(255, 249, 242, 0.08),
+      transparent 30%
+    ),
     linear-gradient(180deg, #160b06 0%, var(--bg) 42%, #080403 100%);
 `;
 
@@ -458,8 +466,16 @@ const CardGlow = styled.i`
   pointer-events: none;
   border-radius: inherit;
   background:
-    radial-gradient(520px 180px at 30% 0%, rgba(214, 182, 159, 0.22), transparent 52%),
-    radial-gradient(380px 150px at 85% 0%, rgba(255, 249, 242, 0.08), transparent 55%);
+    radial-gradient(
+      520px 180px at 30% 0%,
+      rgba(214, 182, 159, 0.22),
+      transparent 52%
+    ),
+    radial-gradient(
+      380px 150px at 85% 0%,
+      rgba(255, 249, 242, 0.08),
+      transparent 55%
+    );
 `;
 
 const Thumb = styled.div`
@@ -468,7 +484,11 @@ const Thumb = styled.div`
   height: 430px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 0%, rgba(214, 182, 159, 0.16), transparent 42%),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(214, 182, 159, 0.16),
+      transparent 42%
+    ),
     var(--cocoa);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 

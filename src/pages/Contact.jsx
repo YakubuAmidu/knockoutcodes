@@ -45,10 +45,10 @@ export default function Contact() {
 
   const form = useSelector((state) => state?.contact?.form || {});
   const status = useSelector(
-    (state) => state?.contact?.status || { state: "idle", message: "" }
+    (state) => state?.contact?.status || { state: "idle", message: "" },
   );
   const authUser = useSelector(
-    (state) => state?.auth?.user || state?.auth?.currentUser || null
+    (state) => state?.auth?.user || state?.auth?.currentUser || null,
   );
 
   const [errors, setErrors] = useState({});
@@ -80,7 +80,7 @@ export default function Contact() {
           hydrateContactFromStorage({
             subject: String(parsed.subject || ""),
             message: String(parsed.message || ""),
-          })
+          }),
         );
       }
     } catch {
@@ -106,7 +106,7 @@ export default function Contact() {
           subject,
           message,
           savedAt: Date.now(),
-        })
+        }),
       );
     } catch {
       // ignore localStorage issues
@@ -156,7 +156,9 @@ export default function Contact() {
 
     const { nonce, ts, difficulty, sig, ttlMs } = challenge;
 
-    const cleanEmail = String(email || "").trim().toLowerCase();
+    const cleanEmail = String(email || "")
+      .trim()
+      .toLowerCase();
     if (!cleanEmail) return null;
 
     const tsNum = Number(ts);
@@ -207,7 +209,9 @@ export default function Contact() {
     const { name, value } = e.target;
 
     if (name === "phone") {
-      const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
+      const digits = String(value || "")
+        .replace(/\D/g, "")
+        .slice(0, 10);
       dispatch(updateContactField(name, digits));
     } else {
       dispatch(updateContactField(name, value));
@@ -282,7 +286,7 @@ export default function Contact() {
     if (now - lastSubmitAtRef.current < COOLDOWN_MS) {
       const waitMs = COOLDOWN_MS - (now - lastSubmitAtRef.current);
       const msg = `Please wait ${Math.ceil(
-        waitMs / 1000
+        waitMs / 1000,
       )}s before sending another message.`;
 
       dispatch(setContactStatus("error", msg));
@@ -311,14 +315,16 @@ export default function Contact() {
         "/contacts",
         {
           name: String(form.name || "").trim(),
-          email: String(form.email || "").trim().toLowerCase(),
+          email: String(form.email || "")
+            .trim()
+            .toLowerCase(),
           phone: String(form.phone || "").trim(),
           subject: String(form.subject || "").trim(),
           message: String(form.message || "").trim(),
           company: String(form.company || ""),
           pow,
         },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       if (!res?.data?.success) {
@@ -389,9 +395,9 @@ export default function Contact() {
           </Title>
 
           <Subtitle>
-            Need help with an order, product, membership, course access, booking,
-            or partnership? Send a complete request and our team can respond
-            faster with the right answer.
+            Need help with an order, product, membership, course access,
+            booking, or partnership? Send a complete request and our team can
+            respond faster with the right answer.
           </Subtitle>
         </Header>
 
@@ -412,7 +418,9 @@ export default function Contact() {
                 <FeatureIcon>✓</FeatureIcon>
                 <div>
                   <strong>Order & product support</strong>
-                  <p>Ask about purchases, delivery, tracking, or product access.</p>
+                  <p>
+                    Ask about purchases, delivery, tracking, or product access.
+                  </p>
                 </div>
               </FeatureItem>
 
@@ -420,7 +428,10 @@ export default function Contact() {
                 <FeatureIcon>✓</FeatureIcon>
                 <div>
                   <strong>Membership & course help</strong>
-                  <p>Request help with access, enrollment, billing, or account issues.</p>
+                  <p>
+                    Request help with access, enrollment, billing, or account
+                    issues.
+                  </p>
                 </div>
               </FeatureItem>
 
@@ -428,7 +439,10 @@ export default function Contact() {
                 <FeatureIcon>✓</FeatureIcon>
                 <div>
                   <strong>Partnership inquiries</strong>
-                  <p>Send serious business, brand, training, or collaboration requests.</p>
+                  <p>
+                    Send serious business, brand, training, or collaboration
+                    requests.
+                  </p>
                 </div>
               </FeatureItem>
             </FeatureList>
@@ -465,8 +479,8 @@ export default function Contact() {
 
             {isAdmin ? (
               <Alert $state="error" role="status" aria-live="polite">
-                Admin accounts cannot submit public contact requests. Use the admin
-                dashboard to manage messages.
+                Admin accounts cannot submit public contact requests. Use the
+                admin dashboard to manage messages.
               </Alert>
             ) : null}
 
@@ -576,7 +590,9 @@ export default function Contact() {
                 required
               />
               <Counter>{String(form?.message || "").length}/2500</Counter>
-              {errors.message && <Error id="err-message">{errors.message}</Error>}
+              {errors.message && (
+                <Error id="err-message">{errors.message}</Error>
+              )}
             </Field>
 
             <SecurityLine>
@@ -584,15 +600,19 @@ export default function Contact() {
               {isAdmin
                 ? "Admin submission blocked"
                 : powBusy
-                ? "Running premium security check…"
-                : powReady
-                ? "Security ready"
-                : "Preparing security check…"}
+                  ? "Running premium security check…"
+                  : powReady
+                    ? "Security ready"
+                    : "Preparing security check…"}
             </SecurityLine>
 
             <Actions>
               <Submit disabled={isBusy} type="submit">
-                {isAdmin ? "Admin Blocked" : isBusy ? "Sending…" : "Send Message"}
+                {isAdmin
+                  ? "Admin Blocked"
+                  : isBusy
+                    ? "Sending…"
+                    : "Send Message"}
                 <Shimmer />
               </Submit>
 
@@ -635,8 +655,16 @@ const Wrap = styled.section`
   overflow: hidden;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 15% 10%, rgba(214, 182, 159, 0.2), transparent 34%),
-    radial-gradient(circle at 85% 15%, rgba(255, 249, 242, 0.1), transparent 34%),
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 85% 15%,
+      rgba(255, 249, 242, 0.1),
+      transparent 34%
+    ),
     linear-gradient(
       180deg,
       ${({ theme }) => theme.colors.darkBrown},
@@ -922,7 +950,11 @@ const Card = styled.form`
   padding: 1.2rem;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.032)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.085),
+      rgba(255, 255, 255, 0.032)
+    ),
     rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 249, 242, 0.13);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -1204,15 +1236,15 @@ const Alert = styled.div`
     $state === "success"
       ? "rgba(70, 255, 150, 0.1)"
       : $state === "error"
-      ? "rgba(255, 100, 100, 0.1)"
-      : "rgba(0, 0, 0, 0.35)"};
+        ? "rgba(255, 100, 100, 0.1)"
+        : "rgba(0, 0, 0, 0.35)"};
   border: 1px solid
     ${({ $state }) =>
       $state === "success"
         ? "rgba(70, 255, 150, 0.24)"
         : $state === "error"
-        ? "rgba(255, 100, 100, 0.24)"
-        : "rgba(255,255,255,.12)"};
+          ? "rgba(255, 100, 100, 0.24)"
+          : "rgba(255,255,255,.12)"};
   font-size: 0.95rem;
   line-height: 1.45;
 `;

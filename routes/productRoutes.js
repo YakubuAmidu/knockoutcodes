@@ -26,7 +26,7 @@ router.get(
   authRequired,
   adminOnly,
   safeSort,
-  getProducts
+  getProducts,
 );
 
 router.get("/", ...productPublicShield, safeSort, getProducts);
@@ -37,7 +37,7 @@ router.post(
   authRequired,
   adminOnly,
   productWriteFirewall,
-  createProduct
+  createProduct,
 );
 
 router.put(
@@ -47,7 +47,7 @@ router.put(
   adminOnly,
   validateObjectId("id"),
   productWriteFirewall,
-  updateProduct
+  updateProduct,
 );
 
 router.delete(
@@ -56,7 +56,7 @@ router.delete(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  deleteProduct
+  deleteProduct,
 );
 
 router.get("/:idOrSlug", ...productPublicShield, getProduct);

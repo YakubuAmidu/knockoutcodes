@@ -1,7 +1,9 @@
 import { campaignTemplate } from "./campaignTemplate.js";
 
 function normalizeBaseUrl(url = "") {
-  return String(url || "").trim().replace(/\/+$/, "");
+  return String(url || "")
+    .trim()
+    .replace(/\/+$/, "");
 }
 
 function safeString(value = "") {
@@ -22,8 +24,8 @@ function ensureAbsoluteUrl(url = "") {
   }
 
   if (clean.startsWith("/") && !clean.startsWith("//")) {
-  return clean;
-}
+    return clean;
+  }
 
   return clean;
 }
@@ -35,7 +37,7 @@ function buildOpenTrackingUrl(baseUrl, logId) {
   if (!cleanBaseUrl || !cleanLogId) return "";
 
   return `${cleanBaseUrl}/api/v1/email-campaigns/track/open?logId=${encodeURIComponent(
-    cleanLogId
+    cleanLogId,
   )}`;
 }
 
@@ -105,7 +107,9 @@ function buildTextEmail({
     lines.push(safeString(body), "");
   }
 
-  lines.push(`${safeString(ctaText) || "Shop Now"}: ${safeString(ctaUrl) || "#"}`);
+  lines.push(
+    `${safeString(ctaText) || "Shop Now"}: ${safeString(ctaUrl) || "#"}`,
+  );
 
   if (safeString(unsubscribeUrl)) {
     lines.push("", `Unsubscribe: ${safeString(unsubscribeUrl)}`);
@@ -123,7 +127,7 @@ export function renderCampaignEmail(data = {}) {
       process.env.APP_BASE_URL ||
       // eslint-disable-next-line no-undef
       process.env.CLIENT_URL ||
-      "http://localhost:5000"
+      "http://localhost:5000",
   );
 
   const logId = safeString(data.logId);
@@ -135,16 +139,11 @@ export function renderCampaignEmail(data = {}) {
     baseUrl,
     logId,
     campaignId,
-    originalCtaUrl
+    originalCtaUrl,
   );
 
   const trackedUnsubscribeUrl = originalUnsubscribeUrl
-    ? buildClickTrackingUrl(
-        baseUrl,
-        logId,
-        campaignId,
-        originalUnsubscribeUrl
-      )
+    ? buildClickTrackingUrl(baseUrl, logId, campaignId, originalUnsubscribeUrl)
     : "";
 
   const openTrackingUrl = buildOpenTrackingUrl(baseUrl, logId);

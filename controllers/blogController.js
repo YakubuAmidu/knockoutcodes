@@ -11,7 +11,9 @@ const isAdminUser = (req) => {
 };
 
 const findBlogByIdOrSlug = async (idOrSlug, extraQuery = {}) => {
-  const value = String(idOrSlug || "").trim().toLowerCase();
+  const value = String(idOrSlug || "")
+    .trim()
+    .toLowerCase();
 
   if (isValidObjectId(value)) {
     const blog = await Blog.findOne({ _id: value, ...extraQuery });
@@ -52,7 +54,8 @@ export const createBlog = async (req, res) => {
     if (error?.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "Slug already exists. Use a different title or set a unique slug.",
+        message:
+          "Slug already exists. Use a different title or set a unique slug.",
       });
     }
 
@@ -133,7 +136,7 @@ export const getBlogs = async (req, res) => {
         pages: Math.ceil(total / safeLimit) || 1,
       },
     });
-  } catch{
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch blogs.",
@@ -206,7 +209,7 @@ export const likeBlog = async (req, res) => {
     }
 
     const alreadyLiked = blog.likedBy.some(
-      (id) => String(id) === String(userId)
+      (id) => String(id) === String(userId),
     );
 
     if (alreadyLiked) {
@@ -217,7 +220,7 @@ export const likeBlog = async (req, res) => {
     }
 
     const hadUnliked = blog.unlikedBy.some(
-      (id) => String(id) === String(userId)
+      (id) => String(id) === String(userId),
     );
 
     const update = {
@@ -243,7 +246,7 @@ export const likeBlog = async (req, res) => {
         unlikes: Math.max(0, Number(updatedBlog.unlikes || 0)),
       },
     });
-  } catch{
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to like article.",
@@ -281,7 +284,7 @@ export const unlikeBlog = async (req, res) => {
     }
 
     const alreadyUnliked = blog.unlikedBy.some(
-      (id) => String(id) === String(userId)
+      (id) => String(id) === String(userId),
     );
 
     if (alreadyUnliked) {
@@ -291,9 +294,7 @@ export const unlikeBlog = async (req, res) => {
       });
     }
 
-    const hadLiked = blog.likedBy.some(
-      (id) => String(id) === String(userId)
-    );
+    const hadLiked = blog.likedBy.some((id) => String(id) === String(userId));
 
     const update = {
       $addToSet: { unlikedBy: userId },
@@ -318,7 +319,7 @@ export const unlikeBlog = async (req, res) => {
         unlikes: Math.max(0, Number(updatedBlog.unlikes || 0)),
       },
     });
-  } catch{
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Failed to unlike article.",
@@ -336,7 +337,7 @@ export const updateBlog = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     ).populate("author", "name");
 
     if (!blog) {
@@ -355,7 +356,8 @@ export const updateBlog = async (req, res) => {
     if (error?.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "Slug already exists. Use a different title or set a unique slug.",
+        message:
+          "Slug already exists. Use a different title or set a unique slug.",
       });
     }
 

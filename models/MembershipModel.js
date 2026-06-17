@@ -27,7 +27,8 @@ function normalizeLevel(value = "") {
 }
 
 async function createUniqueSlug(doc, baseValue) {
-  const base = generateSlug(baseValue) || generateSlug(doc.membershipId) || "membership";
+  const base =
+    generateSlug(baseValue) || generateSlug(doc.membershipId) || "membership";
 
   let slug = base;
   let count = 0;
@@ -139,17 +140,17 @@ const membershipSchema = new mongoose.Schema(
     },
 
     ratingAverage: {
-  type: Number,
-  default: 0,
-  min: 0,
-  max: 5,
-},
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
 
-ratingCount: {
-  type: Number,
-  default: 0,
-  min: 0,
-},
+    ratingCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
 
     enrolled: {
       type: Number,
@@ -241,7 +242,7 @@ ratingCount: {
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 membershipSchema.pre("validate", function (next) {
@@ -280,7 +281,11 @@ membershipSchema.pre("validate", function (next) {
 
 membershipSchema.pre("save", async function (next) {
   try {
-    if (this.isModified("membershipId") || this.isModified("title") || !this.slug) {
+    if (
+      this.isModified("membershipId") ||
+      this.isModified("title") ||
+      !this.slug
+    ) {
       this.slug = await createUniqueSlug(this, this.membershipId || this.title);
     }
 
@@ -333,10 +338,16 @@ membershipSchema.pre("findOneAndUpdate", async function (next) {
     }
 
     if ($set.membershipId || $set.title) {
-      const existing = await this.model.findOne(this.getQuery()).select("_id membershipId title");
+      const existing = await this.model
+        .findOne(this.getQuery())
+        .select("_id membershipId title");
 
       if (existing) {
-        const baseValue = $set.membershipId || existing.membershipId || $set.title || existing.title;
+        const baseValue =
+          $set.membershipId ||
+          existing.membershipId ||
+          $set.title ||
+          existing.title;
         $set.slug = await createUniqueSlug(existing, baseValue);
       }
     }

@@ -75,7 +75,7 @@ export function myMessagesReducer(state = myMessagesInitialState, action) {
         ? [
             updated,
             ...safeArr(state.items).filter(
-              (x) => String(x?._id) !== String(updated._id)
+              (x) => String(x?._id) !== String(updated._id),
             ),
           ]
         : safeArr(state.items);

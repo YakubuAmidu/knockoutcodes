@@ -3,7 +3,7 @@ import { emailTemplateInitialState } from "./emailTemplateInitialState";
 
 export function emailTemplateReducer(
   state = emailTemplateInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     case EMAIL_TEMPLATE_ACTIONS.LIST_REQUEST:
@@ -86,7 +86,7 @@ export function emailTemplateReducer(
         ...state,
         updating: false,
         templates: state.templates.map((template) =>
-          template._id === action.payload._id ? action.payload : template
+          template._id === action.payload._id ? action.payload : template,
         ),
         selectedTemplate:
           state.selectedTemplate?._id === action.payload._id
@@ -101,7 +101,7 @@ export function emailTemplateReducer(
         ...state,
         deleting: false,
         templates: state.templates.filter(
-          (template) => template._id !== action.payload
+          (template) => template._id !== action.payload,
         ),
         selectedTemplate:
           state.selectedTemplate?._id === action.payload

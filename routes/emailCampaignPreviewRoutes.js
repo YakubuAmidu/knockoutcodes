@@ -12,8 +12,7 @@ router.get("/preview", (req, res) => {
     headline: "Train Sharp. Look Sharp. Move Like A Champion.",
     subheadline:
       "A 5-star premium email design that feels elite, clean, and powerful.",
-    body:
-      "This is a preview of your campaign email system.\n\nUse this structure for launches, product drops, coaching offers, newsletters, and premium brand announcements.",
+    body: "This is a preview of your campaign email system.\n\nUse this structure for launches, product drops, coaching offers, newsletters, and premium brand announcements.",
     ctaText: "Explore Now",
     ctaUrl: "https://aurora45.gumroad.com",
     signature: "Yakubu | KnockoutCodes",
@@ -39,8 +38,7 @@ router.post("/send-test", async (req, res, next) => {
       headline: "Your Premium Email System Is Working",
       subheadline:
         "Clean design. Strong brand presence. Ready for higher conversions.",
-      body:
-        "This is your first luxury campaign test email.\n\nNext, we will build the real campaign database, admin campaign creation flow, audience targeting, and sending logic.",
+      body: "This is your first luxury campaign test email.\n\nNext, we will build the real campaign database, admin campaign creation flow, audience targeting, and sending logic.",
       ctaText: "Visit Store",
       ctaUrl: "https://aurora45.gumroad.com",
       signature: "Yakubu | KnockoutCodes",

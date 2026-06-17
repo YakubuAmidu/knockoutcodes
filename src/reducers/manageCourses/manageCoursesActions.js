@@ -111,7 +111,7 @@ export const updateManageCourse = (courseId, payload) => async (dispatch) => {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-      }
+      },
     );
 
     const course = normalizeCourse(res.data);
@@ -148,7 +148,7 @@ export const deleteManageCourse = (courseId) => async (dispatch) => {
           Accept: "application/json",
         },
         data: {},
-      }
+      },
     );
 
     dispatch({

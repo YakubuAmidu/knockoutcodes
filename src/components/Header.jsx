@@ -27,7 +27,7 @@ const Header = ({ headerData }) => {
       ],
       ...(headerData || {}),
     }),
-    [headerData]
+    [headerData],
   );
 
   const setXY = (e) => {
@@ -64,7 +64,12 @@ const Header = ({ headerData }) => {
         <HookBadge
           initial={{ scale: 0.94, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.12, type: "spring", stiffness: 420, damping: 28 }}
+          transition={{
+            delay: 0.12,
+            type: "spring",
+            stiffness: 420,
+            damping: 28,
+          }}
         >
           ⚡ Beginner → Intermediate → Advance → Complete Fight Camp
         </HookBadge>
@@ -131,7 +136,7 @@ function RotatingWord({ words = [], interval = 1800 }) {
   useEffect(() => {
     const t = setInterval(
       () => setIdx((n) => (n + 1) % safeWords.length),
-      interval
+      interval,
     );
     return () => clearInterval(t);
   }, [safeWords.length, interval]);
@@ -184,8 +189,17 @@ const Overlay = styled.div`
   inset: 0;
   z-index: 1;
   background:
-    linear-gradient(90deg, rgba(0,0,0,.82), rgba(0,0,0,.45), rgba(0,0,0,.76)),
-    radial-gradient(900px 420px at 18% 12%, rgba(214,182,159,.22), transparent 60%);
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.82),
+      rgba(0, 0, 0, 0.45),
+      rgba(0, 0, 0, 0.76)
+    ),
+    radial-gradient(
+      900px 420px at 18% 12%,
+      rgba(214, 182, 159, 0.22),
+      transparent 60%
+    );
 `;
 
 const Decor = styled.div`
@@ -201,7 +215,11 @@ const Decor = styled.div`
     height: 420px;
     top: -120px;
     right: -100px;
-    background: radial-gradient(circle, rgba(214,182,159,.35), transparent 65%);
+    background: radial-gradient(
+      circle,
+      rgba(214, 182, 159, 0.35),
+      transparent 65%
+    );
     filter: blur(28px);
   }
 `;
@@ -223,12 +241,12 @@ const Kicker = styled(motion.div)`
   gap: 10px;
   padding: 9px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(12px);
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 `;
 
@@ -236,10 +254,10 @@ const Title = styled(motion.h1)`
   margin: 0;
   max-width: 980px;
   font-size: clamp(44px, 7vw, 92px);
-  line-height: .98;
+  line-height: 0.98;
   font-weight: 950;
   letter-spacing: -0.04em;
-  text-shadow: 0 14px 36px rgba(0,0,0,.55);
+  text-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
 `;
 
 const GradientWord = styled.span`
@@ -258,8 +276,8 @@ const HookBadge = styled(motion.div)`
   width: fit-content;
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,.34);
-  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(12px);
   font-weight: 900;
 `;
@@ -270,7 +288,7 @@ const Subtitle = styled(motion.p)`
   font-size: clamp(16px, 1.6vw, 21px);
   line-height: 1.65;
   color: ${({ theme }) => theme.colors.ivory};
-  opacity: .94;
+  opacity: 0.94;
 `;
 
 const LevelGrid = styled.div`
@@ -291,8 +309,8 @@ const LevelGrid = styled.div`
 const LevelCard = styled.div`
   padding: 14px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: rgba(0,0,0,.34);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 
   strong {
     display: block;
@@ -332,7 +350,7 @@ const CTA = styled(MotionLink)`
     $primary
       ? `linear-gradient(135deg, ${theme.colors.ivory}, ${theme.colors.lightBrown})`
       : theme.colors.brown};
-  border: 1px solid rgba(255,255,255,.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: ${({ theme }) => theme.shadow.soft};
   overflow: hidden;
 
@@ -342,11 +360,11 @@ const CTA = styled(MotionLink)`
     inset: 0;
     background: radial-gradient(
       700px 90px at var(--x, 50%) var(--y, 50%),
-      rgba(255,255,255,.22),
+      rgba(255, 255, 255, 0.22),
       transparent 45%
     );
     opacity: 0;
-    transition: opacity .25s ease;
+    transition: opacity 0.25s ease;
   }
 
   &:hover:after {
@@ -355,7 +373,7 @@ const CTA = styled(MotionLink)`
 `;
 
 const GhostCTA = styled(CTA)`
-  background: rgba(0,0,0,.24);
+  background: rgba(0, 0, 0, 0.24);
   color: ${({ theme }) => theme.colors.ivory};
-  border-color: rgba(255,255,255,.28);
+  border-color: rgba(255, 255, 255, 0.28);
 `;

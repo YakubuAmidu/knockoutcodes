@@ -62,7 +62,13 @@ const normalizeThread = (contact) => {
   // fallback for old docs with only message field
   const fallback = String(contact?.message || "").trim();
   return fallback
-    ? [{ sender: "user", text: fallback, createdAt: contact?.createdAt || null }]
+    ? [
+        {
+          sender: "user",
+          text: fallback,
+          createdAt: contact?.createdAt || null,
+        },
+      ]
     : [];
 };
 
@@ -71,8 +77,8 @@ export default function ManageContacts() {
   const dispatch = useDispatch();
 
   const authUser = useSelector(
-  (state) => state.auth?.user || state.auth?.currentUser || null
-);
+    (state) => state.auth?.user || state.auth?.currentUser || null,
+  );
 
   const store = useSelector((state) => state.manageContacts || {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,19 +108,19 @@ export default function ManageContacts() {
 
   const unseenCount = useMemo(
     () => contacts.filter((c) => !c.isSeen).length,
-    [contacts]
+    [contacts],
   );
   const newUnseenCount = useMemo(
     () => contacts.filter((c) => c.status === STATUS.NEW && !c.isSeen).length,
-    [contacts]
+    [contacts],
   );
   const currentCount = useMemo(
     () => contacts.filter((c) => isOngoing(c.status)).length,
-    [contacts]
+    [contacts],
   );
   const completeCount = useMemo(
     () => contacts.filter((c) => isComplete(c.status)).length,
-    [contacts]
+    [contacts],
   );
 
   useEffect(() => {
@@ -122,48 +128,48 @@ export default function ManageContacts() {
   }, [dispatch]);
 
   useEffect(() => {
-  const adminId = authUser?._id || authUser?.id;
+    const adminId = authUser?._id || authUser?.id;
 
-  if (adminId) {
-    connectUserSocket(adminId);
-  } else if (!socket.connected) {
-    socket.connect();
-  }
-
-  const handleContactsRefresh = ({ action }) => {
-    dispatch(fetchManageContacts({ silent: true }));
-
-    if (action === "created") {
-      push({
-        title: "New contact received",
-        description: "A new support request just arrived.",
-        variant: "success",
-      });
+    if (adminId) {
+      connectUserSocket(adminId);
+    } else if (!socket.connected) {
+      socket.connect();
     }
 
-    if (action === "user-replied") {
-      push({
-        title: "User replied",
-        description: "A contact thread has a new user reply.",
-        variant: "info",
-      });
-    }
+    const handleContactsRefresh = ({ action }) => {
+      dispatch(fetchManageContacts({ silent: true }));
 
-    if (action === "admin-replied") {
-      push({
-        title: "Reply synced",
-        description: "Admin reply updated in real time.",
-        variant: "success",
-      });
-    }
-  };
+      if (action === "created") {
+        push({
+          title: "New contact received",
+          description: "A new support request just arrived.",
+          variant: "success",
+        });
+      }
 
-  socket.on("admin:contacts-refresh", handleContactsRefresh);
+      if (action === "user-replied") {
+        push({
+          title: "User replied",
+          description: "A contact thread has a new user reply.",
+          variant: "info",
+        });
+      }
 
-  return () => {
-    socket.off("admin:contacts-refresh", handleContactsRefresh);
-  };
-}, [authUser?._id, authUser?.id, dispatch, push]);
+      if (action === "admin-replied") {
+        push({
+          title: "Reply synced",
+          description: "Admin reply updated in real time.",
+          variant: "success",
+        });
+      }
+    };
+
+    socket.on("admin:contacts-refresh", handleContactsRefresh);
+
+    return () => {
+      socket.off("admin:contacts-refresh", handleContactsRefresh);
+    };
+  }, [authUser?._id, authUser?.id, dispatch, push]);
 
   // ✅ Scroll thread to bottom when thread updates (null-safe)
   const threadEndRef = useRef(null);
@@ -247,7 +253,7 @@ export default function ManageContacts() {
         ...contact,
         isSeen: true,
         status: needsOpen ? STATUS.OPEN : contact.status,
-      })
+      }),
     );
   };
 
@@ -269,12 +275,18 @@ export default function ManageContacts() {
 
   const handleDelete = () => {
     if (!selectedId) return;
-    const ok = window.confirm("Delete this contact permanently? This cannot be undone.");
+    const ok = window.confirm(
+      "Delete this contact permanently? This cannot be undone.",
+    );
     if (!ok) return;
 
     dispatch(clearManageContactError());
     dispatch(deleteManageContact(selectedId));
-    push({ title: "Deleting…", description: "Removing contact.", variant: "info" });
+    push({
+      title: "Deleting…",
+      description: "Removing contact.",
+      variant: "info",
+    });
   };
 
   const handleMarkAllSeen = () => {
@@ -283,7 +295,11 @@ export default function ManageContacts() {
     if (!ok) return;
     dispatch(clearManageContactError());
     dispatch(markAllContactsSeen());
-    push({ title: "Updating…", description: "Marking all seen.", variant: "info" });
+    push({
+      title: "Updating…",
+      description: "Marking all seen.",
+      variant: "info",
+    });
   };
 
   // Quick shortcuts
@@ -305,7 +321,11 @@ export default function ManageContacts() {
     if (!selectedId) return;
     const clean = String(replyDraft || "").trim();
     if (!clean) {
-      push({ title: "Empty reply", description: "Type a message first.", variant: "info" });
+      push({
+        title: "Empty reply",
+        description: "Type a message first.",
+        variant: "info",
+      });
       return;
     }
     dispatch(clearManageContactError());
@@ -338,7 +358,8 @@ export default function ManageContacts() {
             Threaded Support Inbox.<span> Reply Like a Real Helpdesk.</span>
           </Title>
           <Subtitle>
-            View full message threads and reply from the admin panel with premium workflow control.
+            View full message threads and reply from the admin panel with
+            premium workflow control.
           </Subtitle>
 
           <HeroMeta>
@@ -370,21 +391,31 @@ export default function ManageContacts() {
               <MiniButton
                 type="button"
                 onClick={() => dispatch(fetchManageContacts({ silent: false }))}
-                disabled={loading || saving || deleting || bulkUpdating || replying}
+                disabled={
+                  loading || saving || deleting || bulkUpdating || replying
+                }
               >
                 {loading ? "Refreshing…" : "Refresh"}
               </MiniButton>
 
               <PollPill>
-                {saving || deleting || bulkUpdating || replying ? "LIVE: PAUSED" : "LIVE: ON"}
+                {saving || deleting || bulkUpdating || replying
+                  ? "LIVE: PAUSED"
+                  : "LIVE: ON"}
               </PollPill>
             </HeroActions>
           </HeroMeta>
         </HeroLeft>
 
         <HeroRight>
-          <Stars>{[1, 2, 3, 4, 5].map((n) => <Star key={n}>★</Star>)}</Stars>
-          <HeroNote>Premium Workflow • Threaded Replies • Instant Handling</HeroNote>
+          <Stars>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star key={n}>★</Star>
+            ))}
+          </Stars>
+          <HeroNote>
+            Premium Workflow • Threaded Replies • Instant Handling
+          </HeroNote>
         </HeroRight>
       </Hero>
 
@@ -404,7 +435,9 @@ export default function ManageContacts() {
           {!loading && contacts.length === 0 && (
             <EmptyState>
               <EmptyTitle>No contacts yet</EmptyTitle>
-              <EmptyText>When a visitor submits your contact form, messages land here.</EmptyText>
+              <EmptyText>
+                When a visitor submits your contact form, messages land here.
+              </EmptyText>
             </EmptyState>
           )}
 
@@ -412,7 +445,9 @@ export default function ManageContacts() {
             {!loading &&
               contacts.map((c) => {
                 const convo = convoLabel(c);
-                const msgCount = Array.isArray(c?.messages) ? c.messages.length : 0;
+                const msgCount = Array.isArray(c?.messages)
+                  ? c.messages.length
+                  : 0;
 
                 return (
                   <ContactCard
@@ -434,7 +469,9 @@ export default function ManageContacts() {
                     </CardHeader>
 
                     <CardBody>
-                      <Subject title={c.subject}>{c.subject || "No subject"}</Subject>
+                      <Subject title={c.subject}>
+                        {c.subject || "No subject"}
+                      </Subject>
                       <StatusPill $tone={statusTone(c.status)}>
                         ● {statusLabel(c.status)}
                       </StatusPill>
@@ -447,7 +484,9 @@ export default function ManageContacts() {
                         {msgCount ? `💬 ${msgCount} msgs` : "💬 1 msg"}
                       </MetaText>
                       <MetaText>
-                        {c.createdAt ? new Date(c.createdAt).toLocaleString() : "Just now"}
+                        {c.createdAt
+                          ? new Date(c.createdAt).toLocaleString()
+                          : "Just now"}
                       </MetaText>
                     </CardFooter>
                   </ContactCard>
@@ -464,7 +503,8 @@ export default function ManageContacts() {
             <EmptyEditor>
               <EmptyEditorTitle>Select a contact</EmptyEditorTitle>
               <EmptyEditorText>
-                Click a message on the left to view the conversation thread and reply.
+                Click a message on the left to view the conversation thread and
+                reply.
               </EmptyEditorText>
             </EmptyEditor>
           )}
@@ -485,7 +525,9 @@ export default function ManageContacts() {
                   <SmallPill $kind={selectedContact.isSeen ? "SEEN" : "UNSEEN"}>
                     {selectedContact.isSeen ? "SEEN" : "UNSEEN"}
                   </SmallPill>
-                  <SmallPill $kind={selectedContact.replied ? "REPLIED" : "NOREPLY"}>
+                  <SmallPill
+                    $kind={selectedContact.replied ? "REPLIED" : "NOREPLY"}
+                  >
                     {selectedContact.replied ? "REPLIED" : "NO REPLY"}
                   </SmallPill>
                   <SmallPill
@@ -493,15 +535,15 @@ export default function ManageContacts() {
                       isOngoing(selectedContact.status)
                         ? "ONGOING"
                         : isComplete(selectedContact.status)
-                        ? "COMPLETE"
-                        : "ACTIVE"
+                          ? "COMPLETE"
+                          : "ACTIVE"
                     }
                   >
                     {isOngoing(selectedContact.status)
                       ? "ONGOING"
                       : isComplete(selectedContact.status)
-                      ? "COMPLETE"
-                      : "ACTIVE"}
+                        ? "COMPLETE"
+                        : "ACTIVE"}
                   </SmallPill>
                 </MetaPills>
 
@@ -537,12 +579,19 @@ export default function ManageContacts() {
                 ) : (
                   thread.map((m, idx) => {
                     const isAdmin = m?.sender === "admin";
-                    const when = m?.createdAt ? new Date(m.createdAt).toLocaleString() : "";
+                    const when = m?.createdAt
+                      ? new Date(m.createdAt).toLocaleString()
+                      : "";
                     return (
-                      <BubbleRow key={m?._id || `msg-${idx}`} $side={isAdmin ? "right" : "left"}>
+                      <BubbleRow
+                        key={m?._id || `msg-${idx}`}
+                        $side={isAdmin ? "right" : "left"}
+                      >
                         <Bubble $side={isAdmin ? "right" : "left"}>
                           <BubbleTop>
-                            <BubbleSender>{isAdmin ? "Admin" : "User"}</BubbleSender>
+                            <BubbleSender>
+                              {isAdmin ? "Admin" : "User"}
+                            </BubbleSender>
                             <BubbleTime>{when}</BubbleTime>
                           </BubbleTop>
                           <BubbleText>{m?.text || ""}</BubbleText>
@@ -574,14 +623,16 @@ export default function ManageContacts() {
                   </SendBtn>
 
                   <ShortcutBtn
-  type="button"
-  onClick={() => dispatch(updateReplyDraft(""))}
-  disabled={replying || !String(replyDraft).trim()}
->
-  Clear Reply
-</ShortcutBtn>
+                    type="button"
+                    onClick={() => dispatch(updateReplyDraft(""))}
+                    disabled={replying || !String(replyDraft).trim()}
+                  >
+                    Clear Reply
+                  </ShortcutBtn>
 
-                  <MiniInfo>Reply sends into thread + marks Seen + marks Replied.</MiniInfo>
+                  <MiniInfo>
+                    Reply sends into thread + marks Seen + marks Replied.
+                  </MiniInfo>
                 </ReplyActions>
               </ReplyWrap>
 
@@ -662,12 +713,12 @@ export default function ManageContacts() {
                 </DeleteButton>
 
                 <SaveButton
-  as="a"
-  href={`mailto:${selectedContact?.email || ""}`}
-  disabled={!selectedContact?.email}
->
-  Email User
-</SaveButton>
+                  as="a"
+                  href={`mailto:${selectedContact?.email || ""}`}
+                  disabled={!selectedContact?.email}
+                >
+                  Email User
+                </SaveButton>
 
                 <HintText>Thread updates live. No reload needed.</HintText>
               </ActionsRow>
@@ -685,8 +736,17 @@ export default function ManageContacts() {
 const Page = styled.div`
   min-height: 100vh;
   padding: 26px 24px 40px;
-  background: radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(90, 56, 37, 0.5), ${({ theme }) => theme.colors.black} 65%);
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(90, 56, 37, 0.5),
+      ${({ theme }) => theme.colors.black} 65%
+    );
   color: ${({ theme }) => theme.colors.ivory};
   display: flex;
   flex-direction: column;
@@ -700,7 +760,11 @@ const Hero = styled(motion.header)`
   gap: 22px;
   padding: 22px 20px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: linear-gradient(120deg, rgba(47, 27, 18, 0.96), rgba(61, 38, 26, 0.98));
+  background: linear-gradient(
+    120deg,
+    rgba(47, 27, 18, 0.96),
+    rgba(61, 38, 26, 0.98)
+  );
   box-shadow: ${({ theme }) => theme.shadow.glow};
   border: 1px solid rgba(255, 249, 242, 0.08);
 
@@ -732,7 +796,11 @@ const Title = styled.h1`
   span {
     display: block;
     font-size: 0.9em;
-    background: linear-gradient(120deg, #fdd5a5, ${({ theme }) => theme.colors.lightBrown});
+    background: linear-gradient(
+      120deg,
+      #fdd5a5,
+      ${({ theme }) => theme.colors.lightBrown}
+    );
     -webkit-background-clip: text;
     color: transparent;
   }
@@ -819,7 +887,11 @@ const PollPill = styled.span`
 const HeroRight = styled.div`
   min-width: 220px;
   border-radius: ${({ theme }) => theme.radius.md};
-  background: radial-gradient(circle at top, rgba(255, 249, 242, 0.09), rgba(0, 0, 0, 0.3));
+  background: radial-gradient(
+    circle at top,
+    rgba(255, 249, 242, 0.09),
+    rgba(0, 0, 0, 0.3)
+  );
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -940,7 +1012,9 @@ const ContactCard = styled.button`
   grid-template-rows: auto auto auto;
   gap: 4px;
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  border: 1px solid ${({ $active }) => ($active ? "rgba(255, 217, 160, 0.9)" : "rgba(255, 255, 255, 0.06)")};
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(255, 217, 160, 0.9)" : "rgba(255, 255, 255, 0.06)"};
   position: relative;
   overflow: hidden;
 `;
@@ -969,8 +1043,10 @@ const ConvoBadge = styled.span`
   border: 1px solid rgba(255, 255, 255, 0.14);
 
   ${({ $kind }) => {
-    if ($kind === "NEW") return `background: rgba(255, 217, 160, 0.16); color: #ffd9a0;`;
-    if ($kind === "CURRENT") return `background: rgba(214, 182, 159, 0.16); color: #f4cfb1;`;
+    if ($kind === "NEW")
+      return `background: rgba(255, 217, 160, 0.16); color: #ffd9a0;`;
+    if ($kind === "CURRENT")
+      return `background: rgba(214, 182, 159, 0.16); color: #f4cfb1;`;
     return `background: rgba(0,0,0,.35); color: rgba(255,255,255,.72);`;
   }}
 `;
@@ -1016,8 +1092,10 @@ const StatusPill = styled.span`
   border: 1px solid rgba(255, 255, 255, 0.12);
 
   ${({ $tone }) => {
-    if ($tone === "new") return `background: rgba(255, 217, 160, 0.16); color: #ffd9a0;`;
-    if ($tone === "ongoing") return `background: rgba(214, 182, 159, 0.16); color: #f4cfb1;`;
+    if ($tone === "new")
+      return `background: rgba(255, 217, 160, 0.16); color: #ffd9a0;`;
+    if ($tone === "ongoing")
+      return `background: rgba(214, 182, 159, 0.16); color: #f4cfb1;`;
     if ($tone === "complete")
       return `background: rgba(120, 255, 180, 0.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
     return `background: rgba(0,0,0,.35); color: rgba(255,255,255,.7);`;
@@ -1114,15 +1192,24 @@ const SmallPill = styled.span`
   border: 1px solid rgba(255, 255, 255, 0.12);
 
   ${({ $kind }) => {
-    if ($kind === "NEW") return `background: rgba(255,217,160,.14); color:#ffd9a0;`;
-    if ($kind === "CURRENT") return `background: rgba(214,182,159,.14); color:#f4cfb1;`;
-    if ($kind === "OLD") return `background: rgba(0,0,0,.35); color: rgba(255,255,255,.72);`;
-    if ($kind === "SEEN") return `background: rgba(120,255,180,.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
-    if ($kind === "UNSEEN") return `background: rgba(255,217,160,.14); color:#ffd9a0;`;
-    if ($kind === "REPLIED") return `background: rgba(120,255,180,.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
-    if ($kind === "NOREPLY") return `background: rgba(255, 180, 180, 0.10); color: #ffb0b0; border-color: rgba(255,176,176,.18);`;
-    if ($kind === "ONGOING") return `background: rgba(214,182,159,.14); color:#f4cfb1;`;
-    if ($kind === "COMPLETE") return `background: rgba(120,255,180,.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
+    if ($kind === "NEW")
+      return `background: rgba(255,217,160,.14); color:#ffd9a0;`;
+    if ($kind === "CURRENT")
+      return `background: rgba(214,182,159,.14); color:#f4cfb1;`;
+    if ($kind === "OLD")
+      return `background: rgba(0,0,0,.35); color: rgba(255,255,255,.72);`;
+    if ($kind === "SEEN")
+      return `background: rgba(120,255,180,.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
+    if ($kind === "UNSEEN")
+      return `background: rgba(255,217,160,.14); color:#ffd9a0;`;
+    if ($kind === "REPLIED")
+      return `background: rgba(120,255,180,.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
+    if ($kind === "NOREPLY")
+      return `background: rgba(255, 180, 180, 0.10); color: #ffb0b0; border-color: rgba(255,176,176,.18);`;
+    if ($kind === "ONGOING")
+      return `background: rgba(214,182,159,.14); color:#f4cfb1;`;
+    if ($kind === "COMPLETE")
+      return `background: rgba(120,255,180,.10); color: rgba(170,255,210,.95); border-color: rgba(170,255,210,.18);`;
     return `background: rgba(0,0,0,.35); color: rgba(255,255,255,.72);`;
   }}
 `;
@@ -1143,7 +1230,8 @@ const ThreadEmpty = styled.div`
 
 const BubbleRow = styled.div`
   display: flex;
-  justify-content: ${({ $side }) => ($side === "right" ? "flex-end" : "flex-start")};
+  justify-content: ${({ $side }) =>
+    $side === "right" ? "flex-end" : "flex-start"};
   margin: 8px 0;
 `;
 
@@ -1151,7 +1239,7 @@ const Bubble = styled.div`
   width: min(520px, 92%);
   border-radius: 16px;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 
   ${({ $side, theme }) =>
     $side === "right"
@@ -1243,7 +1331,7 @@ const SendBtn = styled.button`
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   background: linear-gradient(120deg, #ffd9a0, #f4cfb1);

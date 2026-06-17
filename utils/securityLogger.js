@@ -38,16 +38,14 @@ function getIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   if (forwarded) return String(forwarded).split(",")[0].trim();
 
-  return (
-    req.headers["x-real-ip"] ||
-    req.socket?.remoteAddress ||
-    req.ip ||
-    ""
-  );
+  return req.headers["x-real-ip"] || req.socket?.remoteAddress || req.ip || "";
 }
 
 function cleanString(value, max = 300) {
-  return String(value || "").replace(/[<>]/g, "").trim().slice(0, max);
+  return String(value || "")
+    .replace(/[<>]/g, "")
+    .trim()
+    .slice(0, max);
 }
 
 function sanitizeMeta(value = {}) {
@@ -173,11 +171,13 @@ export async function logSecurityEvent(req, options = {}) {
     const ip = cleanString(options.ip || getIp(req), 80);
     const userAgent = cleanString(
       options.userAgent || req.headers["user-agent"] || "",
-      600
+      600,
     );
 
-    const email = cleanString(options.email || req.user?.email || "", 160)
-      .toLowerCase();
+    const email = cleanString(
+      options.email || req.user?.email || "",
+      160,
+    ).toLowerCase();
 
     const method = cleanString(req.method || "", 12).toUpperCase();
     const path = cleanString(req.originalUrl || req.path || "", 300);
@@ -233,7 +233,7 @@ export async function logSecurityEvent(req, options = {}) {
         upsert: true,
         new: true,
         setDefaultsOnInsert: true,
-      }
+      },
     );
 
     return event;

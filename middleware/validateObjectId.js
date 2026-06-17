@@ -15,8 +15,8 @@ export default function validateObjectId(paramName = "id") {
         success: false,
         message: `Invalid ${paramName}.`,
       });
-    };
+    }
 
     next();
   };
-};
+}

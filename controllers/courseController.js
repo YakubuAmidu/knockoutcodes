@@ -20,7 +20,9 @@ const escapeRegex = (value = "") =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   if (level === "all-levels") return "beginner";
   if (level === "none") return "none";
@@ -165,30 +167,26 @@ export const createCourse = async (req, res) => {
 
     const price = Number(data.price || 0);
 
-const salePrice =
-  data.salePrice === "" ||
-  data.salePrice === null ||
-  data.salePrice === undefined
-    ? null
-    : Number(data.salePrice);
+    const salePrice =
+      data.salePrice === "" ||
+      data.salePrice === null ||
+      data.salePrice === undefined
+        ? null
+        : Number(data.salePrice);
 
-if (!Number.isFinite(price) || price < 0) {
-  return sendError(res, 400, "Price must be a valid number.");
-}
+    if (!Number.isFinite(price) || price < 0) {
+      return sendError(res, 400, "Price must be a valid number.");
+    }
 
-if (
-  salePrice !== null &&
-  (!Number.isFinite(salePrice) || salePrice < 0 || salePrice >= price)
-) {
-  return sendError(
-    res,
-    400,
-    "Sale price must be less than regular price."
-  );
-}
+    if (
+      salePrice !== null &&
+      (!Number.isFinite(salePrice) || salePrice < 0 || salePrice >= price)
+    ) {
+      return sendError(res, 400, "Sale price must be less than regular price.");
+    }
 
-data.price = price;
-data.salePrice = salePrice;
+    data.price = price;
+    data.salePrice = salePrice;
 
     if (req.user?._id) {
       data.createdBy = req.user._id;
@@ -213,7 +211,7 @@ data.salePrice = salePrice;
         res,
         409,
         "A course with this slug or unique value already exists.",
-        error
+        error,
       );
     }
 
@@ -230,7 +228,10 @@ export const getCourses = async (req, res) => {
     const MAX_LIMIT = 50;
 
     const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), MAX_LIMIT);
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 12, 1),
+      MAX_LIMIT,
+    );
     const skip = (page - 1) * limit;
 
     const filters = {};
@@ -257,7 +258,7 @@ export const getCourses = async (req, res) => {
 
     if (req.query.requiredMembershipLevel) {
       filters.requiredMembershipLevel = String(
-        req.query.requiredMembershipLevel
+        req.query.requiredMembershipLevel,
       )
         .trim()
         .toLowerCase();
@@ -277,7 +278,9 @@ export const getCourses = async (req, res) => {
 
     if (req.query.keyword || req.query.search) {
       const keyword = escapeRegex(
-        String(req.query.keyword || req.query.search).trim().slice(0, 120)
+        String(req.query.keyword || req.query.search)
+          .trim()
+          .slice(0, 120),
       );
 
       if (keyword) {
@@ -313,7 +316,7 @@ export const getCourses = async (req, res) => {
     ]);
 
     const coursesWithStats = await Promise.all(
-      courses.map((course) => attachStatsToCourse(course))
+      courses.map((course) => attachStatsToCourse(course)),
     );
 
     return res.status(200).json({
@@ -393,30 +396,26 @@ export const updateCourse = async (req, res) => {
 
     const price = Number(updateData.price || 0);
 
-const salePrice =
-  updateData.salePrice === "" ||
-  updateData.salePrice === null ||
-  updateData.salePrice === undefined
-    ? null
-    : Number(updateData.salePrice);
+    const salePrice =
+      updateData.salePrice === "" ||
+      updateData.salePrice === null ||
+      updateData.salePrice === undefined
+        ? null
+        : Number(updateData.salePrice);
 
-if (!Number.isFinite(price) || price < 0) {
-  return sendError(res, 400, "Price must be a valid number.");
-}
+    if (!Number.isFinite(price) || price < 0) {
+      return sendError(res, 400, "Price must be a valid number.");
+    }
 
-if (
-  salePrice !== null &&
-  (!Number.isFinite(salePrice) || salePrice < 0 || salePrice >= price)
-) {
-  return sendError(
-    res,
-    400,
-    "Sale price must be less than regular price."
-  );
-}
+    if (
+      salePrice !== null &&
+      (!Number.isFinite(salePrice) || salePrice < 0 || salePrice >= price)
+    ) {
+      return sendError(res, 400, "Sale price must be less than regular price.");
+    }
 
-updateData.price = price;
-updateData.salePrice = salePrice;
+    updateData.price = price;
+    updateData.salePrice = salePrice;
 
     const course = await Course.findByIdAndUpdate(
       id,
@@ -425,7 +424,7 @@ updateData.salePrice = salePrice;
         new: true,
         runValidators: true,
         context: "query",
-      }
+      },
     ).populate("createdBy", "name email role");
 
     if (!course) {
@@ -450,7 +449,7 @@ updateData.salePrice = salePrice;
         res,
         409,
         "A course with this slug or unique value already exists.",
-        error
+        error,
       );
     }
 
@@ -485,7 +484,7 @@ export const deleteCourse = async (req, res) => {
       return sendError(
         res,
         400,
-        "Cannot delete a course that already has enrolled students."
+        "Cannot delete a course that already has enrolled students.",
       );
     }
 
@@ -525,7 +524,7 @@ export const getCoursePlayer = async (req, res) => {
 
     const course = await Course.findById(courseId)
       .select(
-        "title description thumbnail level category focusArea promoVideo durationInMinutes totalLessons language equipmentNeeded requirements whatYouWillLearn tags ratingAverage ratingCount studentsCount isPublished requiredMembershipLevel isFree allowSinglePurchase"
+        "title description thumbnail level category focusArea promoVideo durationInMinutes totalLessons language equipmentNeeded requirements whatYouWillLearn tags ratingAverage ratingCount studentsCount isPublished requiredMembershipLevel isFree allowSinglePurchase",
       )
       .lean();
 
@@ -544,7 +543,7 @@ export const getCoursePlayer = async (req, res) => {
     let accessReason = admin ? "admin" : course.isFree ? "free_course" : "";
     let accessSource = admin ? "admin" : course.isFree ? "free" : "";
     let requiredLevel = normalizeLevel(
-      course.requiredMembershipLevel || course.level || "beginner"
+      course.requiredMembershipLevel || course.level || "beginner",
     );
     let userLevel = null;
 
@@ -556,7 +555,9 @@ export const getCoursePlayer = async (req, res) => {
         status: { $in: ["active", "completed"] },
         $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
       })
-        .select("_id status paymentStatus progressPercent startedAt lastAccessedAt")
+        .select(
+          "_id status paymentStatus progressPercent startedAt lastAccessedAt",
+        )
         .lean();
 
       if (enrollment) {
@@ -567,13 +568,13 @@ export const getCoursePlayer = async (req, res) => {
       if (!enrollment) {
         subscription = await UserSubscription.findOne({ user: userId })
           .select(
-            "_id membershipId accessLevel status currentPeriodStart currentPeriodEnd billingPeriod cancelAtPeriodEnd"
+            "_id membershipId accessLevel status currentPeriodStart currentPeriodEnd billingPeriod cancelAtPeriodEnd",
           )
           .lean();
 
         if (isSubscriptionActive(subscription)) {
           userLevel = normalizeLevel(
-            subscription.accessLevel || subscription.membershipId
+            subscription.accessLevel || subscription.membershipId,
           );
 
           if (hasExactMembershipAccess(userLevel, requiredLevel)) {
@@ -583,14 +584,14 @@ export const getCoursePlayer = async (req, res) => {
             return sendError(
               res,
               403,
-              `This course requires ${requiredLevel} membership. Your active membership is ${userLevel}.`
+              `This course requires ${requiredLevel} membership. Your active membership is ${userLevel}.`,
             );
           }
         } else {
           return sendError(
             res,
             403,
-            "You must enroll in this course or have an active matching membership before watching it."
+            "You must enroll in this course or have an active matching membership before watching it.",
           );
         }
       }

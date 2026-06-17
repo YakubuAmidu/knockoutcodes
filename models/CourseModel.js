@@ -7,8 +7,20 @@ import mongoose from "mongoose";
    Stripe connection, ratings, and membership requirements.
 ====================================================== */
 
-const COURSE_LEVELS = ["beginner", "intermediate", "advance", "complete", "all-levels"];
-const MEMBERSHIP_LEVELS = ["beginner", "intermediate", "advance", "complete", "none"];
+const COURSE_LEVELS = [
+  "beginner",
+  "intermediate",
+  "advance",
+  "complete",
+  "all-levels",
+];
+const MEMBERSHIP_LEVELS = [
+  "beginner",
+  "intermediate",
+  "advance",
+  "complete",
+  "none",
+];
 
 const courseSchema = new mongoose.Schema(
   {
@@ -103,10 +115,10 @@ const courseSchema = new mongoose.Schema(
     },
 
     salePrice: {
-  type: Number,
-  min: [0, "Sale price cannot be negative"],
-  default: null,
-},
+      type: Number,
+      min: [0, "Sale price cannot be negative"],
+      default: null,
+    },
 
     isFree: {
       type: Boolean,
@@ -190,7 +202,7 @@ const courseSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* ======================================================
@@ -220,7 +232,9 @@ function cleanStringArray(value) {
 }
 
 function normalizeLevel(value) {
-  const clean = String(value || "").trim().toLowerCase();
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (clean === "advanced") return "advance";
   if (clean === "all") return "all-levels";
@@ -247,14 +261,14 @@ function normalizeCourseAccess(doc) {
   doc.level = normalizeLevel(doc.level) || "beginner";
   doc.requiredMembershipLevel =
     normalizeLevel(doc.requiredMembershipLevel) || "beginner";
-  
-  if (!isValidUrl(doc.thumbnail)) {
-  doc.thumbnail = "";
-}
 
-if (!isValidUrl(doc.promoVideo)) {
-  doc.promoVideo = "";
-}
+  if (!isValidUrl(doc.thumbnail)) {
+    doc.thumbnail = "";
+  }
+
+  if (!isValidUrl(doc.promoVideo)) {
+    doc.promoVideo = "";
+  }
 
   if (!COURSE_LEVELS.includes(doc.level)) {
     doc.level = "beginner";
@@ -334,17 +348,15 @@ courseSchema.pre("findOneAndUpdate", async function (next) {
   }
 
   const nextIsFree =
-  $set.isFree !== undefined
-    ? Boolean($set.isFree)
-    : undefined;
+    $set.isFree !== undefined ? Boolean($set.isFree) : undefined;
 
-if (nextIsFree === true) {
-  $set.price = 0;
-  $set.salePrice = null;
-  $set.allowSinglePurchase = false;
-  $set.requiredMembershipLevel = "none";
-  $set.stripePriceId = "";
-}
+  if (nextIsFree === true) {
+    $set.price = 0;
+    $set.salePrice = null;
+    $set.allowSinglePurchase = false;
+    $set.requiredMembershipLevel = "none";
+    $set.stripePriceId = "";
+  }
 
   if (update.$set) {
     update.$set = $set;

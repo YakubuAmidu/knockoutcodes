@@ -54,7 +54,9 @@ export default function ManageRevenue() {
   }, [dispatch]);
 
   const filteredRevenues = useMemo(() => {
-    const q = String(search || "").toLowerCase().trim();
+    const q = String(search || "")
+      .toLowerCase()
+      .trim();
 
     return revenues.filter((item) => {
       const id = getId(item).toLowerCase();
@@ -64,13 +66,17 @@ export default function ManageRevenue() {
         item?.customerName ||
         item?.email ||
         "";
-      const status = String(item?.paymentStatus || item?.status || "").toLowerCase();
+      const status = String(
+        item?.paymentStatus || item?.status || "",
+      ).toLowerCase();
 
       const matchesSearch =
         !q ||
         id.includes(q) ||
         String(customer).toLowerCase().includes(q) ||
-        String(item?.stripeSessionId || "").toLowerCase().includes(q);
+        String(item?.stripeSessionId || "")
+          .toLowerCase()
+          .includes(q);
 
       const matchesFilter = filter === "all" || status === filter;
 
@@ -79,49 +85,49 @@ export default function ManageRevenue() {
   }, [revenues, search, filter]);
 
   const cards = [
-  {
-    label: "Total Revenue",
-    value: formatMoney(summary.totalRevenue),
-    note: "All paid records",
-  },
-  {
-    label: "Products",
-    value: formatMoney(summary.product),
-    note: "Physical/digital product sales",
-  },
-  {
-    label: "Courses",
-    value: formatMoney(summary.course),
-    note: "Course sales",
-  },
-  {
-    label: "Memberships",
-    value: formatMoney(
-      Number(summary.membership || 0) + Number(summary.subscription || 0)
-    ),
-    note: "Membership + subscription revenue",
-  },
-  {
-    label: "Ebooks",
-    value: formatMoney(summary.ebook),
-    note: "Ebook sales",
-  },
-  {
-    label: "Coaching",
-    value: formatMoney(summary.coaching),
-    note: "Private coaching revenue",
-  },
-  {
-    label: "Monthly Revenue",
-    value: formatMoney(summary.monthlyRevenue),
-    note: "This month",
-  },
-  {
-    label: "Paid Orders",
-    value: summary.paidOrders || 0,
-    note: `${summary.totalOrders || 0} total orders`,
-  },
-];
+    {
+      label: "Total Revenue",
+      value: formatMoney(summary.totalRevenue),
+      note: "All paid records",
+    },
+    {
+      label: "Products",
+      value: formatMoney(summary.product),
+      note: "Physical/digital product sales",
+    },
+    {
+      label: "Courses",
+      value: formatMoney(summary.course),
+      note: "Course sales",
+    },
+    {
+      label: "Memberships",
+      value: formatMoney(
+        Number(summary.membership || 0) + Number(summary.subscription || 0),
+      ),
+      note: "Membership + subscription revenue",
+    },
+    {
+      label: "Ebooks",
+      value: formatMoney(summary.ebook),
+      note: "Ebook sales",
+    },
+    {
+      label: "Coaching",
+      value: formatMoney(summary.coaching),
+      note: "Private coaching revenue",
+    },
+    {
+      label: "Monthly Revenue",
+      value: formatMoney(summary.monthlyRevenue),
+      note: "This month",
+    },
+    {
+      label: "Paid Orders",
+      value: summary.paidOrders || 0,
+      note: `${summary.totalOrders || 0} total orders`,
+    },
+  ];
 
   async function saveRevenue() {
     if (!editRevenue) return;
@@ -150,7 +156,7 @@ export default function ManageRevenue() {
     if (!selectedRevenue) return;
 
     const ok = window.confirm(
-      "Delete this revenue/order record? Only do this for test, duplicate, or invalid records."
+      "Delete this revenue/order record? Only do this for test, duplicate, or invalid records.",
     );
 
     if (!ok) return;
@@ -174,8 +180,9 @@ export default function ManageRevenue() {
             <Kicker>KnockoutCodes · Revenue Command</Kicker>
             <Title>Revenue Control Center</Title>
             <Subtitle>
-              View real revenue from orders and subscriptions, audit payment status,
-              protect Stripe records, and manage admin notes without manually faking numbers.
+              View real revenue from orders and subscriptions, audit payment
+              status, protect Stripe records, and manage admin notes without
+              manually faking numbers.
             </Subtitle>
           </div>
 
@@ -203,7 +210,9 @@ export default function ManageRevenue() {
             <PanelTop>
               <div>
                 <PanelTitle>Revenue Records</PanelTitle>
-                <PanelHint>Real paid orders, subscriptions, refunds, and payment records.</PanelHint>
+                <PanelHint>
+                  Real paid orders, subscriptions, refunds, and payment records.
+                </PanelHint>
               </div>
             </PanelTop>
 
@@ -211,12 +220,16 @@ export default function ManageRevenue() {
               <Input
                 placeholder="Search ID, customer, email, Stripe session..."
                 value={search || ""}
-                onChange={(e) => dispatch(setManageRevenueSearch(e.target.value))}
+                onChange={(e) =>
+                  dispatch(setManageRevenueSearch(e.target.value))
+                }
               />
 
               <Select
                 value={filter || "all"}
-                onChange={(e) => dispatch(setManageRevenueFilter(e.target.value))}
+                onChange={(e) =>
+                  dispatch(setManageRevenueFilter(e.target.value))
+                }
               >
                 <option value="all">All Revenue</option>
                 <option value="paid">Paid</option>
@@ -230,11 +243,11 @@ export default function ManageRevenue() {
             <Table>
               <TableHead>
                 <span>Record</span>
-<span>Type</span>
-<span>Customer</span>
-<span>Amount</span>
-<span>Status</span>
-<span>Date</span>
+                <span>Type</span>
+                <span>Customer</span>
+                <span>Amount</span>
+                <span>Status</span>
+                <span>Date</span>
               </TableHead>
 
               <TableBody>
@@ -261,11 +274,20 @@ export default function ManageRevenue() {
                         onClick={() => dispatch(setSelectedRevenue(item))}
                       >
                         <Mono>{id}</Mono>
-<TypeBadge>{item.itemType || item.source || "other"}</TypeBadge>
-<span>{customer}</span>
-<strong>{formatMoney(item.total || item.amount, item.currency)}</strong>
-<Status>{item.paymentStatus || item.status || "unknown"}</Status>
-<Muted>{formatDate(item.createdAt)}</Muted>
+                        <TypeBadge>
+                          {item.itemType || item.source || "other"}
+                        </TypeBadge>
+                        <span>{customer}</span>
+                        <strong>
+                          {formatMoney(
+                            item.total || item.amount,
+                            item.currency,
+                          )}
+                        </strong>
+                        <Status>
+                          {item.paymentStatus || item.status || "unknown"}
+                        </Status>
+                        <Muted>{formatDate(item.createdAt)}</Muted>
                       </TableRow>
                     );
                   })
@@ -308,28 +330,33 @@ export default function ManageRevenue() {
                   <DetailCard>
                     <Label>Amount</Label>
                     <Value>
-                      {formatMoney(editRevenue.total || editRevenue.amount, editRevenue.currency)}
+                      {formatMoney(
+                        editRevenue.total || editRevenue.amount,
+                        editRevenue.currency,
+                      )}
                     </Value>
-                    </DetailCard>
+                  </DetailCard>
 
                   <DetailCard>
                     <Label>Revenue Type</Label>
-                      <Value>
-                        {editRevenue.itemType || editRevenue.source || "other"}
-                      </Value>
-                    </DetailCard>
+                    <Value>
+                      {editRevenue.itemType || editRevenue.source || "other"}
+                    </Value>
+                  </DetailCard>
 
-<DetailFull>
-  <Label>Item / Sale</Label>
-  <Value>{editRevenue.itemTitle || "—"}</Value>
-</DetailFull>
+                  <DetailFull>
+                    <Label>Item / Sale</Label>
+                    <Value>{editRevenue.itemTitle || "—"}</Value>
+                  </DetailFull>
 
                   <DetailCard>
                     <Label>Payment Status</Label>
                     <Select
                       value={editRevenue.paymentStatus || "pending"}
                       onChange={(e) =>
-                        dispatch(updateRevenueField("paymentStatus", e.target.value))
+                        dispatch(
+                          updateRevenueField("paymentStatus", e.target.value),
+                        )
                       }
                     >
                       <option value="pending">Pending</option>
@@ -367,7 +394,9 @@ export default function ManageRevenue() {
                     <Textarea
                       value={editRevenue.note || ""}
                       placeholder="Add internal revenue note..."
-                      onChange={(e) => dispatch(updateRevenueField("note", e.target.value))}
+                      onChange={(e) =>
+                        dispatch(updateRevenueField("note", e.target.value))
+                      }
                     />
                   </DetailFull>
                 </DetailGrid>
@@ -402,7 +431,11 @@ const Page = styled.main`
   min-height: 100vh;
   padding: 34px 20px 54px;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.2),
+      transparent 38%
+    ),
     radial-gradient(circle at bottom right, rgba(90, 56, 37, 0.32), #050302 58%);
   color: ${({ theme }) => theme.colors.ivory};
 `;
@@ -418,8 +451,12 @@ const Shell = styled.div`
 const Hero = styled.header`
   padding: 26px;
   border-radius: ${({ theme }) => theme.radius.xl};
-  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.72));
-  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(0, 0, 0, 0.72)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   display: flex;
   justify-content: space-between;
@@ -445,7 +482,7 @@ const Title = styled.h1`
 const Subtitle = styled.p`
   max-width: 760px;
   margin: 12px 0 0;
-  color: rgba(255,249,242,0.74);
+  color: rgba(255, 249, 242, 0.74);
   line-height: 1.7;
 `;
 
@@ -469,8 +506,8 @@ const StatsGrid = styled.section`
 const StatCard = styled.article`
   padding: 18px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: rgba(0,0,0,0.44);
-  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(0, 0, 0, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: ${({ theme }) => theme.shadow.soft};
 `;
 
@@ -489,7 +526,7 @@ const StatValue = styled.div`
 
 const StatNote = styled.div`
   margin-top: 4px;
-  color: rgba(255,249,242,0.62);
+  color: rgba(255, 249, 242, 0.62);
   font-size: 12px;
 `;
 
@@ -506,8 +543,13 @@ const Layout = styled.section`
 const Panel = styled.section`
   padding: 18px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: linear-gradient(145deg, ${({ theme }) => theme.colors.cocoa}, ${({ theme }) => theme.colors.darkBrown}, #050303);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(
+    145deg,
+    ${({ theme }) => theme.colors.cocoa},
+    ${({ theme }) => theme.colors.darkBrown},
+    #050303
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: ${({ theme }) => theme.shadow.soft};
 `;
 
@@ -527,7 +569,7 @@ const PanelTitle = styled.h2`
 
 const PanelHint = styled.p`
   margin: 6px 0 0;
-  color: rgba(255,249,242,0.62);
+  color: rgba(255, 249, 242, 0.62);
   font-size: 12px;
 `;
 
@@ -542,23 +584,23 @@ const Input = styled.input`
   flex: 1 1 260px;
   padding: 11px 13px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.45);
   color: ${({ theme }) => theme.colors.white};
 `;
 
 const Select = styled.select`
   padding: 11px 13px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.5);
   color: ${({ theme }) => theme.colors.white};
 `;
 
 const Table = styled.div`
   overflow: hidden;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 `;
 
 const TableHead = styled.div`
@@ -566,7 +608,7 @@ const TableHead = styled.div`
   grid-template-columns: 1.1fr 0.75fr 1.2fr 0.8fr 0.8fr 1fr;
   gap: 10px;
   padding: 12px;
-  background: rgba(214,182,159,0.13);
+  background: rgba(214, 182, 159, 0.13);
   font-size: 11px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -590,12 +632,12 @@ const TableRow = styled.button`
   gap: 10px;
   padding: 13px 12px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: ${({ $selected }) =>
     $selected ? "rgba(214,182,159,0.16)" : "transparent"};
 
   &:hover {
-    background: rgba(214,182,159,0.12);
+    background: rgba(214, 182, 159, 0.12);
   }
 
   @media (max-width: 760px) {
@@ -629,13 +671,13 @@ const TypeBadge = styled.span`
 `;
 
 const Muted = styled.span`
-  color: rgba(255,249,242,0.62);
+  color: rgba(255, 249, 242, 0.62);
 `;
 
 const Empty = styled.div`
   padding: 22px;
   text-align: center;
-  color: rgba(255,249,242,0.64);
+  color: rgba(255, 249, 242, 0.64);
 `;
 
 const ErrorText = styled.div`
@@ -656,8 +698,8 @@ const DetailGrid = styled.div`
 const DetailCard = styled.div`
   padding: 12px;
   border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(0,0,0,0.26);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 `;
 
 const DetailFull = styled(DetailCard)`
@@ -666,7 +708,7 @@ const DetailFull = styled(DetailCard)`
 
 const Label = styled.div`
   margin-bottom: 5px;
-  color: rgba(255,249,242,0.54);
+  color: rgba(255, 249, 242, 0.54);
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -683,8 +725,8 @@ const Textarea = styled.textarea`
   box-sizing: border-box;
   padding: 12px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.45);
   color: ${({ theme }) => theme.colors.white};
 `;
 
@@ -711,6 +753,6 @@ const DangerButton = styled(PrimaryButton)`
 `;
 
 const GhostButton = styled(PrimaryButton)`
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   color: ${({ theme }) => theme.colors.white};
 `;

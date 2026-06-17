@@ -19,7 +19,11 @@ const PRODUCT_ALLOWED_FIELDS = [
 ];
 
 // ✅ Must match your Product schema enum
-const PRODUCT_ALLOWED_BRANDS = ["knockoutcodes", "stylesavant", "thecodingblueprint"];
+const PRODUCT_ALLOWED_BRANDS = [
+  "knockoutcodes",
+  "stylesavant",
+  "thecodingblueprint",
+];
 
 // Same rules for create and update, so it’s reusable and consistent.
 function pick(obj, keys) {
@@ -31,7 +35,11 @@ function pick(obj, keys) {
 }
 
 function toStr(v) {
-  return typeof v === "string" ? v : v === null || v === undefined ? "" : String(v);
+  return typeof v === "string"
+    ? v
+    : v === null || v === undefined
+      ? ""
+      : String(v);
 }
 
 function trimClamp(str, max) {
@@ -69,13 +77,12 @@ function isSafeImagePathOrUrl(s) {
 
 function asArray(v, maxItems, itemValidator) {
   if (!Array.isArray(v)) return [];
-  const cleaned = v
-    .map((x) => trimClamp(x, 60))
-    .filter(Boolean);
+  const cleaned = v.map((x) => trimClamp(x, 60)).filter(Boolean);
 
-  const filtered = typeof itemValidator === "function"
-    ? cleaned.filter(itemValidator)
-    : cleaned;
+  const filtered =
+    typeof itemValidator === "function"
+      ? cleaned.filter(itemValidator)
+      : cleaned;
 
   if (typeof maxItems === "number") return filtered.slice(0, maxItems);
   return filtered;
@@ -94,10 +101,13 @@ export function productWriteFirewall(req, res, next) {
   const body = pick(raw, PRODUCT_ALLOWED_FIELDS);
 
   // 2) Normalize + clamp strings
-  if (body.brand !== undefined) body.brand = trimClamp(body.brand, 30).toLowerCase();
+  if (body.brand !== undefined)
+    body.brand = trimClamp(body.brand, 30).toLowerCase();
   if (body.title !== undefined) body.title = trimClamp(body.title, 120);
-  if (body.shortDescription !== undefined) body.shortDescription = trimClamp(body.shortDescription, 220);
-  if (body.description !== undefined) body.description = trimClamp(body.description, 4000);
+  if (body.shortDescription !== undefined)
+    body.shortDescription = trimClamp(body.shortDescription, 220);
+  if (body.description !== undefined)
+    body.description = trimClamp(body.description, 4000);
   if (body.category !== undefined) body.category = trimClamp(body.category, 80);
   if (body.sku !== undefined) body.sku = trimClamp(body.sku, 80);
 
@@ -115,7 +125,9 @@ export function productWriteFirewall(req, res, next) {
   if (body.price !== undefined) {
     const n = toNumber(body.price);
     if (n === null || n < 0) {
-      return res.status(400).json({ success: false, message: "Invalid price." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid price." });
     }
     body.price = n;
   }
@@ -123,7 +135,9 @@ export function productWriteFirewall(req, res, next) {
   if (body.compareAtPrice !== undefined) {
     const n = toNumber(body.compareAtPrice);
     if (n === null || n < 0) {
-      return res.status(400).json({ success: false, message: "Invalid compareAtPrice." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid compareAtPrice." });
     }
     body.compareAtPrice = n;
   }
@@ -141,7 +155,9 @@ export function productWriteFirewall(req, res, next) {
   if (body.stock !== undefined) {
     const n = toNumber(body.stock);
     if (n === null || n < 0) {
-      return res.status(400).json({ success: false, message: "Invalid stock." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid stock." });
     }
     body.stock = Math.floor(n);
   }
@@ -168,7 +184,9 @@ export function productWriteFirewall(req, res, next) {
   if (body.isActive !== undefined) {
     const b = toBool(body.isActive);
     if (b === null) {
-      return res.status(400).json({ success: false, message: "Invalid isActive." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid isActive." });
     }
     body.isActive = b;
   }
@@ -176,7 +194,9 @@ export function productWriteFirewall(req, res, next) {
   if (body.isFeatured !== undefined) {
     const b = toBool(body.isFeatured);
     if (b === null) {
-      return res.status(400).json({ success: false, message: "Invalid isFeatured." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid isFeatured." });
     }
     body.isFeatured = b;
   }

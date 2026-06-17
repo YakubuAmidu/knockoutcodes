@@ -15,5 +15,3 @@
 // router.get("/me", authRequired, getMySubscription);
 
 // export default router;
-
-

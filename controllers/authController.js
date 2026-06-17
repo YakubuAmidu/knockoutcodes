@@ -35,7 +35,12 @@ function createEmailVerificationToken() {
 
 function isStrongPassword(password = "") {
   const value = String(password || "");
-  return value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value);
+  return (
+    value.length >= 8 &&
+    /[A-Z]/.test(value) &&
+    /[a-z]/.test(value) &&
+    /[0-9]/.test(value)
+  );
 }
 
 function isProd() {
@@ -77,7 +82,8 @@ function clearCookieOptions() {
 }
 
 function signAccessToken(user) {
-  if (!JWT_ACCESS_SECRET) throw new Error("JWT_ACCESS_SECRET is not configured.");
+  if (!JWT_ACCESS_SECRET)
+    throw new Error("JWT_ACCESS_SECRET is not configured.");
 
   return jwt.sign(
     {
@@ -92,12 +98,13 @@ function signAccessToken(user) {
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
       expiresIn: "15m",
-    }
+    },
   );
 }
 
 function signRefreshToken(user, refreshTokenId) {
-  if (!JWT_REFRESH_SECRET) throw new Error("JWT_REFRESH_SECRET is not configured.");
+  if (!JWT_REFRESH_SECRET)
+    throw new Error("JWT_REFRESH_SECRET is not configured.");
 
   return jwt.sign(
     {
@@ -112,7 +119,7 @@ function signRefreshToken(user, refreshTokenId) {
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
       expiresIn: "7d",
-    }
+    },
   );
 }
 
@@ -183,7 +190,7 @@ function getAccountAccessMessage(user) {
   if (reason) return reason;
 
   return `Your account is ${formatAccountStatus(
-    status
+    status,
   )}. Please contact support if you believe this is a mistake.`;
 }
 
@@ -207,36 +214,53 @@ function sendAccountAccessBlocked(res, user) {
 export async function register(req, res) {
   try {
     const name = String(req.body?.name || "").trim();
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(req.body?.password || "");
     const confirmPassword = String(req.body?.confirmPassword || password);
 
     if (!name || name.length < 2) {
-      return res.status(400).json({ success: false, message: "Name must be at least 2 characters." });
+      return res.status(400).json({
+        success: false,
+        message: "Name must be at least 2 characters.",
+      });
     }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ success: false, message: "Please provide a valid email address." });
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address.",
+      });
     }
 
     if (!password || !confirmPassword) {
-      return res.status(400).json({ success: false, message: "Password and confirm password are required." });
+      return res.status(400).json({
+        success: false,
+        message: "Password and confirm password are required.",
+      });
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Passwords do not match." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Passwords do not match." });
     }
 
     if (!isStrongPassword(password)) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+        message:
+          "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
       });
     }
 
     const existingUser = await User.findOne({ email }).select("_id");
     if (existingUser) {
-      return res.status(409).json({ success: false, message: "An account with that email already exists." });
+      return res.status(409).json({
+        success: false,
+        message: "An account with that email already exists.",
+      });
     }
 
     const { hashedToken } = createEmailVerificationToken();
@@ -260,15 +284,21 @@ export async function register(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful. Please check your email to verify your account.",
+      message:
+        "Registration successful. Please check your email to verify your account.",
       user: safeUser(user),
     });
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(409).json({ success: false, message: "An account with that email already exists." });
+      return res.status(409).json({
+        success: false,
+        message: "An account with that email already exists.",
+      });
     }
 
-    return res.status(500).json({ success: false, message: "Registration failed." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Registration failed." });
   }
 }
 
@@ -277,15 +307,19 @@ export async function register(req, res) {
  */
 export async function login(req, res) {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
     const password = String(req.body?.password || "");
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, message: "Email and password are required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and password are required." });
     }
 
     const user = await User.findOne({ email }).select(
-      "+password +failedLoginAttempts +lockUntil +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +emailVerificationToken +emailVerificationExpires"
+      "+password +failedLoginAttempts +lockUntil +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +emailVerificationToken +emailVerificationExpires",
     );
 
     if (!user) {
@@ -295,28 +329,34 @@ export async function login(req, res) {
         meta: { reason: "USER_NOT_FOUND" },
       });
 
-      return res.status(401).json({ success: false, message: "Invalid email or password." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password." });
     }
 
     if (
-  user.isDeleted === true ||
-  user.isActive === false ||
-  user.accountStatus !== "active"
-) {
-  await logSecurityEvent(req, {
-    user: user._id,
-    email: user.email,
-    type: "LOGIN_BLOCKED_ACCOUNT_STATUS",
-    meta: {
-      accountStatus: user.accountStatus || "disabled",
-      reason: user.statusReason || "",
-    },
-  });
+      user.isDeleted === true ||
+      user.isActive === false ||
+      user.accountStatus !== "active"
+    ) {
+      await logSecurityEvent(req, {
+        user: user._id,
+        email: user.email,
+        type: "LOGIN_BLOCKED_ACCOUNT_STATUS",
+        meta: {
+          accountStatus: user.accountStatus || "disabled",
+          reason: user.statusReason || "",
+        },
+      });
 
-  return sendAccountAccessBlocked(res, user);
-}
+      return sendAccountAccessBlocked(res, user);
+    }
 
-    if (user.isEmailVerified === false && user.emailVerificationToken && user.emailVerificationExpires) {
+    if (
+      user.isEmailVerified === false &&
+      user.emailVerificationToken &&
+      user.emailVerificationExpires
+    ) {
       return res.status(403).json({
         success: false,
         message: "Please verify your email before logging in.",
@@ -334,41 +374,41 @@ export async function login(req, res) {
     const passwordOk = await bcrypt.compare(password, user.password);
 
     if (!passwordOk) {
-  user.failedLoginAttempts = Number(user.failedLoginAttempts || 0) + 1;
-  user.lastFailedLoginAt = new Date();
+      user.failedLoginAttempts = Number(user.failedLoginAttempts || 0) + 1;
+      user.lastFailedLoginAt = new Date();
 
-  const shouldLock = user.failedLoginAttempts >= LOGIN_MAX_ATTEMPTS;
+      const shouldLock = user.failedLoginAttempts >= LOGIN_MAX_ATTEMPTS;
 
-  if (shouldLock) {
-    user.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
-  }
+      if (shouldLock) {
+        user.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
+      }
 
-  await user.save({ validateBeforeSave: false });
+      await user.save({ validateBeforeSave: false });
 
-  await logSecurityEvent(req, {
-    user: user._id,
-    email: user.email,
-    type: shouldLock ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
-    meta: {
-      failedLoginAttempts: user.failedLoginAttempts,
-      lockUntil: shouldLock ? user.lockUntil : null,
-    },
-  });
+      await logSecurityEvent(req, {
+        user: user._id,
+        email: user.email,
+        type: shouldLock ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
+        meta: {
+          failedLoginAttempts: user.failedLoginAttempts,
+          lockUntil: shouldLock ? user.lockUntil : null,
+        },
+      });
 
-  if (shouldLock) {
-    return res.status(423).json({
-      success: false,
-      message:
-        "Account temporarily locked because of too many failed login attempts. Please try again later.",
-      code: "ACCOUNT_LOCKED",
-    });
-  }
+      if (shouldLock) {
+        return res.status(423).json({
+          success: false,
+          message:
+            "Account temporarily locked because of too many failed login attempts. Please try again later.",
+          code: "ACCOUNT_LOCKED",
+        });
+      }
 
-  return res.status(401).json({
-    success: false,
-    message: "Invalid email or password.",
-  });
-}
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
+    }
 
     const refreshTokenId = crypto.randomUUID();
     const accessToken = signAccessToken(user);
@@ -414,6 +454,7 @@ export async function login(req, res) {
       success: true,
       message: "Login successful.",
       user: safeUser(user),
+      accessToken,
     });
   } catch {
     return res.status(500).json({ success: false, message: "Login failed." });
@@ -428,7 +469,9 @@ export async function refresh(req, res) {
     const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-      return res.status(401).json({ success: false, message: "Authentication required." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required." });
     }
 
     const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
@@ -438,82 +481,94 @@ export async function refresh(req, res) {
     });
 
     if (payload?.typ !== "refresh") {
-      return res.status(401).json({ success: false, message: "Invalid refresh token." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid refresh token." });
     }
 
     const userId = payload.sub;
     const refreshTokenId = payload.rid;
 
     if (!userId || !refreshTokenId) {
-      return res.status(401).json({ success: false, message: "Invalid refresh token." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid refresh token." });
     }
 
     const user = await User.findById(userId).select(
-      "+refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +tokenVersion"
+      "+refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +tokenVersion",
     );
 
     if (!user) {
-  clearAuthCookies(res);
-  return res.status(401).json({
-    success: false,
-    message: "Authentication required.",
-  });
-}
+      clearAuthCookies(res);
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required.",
+      });
+    }
 
-if (
-  user.isDeleted === true ||
-  user.isActive === false ||
-  user.accountStatus !== "active"
-) {
-  return sendAccountAccessBlocked(res, user);
-}
+    if (
+      user.isDeleted === true ||
+      user.isActive === false ||
+      user.accountStatus !== "active"
+    ) {
+      return sendAccountAccessBlocked(res, user);
+    }
 
     if ((payload.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
       clearAuthCookies(res);
-      return res.status(401).json({ success: false, message: "Session is no longer valid." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Session is no longer valid." });
     }
 
-    if (!user.refreshTokenHash || !user.refreshTokenId || !user.refreshTokenExpiresAt) {
+    if (
+      !user.refreshTokenHash ||
+      !user.refreshTokenId ||
+      !user.refreshTokenExpiresAt
+    ) {
       clearAuthCookies(res);
-      return res.status(401).json({ success: false, message: "Authentication required." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required." });
     }
 
-   if (user.refreshTokenId !== refreshTokenId) {
-  clearAuthCookies(res);
+    if (user.refreshTokenId !== refreshTokenId) {
+      clearAuthCookies(res);
 
-  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
-  user.refreshTokenHash = "";
-  user.refreshTokenId = "";
-  user.refreshTokenExpiresAt = null;
+      user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+      user.refreshTokenHash = "";
+      user.refreshTokenId = "";
+      user.refreshTokenExpiresAt = null;
 
-  await Session.updateMany(
-    { user: user._id, revokedAt: null },
-    {
-      $set: {
-        revokedAt: new Date(),
-        revokedReason: "refresh_token_reuse_detected",
-        lastActiveAt: new Date(),
-      },
+      await Session.updateMany(
+        { user: user._id, revokedAt: null },
+        {
+          $set: {
+            revokedAt: new Date(),
+            revokedReason: "refresh_token_reuse_detected",
+            lastActiveAt: new Date(),
+          },
+        },
+      );
+
+      await user.save({ validateBeforeSave: false });
+
+      await logSecurityEvent(req, {
+        user: user._id,
+        email: user.email,
+        type: "REFRESH_TOKEN_REUSE_DETECTED",
+        meta: {
+          reason: "REFRESH_TOKEN_ID_MISMATCH",
+        },
+      });
+
+      return res.status(401).json({
+        success: false,
+        message: "Session security issue detected. Please log in again.",
+        code: "REFRESH_TOKEN_REUSE_DETECTED",
+      });
     }
-  );
-
-  await user.save({ validateBeforeSave: false });
-
-  await logSecurityEvent(req, {
-    user: user._id,
-    email: user.email,
-    type: "REFRESH_TOKEN_REUSE_DETECTED",
-    meta: {
-      reason: "REFRESH_TOKEN_ID_MISMATCH",
-    },
-  });
-
-  return res.status(401).json({
-    success: false,
-    message: "Session security issue detected. Please log in again.",
-    code: "REFRESH_TOKEN_REUSE_DETECTED",
-  });
-}
 
     if (new Date(user.refreshTokenExpiresAt).getTime() <= Date.now()) {
       clearAuthCookies(res);
@@ -523,45 +578,48 @@ if (
       user.refreshTokenExpiresAt = null;
       await user.save({ validateBeforeSave: false });
 
-      return res.status(401).json({ success: false, message: "Session expired. Please log in again." });
+      return res.status(401).json({
+        success: false,
+        message: "Session expired. Please log in again.",
+      });
     }
 
     if (hashToken(refreshToken) !== user.refreshTokenHash) {
-  clearAuthCookies(res);
+      clearAuthCookies(res);
 
-  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
-  user.refreshTokenHash = "";
-  user.refreshTokenId = "";
-  user.refreshTokenExpiresAt = null;
+      user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+      user.refreshTokenHash = "";
+      user.refreshTokenId = "";
+      user.refreshTokenExpiresAt = null;
 
-  await Session.updateMany(
-    { user: user._id, revokedAt: null },
-    {
-      $set: {
-        revokedAt: new Date(),
-        revokedReason: "refresh_token_hash_mismatch",
-        lastActiveAt: new Date(),
-      },
+      await Session.updateMany(
+        { user: user._id, revokedAt: null },
+        {
+          $set: {
+            revokedAt: new Date(),
+            revokedReason: "refresh_token_hash_mismatch",
+            lastActiveAt: new Date(),
+          },
+        },
+      );
+
+      await user.save({ validateBeforeSave: false });
+
+      await logSecurityEvent(req, {
+        user: user._id,
+        email: user.email,
+        type: "REFRESH_TOKEN_REUSE_DETECTED",
+        meta: {
+          reason: "REFRESH_TOKEN_HASH_MISMATCH",
+        },
+      });
+
+      return res.status(401).json({
+        success: false,
+        message: "Session security issue detected. Please log in again.",
+        code: "REFRESH_TOKEN_REUSE_DETECTED",
+      });
     }
-  );
-
-  await user.save({ validateBeforeSave: false });
-
-  await logSecurityEvent(req, {
-    user: user._id,
-    email: user.email,
-    type: "REFRESH_TOKEN_REUSE_DETECTED",
-    meta: {
-      reason: "REFRESH_TOKEN_HASH_MISMATCH",
-    },
-  });
-
-  return res.status(401).json({
-    success: false,
-    message: "Session security issue detected. Please log in again.",
-    code: "REFRESH_TOKEN_REUSE_DETECTED",
-  });
-}
 
     const nextRefreshTokenId = crypto.randomUUID();
     const nextAccessToken = signAccessToken(user);
@@ -579,7 +637,7 @@ if (
           revokedReason: "rotated",
           lastActiveAt: new Date(),
         },
-      }
+      },
     );
 
     const nextUserAgent = req.headers["user-agent"] || "";
@@ -644,7 +702,7 @@ export async function logoutUser(req, res) {
             revokedReason: "logout",
             lastActiveAt: new Date(),
           },
-        }
+        },
       );
 
       try {
@@ -698,19 +756,19 @@ export async function me(req, res) {
 
     const user = await User.findById(userId);
     if (!user) {
-  return res.status(404).json({
-    success: false,
-    message: "User not found.",
-  });
-}
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
 
-if (
-  user.isDeleted === true ||
-  user.isActive === false ||
-  user.accountStatus !== "active"
-) {
-  return sendAccountAccessBlocked(res, user);
-}
+    if (
+      user.isDeleted === true ||
+      user.isActive === false ||
+      user.accountStatus !== "active"
+    ) {
+      return sendAccountAccessBlocked(res, user);
+    }
 
     return res.status(200).json({
       success: true,
@@ -731,16 +789,21 @@ export async function getSessions(req, res) {
   try {
     const userId = req.user?._id || req.user?.id;
     const currentRefreshToken = getRefreshTokenFromRequest(req);
-    const currentSessionHash = currentRefreshToken ? hashToken(currentRefreshToken) : "";
+    const currentSessionHash = currentRefreshToken
+      ? hashToken(currentRefreshToken)
+      : "";
 
     const sessions = await Session.find({ user: userId, revokedAt: null })
       .sort({ lastActiveAt: -1, createdAt: -1 })
-      .select("_id deviceName browser os ip approxLocation createdAt lastActiveAt sessionKeyHash isTrusted")
+      .select(
+        "_id deviceName browser os ip approxLocation createdAt lastActiveAt sessionKeyHash isTrusted",
+      )
       .lean();
 
     const items = sessions.map((session) => {
       const isCurrent =
-        !!currentSessionHash && String(session.sessionKeyHash) === String(currentSessionHash);
+        !!currentSessionHash &&
+        String(session.sessionKeyHash) === String(currentSessionHash);
 
       return {
         id: session._id.toString(),
@@ -776,19 +839,28 @@ export async function revokeSession(req, res) {
     const userId = req.user?._id || req.user?.id;
     const sessionId = req.params.id;
     const currentRefreshToken = getRefreshTokenFromRequest(req);
-    const currentSessionHash = currentRefreshToken ? hashToken(currentRefreshToken) : "";
+    const currentSessionHash = currentRefreshToken
+      ? hashToken(currentRefreshToken)
+      : "";
 
     const session = await Session.findOne({ _id: sessionId, user: userId });
 
     if (!session) {
-      return res.status(404).json({ success: false, message: "Session not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Session not found." });
     }
 
     if (session.revokedAt) {
-      return res.status(400).json({ success: false, message: "Session has already been revoked." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Session has already been revoked." });
     }
 
-    if (currentSessionHash && String(session.sessionKeyHash) === String(currentSessionHash)) {
+    if (
+      currentSessionHash &&
+      String(session.sessionKeyHash) === String(currentSessionHash)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Use logout to end your current session.",
@@ -820,7 +892,9 @@ export async function revokeOtherSessions(req, res) {
   try {
     const userId = req.user?._id || req.user?.id;
     const currentRefreshToken = getRefreshTokenFromRequest(req);
-    const currentSessionHash = currentRefreshToken ? hashToken(currentRefreshToken) : "";
+    const currentSessionHash = currentRefreshToken
+      ? hashToken(currentRefreshToken)
+      : "";
 
     if (!currentSessionHash) {
       return res.status(400).json({
@@ -841,7 +915,7 @@ export async function revokeOtherSessions(req, res) {
           revokedReason: "revoke_others",
           lastActiveAt: new Date(),
         },
-      }
+      },
     );
 
     return res.status(200).json({
@@ -862,14 +936,19 @@ export async function revokeOtherSessions(req, res) {
  */
 export async function forgotPassword(req, res) {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    const genericMessage = "If that email exists, a password reset link has been sent.";
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+    const genericMessage =
+      "If that email exists, a password reset link has been sent.";
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(200).json({ success: true, message: genericMessage });
     }
 
-    const user = await User.findOne({ email }).select("+passwordResetToken +passwordResetExpires");
+    const user = await User.findOne({ email }).select(
+      "+passwordResetToken +passwordResetExpires",
+    );
 
     if (!user || user.isActive === false) {
       return res.status(200).json({ success: true, message: genericMessage });
@@ -887,7 +966,7 @@ export async function forgotPassword(req, res) {
       email: user.email,
       type: "FORGOT_PASSWORD_REQUEST",
     });
-    
+
     return res.status(200).json({
       success: true,
       message: genericMessage,
@@ -924,13 +1003,16 @@ export async function resetPassword(req, res) {
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ success: false, message: "Passwords do not match." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Passwords do not match." });
     }
 
     if (!isStrongPassword(password)) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+        message:
+          "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
       });
     }
 
@@ -940,7 +1022,7 @@ export async function resetPassword(req, res) {
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: new Date() },
     }).select(
-      "+password +passwordHistory +passwordResetToken +passwordResetExpires +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +failedLoginAttempts +lockUntil"
+      "+password +passwordHistory +passwordResetToken +passwordResetExpires +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +failedLoginAttempts +lockUntil",
     );
 
     if (!user || user.isActive === false) {
@@ -958,7 +1040,10 @@ export async function resetPassword(req, res) {
     }
 
     for (const oldPassword of user.passwordHistory || []) {
-      if (oldPassword?.hash && (await bcrypt.compare(password, oldPassword.hash))) {
+      if (
+        oldPassword?.hash &&
+        (await bcrypt.compare(password, oldPassword.hash))
+      ) {
         return res.status(400).json({
           success: false,
           message: "New password must be different from previous passwords.",
@@ -1063,7 +1148,9 @@ export async function verifyEmail(req, res) {
  */
 export async function resendVerificationEmail(req, res) {
   try {
-    const email = String(req.body?.email || "").trim().toLowerCase();
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
 
     const genericMessage =
       "If that account exists and is not verified, a new verification link has been sent.";
@@ -1073,7 +1160,7 @@ export async function resendVerificationEmail(req, res) {
     }
 
     const user = await User.findOne({ email }).select(
-      "+emailVerificationToken +emailVerificationExpires"
+      "+emailVerificationToken +emailVerificationExpires",
     );
 
     if (!user || user.isActive === false || user.isEmailVerified === true) {
@@ -1097,7 +1184,7 @@ export async function resendVerificationEmail(req, res) {
       success: true,
       message: genericMessage,
     });
-  } catch{
+  } catch {
     return res.status(500).json({
       success: false,
       message: "Unable to process verification request.",

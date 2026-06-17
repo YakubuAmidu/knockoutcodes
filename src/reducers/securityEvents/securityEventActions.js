@@ -42,7 +42,9 @@ export const fetchSecurityEvents =
       if (severity) params.set("severity", cleanText(severity, 40));
       if (category) params.set("category", cleanText(category, 40));
 
-      const { data } = await axiosInstance.get(`${BASE_URL}?${params.toString()}`);
+      const { data } = await axiosInstance.get(
+        `${BASE_URL}?${params.toString()}`,
+      );
 
       dispatch({
         type: SECURITY_EVENT_ACTIONS.FETCH_SECURITY_EVENTS_SUCCESS,
@@ -53,7 +55,7 @@ export const fetchSecurityEvents =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to fetch security events."
+        "Failed to fetch security events.",
       );
 
       dispatch({
@@ -78,7 +80,10 @@ export const updateSecurityEventReview =
         adminNote: cleanText(payload.adminNote || "", 1000),
       };
 
-      const { data } = await axiosInstance.patch(`${BASE_URL}/${id}/review`, body);
+      const { data } = await axiosInstance.patch(
+        `${BASE_URL}/${id}/review`,
+        body,
+      );
 
       dispatch({
         type: SECURITY_EVENT_ACTIONS.UPDATE_SECURITY_EVENT_REVIEW_SUCCESS,
@@ -92,7 +97,7 @@ export const updateSecurityEventReview =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to update security event review."
+        "Failed to update security event review.",
       );
 
       dispatch({
@@ -147,7 +152,7 @@ export const deactivateSecurityEventUser =
         `${BASE_URL}/${id}/deactivate-user`,
         {
           adminNote: cleanText(payload.adminNote || "", 1000),
-        }
+        },
       );
 
       dispatch({
@@ -163,7 +168,7 @@ export const deactivateSecurityEventUser =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to deactivate user from security event."
+        "Failed to deactivate user from security event.",
       );
 
       dispatch({
@@ -201,7 +206,7 @@ export const blockSecurityEventIp =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to block IP from security event."
+        "Failed to block IP from security event.",
       );
 
       dispatch({
@@ -221,9 +226,12 @@ export const unblockSecurityEventIp =
         type: SECURITY_EVENT_ACTIONS.UNBLOCK_SECURITY_EVENT_IP_START,
       });
 
-      const { data } = await axiosInstance.patch(`${BASE_URL}/${id}/unblock-ip`, {
-        adminNote: cleanText(payload.adminNote || "", 1000),
-      });
+      const { data } = await axiosInstance.patch(
+        `${BASE_URL}/${id}/unblock-ip`,
+        {
+          adminNote: cleanText(payload.adminNote || "", 1000),
+        },
+      );
 
       dispatch({
         type: SECURITY_EVENT_ACTIONS.UNBLOCK_SECURITY_EVENT_IP_SUCCESS,
@@ -238,7 +246,7 @@ export const unblockSecurityEventIp =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to unblock IP from security event."
+        "Failed to unblock IP from security event.",
       );
 
       dispatch({
@@ -273,7 +281,7 @@ export const cleanupSecurityEvents =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to cleanup security events."
+        "Failed to cleanup security events.",
       );
 
       dispatch({

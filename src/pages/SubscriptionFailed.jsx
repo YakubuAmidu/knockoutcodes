@@ -17,7 +17,8 @@ const Page = styled.main`
   place-items: center;
   padding: 96px 16px 64px;
   color: ${({ theme }) => theme.colors.white};
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at 18% 10%,
       rgba(214, 182, 159, 0.18),
       transparent 55%
@@ -169,8 +170,12 @@ const Btn = styled.button`
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 12.5px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease,
-    border-color 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
 
   &:active {
     transform: translateY(0);
@@ -228,7 +233,9 @@ function prettyReason(reason) {
 }
 
 function getKind(params) {
-  const k = String(params.get("kind") || "").toLowerCase().trim();
+  const k = String(params.get("kind") || "")
+    .toLowerCase()
+    .trim();
   if (k === "cart") return "cart";
   if (k === "product" || k === "products") return "cart";
   return "membership";
@@ -242,11 +249,14 @@ export default function SubscriptionFailed() {
   const canceled = params.get("canceled") === "true";
   const reason = params.get("reason") || "";
 
-  const badgeText = kind === "cart" ? "KnockoutCodes • Shop" : "Aurora45 • Elite Circle";
-  const titleText = kind === "cart" ? "Checkout Canceled ❌" : "Payment Failed ❌";
+  const badgeText =
+    kind === "cart" ? "KnockoutCodes • Shop" : "Aurora45 • Elite Circle";
+  const titleText =
+    kind === "cart" ? "Checkout Canceled ❌" : "Payment Failed ❌";
 
   const message = useMemo(() => {
-    if (canceled) return "You canceled the checkout. No worries — you can try again.";
+    if (canceled)
+      return "You canceled the checkout. No worries — you can try again.";
     if (reason === "processing_timeout")
       return "Payment is confirmed, but your access is still being finalized. Please try again in a moment.";
     return "Your payment didn’t complete. Please try again.";
@@ -286,28 +296,35 @@ export default function SubscriptionFailed() {
             <ReasonBox>
               <ReasonTitle>What you can do</ReasonTitle>
               <ReasonText>
-                Try again, confirm your card details, or use a different payment method.
-                If the issue persists, wait 30–60 seconds and retry (webhook delays happen).
+                Try again, confirm your card details, or use a different payment
+                method. If the issue persists, wait 30–60 seconds and retry
+                (webhook delays happen).
               </ReasonText>
             </ReasonBox>
           )}
 
           <Actions>
-            <PrimaryBtn type="button" onClick={() => navigate(primaryPath, { replace: true })}>
+            <PrimaryBtn
+              type="button"
+              onClick={() => navigate(primaryPath, { replace: true })}
+            >
               {primaryLabel}
             </PrimaryBtn>
 
-            <OutlineBtn type="button" onClick={() => navigate(secondaryPath, { replace: true })}>
+            <OutlineBtn
+              type="button"
+              onClick={() => navigate(secondaryPath, { replace: true })}
+            >
               {secondaryLabel}
             </OutlineBtn>
           </Actions>
 
           <Hint>
-            If you already paid and got “processing”, refresh in a moment — it can take a few seconds.
+            If you already paid and got “processing”, refresh in a moment — it
+            can take a few seconds.
           </Hint>
         </Inner>
       </Card>
     </Page>
   );
 }
-

@@ -20,11 +20,14 @@ const memberships = [
     title: "Beginner Foundation Membership",
     instructor: "KnockoutCodes Academy",
     // eslint-disable-next-line no-undef
-    priceLabel: process.env.MEMBERSHIP_BEGINNER_MONTHLY_PRICE_LABEL || "$29/month",
+    priceLabel:
+      process.env.MEMBERSHIP_BEGINNER_MONTHLY_PRICE_LABEL || "$29/month",
     // eslint-disable-next-line no-undef
-    monthlyPriceLabel: process.env.MEMBERSHIP_BEGINNER_MONTHLY_PRICE_LABEL || "$29/month",
+    monthlyPriceLabel:
+      process.env.MEMBERSHIP_BEGINNER_MONTHLY_PRICE_LABEL || "$29/month",
     // eslint-disable-next-line no-undef
-    yearlyPriceLabel: process.env.MEMBERSHIP_BEGINNER_YEARLY_PRICE_LABEL || "$290/year",
+    yearlyPriceLabel:
+      process.env.MEMBERSHIP_BEGINNER_YEARLY_PRICE_LABEL || "$290/year",
     // eslint-disable-next-line no-undef
     stripePriceId: process.env.STRIPE_BEGINNER_MONTHLY_PRICE_ID || "",
     // eslint-disable-next-line no-undef
@@ -56,15 +59,19 @@ const memberships = [
     title: "Intermediate Skill Builder Membership",
     instructor: "KnockoutCodes Academy",
     // eslint-disable-next-line no-undef
-    priceLabel: process.env.MEMBERSHIP_INTERMEDIATE_MONTHLY_PRICE_LABEL || "$49/month",
+    priceLabel:
+      process.env.MEMBERSHIP_INTERMEDIATE_MONTHLY_PRICE_LABEL || "$49/month",
     // eslint-disable-next-line no-undef
-    monthlyPriceLabel: process.env.MEMBERSHIP_INTERMEDIATE_MONTHLY_PRICE_LABEL || "$49/month",
+    monthlyPriceLabel:
+      process.env.MEMBERSHIP_INTERMEDIATE_MONTHLY_PRICE_LABEL || "$49/month",
     // eslint-disable-next-line no-undef
-    yearlyPriceLabel: process.env.MEMBERSHIP_INTERMEDIATE_YEARLY_PRICE_LABEL || "$490/year",
+    yearlyPriceLabel:
+      process.env.MEMBERSHIP_INTERMEDIATE_YEARLY_PRICE_LABEL || "$490/year",
     // eslint-disable-next-line no-undef
     stripePriceId: process.env.STRIPE_INTERMEDIATE_MONTHLY_PRICE_ID || "",
     // eslint-disable-next-line no-undef
-    stripePriceIdMonthly: process.env.STRIPE_INTERMEDIATE_MONTHLY_PRICE_ID || "",
+    stripePriceIdMonthly:
+      process.env.STRIPE_INTERMEDIATE_MONTHLY_PRICE_ID || "",
     // eslint-disable-next-line no-undef
     stripePriceIdYearly: process.env.STRIPE_INTERMEDIATE_YEARLY_PRICE_ID || "",
     rating: 4.9,
@@ -92,11 +99,14 @@ const memberships = [
     title: "Advanced Fighter Membership",
     instructor: "KnockoutCodes Academy",
     // eslint-disable-next-line no-undef
-    priceLabel: process.env.MEMBERSHIP_ADVANCE_MONTHLY_PRICE_LABEL || "$79/month",
+    priceLabel:
+      process.env.MEMBERSHIP_ADVANCE_MONTHLY_PRICE_LABEL || "$79/month",
     // eslint-disable-next-line no-undef
-    monthlyPriceLabel: process.env.MEMBERSHIP_ADVANCE_MONTHLY_PRICE_LABEL || "$79/month",
+    monthlyPriceLabel:
+      process.env.MEMBERSHIP_ADVANCE_MONTHLY_PRICE_LABEL || "$79/month",
     // eslint-disable-next-line no-undef
-    yearlyPriceLabel: process.env.MEMBERSHIP_ADVANCE_YEARLY_PRICE_LABEL || "$790/year",
+    yearlyPriceLabel:
+      process.env.MEMBERSHIP_ADVANCE_YEARLY_PRICE_LABEL || "$790/year",
     // eslint-disable-next-line no-undef
     stripePriceId: process.env.STRIPE_ADVANCE_MONTHLY_PRICE_ID || "",
     // eslint-disable-next-line no-undef
@@ -128,11 +138,14 @@ const memberships = [
     title: "Complete Champion Membership",
     instructor: "KnockoutCodes Academy",
     // eslint-disable-next-line no-undef
-    priceLabel: process.env.MEMBERSHIP_COMPLETE_MONTHLY_PRICE_LABEL || "$99/month",
+    priceLabel:
+      process.env.MEMBERSHIP_COMPLETE_MONTHLY_PRICE_LABEL || "$99/month",
     // eslint-disable-next-line no-undef
-    monthlyPriceLabel: process.env.MEMBERSHIP_COMPLETE_MONTHLY_PRICE_LABEL || "$99/month",
+    monthlyPriceLabel:
+      process.env.MEMBERSHIP_COMPLETE_MONTHLY_PRICE_LABEL || "$99/month",
     // eslint-disable-next-line no-undef
-    yearlyPriceLabel: process.env.MEMBERSHIP_COMPLETE_YEARLY_PRICE_LABEL || "$990/year",
+    yearlyPriceLabel:
+      process.env.MEMBERSHIP_COMPLETE_YEARLY_PRICE_LABEL || "$990/year",
     // eslint-disable-next-line no-undef
     stripePriceId: process.env.STRIPE_COMPLETE_MONTHLY_PRICE_ID || "",
     // eslint-disable-next-line no-undef
@@ -173,7 +186,7 @@ async function seedMemberships() {
           upsert: true,
           new: true,
           runValidators: true,
-        }
+        },
       );
 
       console.log(`Seeded: ${membership.title}`);
@@ -190,4 +203,3 @@ async function seedMemberships() {
 }
 
 seedMemberships();
-

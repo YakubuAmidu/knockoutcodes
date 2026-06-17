@@ -46,7 +46,9 @@ export function coachingReducer(state = coachingInitialState, action) {
   switch (action.type) {
     case COACHING_ACTIONS.HYDRATE_FROM_STORAGE: {
       const next =
-        action.payload && typeof action.payload === "object" ? action.payload : {};
+        action.payload && typeof action.payload === "object"
+          ? action.payload
+          : {};
 
       const nextForm = { ...state.form, ...next };
       persistDraft(nextForm);

@@ -43,7 +43,10 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password is required."],
-      minlength: [PASSWORD_MIN_LENGTH, "Password must be at least 8 characters."],
+      minlength: [
+        PASSWORD_MIN_LENGTH,
+        "Password must be at least 8 characters.",
+      ],
       select: false,
     },
 
@@ -62,53 +65,53 @@ const userSchema = new mongoose.Schema(
     },
 
     accountStatus: {
-  type: String,
-  enum: ["active", "on_hold", "suspended", "banned", "deactivated"],
-  default: "active",
-  index: true,
-},
+      type: String,
+      enum: ["active", "on_hold", "suspended", "banned", "deactivated"],
+      default: "active",
+      index: true,
+    },
 
-statusReason: {
-  type: String,
-  trim: true,
-  maxlength: 500,
-  default: "",
-},
+    statusReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: "",
+    },
 
-statusChangedAt: {
-  type: Date,
-  default: null,
-},
+    statusChangedAt: {
+      type: Date,
+      default: null,
+    },
 
-statusChangedBy: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-  default: null,
-},
+    statusChangedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
-adminNotes: {
-  type: String,
-  trim: true,
-  maxlength: 2000,
-  default: "",
-},
+    adminNotes: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+      default: "",
+    },
 
-isDeleted: {
-  type: Boolean,
-  default: false,
-  index: true,
-},
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
 
-deletedAt: {
-  type: Date,
-  default: null,
-},
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
 
-deletedBy: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-  default: null,
-},
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
 
     // Email verification
     isEmailVerified: {
@@ -295,7 +298,7 @@ deletedBy: {
   {
     timestamps: true,
     minimize: true,
-  }
+  },
 );
 
 /* =========================
@@ -329,7 +332,7 @@ userSchema.pre("save", async function hashPassword(next) {
     if (Array.isArray(this.passwordHistory)) {
       this.passwordHistory = this.passwordHistory.slice(
         0,
-        PASSWORD_HISTORY_LIMIT
+        PASSWORD_HISTORY_LIMIT,
       );
     }
 
@@ -343,7 +346,7 @@ userSchema.pre("save", async function hashPassword(next) {
    Instance Methods
 ========================= */
 userSchema.methods.comparePassword = async function comparePassword(
-  candidatePassword
+  candidatePassword,
 ) {
   if (!candidatePassword || !this.password) return false;
   return bcrypt.compare(String(candidatePassword), this.password);

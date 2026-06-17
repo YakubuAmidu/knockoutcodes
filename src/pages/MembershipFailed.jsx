@@ -34,8 +34,8 @@ export default function MembershipFailed() {
           {canceled
             ? "No worries. Your account was not charged for a new membership."
             : sessionId
-            ? "Stripe started the membership checkout, but access was not fully confirmed."
-            : "Something stopped the membership checkout before access could be unlocked."}
+              ? "Stripe started the membership checkout, but access was not fully confirmed."
+              : "Something stopped the membership checkout before access could be unlocked."}
         </Subtitle>
 
         <Card>
@@ -80,9 +80,17 @@ const Page = styled.main`
   padding: 104px 18px 86px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 10%, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(
+      circle at 18% 10%,
+      rgba(214, 182, 159, 0.2),
+      transparent 38%
+    ),
     radial-gradient(circle at 80% 18%, rgba(90, 56, 37, 0.34), transparent 42%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, ${({ theme }) => theme.colors.black} 82%);
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      ${({ theme }) => theme.colors.black} 82%
+    );
 `;
 
 const GlowOne = styled.div`
@@ -160,7 +168,11 @@ const Card = styled.div`
   padding: 24px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.035)
+    ),
     rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 249, 242, 0.13);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -210,7 +222,11 @@ const PrimaryLink = styled(Link)`
   align-items: center;
   justify-content: center;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
   text-decoration: none;
   font-weight: 950;

@@ -27,7 +27,7 @@ function getCookie(name) {
 
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const match = document.cookie.match(
-      new RegExp(`(?:^|; )${escaped}=([^;]*)`)
+      new RegExp(`(?:^|; )${escaped}=([^;]*)`),
     );
 
     return match ? decodeURIComponent(match[1]) : "";
@@ -99,7 +99,7 @@ function broadcastAuthExpired(status, message) {
           status,
           message: message || "Session expired. Please login again.",
         },
-      })
+      }),
     );
   }
 
@@ -176,7 +176,7 @@ axiosInstance.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 axiosInstance.interceptors.response.use(
@@ -204,14 +204,12 @@ axiosInstance.interceptors.response.use(
     const url = normalizeUrl(originalConfig.url);
 
     const isCsrfFailure =
-      status === 403 &&
-      !url.includes("/auth/csrf") &&
-      /csrf/i.test(message);
+      status === 403 && !url.includes("/auth/csrf") && /csrf/i.test(message);
 
     if (isCsrfFailure && !originalConfig._csrfRetry) {
       try {
         clearCsrfToken();
-const csrfToken = await getCsrfToken({ force: true });
+        const csrfToken = await getCsrfToken({ force: true });
 
         return axiosInstance.request({
           ...originalConfig,
@@ -245,7 +243,7 @@ const csrfToken = await getCsrfToken({ force: true });
         broadcastAuthExpired(
           refreshError?.response?.status || 401,
           refreshError?.response?.data?.message ||
-            "Session expired. Please login again."
+            "Session expired. Please login again.",
         );
 
         return Promise.reject(error);
@@ -260,12 +258,12 @@ const csrfToken = await getCsrfToken({ force: true });
     if (shouldBroadcast && !isPublicPage()) {
       broadcastAuthExpired(
         status,
-        message || "Session expired. Please login again."
+        message || "Session expired. Please login again.",
       );
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

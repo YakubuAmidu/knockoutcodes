@@ -10,7 +10,9 @@ const toNumber = (value) => {
 };
 
 const normalizeText = (value) =>
-  String(value || "").replace(/\s+/g, " ").trim();
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const getStartDates = () => {
   const now = new Date();
@@ -53,15 +55,15 @@ const buildRevenueRecordFromOrder = (order) => {
     items.length === 1
       ? getItemType(firstItem)
       : items.length > 1
-      ? "order"
-      : "other";
+        ? "order"
+        : "other";
 
   const itemTitle =
     items.length === 1
       ? firstItem.title || firstItem.name || "Order item"
       : items.length > 1
-      ? `${items.length} items`
-      : "Order";
+        ? `${items.length} items`
+        : "Order";
 
   return {
     _id: order._id,
@@ -78,10 +80,7 @@ const buildRevenueRecordFromOrder = (order) => {
       order.shippingAddress?.fullName ||
       "Customer",
     email:
-      order.user?.email ||
-      order.email ||
-      order.shippingAddress?.email ||
-      "",
+      order.user?.email || order.email || order.shippingAddress?.email || "",
     amount: toNumber(order.total),
     total: toNumber(order.total),
     currency: order.currency || "USD",
@@ -113,12 +112,8 @@ const monthNames = [
 
 export const getRevenueSummary = async (req, res) => {
   try {
-    const {
-      startOfToday,
-      startOfMonth,
-      startOfYear,
-      startOfNextYear,
-    } = getStartDates();
+    const { startOfToday, startOfMonth, startOfYear, startOfNextYear } =
+      getStartDates();
 
     const paidMatch = {
       paymentStatus: { $in: PAID_STATUSES },
@@ -284,11 +279,7 @@ export const getRevenueSummary = async (req, res) => {
             _id: "$itemType",
             total: {
               $sum: {
-                $cond: [
-                  { $gt: ["$itemRevenue", 0] },
-                  "$itemRevenue",
-                  "$total",
-                ],
+                $cond: [{ $gt: ["$itemRevenue", 0] }, "$itemRevenue", "$total"],
               },
             },
             count: { $sum: 1 },
@@ -379,7 +370,7 @@ export const getRevenueSummary = async (req, res) => {
     }));
 
     const revenues = [...orderRevenueRecords, ...manualRevenueRecords].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
 
     return res.status(200).json({
@@ -422,7 +413,12 @@ export const updateRevenueRecord = async (req, res) => {
       });
     }
 
-    const allowedFields = ["status", "paymentStatus", "note", "isHiddenFromReports"];
+    const allowedFields = [
+      "status",
+      "paymentStatus",
+      "note",
+      "isHiddenFromReports",
+    ];
     const updates = {};
 
     allowedFields.forEach((field) => {
@@ -468,7 +464,8 @@ export const updateRevenueRecord = async (req, res) => {
     const orderUpdates = {};
 
     if (updates.status) orderUpdates.status = updates.status;
-    if (updates.paymentStatus) orderUpdates.paymentStatus = updates.paymentStatus;
+    if (updates.paymentStatus)
+      orderUpdates.paymentStatus = updates.paymentStatus;
     if (typeof updates.note === "string") orderUpdates.note = updates.note;
 
     const updatedOrder = await Order.findByIdAndUpdate(id, orderUpdates, {

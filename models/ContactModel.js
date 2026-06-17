@@ -21,7 +21,7 @@ const messageSchema = new mongoose.Schema(
       maxlength: [5000, "Message cannot exceed 5000 characters."],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* =========================================================
@@ -126,7 +126,7 @@ const contactSchema = new mongoose.Schema(
       default: "",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* =========================================================
@@ -135,7 +135,10 @@ const contactSchema = new mongoose.Schema(
 contactSchema.pre("validate", function (next) {
   if (this.name) this.name = String(this.name).trim();
   if (this.email) this.email = String(this.email).trim().toLowerCase();
-  if (this.phone) this.phone = String(this.phone).replace(/[^\d+]/g, "").trim();
+  if (this.phone)
+    this.phone = String(this.phone)
+      .replace(/[^\d+]/g, "")
+      .trim();
   if (this.subject) this.subject = String(this.subject).trim();
   if (this.message) this.message = String(this.message).trim();
   if (this.replyNote) this.replyNote = String(this.replyNote).trim();

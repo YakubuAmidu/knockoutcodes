@@ -14,7 +14,9 @@ const SUBSCRIPTION_STATUSES = [
 ];
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level;
 }
@@ -98,7 +100,7 @@ const userSubscriptionSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 userSubscriptionSchema.pre("validate", function (next) {
@@ -144,7 +146,7 @@ userSubscriptionSchema.index(
     partialFilterExpression: {
       stripeSubscriptionId: { $type: "string", $ne: "" },
     },
-  }
+  },
 );
 
 const UserSubscription =

@@ -18,9 +18,13 @@ const cleanTags = (tags = []) => {
   return [
     ...new Set(
       tags
-        .map((tag) => String(tag || "").trim().toLowerCase())
+        .map((tag) =>
+          String(tag || "")
+            .trim()
+            .toLowerCase(),
+        )
         .filter(Boolean)
-        .slice(0, 12)
+        .slice(0, 12),
     ),
   ];
 };
@@ -63,7 +67,14 @@ const blogSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["boxing", "mindset", "conditioning", "nutrition", "lifestyle", "other"],
+      enum: [
+        "boxing",
+        "mindset",
+        "conditioning",
+        "nutrition",
+        "lifestyle",
+        "other",
+      ],
       default: "boxing",
     },
 
@@ -134,7 +145,7 @@ const blogSchema = new mongoose.Schema(
       required: [true, "Author is required"],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* No duplicate indexes */

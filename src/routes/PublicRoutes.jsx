@@ -8,12 +8,9 @@ export default function PublicRoute() {
 
   if (isAuthenticated) {
     return (
-      <Navigate
-        to={isAdmin ? "/admin/dashboard" : "/user-dashboard"}
-        replace
-      />
+      <Navigate to={isAdmin ? "/admin/dashboard" : "/user-dashboard"} replace />
     );
   }
 
-  return <Outlet />
+  return <Outlet />;
 }

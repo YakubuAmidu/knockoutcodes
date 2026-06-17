@@ -3,7 +3,10 @@
 import { FORGOT_PASSWORD_ACTIONS } from "./forgotPasswordActionTypes";
 import { forgotPasswordInitialState } from "./forgotPasswordInitialState";
 
-export function forgotPasswordReducer(state = forgotPasswordInitialState, action) {
+export function forgotPasswordReducer(
+  state = forgotPasswordInitialState,
+  action,
+) {
   switch (action.type) {
     case FORGOT_PASSWORD_ACTIONS.REQUEST_START:
       return {

@@ -7,10 +7,19 @@ export function productReducer(state, action) {
       return { ...state, loading: true, error: "" };
 
     case PRODUCT_ACTIONS.FETCH_SUCCESS:
-      return { ...state, loading: false, items: action.payload || [], error: "" };
+      return {
+        ...state,
+        loading: false,
+        items: action.payload || [],
+        error: "",
+      };
 
     case PRODUCT_ACTIONS.FETCH_ERROR:
-      return { ...state, loading: false, error: action.payload || "Failed to load products." };
+      return {
+        ...state,
+        loading: false,
+        error: action.payload || "Failed to load products.",
+      };
 
     case PRODUCT_ACTIONS.SAVE_START:
       return { ...state, saving: true, error: "" };
@@ -21,14 +30,20 @@ export function productReducer(state, action) {
       const exists = state.items.some((p) => (p?._id || p?.id) === updatedId);
 
       const nextItems = exists
-        ? state.items.map((p) => ((p?._id || p?.id) === updatedId ? updated : p))
+        ? state.items.map((p) =>
+            (p?._id || p?.id) === updatedId ? updated : p,
+          )
         : [updated, ...state.items];
 
       return { ...state, saving: false, items: nextItems, error: "" };
     }
 
     case PRODUCT_ACTIONS.SAVE_ERROR:
-      return { ...state, saving: false, error: action.payload || "Save failed." };
+      return {
+        ...state,
+        saving: false,
+        error: action.payload || "Save failed.",
+      };
 
     case PRODUCT_ACTIONS.DELETE_START:
       return { ...state, deletingId: action.payload, error: "" };
@@ -44,7 +59,11 @@ export function productReducer(state, action) {
     }
 
     case PRODUCT_ACTIONS.DELETE_ERROR:
-      return { ...state, deletingId: null, error: action.payload || "Delete failed." };
+      return {
+        ...state,
+        deletingId: null,
+        error: action.payload || "Delete failed.",
+      };
 
     // ✅ pro add-ons
     case PRODUCT_ACTIONS.SET_SELECTED:

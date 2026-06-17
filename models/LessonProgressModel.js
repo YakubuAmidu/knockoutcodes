@@ -68,16 +68,13 @@ const lessonProgressSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /**
  * Prevent duplicate progress records for the same user/course/lesson.
  */
-lessonProgressSchema.index(
-  { user: 1, course: 1, lesson: 1 },
-  { unique: true }
-);
+lessonProgressSchema.index({ user: 1, course: 1, lesson: 1 }, { unique: true });
 
 /**
  * Speed up progress dashboard/course-player queries.

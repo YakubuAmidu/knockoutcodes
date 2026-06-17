@@ -93,7 +93,7 @@ export function ToastProvider({
         if (mappedId === id) keyIndex.current.delete(k);
       }
     },
-    [clearTimer]
+    [clearTimer],
   );
 
   const dismissAll = useCallback(() => {
@@ -134,7 +134,8 @@ export function ToastProvider({
       const safeDesc = cleanText(description, MAX_DESC_LEN);
 
       const normalizedVariant = normalizeVariant(variant);
-      const effectiveVariant = normalizedVariant || inferVariant(safeTitle, safeDesc);
+      const effectiveVariant =
+        normalizedVariant || inferVariant(safeTitle, safeDesc);
 
       const ms =
         typeof duration === "number" && Number.isFinite(duration)
@@ -199,7 +200,7 @@ export function ToastProvider({
       }
       return id;
     },
-    [defaultDuration, max, dismiss, clearTimer]
+    [defaultDuration, max, dismiss, clearTimer],
   );
 
   /**
@@ -208,57 +209,55 @@ export function ToastProvider({
    * This guarantees it exists and never breaks.
    */
   const showToast = useCallback(
-  (messageOrOptions, variant = "neutral", duration) => {
-    // Supports:
-    // showToast("Saved", "success")
-    // showToast({ type: "success", message: "Saved" })
-    // showToast({ variant: "success", title: "Saved", description: "Done" })
+    (messageOrOptions, variant = "neutral", duration) => {
+      // Supports:
+      // showToast("Saved", "success")
+      // showToast({ type: "success", message: "Saved" })
+      // showToast({ variant: "success", title: "Saved", description: "Done" })
 
-    if (
-      messageOrOptions &&
-      typeof messageOrOptions === "object" &&
-      !Array.isArray(messageOrOptions)
-    ) {
-      const title =
-        messageOrOptions.title ||
-        messageOrOptions.message ||
-        messageOrOptions.text ||
-        "Notification";
+      if (
+        messageOrOptions &&
+        typeof messageOrOptions === "object" &&
+        !Array.isArray(messageOrOptions)
+      ) {
+        const title =
+          messageOrOptions.title ||
+          messageOrOptions.message ||
+          messageOrOptions.text ||
+          "Notification";
 
-      const description =
-        messageOrOptions.description ||
-        messageOrOptions.desc ||
-        "";
+        const description =
+          messageOrOptions.description || messageOrOptions.desc || "";
 
-      const v =
-        normalizeVariant(messageOrOptions.variant) ||
-        normalizeVariant(messageOrOptions.type) ||
-        inferVariant(title, description);
+        const v =
+          normalizeVariant(messageOrOptions.variant) ||
+          normalizeVariant(messageOrOptions.type) ||
+          inferVariant(title, description);
+
+        return push({
+          title: cleanText(title, MAX_TITLE_LEN),
+          description: cleanText(description, MAX_DESC_LEN),
+          variant: v,
+          duration: messageOrOptions.duration ?? duration,
+        });
+      }
+
+      const safeMessage = cleanText(messageOrOptions, MAX_TITLE_LEN);
+      const v = normalizeVariant(variant) || inferVariant(safeMessage, "");
 
       return push({
-        title: cleanText(title, MAX_TITLE_LEN),
-        description: cleanText(description, MAX_DESC_LEN),
+        title: safeMessage,
+        description: "",
         variant: v,
-        duration: messageOrOptions.duration ?? duration,
+        duration,
       });
-    }
-
-    const safeMessage = cleanText(messageOrOptions, MAX_TITLE_LEN);
-    const v = normalizeVariant(variant) || inferVariant(safeMessage, "");
-
-    return push({
-      title: safeMessage,
-      description: "",
-      variant: v,
-      duration,
-    });
-  },
-  [push]
-);
+    },
+    [push],
+  );
 
   const value = useMemo(
     () => ({ push, dismiss, dismissAll, showToast }),
-    [push, dismiss, dismissAll, showToast]
+    [push, dismiss, dismissAll, showToast],
   );
 
   return (
@@ -348,7 +347,7 @@ const Stack = styled.div`
         left: 20px;
         align-items: flex-start;
       `,
-    }[p.$placement || "top-right"])};
+    })[p.$placement || "top-right"]};
 `;
 
 const ToastCard = styled(motion.div)`
@@ -373,7 +372,8 @@ const ToastCard = styled(motion.div)`
     border-radius: inherit;
     padding: 1px;
     background: ${(p) => gradientFor(p.$variant, p.theme)};
-    -webkit-mask: linear-gradient(#000 0 0) content-box,
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
       linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;

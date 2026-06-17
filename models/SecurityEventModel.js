@@ -163,7 +163,7 @@ const securityEventSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 securityEventSchema.index({ createdAt: -1 });

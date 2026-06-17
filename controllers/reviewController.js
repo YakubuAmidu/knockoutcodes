@@ -9,13 +9,12 @@ import Membership from "../models/MembershipModel.js";
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(String(id));
 
-const normalizeText = (value = "") =>
-  String(value)
-    .trim()
-    .replace(/\s+/g, " ");
+const normalizeText = (value = "") => String(value).trim().replace(/\s+/g, " ");
 
 const normalizeLevel = (value) => {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level;
 };
@@ -183,7 +182,7 @@ const userPurchasedProduct = async ({ userId, productId }) => {
 
 const userHasCourseSubscriptionAccess = async ({ userId, course }) => {
   const requiredLevel = normalizeLevel(
-    course.accessLevel || course.level || course.membershipLevel
+    course.accessLevel || course.level || course.membershipLevel,
   );
 
   if (!requiredLevel) return false;
@@ -197,7 +196,7 @@ const userHasCourseSubscriptionAccess = async ({ userId, course }) => {
   const userLevel = normalizeLevel(
     subscription.accessLevel ||
       subscription.level ||
-      subscription.membershipLevel
+      subscription.membershipLevel,
   );
 
   return userLevel === requiredLevel;
@@ -207,7 +206,7 @@ const userHasMembershipAccess = async ({ userId, membership }) => {
   if (!userId || !membership) return false;
 
   const requiredLevel = normalizeLevel(
-    membership.accessLevel || membership.membershipId || membership.slug
+    membership.accessLevel || membership.membershipId || membership.slug,
   );
 
   if (!requiredLevel) return false;
@@ -219,7 +218,7 @@ const userHasMembershipAccess = async ({ userId, membership }) => {
   if (!isSubscriptionActive(subscription)) return false;
 
   const userLevel = normalizeLevel(
-    subscription.accessLevel || subscription.membershipId
+    subscription.accessLevel || subscription.membershipId,
   );
 
   return userLevel === requiredLevel;
@@ -235,14 +234,14 @@ const populateReview = (query) =>
 export const createReview = async (req, res) => {
   try {
     const {
-  reviewType = "course",
-  courseId,
-  productId,
-  membershipId,
-  rating,
-  title,
-  comment,
-} = req.body;
+      reviewType = "course",
+      courseId,
+      productId,
+      membershipId,
+      rating,
+      title,
+      comment,
+    } = req.body;
 
     const userId = req.user?._id;
 
@@ -253,12 +252,14 @@ export const createReview = async (req, res) => {
       });
     }
 
-    const cleanReviewType = String(reviewType || "").trim().toLowerCase();
+    const cleanReviewType = String(reviewType || "")
+      .trim()
+      .toLowerCase();
     const isProductReview = cleanReviewType === "product";
-const isCourseReview = cleanReviewType === "course";
-const isMembershipReview = cleanReviewType === "membership";
+    const isCourseReview = cleanReviewType === "course";
+    const isMembershipReview = cleanReviewType === "membership";
 
-if (!isProductReview && !isCourseReview && !isMembershipReview) {
+    if (!isProductReview && !isCourseReview && !isMembershipReview) {
       return res.status(400).json({
         success: false,
         message: "Invalid review type.",
@@ -266,19 +267,19 @@ if (!isProductReview && !isCourseReview && !isMembershipReview) {
     }
 
     const targetId = isProductReview
-  ? productId
-  : isMembershipReview
-  ? membershipId
-  : courseId;
+      ? productId
+      : isMembershipReview
+        ? membershipId
+        : courseId;
 
     if (!targetId || !isValidObjectId(targetId)) {
       return res.status(400).json({
         success: false,
         message: isProductReview
-  ? "A valid productId is required."
-  : isMembershipReview
-  ? "A valid membershipId is required."
-  : "A valid courseId is required.",
+          ? "A valid productId is required."
+          : isMembershipReview
+            ? "A valid membershipId is required."
+            : "A valid courseId is required.",
       });
     }
 
@@ -292,7 +293,8 @@ if (!isProductReview && !isCourseReview && !isMembershipReview) {
     }
 
     if (isProductReview) {
-      const product = await Product.findById(productId).select("_id title slug");
+      const product =
+        await Product.findById(productId).select("_id title slug");
 
       if (!product) {
         return res.status(404).json({
@@ -348,147 +350,149 @@ if (!isProductReview && !isCourseReview && !isMembershipReview) {
     }
 
     if (isMembershipReview) {
-  const membership = await Membership.findById(membershipId).select(
-    "_id title slug membershipId accessLevel"
-  );
+      const membership = await Membership.findById(membershipId).select(
+        "_id title slug membershipId accessLevel",
+      );
 
-  if (!membership) {
-    return res.status(404).json({
-      success: false,
-      message: "Membership not found.",
-    });
-  }
+      if (!membership) {
+        return res.status(404).json({
+          success: false,
+          message: "Membership not found.",
+        });
+      }
 
-  const hasMembershipAccess = await userHasMembershipAccess({
-    userId,
-    membership,
-  });
+      const hasMembershipAccess = await userHasMembershipAccess({
+        userId,
+        membership,
+      });
 
-  if (!hasMembershipAccess) {
-    return res.status(403).json({
-      success: false,
-      message:
-        "You must have an active matching membership before leaving a review.",
-    });
-  }
+      if (!hasMembershipAccess) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You must have an active matching membership before leaving a review.",
+        });
+      }
 
-  const existing = await Review.findOne({
-    user: userId,
-    reviewType: "membership",
-    membership: membershipId,
-  }).select("_id");
+      const existing = await Review.findOne({
+        user: userId,
+        reviewType: "membership",
+        membership: membershipId,
+      }).select("_id");
 
-  if (existing) {
-    return res.status(409).json({
-      success: false,
-      message: "You have already reviewed this membership.",
-    });
-  }
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          message: "You have already reviewed this membership.",
+        });
+      }
 
-  const review = await Review.create({
-    user: userId,
-    reviewType: "membership",
-    membership: membershipId,
-    rating: validated.parsedRating,
-    title: validated.cleanTitle,
-    comment: validated.cleanComment,
-    isApproved: false,
-  });
+      const review = await Review.create({
+        user: userId,
+        reviewType: "membership",
+        membership: membershipId,
+        rating: validated.parsedRating,
+        title: validated.cleanTitle,
+        comment: validated.cleanComment,
+        isApproved: false,
+      });
 
-  const populatedReview = await populateReview(Review.findById(review._id));
+      const populatedReview = await populateReview(Review.findById(review._id));
 
-  return res.status(201).json({
-    success: true,
-    message:
-      "Membership review submitted successfully. It will appear after admin approval.",
-    data: populatedReview,
-  });
-}
+      return res.status(201).json({
+        success: true,
+        message:
+          "Membership review submitted successfully. It will appear after admin approval.",
+        data: populatedReview,
+      });
+    }
 
     const course = await Course.findById(courseId).select(
- "_id title slug accessLevel level membershipLevel requiredMembershipLevel isFree price salePrice"
-);
+      "_id title slug accessLevel level membershipLevel requiredMembershipLevel isFree price salePrice",
+    );
 
-if (!course) {
-  return res.status(404).json({
-    success: false,
-    message: "Course not found.",
-  });
-}
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found.",
+      });
+    }
 
-const enrollment = await Enrollment.findOne({
-  user: userId,
-  course: courseId,
-  status: { $in: ["active", "completed"] },
-}).select("_id progressPercent completedAt status paymentStatus paymentPlan accessType");
+    const enrollment = await Enrollment.findOne({
+      user: userId,
+      course: courseId,
+      status: { $in: ["active", "completed"] },
+    }).select(
+      "_id progressPercent completedAt status paymentStatus paymentPlan accessType",
+    );
 
-const hasSubscriptionAccess = await userHasCourseSubscriptionAccess({
-  userId,
-  course,
-});
-
-const isFreeCourse =
-  course.isFree === true ||
-  Number(course.price || 0) <= 0 ||
-  String(course.accessLevel || "").toLowerCase() === "free" ||
-  String(course.requiredMembershipLevel || "").toLowerCase() === "none";
-
-if (!isFreeCourse && !enrollment && !hasSubscriptionAccess) {
-  return res.status(403).json({
-    success: false,
-    message:
-      "You must be enrolled in this course or have an active matching subscription to leave a review.",
-  });
-}
-
-if (isFreeCourse) {
-  const progressPercent = Number(enrollment?.progressPercent || 0);
-  const completedCourse = Boolean(
-    enrollment?.completedAt || progressPercent >= 90
-  );
-
-  if (!completedCourse) {
-    return res.status(403).json({
-      success: false,
-      message:
-        "Finish watching the free course before leaving a verified review.",
+    const hasSubscriptionAccess = await userHasCourseSubscriptionAccess({
+      userId,
+      course,
     });
-  }
-}
 
-const existing = await Review.findOne({
-  user: userId,
-  reviewType: "course",
-  course: courseId,
-}).select("_id");
+    const isFreeCourse =
+      course.isFree === true ||
+      Number(course.price || 0) <= 0 ||
+      String(course.accessLevel || "").toLowerCase() === "free" ||
+      String(course.requiredMembershipLevel || "").toLowerCase() === "none";
 
-if (existing) {
-  return res.status(409).json({
-    success: false,
-    message: "You have already reviewed this course.",
-  });
-}
+    if (!isFreeCourse && !enrollment && !hasSubscriptionAccess) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You must be enrolled in this course or have an active matching subscription to leave a review.",
+      });
+    }
 
-const review = await Review.create({
-  user: userId,
-  reviewType: "course",
-  course: courseId,
-  rating: validated.parsedRating,
-  title: validated.cleanTitle,
-  comment: validated.cleanComment,
-  isApproved: false,
-});
+    if (isFreeCourse) {
+      const progressPercent = Number(enrollment?.progressPercent || 0);
+      const completedCourse = Boolean(
+        enrollment?.completedAt || progressPercent >= 90,
+      );
 
-await updateCourseRatingStats(courseId);
+      if (!completedCourse) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "Finish watching the free course before leaving a verified review.",
+        });
+      }
+    }
 
-const populatedReview = await populateReview(Review.findById(review._id));
+    const existing = await Review.findOne({
+      user: userId,
+      reviewType: "course",
+      course: courseId,
+    }).select("_id");
 
-return res.status(201).json({
-  success: true,
-  message:
-    "Course review submitted successfully. It will appear after admin approval.",
-  data: populatedReview,
-});
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: "You have already reviewed this course.",
+      });
+    }
+
+    const review = await Review.create({
+      user: userId,
+      reviewType: "course",
+      course: courseId,
+      rating: validated.parsedRating,
+      title: validated.cleanTitle,
+      comment: validated.cleanComment,
+      isApproved: false,
+    });
+
+    await updateCourseRatingStats(courseId);
+
+    const populatedReview = await populateReview(Review.findById(review._id));
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Course review submitted successfully. It will appear after admin approval.",
+      data: populatedReview,
+    });
   } catch (error) {
     return res.status(error?.code === 11000 ? 409 : 500).json({
       success: false,
@@ -499,7 +503,13 @@ return res.status(201).json({
 
 export const getReviews = async (req, res) => {
   try {
-    const { courseId, productId, membershipId, page = 1, limit = 20 } = req.query;
+    const {
+      courseId,
+      productId,
+      membershipId,
+      page = 1,
+      limit = 20,
+    } = req.query;
 
     const filter = { isApproved: true };
 
@@ -526,15 +536,15 @@ export const getReviews = async (req, res) => {
     }
 
     if (membershipId) {
-  if (!isValidObjectId(membershipId)) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid membershipId.",
-    });
-  }
+      if (!isValidObjectId(membershipId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid membershipId.",
+        });
+      }
 
-  filter.membership = membershipId;
-}
+      filter.membership = membershipId;
+    }
 
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(50, Math.max(1, Number(limit) || 20));
@@ -542,10 +552,7 @@ export const getReviews = async (req, res) => {
 
     const [reviews, totalReviews, stats] = await Promise.all([
       populateReview(
-        Review.find(filter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(safeLimit)
+        Review.find(filter).sort({ createdAt: -1 }).skip(skip).limit(safeLimit),
       ),
       Review.countDocuments(filter),
       Review.aggregate([
@@ -689,8 +696,9 @@ export const updateReview = async (req, res) => {
     const updated = await review.save();
 
     if (updated.course) await updateCourseRatingStats(updated.course);
-if (updated.product) await updateProductRatingStats(updated.product);
-if (updated.membership) await updateMembershipRatingStats(updated.membership);
+    if (updated.product) await updateProductRatingStats(updated.product);
+    if (updated.membership)
+      await updateMembershipRatingStats(updated.membership);
 
     const populated = await populateReview(Review.findById(updated._id));
 
@@ -748,8 +756,8 @@ export const deleteReview = async (req, res) => {
     await review.deleteOne();
 
     if (courseId) await updateCourseRatingStats(courseId);
-if (productId) await updateProductRatingStats(productId);
-if (membershipId) await updateMembershipRatingStats(membershipId);
+    if (productId) await updateProductRatingStats(productId);
+    if (membershipId) await updateMembershipRatingStats(membershipId);
 
     return res.status(200).json({
       success: true,
@@ -779,8 +787,8 @@ export const getAdminReviews = async (req, res) => {
     if (status === "pending") filter.isApproved = false;
 
     if (["course", "product", "membership"].includes(type)) {
-  filter.reviewType = type;
-}
+      filter.reviewType = type;
+    }
 
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 100));
@@ -798,10 +806,7 @@ export const getAdminReviews = async (req, res) => {
 
     const [reviews, total, stats] = await Promise.all([
       populateReview(
-        Review.find(filter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(safeLimit)
+        Review.find(filter).sort({ createdAt: -1 }).skip(skip).limit(safeLimit),
       ),
       Review.countDocuments(filter),
       Review.aggregate([
@@ -872,8 +877,8 @@ export const approveReview = async (req, res) => {
     await review.save();
 
     if (review.course) await updateCourseRatingStats(review.course);
-if (review.product) await updateProductRatingStats(review.product);
-if (review.membership) await updateMembershipRatingStats(review.membership);
+    if (review.product) await updateProductRatingStats(review.product);
+    if (review.membership) await updateMembershipRatingStats(review.membership);
 
     const populated = await populateReview(Review.findById(review._id));
 
@@ -912,8 +917,8 @@ export const unapproveReview = async (req, res) => {
     await review.save();
 
     if (review.course) await updateCourseRatingStats(review.course);
-if (review.product) await updateProductRatingStats(review.product);
-if (review.membership) await updateMembershipRatingStats(review.membership);
+    if (review.product) await updateProductRatingStats(review.product);
+    if (review.membership) await updateMembershipRatingStats(review.membership);
 
     const populated = await populateReview(Review.findById(review._id));
 

@@ -69,13 +69,11 @@ const upsertContact = (list, rawContact) => {
 
   if (!updated?._id) return safeList;
 
-  const exists = safeList.some(
-    (c) => String(c?._id) === String(updated._id)
-  );
+  const exists = safeList.some((c) => String(c?._id) === String(updated._id));
 
   if (exists) {
     return safeList.map((c) =>
-      String(c?._id) === String(updated._id) ? updated : c
+      String(c?._id) === String(updated._id) ? updated : c,
     );
   }
 
@@ -144,7 +142,10 @@ const normalizeState = (state) => {
   };
 };
 
-export default function manageContactReducer(state = manageContactInitialState, action) {
+export default function manageContactReducer(
+  state = manageContactInitialState,
+  action,
+) {
   const normalizedState = normalizeState(state);
 
   switch (action.type) {
@@ -166,12 +167,12 @@ export default function manageContactReducer(state = manageContactInitialState, 
       const stillSelected =
         normalizedState.selectedId &&
         incoming.some(
-          (c) => String(c?._id) === String(normalizedState.selectedId)
+          (c) => String(c?._id) === String(normalizedState.selectedId),
         );
 
       const found = stillSelected
         ? incoming.find(
-            (c) => String(c?._id) === String(normalizedState.selectedId)
+            (c) => String(c?._id) === String(normalizedState.selectedId),
           )
         : null;
 
@@ -343,7 +344,7 @@ export default function manageContactReducer(state = manageContactInitialState, 
       const deletedId = action.payload?.id;
 
       const nextContacts = ensureArray(normalizedState.contacts).filter(
-        (c) => String(c?._id) !== String(deletedId)
+        (c) => String(c?._id) !== String(deletedId),
       );
 
       const shouldClear =

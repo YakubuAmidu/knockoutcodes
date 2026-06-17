@@ -279,9 +279,7 @@ function AdminEmailAnalytics() {
                             <td>
                               <TableButton
                                 type="button"
-                                onClick={() =>
-                                  handleOpenCampaign(campaign._id)
-                                }
+                                onClick={() => handleOpenCampaign(campaign._id)}
                                 disabled={!campaign._id}
                               >
                                 View

@@ -96,9 +96,9 @@ export function membershipReducer(state = membershipInitialState, action) {
         error: "",
         mySubscriptionError: "",
       };
-    
+
     case MEMBERSHIP_ACTIONS.RESET:
-  return membershipInitialState;
+      return membershipInitialState;
 
     default:
       return state;

@@ -25,37 +25,32 @@ export default function ProtectedRoute() {
   const location = useLocation();
 
   if (initializing) {
-  return <div style={{ minHeight: "60vh" }} />; // no flicker
-}
+    return <div style={{ minHeight: "60vh" }} />; // no flicker
+  }
 
   if (!isAuthenticated) {
-  return (
-    <Navigate
-      to="/login"
-      replace
-      state={{ from: getReturnTo(location) }}
-    />
-  );
-}
+    return (
+      <Navigate to="/login" replace state={{ from: getReturnTo(location) }} />
+    );
+  }
 
-if (
-  user?.isDeleted === true ||
-  user?.isActive === false ||
-  user?.accountStatus !== "active"
-) {
-  return (
-    <Navigate
-      to="/account-access-notice"
-      replace
-      state={{
-        accountStatus: user?.accountStatus || "restricted",
-        message:
-          user?.statusReason ||
-          "Your account access has been restricted.",
-      }}
-    />
-  );
-}
+  if (
+    user?.isDeleted === true ||
+    user?.isActive === false ||
+    user?.accountStatus !== "active"
+  ) {
+    return (
+      <Navigate
+        to="/account-access-notice"
+        replace
+        state={{
+          accountStatus: user?.accountStatus || "restricted",
+          message:
+            user?.statusReason || "Your account access has been restricted.",
+        }}
+      />
+    );
+  }
 
   return <Outlet />;
 }

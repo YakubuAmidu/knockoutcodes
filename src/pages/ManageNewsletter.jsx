@@ -26,7 +26,8 @@ const LS_CACHE_TTL_MS = 60_000; // 1 min
 const Page = styled.main`
   min-height: 100vh;
   padding: 34px 18px 46px;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at top left,
       rgba(214, 182, 159, 0.14),
       transparent 55%
@@ -126,11 +127,8 @@ const Layout = styled.div`
 `;
 
 const Panel = styled(motion.section)`
-  background: linear-gradient(
-      145deg,
-      rgba(214, 182, 159, 0.07),
-      rgba(0, 0, 0, 0.7)
-    ),
+  background:
+    linear-gradient(145deg, rgba(214, 182, 159, 0.07), rgba(0, 0, 0, 0.7)),
     ${({ theme }) => theme.colors.cocoa};
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -233,8 +231,11 @@ const ListItem = styled(motion.div)`
   grid-template-columns: minmax(0, 1.3fr) auto;
   gap: 6px 10px;
   align-items: center;
-  transition: transform 0.16s ease, box-shadow 0.16s ease,
-    border-color 0.16s ease, background 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
 
   &:hover {
     transform: translateY(-1px);
@@ -410,7 +411,10 @@ const Button = styled.button`
   gap: 8px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.14s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.14s ease;
 `;
 
 const PrimaryButton = styled(Button)`
@@ -460,21 +464,21 @@ const SystemBar = styled.div`
     $tone === "error"
       ? "rgba(220, 38, 38, 0.14)"
       : $tone === "success"
-      ? "rgba(34, 197, 94, 0.16)"
-      : "rgba(0, 0, 0, 0.7)"};
+        ? "rgba(34, 197, 94, 0.16)"
+        : "rgba(0, 0, 0, 0.7)"};
   border: 1px solid
     ${({ $tone }) =>
       $tone === "error"
         ? "rgba(248, 113, 113, 0.6)"
         : $tone === "success"
-        ? "rgba(74, 222, 128, 0.6)"
-        : "rgba(148, 163, 184, 0.5)"};
+          ? "rgba(74, 222, 128, 0.6)"
+          : "rgba(148, 163, 184, 0.5)"};
   color: ${({ $tone }) =>
     $tone === "error"
       ? "#fecaca"
       : $tone === "success"
-      ? "#bbf7d0"
-      : "#e5e7eb"};
+        ? "#bbf7d0"
+        : "#e5e7eb"};
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -542,7 +546,10 @@ const MiniButton = styled.button`
   border-radius: ${({ theme }) => theme.radius.pill};
   font-size: 12px;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
 
   &:hover {
     transform: translateY(-1px);
@@ -571,14 +578,14 @@ export default function ManageNewsletters() {
   const selectedId = manageState.selectedId || null;
   const search = manageState.search || "";
   const loadingList = Boolean(manageState.loadingList);
-const saving = Boolean(manageState.saving);
-const deleting = Boolean(manageState.deleting);
-const systemMessage = manageState.systemMessage || null;
-const reduxError = manageState.error || "";
+  const saving = Boolean(manageState.saving);
+  const deleting = Boolean(manageState.deleting);
+  const systemMessage = manageState.systemMessage || null;
+  const reduxError = manageState.error || "";
 
-const backendTotal = Number(manageState.total) || newsletters.length;
-const backendActive = Number(manageState.active) || 0;
-const backendInactive = Number(manageState.inactive) || 0;
+  const backendTotal = Number(manageState.total) || newsletters.length;
+  const backendActive = Number(manageState.active) || 0;
+  const backendInactive = Number(manageState.inactive) || 0;
 
   // ✅ matches DB schema now (local form stays local for perfect UX)
   const [form, setForm] = useState({
@@ -594,12 +601,12 @@ const backendInactive = Number(manageState.inactive) || 0;
   const [localSearch, setLocalSearch] = useState(search);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkUpdating, setBulkUpdating] = useState(false);
-  
+
   const lastLocalActionRef = useRef({
-  type: null,
-  id: null,
-  time: 0,
-});
+    type: null,
+    id: null,
+    time: 0,
+  });
 
   const getId = (n) =>
     (n && (n._id || n.id || n.newsletterId || n.newsletterID)) || "";
@@ -618,24 +625,24 @@ const backendInactive = Number(manageState.inactive) || 0;
   };
 
   const saveCache = (list) => {
-  try {
-    const safeList = Array.isArray(list)
-  ? list.slice(0, 500)
-  : []; // prevent huge storage abuse
-    localStorage.setItem(
-      LS_CACHE_KEY,
-      JSON.stringify({ ts: Date.now(), data: safeList })
-    );
-  } catch { /* empty */ }
-};
+    try {
+      const safeList = Array.isArray(list) ? list.slice(0, 500) : []; // prevent huge storage abuse
+      localStorage.setItem(
+        LS_CACHE_KEY,
+        JSON.stringify({ ts: Date.now(), data: safeList }),
+      );
+    } catch {
+      /* empty */
+    }
+  };
 
   useEffect(() => {
-  const t = setTimeout(() => {
-    dispatch(setManageNewsletterSearch(localSearch));
-  }, 300);
+    const t = setTimeout(() => {
+      dispatch(setManageNewsletterSearch(localSearch));
+    }, 300);
 
-  return () => clearTimeout(t);
-}, [localSearch, dispatch]);
+    return () => clearTimeout(t);
+  }, [localSearch, dispatch]);
 
   // Hydrate selectedId from localStorage (keep your behavior)
   useEffect(() => {
@@ -670,13 +677,13 @@ const backendInactive = Number(manageState.inactive) || 0;
       })();
 
       const res = await dispatch(
-  fetchAdminNewsletters({
-    preferredId: savedId,
-    fallbackToFirst: true,
-    search,
-    limit: 100,
-  })
-);
+        fetchAdminNewsletters({
+          preferredId: savedId,
+          fallbackToFirst: true,
+          search,
+          limit: 100,
+        }),
+      );
 
       if (!ignore) {
         if (res?.ok) {
@@ -716,100 +723,98 @@ const backendInactive = Number(manageState.inactive) || 0;
   }, [dispatch, search]);
 
   useEffect(() => {
-  if (!socket.connected) {
-    socket.connect();
-  }
-
-  const shouldSilenceToast = (type, payload) => {
-    const local = lastLocalActionRef.current;
-    const payloadId = payload?._id || "";
-
-    return (
-      local?.type === type &&
-      local?.id === payloadId &&
-      Date.now() - local.time < 4000
-    );
-  };
-
-  const refreshNewsletters = async (payload, type = "new") => {
-  try {
-    const savedId = (() => {
-      try {
-        return localStorage.getItem(LS_SELECTED_KEY);
-      } catch {
-        return null;
-      }
-    })();
-
-    const res = await dispatch(
-      fetchAdminNewsletters({
-        preferredId: savedId || payload?._id,
-        fallbackToFirst: true,
-      })
-    );
-
-    if (!res?.ok) return;
-
-    saveCache(res.list || []);
-
-    if (!shouldSilenceToast(type, payload)) {
-      push({
-        title:
-          type === "reactivated"
-            ? "Subscriber reactivated live"
-            : type === "updated"
-            ? "Subscriber updated live"
-            : type === "deleted"
-            ? "Subscriber deleted live"
-            : "New subscriber joined live",
-
-        description:
-          type === "deleted" && payload?.email
-            ? `${payload.email} was removed from the list.`
-            : payload?.email
-            ? `${payload.email} updated in real time.`
-            : "Your newsletter database updated in real time.",
-
-        variant: "success",
-        duration: 3200,
-      });
+    if (!socket.connected) {
+      socket.connect();
     }
-  } catch {
-    // silent fail to prevent socket crash loops
-  }
-};
 
-  socket.on("newsletter:new-subscriber", (payload) => {
-    refreshNewsletters(payload, "new");
-  });
+    const shouldSilenceToast = (type, payload) => {
+      const local = lastLocalActionRef.current;
+      const payloadId = payload?._id || "";
 
-  socket.on("newsletter:subscriber-reactivated", (payload) => {
-    refreshNewsletters(payload, "reactivated");
-  });
+      return (
+        local?.type === type &&
+        local?.id === payloadId &&
+        Date.now() - local.time < 4000
+      );
+    };
 
-  socket.on("newsletter:subscriber-updated", (payload) => {
-    refreshNewsletters(payload, "updated");
-  });
+    const refreshNewsletters = async (payload, type = "new") => {
+      try {
+        const savedId = (() => {
+          try {
+            return localStorage.getItem(LS_SELECTED_KEY);
+          } catch {
+            return null;
+          }
+        })();
 
-  socket.on("newsletter:subscriber-deleted", (payload) => {
-    refreshNewsletters(payload, "deleted");
-  });
+        const res = await dispatch(
+          fetchAdminNewsletters({
+            preferredId: savedId || payload?._id,
+            fallbackToFirst: true,
+          }),
+        );
 
-  return () => {
-    socket.off("newsletter:new-subscriber");
-    socket.off("newsletter:subscriber-reactivated");
-    socket.off("newsletter:subscriber-updated");
-    socket.off("newsletter:subscriber-deleted");
-  };
-}, [dispatch, push]);
+        if (!res?.ok) return;
+
+        saveCache(res.list || []);
+
+        if (!shouldSilenceToast(type, payload)) {
+          push({
+            title:
+              type === "reactivated"
+                ? "Subscriber reactivated live"
+                : type === "updated"
+                  ? "Subscriber updated live"
+                  : type === "deleted"
+                    ? "Subscriber deleted live"
+                    : "New subscriber joined live",
+
+            description:
+              type === "deleted" && payload?.email
+                ? `${payload.email} was removed from the list.`
+                : payload?.email
+                  ? `${payload.email} updated in real time.`
+                  : "Your newsletter database updated in real time.",
+
+            variant: "success",
+            duration: 3200,
+          });
+        }
+      } catch {
+        // silent fail to prevent socket crash loops
+      }
+    };
+
+    socket.on("newsletter:new-subscriber", (payload) => {
+      refreshNewsletters(payload, "new");
+    });
+
+    socket.on("newsletter:subscriber-reactivated", (payload) => {
+      refreshNewsletters(payload, "reactivated");
+    });
+
+    socket.on("newsletter:subscriber-updated", (payload) => {
+      refreshNewsletters(payload, "updated");
+    });
+
+    socket.on("newsletter:subscriber-deleted", (payload) => {
+      refreshNewsletters(payload, "deleted");
+    });
+
+    return () => {
+      socket.off("newsletter:new-subscriber");
+      socket.off("newsletter:subscriber-reactivated");
+      socket.off("newsletter:subscriber-updated");
+      socket.off("newsletter:subscriber-deleted");
+    };
+  }, [dispatch, push]);
 
   const selectedNewsletter = useMemo(() => {
-  if (!selectedId) return null;
+    if (!selectedId) return null;
 
-  return (
-    newsletters.find((n) => getId(n) === selectedId) || null
-  );
-}, [newsletters, selectedId]);
+    return newsletters.find((n) => getId(n) === selectedId) || null;
+  }, [newsletters, selectedId]);
 
   useEffect(() => {
     if (!selectedNewsletter) return;
@@ -834,29 +839,31 @@ const backendInactive = Number(manageState.inactive) || 0;
   }, [selectedNewsletter]);
 
   const analytics = useMemo(() => {
-  const total = backendTotal || newsletters.length;
-  const active =
-    backendActive || newsletters.filter((n) => n.isActive === true).length;
-  const inactive =
-    backendInactive || newsletters.filter((n) => n.isActive === false).length;
+    const total = backendTotal || newsletters.length;
+    const active =
+      backendActive || newsletters.filter((n) => n.isActive === true).length;
+    const inactive =
+      backendInactive || newsletters.filter((n) => n.isActive === false).length;
 
-  const bySourceMap = newsletters.reduce((acc, n) => {
-    const source = String(n.source || "unknown").trim().toLowerCase();
-    acc[source] = (acc[source] || 0) + 1;
-    return acc;
-  }, {});
+    const bySourceMap = newsletters.reduce((acc, n) => {
+      const source = String(n.source || "unknown")
+        .trim()
+        .toLowerCase();
+      acc[source] = (acc[source] || 0) + 1;
+      return acc;
+    }, {});
 
-  const topSources = Object.entries(bySourceMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4);
+    const topSources = Object.entries(bySourceMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
 
-  return {
-    total,
-    active,
-    inactive,
-    topSources,
-  };
-}, [newsletters, backendTotal, backendActive, backendInactive]);
+    return {
+      total,
+      active,
+      inactive,
+      topSources,
+    };
+  }, [newsletters, backendTotal, backendActive, backendInactive]);
 
   const filteredNewsletters = useMemo(() => {
     if (!search.trim()) return newsletters;
@@ -878,86 +885,34 @@ const backendInactive = Number(manageState.inactive) || 0;
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((p) => ({
-  ...p,
-  [name]: typeof value === "string" ? value.replace(/\s{2,}/g, " ") : value,
-}));
+      ...p,
+      [name]: typeof value === "string" ? value.replace(/\s{2,}/g, " ") : value,
+    }));
   }
 
- async function handleDeleteSelected() {
-  if (!selectedIds.length || deleting) return;
+  async function handleDeleteSelected() {
+    if (!selectedIds.length || deleting) return;
 
-  const confirmed = window.confirm(
-    `Delete ${selectedIds.length} subscriber${
-      selectedIds.length > 1 ? "s" : ""
-    }? This cannot be undone.`
-  );
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} subscriber${
+        selectedIds.length > 1 ? "s" : ""
+      }? This cannot be undone.`,
+    );
 
-  if (!confirmed) return;
+    if (!confirmed) return;
 
-  selectedIds.forEach((id) => {
-    lastLocalActionRef.current = {
-      type: "deleted",
-      id,
-      time: Date.now(),
-    };
-  });
-
-  const results = await Promise.all(
-    selectedIds.filter(Boolean).map((id) => dispatch(deleteAdminNewsletter(id)))
-  );
-
-  const failed = results.filter((r) => !r?.ok);
-  const succeeded = results.filter((r) => r?.ok);
-
-  if (succeeded.length) {
-    push({
-      title: "Subscribers deleted",
-      description: `${succeeded.length} subscriber${
-        succeeded.length > 1 ? "s" : ""
-      } removed successfully.`,
-      variant: "success",
+    selectedIds.forEach((id) => {
+      lastLocalActionRef.current = {
+        type: "deleted",
+        id,
+        time: Date.now(),
+      };
     });
-  }
 
-  if (failed.length) {
-    push({
-      title: "Some deletions failed",
-      description: `${failed.length} item${
-        failed.length > 1 ? "s" : ""
-      } could not be deleted.`,
-      variant: "error",
-    });
-  }
-
-  clearBulkSelection();
-
-  const refresh = await dispatch(
-    fetchAdminNewsletters({
-      preferredId: selectedId,
-      fallbackToFirst: true,
-      search,
-    })
-  );
-
-  if (refresh?.ok) {
-    saveCache(refresh.list || []);
-  }
-  };
-  
-  async function handleBulkStatus(nextActive) {
-  if (!selectedIds.length || bulkUpdating) return;
-
-  setBulkUpdating(true);
-
-  try {
     const results = await Promise.all(
-      selectedIds.filter(Boolean).map((id) =>
-        dispatch(
-          bulkUpdateAdminNewsletters(id, {
-            isActive: !!nextActive,
-          })
-        )
-      )
+      selectedIds
+        .filter(Boolean)
+        .map((id) => dispatch(deleteAdminNewsletter(id))),
     );
 
     const failed = results.filter((r) => !r?.ok);
@@ -965,200 +920,267 @@ const backendInactive = Number(manageState.inactive) || 0;
 
     if (succeeded.length) {
       push({
-        title: nextActive ? "Subscribers activated" : "Subscribers paused",
-        description: `${succeeded.length} subscriber${succeeded.length > 1 ? "s" : ""} updated successfully.`,
+        title: "Subscribers deleted",
+        description: `${succeeded.length} subscriber${
+          succeeded.length > 1 ? "s" : ""
+        } removed successfully.`,
         variant: "success",
       });
     }
 
     if (failed.length) {
       push({
-        title: "Some updates failed",
-        description: `${failed.length} item${failed.length > 1 ? "s" : ""} could not be updated.`,
+        title: "Some deletions failed",
+        description: `${failed.length} item${
+          failed.length > 1 ? "s" : ""
+        } could not be deleted.`,
         variant: "error",
       });
     }
 
-    const savedId = (() => {
-      try {
-        return localStorage.getItem(LS_SELECTED_KEY);
-      } catch {
-        return null;
-      }
-    })();
+    clearBulkSelection();
 
     const refresh = await dispatch(
       fetchAdminNewsletters({
-        preferredId: savedId,
+        preferredId: selectedId,
         fallbackToFirst: true,
-      })
+        search,
+      }),
     );
 
     if (refresh?.ok) {
       saveCache(refresh.list || []);
     }
-  } finally {
-    setBulkUpdating(false);
   }
-}
+
+  async function handleBulkStatus(nextActive) {
+    if (!selectedIds.length || bulkUpdating) return;
+
+    setBulkUpdating(true);
+
+    try {
+      const results = await Promise.all(
+        selectedIds.filter(Boolean).map((id) =>
+          dispatch(
+            bulkUpdateAdminNewsletters(id, {
+              isActive: !!nextActive,
+            }),
+          ),
+        ),
+      );
+
+      const failed = results.filter((r) => !r?.ok);
+      const succeeded = results.filter((r) => r?.ok);
+
+      if (succeeded.length) {
+        push({
+          title: nextActive ? "Subscribers activated" : "Subscribers paused",
+          description: `${succeeded.length} subscriber${succeeded.length > 1 ? "s" : ""} updated successfully.`,
+          variant: "success",
+        });
+      }
+
+      if (failed.length) {
+        push({
+          title: "Some updates failed",
+          description: `${failed.length} item${failed.length > 1 ? "s" : ""} could not be updated.`,
+          variant: "error",
+        });
+      }
+
+      const savedId = (() => {
+        try {
+          return localStorage.getItem(LS_SELECTED_KEY);
+        } catch {
+          return null;
+        }
+      })();
+
+      const refresh = await dispatch(
+        fetchAdminNewsletters({
+          preferredId: savedId,
+          fallbackToFirst: true,
+        }),
+      );
+
+      if (refresh?.ok) {
+        saveCache(refresh.list || []);
+      }
+    } finally {
+      setBulkUpdating(false);
+    }
+  }
 
   function toggleSelected(id) {
-  setSelectedIds((prev) =>
-    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-  );
-}
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
 
-function clearBulkSelection() {
-  setSelectedIds([]);
-}
+  function clearBulkSelection() {
+    setSelectedIds([]);
+  }
 
-function selectAllFiltered() {
-  setSelectedIds(filteredNewsletters.map((n) => getId(n)).filter(Boolean));
-}
+  function selectAllFiltered() {
+    setSelectedIds(filteredNewsletters.map((n) => getId(n)).filter(Boolean));
+  }
 
-function exportNewslettersToCsv(rows) {
-  const headers = [
-    "name",
-    "email",
-    "topic",
-    "source",
-    "notes",
-    "isActive",
-    "createdAt",
-    "updatedAt",
-  ];
+  function exportNewslettersToCsv(rows) {
+    const headers = [
+      "name",
+      "email",
+      "topic",
+      "source",
+      "notes",
+      "isActive",
+      "createdAt",
+      "updatedAt",
+    ];
 
-  const escapeCell = (value) => {
-    const str = String(value ?? "");
-    return `"${str.replace(/"/g, '""')}"`;
-  };
+    const escapeCell = (value) => {
+      const str = String(value ?? "");
+      return `"${str.replace(/"/g, '""')}"`;
+    };
 
-  const csv = [
-    headers.join(","),
-    ...rows.map((row) =>
-      headers
-        .map((key) => {
-          if (key === "isActive") return escapeCell(row?.isActive ? "true" : "false");
-          return escapeCell(row?.[key] ?? "");
-        })
-        .join(",")
-    ),
-  ].join("\n");
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) =>
+        headers
+          .map((key) => {
+            if (key === "isActive")
+              return escapeCell(row?.isActive ? "true" : "false");
+            return escapeCell(row?.[key] ?? "");
+          })
+          .join(","),
+      ),
+    ].join("\n");
 
-  const blob = new Blob([`\uFEFF${csv}`], {
-  type: "text/csv;charset=utf-8;",
-});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `newsletters-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+    const blob = new Blob([`\uFEFF${csv}`], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `newsletters-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   function toggleActive() {
     setForm((p) => ({ ...p, isActive: !p.isActive }));
   }
 
   async function handleSave(e) {
-  e.preventDefault();
-  if (!selectedNewsletter || submitting) return;
+    e.preventDefault();
+    if (!selectedNewsletter || submitting) return;
 
-  setSubmitting(true);
+    setSubmitting(true);
 
-  try {
-    const id = getId(selectedNewsletter);
+    try {
+      const id = getId(selectedNewsletter);
 
-    const clean = {
-      name: String(form.name || "").trim().slice(0, 80),
-      email: String(form.email || "").trim().toLowerCase(),
-      topic: String(form.topic || "").trim().slice(0, 60),
-      source: String(form.source || "").trim().slice(0, 40),
-      notes: String(form.notes || "").trim().slice(0, 1000),
-      isActive: !!form.isActive,
-    };
+      const clean = {
+        name: String(form.name || "")
+          .trim()
+          .slice(0, 80),
+        email: String(form.email || "")
+          .trim()
+          .toLowerCase(),
+        topic: String(form.topic || "")
+          .trim()
+          .slice(0, 60),
+        source: String(form.source || "")
+          .trim()
+          .slice(0, 40),
+        notes: String(form.notes || "")
+          .trim()
+          .slice(0, 1000),
+        isActive: !!form.isActive,
+      };
 
-    // ✅ email validation
-    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(clean.email);
-    if (!validEmail) {
-      const msg = "Please enter a valid email address.";
+      // ✅ email validation
+      const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(clean.email);
+      if (!validEmail) {
+        const msg = "Please enter a valid email address.";
 
-      dispatch(setManageNewsletterSystemMessage("error", msg));
+        dispatch(setManageNewsletterSystemMessage("error", msg));
+
+        push({
+          title: "Invalid email",
+          description: msg,
+          variant: "error",
+        });
+
+        return;
+      }
+
+      // ✅ change detection (prevents useless API calls)
+      const noChange =
+        clean.name === (selectedNewsletter.name || "") &&
+        clean.email === (selectedNewsletter.email || "") &&
+        clean.topic === (selectedNewsletter.topic || "") &&
+        clean.source === (selectedNewsletter.source || "") &&
+        clean.notes === (selectedNewsletter.notes || "") &&
+        clean.isActive ===
+          (typeof selectedNewsletter.isActive === "boolean"
+            ? selectedNewsletter.isActive
+            : true);
+
+      if (noChange) {
+        const msg = "No changes detected.";
+
+        dispatch(setManageNewsletterSystemMessage("info", msg));
+
+        return;
+      }
+
+      lastLocalActionRef.current = {
+        type: "updated",
+        id,
+        time: Date.now(),
+      };
+
+      const res = await dispatch(updateAdminNewsletter(id, clean));
+
+      if (res?.ok) {
+        const updatedList = newsletters.map((n) =>
+          getId(n) === getId(res.updated) ? res.updated : n,
+        );
+
+        saveCache(updatedList);
+
+        try {
+          localStorage.setItem(LS_SELECTED_KEY, getId(res.updated));
+        } catch {
+          /* empty */
+        }
+
+        push({
+          title: "Newsletter updated",
+          description: "Changes saved successfully.",
+          variant: "success",
+        });
+
+        return;
+      }
+
+      const message =
+        res?.message ||
+        "Update failed. Please try again or check your admin access.";
+
+      dispatch(setManageNewsletterSystemMessage("error", message));
 
       push({
-        title: "Invalid email",
-        description: msg,
+        title: "Update failed",
+        description: message,
         variant: "error",
       });
-
-      return;
+    } finally {
+      setSubmitting(false);
     }
-
-    // ✅ change detection (prevents useless API calls)
-    const noChange =
-      clean.name === (selectedNewsletter.name || "") &&
-      clean.email === (selectedNewsletter.email || "") &&
-      clean.topic === (selectedNewsletter.topic || "") &&
-      clean.source === (selectedNewsletter.source || "") &&
-      clean.notes === (selectedNewsletter.notes || "") &&
-      clean.isActive ===
-        (typeof selectedNewsletter.isActive === "boolean"
-          ? selectedNewsletter.isActive
-          : true);
-
-    if (noChange) {
-      const msg = "No changes detected.";
-
-      dispatch(setManageNewsletterSystemMessage("info", msg));
-
-      return;
-    }
-
-    lastLocalActionRef.current = {
-  type: "updated",
-  id,
-  time: Date.now(),
-};
-
-    const res = await dispatch(updateAdminNewsletter(id, clean));
-
-    if (res?.ok) {
-      const updatedList = newsletters.map((n) =>
-        getId(n) === getId(res.updated) ? res.updated : n
-      );
-
-      saveCache(updatedList);
-
-      try {
-        localStorage.setItem(LS_SELECTED_KEY, getId(res.updated));
-      } catch { /* empty */ }
-
-      push({
-        title: "Newsletter updated",
-        description: "Changes saved successfully.",
-        variant: "success",
-      });
-
-      return;
-    }
-
-    const message =
-      res?.message ||
-      "Update failed. Please try again or check your admin access.";
-
-    dispatch(setManageNewsletterSystemMessage("error", message));
-
-    push({
-      title: "Update failed",
-      description: message,
-      variant: "error",
-    });
-  } finally {
-    setSubmitting(false);
   }
-  };
 
   function handleReset() {
     if (!selectedNewsletter) return;
@@ -1187,9 +1209,9 @@ function exportNewslettersToCsv(rows) {
               <Kicker>First 1–3 seconds hook</Kicker>
               <Title>Luxury Newsletter Command Center</Title>
               <Subtitle>
-  Every subscriber. Every source. Every move — tracked live in a premium
-  command center built for serious growth.
-</Subtitle>
+                Every subscriber. Every source. Every move — tracked live in a
+                premium command center built for serious growth.
+              </Subtitle>
             </TitleBlock>
 
             <Badge>
@@ -1205,26 +1227,26 @@ function exportNewslettersToCsv(rows) {
           </HeaderRow>
 
           <StatsRow>
-  <StatCard>
-    <StatLabel>Total Subscribers</StatLabel>
-    <StatValue>{analytics.total}</StatValue>
-  </StatCard>
+            <StatCard>
+              <StatLabel>Total Subscribers</StatLabel>
+              <StatValue>{analytics.total}</StatValue>
+            </StatCard>
 
-  <StatCard>
-    <StatLabel>Active</StatLabel>
-    <StatValue>{analytics.active}</StatValue>
-  </StatCard>
+            <StatCard>
+              <StatLabel>Active</StatLabel>
+              <StatValue>{analytics.active}</StatValue>
+            </StatCard>
 
-  <StatCard>
-    <StatLabel>Paused</StatLabel>
-    <StatValue>{analytics.inactive}</StatValue>
-  </StatCard>
+            <StatCard>
+              <StatLabel>Paused</StatLabel>
+              <StatValue>{analytics.inactive}</StatValue>
+            </StatCard>
 
-  <StatCard>
-    <StatLabel>Top Source</StatLabel>
-    <StatValue>{analytics.topSources[0]?.[0] || "—"}</StatValue>
-  </StatCard>
-</StatsRow>
+            <StatCard>
+              <StatLabel>Top Source</StatLabel>
+              <StatValue>{analytics.topSources[0]?.[0] || "—"}</StatValue>
+            </StatCard>
+          </StatsRow>
 
           {(systemMessage || reduxError) && (
             <SystemBar $tone={systemMessage?.tone || "error"}>
@@ -1234,60 +1256,58 @@ function exportNewslettersToCsv(rows) {
           )}
 
           <BulkBar>
-  <div>
-    {selectedIds.length} selected
-  </div>
+            <div>{selectedIds.length} selected</div>
 
-  <BulkActions>
-    <MiniButton
-      type="button"
-      onClick={selectAllFiltered}
-      disabled={!filteredNewsletters.length}
-    >
-      Select All
-    </MiniButton>
+            <BulkActions>
+              <MiniButton
+                type="button"
+                onClick={selectAllFiltered}
+                disabled={!filteredNewsletters.length}
+              >
+                Select All
+              </MiniButton>
 
-    <MiniButton
-      type="button"
-      onClick={clearBulkSelection}
-      disabled={!selectedIds.length}
-    >
-      Clear
-    </MiniButton>
+              <MiniButton
+                type="button"
+                onClick={clearBulkSelection}
+                disabled={!selectedIds.length}
+              >
+                Clear
+              </MiniButton>
 
-    <MiniButton
-      type="button"
-      onClick={() => handleBulkStatus(true)}
-      disabled={!selectedIds.length || bulkUpdating}
-    >
-      Activate
-    </MiniButton>
+              <MiniButton
+                type="button"
+                onClick={() => handleBulkStatus(true)}
+                disabled={!selectedIds.length || bulkUpdating}
+              >
+                Activate
+              </MiniButton>
 
-    <MiniButton
-      type="button"
-      onClick={() => handleBulkStatus(false)}
-      disabled={!selectedIds.length || bulkUpdating}
-    >
-      Pause
-    </MiniButton>
+              <MiniButton
+                type="button"
+                onClick={() => handleBulkStatus(false)}
+                disabled={!selectedIds.length || bulkUpdating}
+              >
+                Pause
+              </MiniButton>
 
-    <MiniButton
-      type="button"
-      onClick={() => exportNewslettersToCsv(filteredNewsletters)}
-      disabled={!filteredNewsletters.length}
-    >
-      Export CSV
-    </MiniButton>
+              <MiniButton
+                type="button"
+                onClick={() => exportNewslettersToCsv(filteredNewsletters)}
+                disabled={!filteredNewsletters.length}
+              >
+                Export CSV
+              </MiniButton>
 
-    <MiniButton
-      type="button"
-      onClick={handleDeleteSelected}
-      disabled={!selectedIds.length || deleting}
-    >
-      {deleting ? "Deleting..." : "Delete"}
-    </MiniButton>
-  </BulkActions>
-</BulkBar>
+              <MiniButton
+                type="button"
+                onClick={handleDeleteSelected}
+                disabled={!selectedIds.length || deleting}
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </MiniButton>
+            </BulkActions>
+          </BulkBar>
 
           <Layout>
             {/* LEFT */}
@@ -1323,71 +1343,79 @@ function exportNewslettersToCsv(rows) {
                       const id = getId(n);
                       return (
                         <ListItem
-  key={id}
-  role="button"
-  tabIndex={0}
-  $active={id === selectedId}
-  onClick={() => {
-    const nextId = getId(n);
-    dispatch(setSelectedNewsletterId(nextId));
+                          key={id}
+                          role="button"
+                          tabIndex={0}
+                          $active={id === selectedId}
+                          onClick={() => {
+                            const nextId = getId(n);
+                            dispatch(setSelectedNewsletterId(nextId));
 
-    try {
-      localStorage.setItem(LS_SELECTED_KEY, nextId);
-    } catch {
-      // ignore
-    }
+                            try {
+                              localStorage.setItem(LS_SELECTED_KEY, nextId);
+                            } catch {
+                              // ignore
+                            }
 
-    dispatch(setManageNewsletterSystemMessage(null, null));
-  }}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
+                            dispatch(
+                              setManageNewsletterSystemMessage(null, null),
+                            );
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
 
-      const nextId = getId(n);
-      dispatch(setSelectedNewsletterId(nextId));
+                              const nextId = getId(n);
+                              dispatch(setSelectedNewsletterId(nextId));
 
-      try {
-        localStorage.setItem(LS_SELECTED_KEY, nextId);
-      } catch {
-        // ignore
-      }
+                              try {
+                                localStorage.setItem(LS_SELECTED_KEY, nextId);
+                              } catch {
+                                // ignore
+                              }
 
-      dispatch(setManageNewsletterSystemMessage(null, null));
-    }
-  }}
-  layout
-  initial={{ opacity: 0, y: 4 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0, y: -4 }}
-  transition={{ duration: 0.16 }}
->
-  <div>
-    <Meta>
-      <SelectTagButton
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleSelected(id);
-        }}
-      >
-        {selectedIds.includes(id) ? "Selected" : "Select"}
-      </SelectTagButton>
+                              dispatch(
+                                setManageNewsletterSystemMessage(null, null),
+                              );
+                            }
+                          }}
+                          layout
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.16 }}
+                        >
+                          <div>
+                            <Meta>
+                              <SelectTagButton
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelected(id);
+                                }}
+                              >
+                                {selectedIds.includes(id)
+                                  ? "Selected"
+                                  : "Select"}
+                              </SelectTagButton>
 
-      {n.name ? <Tag>{n.name}</Tag> : null}
-      {n.topic ? <Tag>{n.topic}</Tag> : null}
-      {n.source ? <Tag>{n.source}</Tag> : null}
-      {typeof n.isActive === "boolean" ? (
-        <Tag>{n.isActive ? "Active" : "Inactive"}</Tag>
-      ) : null}
-    </Meta>
+                              {n.name ? <Tag>{n.name}</Tag> : null}
+                              {n.topic ? <Tag>{n.topic}</Tag> : null}
+                              {n.source ? <Tag>{n.source}</Tag> : null}
+                              {typeof n.isActive === "boolean" ? (
+                                <Tag>{n.isActive ? "Active" : "Inactive"}</Tag>
+                              ) : null}
+                            </Meta>
 
-    <Email>{n.email || "Unknown email"}</Email>
-  </div>
+                            <Email>{n.email || "Unknown email"}</Email>
+                          </div>
 
-  <DateText>
-    {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}
-  </DateText>
-</ListItem>
+                          <DateText>
+                            {n.createdAt
+                              ? new Date(n.createdAt).toLocaleDateString()
+                              : ""}
+                          </DateText>
+                        </ListItem>
                       );
                     })}
                   </AnimatePresence>
@@ -1429,20 +1457,20 @@ function exportNewslettersToCsv(rows) {
                         type="email"
                         value={form.email}
                         onChange={handleChange}
-                          placeholder="name@example.com"
-                          onBlur={() => {
-    if (
-      form.email &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(form.email)
-    ) {
-      dispatch(
-        setManageNewsletterSystemMessage(
-          "error",
-          "Invalid email format."
-        )
-      );
-    }
-  }}
+                        placeholder="name@example.com"
+                        onBlur={() => {
+                          if (
+                            form.email &&
+                            !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(form.email)
+                          ) {
+                            dispatch(
+                              setManageNewsletterSystemMessage(
+                                "error",
+                                "Invalid email format.",
+                              ),
+                            );
+                          }
+                        }}
                       />
                     </div>
                   </FieldRow>
@@ -1500,19 +1528,23 @@ function exportNewslettersToCsv(rows) {
                   </div>
 
                   <HelperText>
-                    Saving updates the database immediately. We also cache the last
-                    viewed selection safely in localStorage for admin convenience.
+                    Saving updates the database immediately. We also cache the
+                    last viewed selection safely in localStorage for admin
+                    convenience.
                   </HelperText>
 
                   <ButtonRow>
-                    <PrimaryButton type="submit" disabled={saving || submitting}>
+                    <PrimaryButton
+                      type="submit"
+                      disabled={saving || submitting}
+                    >
                       {saving ? "Saving…" : "Save Changes"}
                     </PrimaryButton>
                     <GhostButton
-  type="button"
-  onClick={handleReset}
-  disabled={saving || submitting}
->
+                      type="button"
+                      onClick={handleReset}
+                      disabled={saving || submitting}
+                    >
                       Reset
                     </GhostButton>
                   </ButtonRow>
@@ -1525,4 +1557,3 @@ function exportNewslettersToCsv(rows) {
     </>
   );
 }
-

@@ -5,12 +5,14 @@ import EmailCampaignLog from "../models/EmailCampaignLogModel.js";
 import EmailCampaign from "../models/EmailCampaignModel.js";
 
 function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isValidEmail(email) {
   return /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/.test(
-    normalizeEmail(email)
+    normalizeEmail(email),
   );
 }
 
@@ -86,9 +88,11 @@ export async function unsubscribeEmail(req, res, next) {
   try {
     const email = normalizeEmail(req.query.email || req.body.email || "");
     const campaignId = String(
-      req.query.campaign || req.body.campaign || ""
+      req.query.campaign || req.body.campaign || "",
     ).trim();
-    const reason = String(req.body.reason || "").trim().slice(0, 300);
+    const reason = String(req.body.reason || "")
+      .trim()
+      .slice(0, 300);
     const unsubscribedAt = new Date();
 
     if (!isValidEmail(email)) {
@@ -112,7 +116,7 @@ export async function unsubscribeEmail(req, res, next) {
         new: true,
         upsert: true,
         setDefaultsOnInsert: true,
-      }
+      },
     );
 
     if (campaignId && isValidObjectId(campaignId)) {
@@ -123,7 +127,7 @@ export async function unsubscribeEmail(req, res, next) {
             status: "unsubscribed",
             unsubscribedAt,
           },
-        }
+        },
       );
 
       await refreshCampaignUnsubscribeCount(campaignId);

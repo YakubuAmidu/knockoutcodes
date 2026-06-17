@@ -55,7 +55,7 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    createEmailTemplate
+    createEmailTemplate,
   );
 
 router
@@ -67,14 +67,14 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    updateEmailTemplate
+    updateEmailTemplate,
   )
   .delete(
     emailTemplateWriteLimiter,
     validateObjectId("id"),
     ...adminDeleteHardening,
     requireCsrf,
-    deleteEmailTemplate
+    deleteEmailTemplate,
   );
 
 export default router;

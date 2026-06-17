@@ -17,7 +17,8 @@ const LS_SUB_TS_KEY = "newsletter_subscribed_ts_v1";
 
 const Wrap = styled.footer`
   margin-top: auto;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       1200px 520px at 12% 0%,
       rgba(214, 182, 159, 0.18),
       transparent 56%
@@ -122,7 +123,9 @@ const Col = styled.div`
     display: inline-block;
     padding: 6px 0 7px;
     border-radius: 6px;
-    transition: transform 0.15s ease, opacity 0.2s ease;
+    transition:
+      transform 0.15s ease,
+      opacity 0.2s ease;
     opacity: 0.95;
   }
 
@@ -136,7 +139,9 @@ const Col = styled.div`
     background: rgba(255, 255, 255, 0);
     transform: scaleX(0.2);
     transform-origin: left;
-    transition: transform 0.25s ease, background 0.25s ease;
+    transition:
+      transform 0.25s ease,
+      background 0.25s ease;
   }
 
   a:hover {
@@ -186,7 +191,9 @@ const Input = styled.input`
   color: ${({ theme }) => theme.colors.white};
   border: 1px solid rgba(255, 255, 255, 0.14);
   outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 
   &::placeholder {
     color: rgba(255, 255, 255, 0.65);
@@ -210,7 +217,10 @@ const Button = styled.button`
   color: ${({ theme }) => theme.colors.black};
   border: 1px solid rgba(0, 0, 0, 0.2);
   box-shadow: ${({ theme }) => theme.shadow.hard};
-  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease,
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
     opacity 0.2s ease;
   white-space: nowrap;
   font-weight: 750;
@@ -265,7 +275,9 @@ const Links = styled.nav`
   a {
     position: relative;
     padding: 6px 2px;
-    transition: transform 0.15s ease, opacity 0.2s ease;
+    transition:
+      transform 0.15s ease,
+      opacity 0.2s ease;
     opacity: 0.95;
   }
 
@@ -279,7 +291,9 @@ const Links = styled.nav`
     background: rgba(255, 255, 255, 0);
     transform: scaleX(0.2);
     transform-origin: left;
-    transition: transform 0.25s ease, background 0.25s ease;
+    transition:
+      transform 0.25s ease,
+      background 0.25s ease;
   }
 
   a:hover {
@@ -317,7 +331,10 @@ const Socials = styled.div`
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease,
+    transition:
+      transform 0.15s ease,
+      background 0.2s ease,
+      opacity 0.2s ease,
       box-shadow 0.25s ease;
     opacity: 0.95;
     color: ${({ theme }) => theme.colors.white};
@@ -343,10 +360,10 @@ const Status = styled.small`
     $type === "error"
       ? "#fecaca"
       : $type === "success"
-      ? "#bbf7d0"
-      : $type === "info"
-      ? "rgba(255,249,242,0.9)"
-      : "rgba(255,249,242,0.85)"};
+        ? "#bbf7d0"
+        : $type === "info"
+          ? "rgba(255,249,242,0.9)"
+          : "rgba(255,249,242,0.85)"};
 `;
 
 const LiveHint = styled.div`
@@ -403,24 +420,24 @@ export default function Footer() {
   // ✅ NEW: track why we are cooling down (so button label can stay "Send" for already-subscribed)
   const [cooldownMode, setCooldownMode] = useState(null); // "already" | "rate" | "other" | null
 
-useEffect(() => {
-  if (!cooldownUntil) return;
+  useEffect(() => {
+    if (!cooldownUntil) return;
 
-  setNow(Date.now());
+    setNow(Date.now());
 
-  const timer = setInterval(() => {
-    const current = Date.now();
-    setNow(current);
+    const timer = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
 
-    if (current >= cooldownUntil) {
-      clearInterval(timer);
-    }
-  }, 500);
+      if (current >= cooldownUntil) {
+        clearInterval(timer);
+      }
+    }, 500);
 
-  return () => clearInterval(timer);
-}, [cooldownUntil]);
+    return () => clearInterval(timer);
+  }, [cooldownUntil]);
 
-const isCoolingDown = now < cooldownUntil;
+  const isCoolingDown = now < cooldownUntil;
 
   // ✅ NEW: when cooldown ends, clear the mode (keeps UI clean)
   useEffect(() => {
@@ -447,190 +464,193 @@ const isCoolingDown = now < cooldownUntil;
     /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(String(val).trim());
 
   const handleSubscribe = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (submitting) return;
+    if (submitting) return;
     setSubmitting(true);
-    
+
     // bot timing protection
-if (Date.now() - mountedAt < 1500) {
-  setSubmitting(false);
-  return;
-}
-
-  try {
-    // honeypot triggered → pretend success (quietly)
-    if (company || website) {
-  setStatus({ type: "success", text: "Subscribed." });
-  return;
-}
-
-    const cleanEmail = String(email).trim().toLowerCase();
-
-    // ✅ ADD HERE
-if (!cleanEmail) {
-  setSubmitting(false);
-  return;
-}
-
-    if (!validEmail(cleanEmail)) {
-      const text = "Please enter a valid email address.";
-      setStatus({ type: "error", text });
-      toast.push({
-        title: "Invalid email",
-        description: text,
-        variant: "error",
-        duration: 2800,
-      });
+    if (Date.now() - mountedAt < 1500) {
+      setSubmitting(false);
       return;
     }
 
-    if (isCoolingDown) {
-      const text = "Please wait a moment before trying again.";
-      setStatus({ type: "info", text });
-      return;
-    }
-
-    // ✅ drive loading from redux
-    setStatus({ type: "info", text: "Securing your spot…" });
-
-    // clear previous redux status
-    dispatch(resetNewsletterSubscribe());
-
-    // ensure CSRF token exists (safe, silent)
     try {
-      await axiosInstance.get("/auth/csrf");
-    } catch {
-      // ignore silently
-    }
-
-    // optional fail-safe timeout so UI does not hang forever
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 10000)
-    );
-
-    const result = await Promise.race([
-      dispatch(
-       subscribeToNewsletter(cleanEmail, {
-  source: "footer",
-  company,
-  website,
-})
-      ),
-      timeout,
-    ]);
-
-    // result is returned from the thunk
-    if (result?.ok) {
-      const msg = "You’re in. The next elite drop is coming to your inbox.";
-      setStatus({ type: "success", text: msg });
-
-      try {
-        localStorage.setItem(LS_SUB_KEY, cleanEmail);
-        localStorage.setItem(LS_SUB_TS_KEY, String(Date.now()));
-      } catch {
-        // ignore
+      // honeypot triggered → pretend success (quietly)
+      if (company || website) {
+        setStatus({ type: "success", text: "Subscribed." });
+        return;
       }
 
-      toast.push({
-        title: "Subscribed!",
-        description: msg,
-        variant: "success",
-        duration: 2800,
-      });
+      const cleanEmail = String(email).trim().toLowerCase();
 
-      setEmail("");
-      setCooldownMode("other");
-      setCooldownUntil(Date.now() + 12_000); // 12s cool-down
-      return;
-    }
+      // ✅ ADD HERE
+      if (!cleanEmail) {
+        setSubmitting(false);
+        return;
+      }
 
-    // Handle known statuses
-    if (result?.status === 409) {
-      const msg = result?.message || "You’re already on the list.";
-      setStatus({ type: "info", text: msg });
+      if (!validEmail(cleanEmail)) {
+        const text = "Please enter a valid email address.";
+        setStatus({ type: "error", text });
+        toast.push({
+          title: "Invalid email",
+          description: text,
+          variant: "error",
+          duration: 2800,
+        });
+        return;
+      }
 
-      toast.push({
-        title: "Already subscribed",
-        description: msg,
-        variant: "info",
-        duration: 2600,
-      });
+      if (isCoolingDown) {
+        const text = "Please wait a moment before trying again.";
+        setStatus({ type: "info", text });
+        return;
+      }
 
-      setCooldownMode("already");
-      setCooldownUntil(Date.now() + 8000);
-      return;
-    }
+      // ✅ drive loading from redux
+      setStatus({ type: "info", text: "Securing your spot…" });
 
-    if (result?.status === 429) {
-      const msg = result?.message || "Too many attempts. Please wait.";
-      setStatus({ type: "info", text: msg });
+      // clear previous redux status
+      dispatch(resetNewsletterSubscribe());
 
-      toast.push({
-        title: "Slow down",
-        description: msg,
-        variant: "info",
-        duration: 2800,
-      });
+      // ensure CSRF token exists (safe, silent)
+      try {
+        await axiosInstance.get("/auth/csrf");
+      } catch {
+        // ignore silently
+      }
 
-      setCooldownMode("rate");
-      setCooldownUntil(Date.now() + 20_000);
-      return;
-    }
+      // optional fail-safe timeout so UI does not hang forever
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10000),
+      );
 
-        if (result?.status === 403) {
-      const msg =
-        result?.message ||
-        "Admin accounts cannot subscribe to the newsletter. Please use a regular user account.";
+      const result = await Promise.race([
+        dispatch(
+          subscribeToNewsletter(cleanEmail, {
+            source: "footer",
+            company,
+            website,
+          }),
+        ),
+        timeout,
+      ]);
 
+      // result is returned from the thunk
+      if (result?.ok) {
+        const msg = "You’re in. The next elite drop is coming to your inbox.";
+        setStatus({ type: "success", text: msg });
+
+        try {
+          localStorage.setItem(LS_SUB_KEY, cleanEmail);
+          localStorage.setItem(LS_SUB_TS_KEY, String(Date.now()));
+        } catch {
+          // ignore
+        }
+
+        toast.push({
+          title: "Subscribed!",
+          description: msg,
+          variant: "success",
+          duration: 2800,
+        });
+
+        setEmail("");
+        setCooldownMode("other");
+        setCooldownUntil(Date.now() + 12_000); // 12s cool-down
+        return;
+      }
+
+      // Handle known statuses
+      if (result?.status === 409) {
+        const msg = result?.message || "You’re already on the list.";
+        setStatus({ type: "info", text: msg });
+
+        toast.push({
+          title: "Already subscribed",
+          description: msg,
+          variant: "info",
+          duration: 2600,
+        });
+
+        setCooldownMode("already");
+        setCooldownUntil(Date.now() + 8000);
+        return;
+      }
+
+      if (result?.status === 429) {
+        const msg = result?.message || "Too many attempts. Please wait.";
+        setStatus({ type: "info", text: msg });
+
+        toast.push({
+          title: "Slow down",
+          description: msg,
+          variant: "info",
+          duration: 2800,
+        });
+
+        setCooldownMode("rate");
+        setCooldownUntil(Date.now() + 20_000);
+        return;
+      }
+
+      if (result?.status === 403) {
+        const msg =
+          result?.message ||
+          "Admin accounts cannot subscribe to the newsletter. Please use a regular user account.";
+
+        setStatus({ type: "error", text: msg });
+
+        toast.push({
+          title: "Admin action blocked",
+          description: msg,
+          variant: "error",
+          duration: 3200,
+        });
+
+        setCooldownMode("other");
+        setCooldownUntil(Date.now() + 6000);
+        return;
+      }
+
+      // Default failure
+      const msg = result?.message || "Subscription failed. Please try again.";
       setStatus({ type: "error", text: msg });
 
       toast.push({
-        title: "Admin action blocked",
+        title: "Subscription failed",
         description: msg,
         variant: "error",
-        duration: 3200,
+        duration: 3000,
       });
 
       setCooldownMode("other");
       setCooldownUntil(Date.now() + 6000);
-      return;
+    } catch (error) {
+      const msg =
+        error?.message === "timeout"
+          ? "Network timeout. Please try again."
+          : "Subscription failed. Please try again.";
+
+      setStatus({ type: "error", text: msg });
+
+      toast.push({
+        title:
+          error?.message === "timeout"
+            ? "Connection issue"
+            : "Subscription failed",
+        description: msg,
+        variant: "error",
+        duration: 3000,
+      });
+
+      setCooldownMode("other");
+      setCooldownUntil(Date.now() + 6000);
+    } finally {
+      setSubmitting(false);
     }
-
-    // Default failure
-    const msg = result?.message || "Subscription failed. Please try again.";
-    setStatus({ type: "error", text: msg });
-
-    toast.push({
-      title: "Subscription failed",
-      description: msg,
-      variant: "error",
-      duration: 3000,
-    });
-
-    setCooldownMode("other");
-    setCooldownUntil(Date.now() + 6000);
-  } catch (error) {
-    const msg =
-      error?.message === "timeout"
-        ? "Network timeout. Please try again."
-        : "Subscription failed. Please try again.";
-
-    setStatus({ type: "error", text: msg });
-
-    toast.push({
-      title: error?.message === "timeout" ? "Connection issue" : "Subscription failed",
-      description: msg,
-      variant: "error",
-      duration: 3000,
-    });
-
-    setCooldownMode("other");
-    setCooldownUntil(Date.now() + 6000);
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   return (
     <Wrap>
@@ -642,12 +662,13 @@ if (!cleanEmail) {
               <div className="kicker">Luxury • Discipline • Results</div>
               <div className="name">KnockoutCodes</div>
               <div className="tagline">
-  Discipline creates champions. Precision creates legends.
-</div>
+                Discipline creates champions. Precision creates legends.
+              </div>
               <div className="desc">
-  Premium boxing education, elite-level coaching, powerful training systems,
-  and luxury digital experiences designed for serious fighters and disciplined minds.
-</div>
+                Premium boxing education, elite-level coaching, powerful
+                training systems, and luxury digital experiences designed for
+                serious fighters and disciplined minds.
+              </div>
             </Brand>
 
             {/* Explore */}
@@ -690,10 +711,12 @@ if (!cleanEmail) {
               <h4>Elite Newsletter Access</h4>
               <SubscribeCard onSubmit={handleSubscribe} aria-live="polite">
                 <LiveHint>
-  <span />
-  Private drops live
-</LiveHint>
-                <label htmlFor="email">Join the elite list before the next drop</label>
+                  <span />
+                  Private drops live
+                </LiveHint>
+                <label htmlFor="email">
+                  Join the elite list before the next drop
+                </label>
 
                 {/* Honeypot (hidden) */}
                 <input
@@ -713,20 +736,20 @@ if (!cleanEmail) {
                 />
 
                 <input
-  type="text"
-  tabIndex={-1}
-  autoComplete="off"
-  value={website}
-  onChange={(e) => setWebsite(e.target.value)}
-  style={{
-    position: "absolute",
-    left: "-9999px",
-    opacity: 0,
-    height: 0,
-    width: 0,
-  }}
-  aria-hidden="true"
-/>
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  style={{
+                    position: "absolute",
+                    left: "-9999px",
+                    opacity: 0,
+                    height: 0,
+                    width: 0,
+                  }}
+                  aria-hidden="true"
+                />
 
                 <div className="row">
                   <Input
@@ -737,35 +760,42 @@ if (!cleanEmail) {
                     required
                     value={email}
                     onBlur={() => {
-  if (email && !validEmail(email)) {
-    setStatus({ type: "error", text: "Invalid email format." });
-  }
+                      if (email && !validEmail(email)) {
+                        setStatus({
+                          type: "error",
+                          text: "Invalid email format.",
+                        });
+                      }
                     }}
                     onKeyDown={(e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    handleSubscribe(e);
-  }
-}}
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSubscribe(e);
+                      }
+                    }}
                     onChange={(e) => setEmail(e.target.value)}
-                    disabled={reduxLoading || submitting || (isCoolingDown && cooldownMode !== "already")}
+                    disabled={
+                      reduxLoading ||
+                      submitting ||
+                      (isCoolingDown && cooldownMode !== "already")
+                    }
                     aria-invalid={status.type === "error" ? "true" : "false"}
                   />
                   <Button
-  type="submit"
-  aria-label="Subscribe"
-  disabled={
-    reduxLoading ||
-    submitting ||
-    (isCoolingDown && cooldownMode !== "already")
-  }
->
-  {reduxLoading || submitting
-    ? "Subscribing…"
-    : isCoolingDown && cooldownMode !== "already"
-    ? "Please wait…"
-    : "Join"}
-</Button>
+                    type="submit"
+                    aria-label="Subscribe"
+                    disabled={
+                      reduxLoading ||
+                      submitting ||
+                      (isCoolingDown && cooldownMode !== "already")
+                    }
+                  >
+                    {reduxLoading || submitting
+                      ? "Subscribing…"
+                      : isCoolingDown && cooldownMode !== "already"
+                        ? "Please wait…"
+                        : "Join"}
+                  </Button>
                 </div>
 
                 {status.text ? (

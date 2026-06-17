@@ -67,7 +67,7 @@ const testimonialSchema = new mongoose.Schema(
       set: sanitizeText,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 testimonialSchema.index({ createdAt: -1 });
@@ -81,7 +81,7 @@ testimonialSchema.index(
     partialFilterExpression: {
       user: { $exists: true, $type: "objectId" },
     },
-  }
+  },
 );
 
 const Testimonial =

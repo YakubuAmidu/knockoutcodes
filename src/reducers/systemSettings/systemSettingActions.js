@@ -13,8 +13,7 @@ const getErrorMessage = (error, fallback) =>
 
 const normalizeStatus = (data = {}) => ({
   maintenanceMode: Boolean(data.maintenanceMode ?? data.data?.maintenanceMode),
-  maintenanceTitle:
-    data.maintenanceTitle || data.data?.maintenanceTitle || "",
+  maintenanceTitle: data.maintenanceTitle || data.data?.maintenanceTitle || "",
   maintenanceMessage:
     data.maintenanceMessage || data.data?.maintenanceMessage || "",
   allowAdminAccess:
@@ -22,79 +21,81 @@ const normalizeStatus = (data = {}) => ({
   updatedAt: data.updatedAt || data.data?.updatedAt || null,
 });
 
-export const fetchSystemStatus = (options = {}) => async (dispatch, getState) => {
-  const force = Boolean(options.force);
+export const fetchSystemStatus =
+  (options = {}) =>
+  async (dispatch, getState) => {
+    const force = Boolean(options.force);
 
-  const state = getState?.();
-  const alreadyLoaded = state?.systemSettings?.hasLoaded;
-  const now = Date.now();
+    const state = getState?.();
+    const alreadyLoaded = state?.systemSettings?.hasLoaded;
+    const now = Date.now();
 
-  if (
-    !force &&
-    alreadyLoaded &&
-    now - lastSystemStatusFetch < SYSTEM_STATUS_COOLDOWN
-  ) {
-    return {
-      success: true,
-      skipped: true,
-      data: state.systemSettings,
-    };
-  }
-
-  if (systemStatusPromise && !force) {
-    return systemStatusPromise;
-  }
-
-  systemStatusPromise = (async () => {
-    try {
-      dispatch({
-        type: SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_REQUEST,
-      });
-
-      const res = await axiosInstance.get("/system/status", {
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
-
-      const data = normalizeStatus(res.data);
-
-      lastSystemStatusFetch = Date.now();
-
-      dispatch({
-        type: SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_SUCCESS,
-        payload: data,
-      });
-
+    if (
+      !force &&
+      alreadyLoaded &&
+      now - lastSystemStatusFetch < SYSTEM_STATUS_COOLDOWN
+    ) {
       return {
         success: true,
-        data,
+        skipped: true,
+        data: state.systemSettings,
       };
-    } catch (error) {
-      const status = error?.response?.status;
-
-      const message =
-        status === 429
-          ? "System status is being checked too often. Please wait a moment."
-          : getErrorMessage(error, "Failed to load system status.");
-
-      dispatch({
-        type: SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_FAIL,
-        payload: message,
-      });
-
-      return {
-        success: false,
-        message,
-      };
-    } finally {
-      systemStatusPromise = null;
     }
-  })();
 
-  return systemStatusPromise;
-};
+    if (systemStatusPromise && !force) {
+      return systemStatusPromise;
+    }
+
+    systemStatusPromise = (async () => {
+      try {
+        dispatch({
+          type: SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_REQUEST,
+        });
+
+        const res = await axiosInstance.get("/system/status", {
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
+
+        const data = normalizeStatus(res.data);
+
+        lastSystemStatusFetch = Date.now();
+
+        dispatch({
+          type: SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_SUCCESS,
+          payload: data,
+        });
+
+        return {
+          success: true,
+          data,
+        };
+      } catch (error) {
+        const status = error?.response?.status;
+
+        const message =
+          status === 429
+            ? "System status is being checked too often. Please wait a moment."
+            : getErrorMessage(error, "Failed to load system status.");
+
+        dispatch({
+          type: SYSTEM_SETTING_ACTIONS.SYSTEM_STATUS_FAIL,
+          payload: message,
+        });
+
+        return {
+          success: false,
+          message,
+        };
+      } finally {
+        systemStatusPromise = null;
+      }
+    })();
+
+    return systemStatusPromise;
+  };
 
 export const updateMaintenanceMode = (payload) => async (dispatch) => {
   try {
@@ -124,7 +125,7 @@ export const updateMaintenanceMode = (payload) => async (dispatch) => {
   } catch (error) {
     const message = getErrorMessage(
       error,
-      "Failed to update maintenance mode."
+      "Failed to update maintenance mode.",
     );
 
     dispatch({

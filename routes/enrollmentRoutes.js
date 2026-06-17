@@ -6,7 +6,7 @@ import {
   getTopCoursesByEnrollments,
   updateEnrollmentProgress,
   verifyStripeEnrollment,
-   getAllEnrollmentsAdmin,
+  getAllEnrollmentsAdmin,
   updateEnrollmentAdmin,
   deleteEnrollmentAdmin,
 } from "../controllers/enrollmentController.js";
@@ -32,12 +32,7 @@ router.get("/my", authRequired, getMyEnrollments);
  * Top enrolled courses analytics.
  * Keep before dynamic routes.
  */
-router.get(
-  "/top-courses",
-  authRequired,
-  adminOnly,
-  getTopCoursesByEnrollments
-);
+router.get("/top-courses", authRequired, adminOnly, getTopCoursesByEnrollments);
 
 /**
  * USER:
@@ -49,44 +44,25 @@ router.get("/status/:courseId", authRequired, getEnrollmentStatus);
  * USER:
  * Verify Stripe checkout session after successful payment.
  */
-router.post(
-  "/verify-stripe-session",
-  authRequired,
-  verifyStripeEnrollment
-);
+router.post("/verify-stripe-session", authRequired, verifyStripeEnrollment);
 
 /**
  * ADMIN:
  * Manage all enrollments.
  */
-router.get(
-  "/admin/manage",
-  authRequired,
-  adminOnly,
-  getAllEnrollmentsAdmin
-);
+router.get("/admin/manage", authRequired, adminOnly, getAllEnrollmentsAdmin);
 
 /**
  * ADMIN:
  * Update enrollment.
  */
-router.put(
-  "/:id",
-  authRequired,
-  adminOnly,
-  updateEnrollmentAdmin
-);
+router.put("/:id", authRequired, adminOnly, updateEnrollmentAdmin);
 
 /**
  * ADMIN:
  * Delete enrollment.
  */
-router.delete(
-  "/:id",
-  authRequired,
-  adminOnly,
-  deleteEnrollmentAdmin
-);
+router.delete("/:id", authRequired, adminOnly, deleteEnrollmentAdmin);
 
 /**
  * USER:

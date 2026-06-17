@@ -44,30 +44,174 @@ const mockStats = [
 ];
 
 const quickActions = [
-  { id: "dashboard", label: "Dashboard", hint: "Overview", icon: "🏠", path: "/admin/dashboard" },
-  { id: "profile", label: "Profile", hint: "Admin account", icon: "👤", path: "/admin/profile" },
-  { id: "users", label: "Users", hint: "Manage users", icon: "👥", path: "/admin/users" },
-  { id: "orders", label: "Orders", hint: "Manage sales", icon: "🧾", path: "/admin/orders" },
-  { id: "contacts", label: "Contacts", hint: "Messages", icon: "📬", path: "/admin/contacts" },
-  { id: "newsletters", label: "Newsletters", hint: "Email list", icon: "📧", path: "/admin/newsletters" },
-  { id: "courses", label: "Courses", hint: "Programs", icon: "🎓", path: "/admin/courses" },
-  { id: "lessons", label: "Lessons", hint: "Course lessons", icon: "📚", path: "/admin/lessons" },
-  { id: "blogs", label: "Blogs", hint: "Content", icon: "📝", path: "/admin/blogs" },
-  { id: "products", label: "Products", hint: "Store items", icon: "🛍️", path: "/admin/products" },
-  { id: "coaching", label: "Coaching", hint: "1-on-1 sessions", icon: "🧠", path: "/admin/coachings" },
-  { id: "reviews", label: "Reviews", hint: "Ratings", icon: "⭐", path: "/admin/reviews" },
-  { id: "testimonials", label: "Testimonials", hint: "Social proof", icon: "💬", path: "/admin/testimonials" },
-  { id: "memberships", label: "Memberships", hint: "Plans", icon: "🥇", path: "/admin/memberships" },
-  { id: "enrollments", label: "Enrollments", hint: "Students", icon: "🎟️", path: "/admin/enrollments" },
-  { id: "subscriptions", label: "Subscriptions", hint: "Recurring plans", icon: "📈", path: "/admin/user-subscriptions" },
-  { id: "campaigns", label: "Campaigns", hint: "Email campaigns", icon: "🚀", path: "/admin/email-campaigns" },
-  { id: "segments", label: "Segments", hint: "Audience groups", icon: "🎯", path: "/admin/email-segments" },
-  { id: "subscribers", label: "Subscribers", hint: "Email users", icon: "📨", path: "/admin/email-subscribers" },
-  { id: "templates", label: "Templates", hint: "Email designs", icon: "🧩", path: "/admin/email-templates" },
-  { id: "analytics", label: "Analytics", hint: "Email reports", icon: "📊", path: "/admin/email-analytics" },
-  { id: "security", label: "Security", hint: "Events", icon: "🛡️", path: "/admin/security-events" },
-  { id: "sessions", label: "Sessions", hint: "User sessions", icon: "🔐", path: "/admin/sessions" },
-  { id: "system", label: "System", hint: "Cleanup", icon: "⚙️", path: "/admin/system-cleanup" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    hint: "Overview",
+    icon: "🏠",
+    path: "/admin/dashboard",
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    hint: "Admin account",
+    icon: "👤",
+    path: "/admin/profile",
+  },
+  {
+    id: "users",
+    label: "Users",
+    hint: "Manage users",
+    icon: "👥",
+    path: "/admin/users",
+  },
+  {
+    id: "orders",
+    label: "Orders",
+    hint: "Manage sales",
+    icon: "🧾",
+    path: "/admin/orders",
+  },
+  {
+    id: "contacts",
+    label: "Contacts",
+    hint: "Messages",
+    icon: "📬",
+    path: "/admin/contacts",
+  },
+  {
+    id: "newsletters",
+    label: "Newsletters",
+    hint: "Email list",
+    icon: "📧",
+    path: "/admin/newsletters",
+  },
+  {
+    id: "courses",
+    label: "Courses",
+    hint: "Programs",
+    icon: "🎓",
+    path: "/admin/courses",
+  },
+  {
+    id: "lessons",
+    label: "Lessons",
+    hint: "Course lessons",
+    icon: "📚",
+    path: "/admin/lessons",
+  },
+  {
+    id: "blogs",
+    label: "Blogs",
+    hint: "Content",
+    icon: "📝",
+    path: "/admin/blogs",
+  },
+  {
+    id: "products",
+    label: "Products",
+    hint: "Store items",
+    icon: "🛍️",
+    path: "/admin/products",
+  },
+  {
+    id: "coaching",
+    label: "Coaching",
+    hint: "1-on-1 sessions",
+    icon: "🧠",
+    path: "/admin/coachings",
+  },
+  {
+    id: "reviews",
+    label: "Reviews",
+    hint: "Ratings",
+    icon: "⭐",
+    path: "/admin/reviews",
+  },
+  {
+    id: "testimonials",
+    label: "Testimonials",
+    hint: "Social proof",
+    icon: "💬",
+    path: "/admin/testimonials",
+  },
+  {
+    id: "memberships",
+    label: "Memberships",
+    hint: "Plans",
+    icon: "🥇",
+    path: "/admin/memberships",
+  },
+  {
+    id: "enrollments",
+    label: "Enrollments",
+    hint: "Students",
+    icon: "🎟️",
+    path: "/admin/enrollments",
+  },
+  {
+    id: "subscriptions",
+    label: "Subscriptions",
+    hint: "Recurring plans",
+    icon: "📈",
+    path: "/admin/user-subscriptions",
+  },
+  {
+    id: "campaigns",
+    label: "Campaigns",
+    hint: "Email campaigns",
+    icon: "🚀",
+    path: "/admin/email-campaigns",
+  },
+  {
+    id: "segments",
+    label: "Segments",
+    hint: "Audience groups",
+    icon: "🎯",
+    path: "/admin/email-segments",
+  },
+  {
+    id: "subscribers",
+    label: "Subscribers",
+    hint: "Email users",
+    icon: "📨",
+    path: "/admin/email-subscribers",
+  },
+  {
+    id: "templates",
+    label: "Templates",
+    hint: "Email designs",
+    icon: "🧩",
+    path: "/admin/email-templates",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    hint: "Email reports",
+    icon: "📊",
+    path: "/admin/email-analytics",
+  },
+  {
+    id: "security",
+    label: "Security",
+    hint: "Events",
+    icon: "🛡️",
+    path: "/admin/security-events",
+  },
+  {
+    id: "sessions",
+    label: "Sessions",
+    hint: "User sessions",
+    icon: "🔐",
+    path: "/admin/sessions",
+  },
+  {
+    id: "system",
+    label: "System",
+    hint: "Cleanup",
+    icon: "⚙️",
+    path: "/admin/system-cleanup",
+  },
 ];
 
 const Page = styled.main`
@@ -175,7 +319,8 @@ const StatsGrid = styled.section`
 `;
 
 const StatCard = styled(motion.article)`
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at top left,
       rgba(214, 182, 159, 0.12),
       transparent 60%
@@ -228,8 +373,8 @@ const StatDelta = styled.div`
     $trend === "up"
       ? "#7CFFB2"
       : $trend === "down"
-      ? "#FF7C7C"
-      : "rgba(255, 249, 242, 0.72)"};
+        ? "#FF7C7C"
+        : "rgba(255, 249, 242, 0.72)"};
 `;
 
 const MainGrid = styled.section`
@@ -384,14 +529,14 @@ const Badge = styled.span`
       $variant === "success"
         ? "rgba(124,255,178,0.8)"
         : $variant === "warning"
-        ? "rgba(255,199,126,0.85)"
-        : "rgba(255,255,255,0.35)"};
+          ? "rgba(255,199,126,0.85)"
+          : "rgba(255,255,255,0.35)"};
   color: ${({ $variant }) =>
     $variant === "success"
       ? "#7CFFB2"
       : $variant === "warning"
-      ? "#FFCF7E"
-      : "#F8E4D0"};
+        ? "#FFCF7E"
+        : "#F8E4D0"};
   background: rgba(0, 0, 0, 0.35);
 `;
 
@@ -519,7 +664,8 @@ const normalizePaymentStatus = (status) => {
 
   if (["paid", "succeeded", "success"].includes(s)) return "Paid";
   if (["pending", "processing"].includes(s)) return "Pending";
-  if (["failed", "canceled", "cancelled", "refunded"].includes(s)) return "Failed";
+  if (["failed", "canceled", "cancelled", "refunded"].includes(s))
+    return "Failed";
 
   return status ? String(status) : "Unknown";
 };
@@ -568,17 +714,20 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchTopCourses = async () => {
       try {
-        const res = await axiosInstance.get("/enrollments/top-courses?limit=3", {
-          withCredentials: true,
-        });
+        const res = await axiosInstance.get(
+          "/enrollments/top-courses?limit=3",
+          {
+            withCredentials: true,
+          },
+        );
 
         const payload = res.data;
 
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : [];
+            ? payload.data
+            : [];
 
         const mapped = list.map((course) => ({
           id: course.courseId || course._id || course.id,
@@ -622,10 +771,10 @@ export default function AdminDashboard() {
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.courses)
-          ? payload.courses
-          : [];
+            ? payload.data
+            : Array.isArray(payload?.courses)
+              ? payload.courses
+              : [];
 
         const mapped = list.slice(0, 3).map((course) => ({
           id: course._id || course.id,
@@ -657,15 +806,15 @@ export default function AdminDashboard() {
         month:
           typeof revenueRaw.monthRevenue === "number"
             ? revenueRaw.monthRevenue
-            : revenueRaw.revenueThisMonth ?? 0,
+            : (revenueRaw.revenueThisMonth ?? 0),
         today:
           typeof revenueRaw.todayRevenue === "number"
             ? revenueRaw.todayRevenue
-            : revenueRaw.revenueToday ?? 0,
+            : (revenueRaw.revenueToday ?? 0),
         total:
           typeof revenueRaw.yearRevenue === "number"
             ? revenueRaw.yearRevenue
-            : revenueRaw.totalRevenue ?? 0,
+            : (revenueRaw.totalRevenue ?? 0),
         changePct:
           typeof revenueRaw.revenueChangePct === "number"
             ? revenueRaw.revenueChangePct
@@ -695,7 +844,8 @@ export default function AdminDashboard() {
   const totalTestimonials = cards.totalTestimonials ?? 0;
   const totalNewsletters = cards.totalNewsletters ?? 0;
   const totalBlogs = cards.totalBlogs ?? 0;
-  const totalCoaching = cards.totalCoachingSessions ?? cards.totalCoachings ?? 0;
+  const totalCoaching =
+    cards.totalCoachingSessions ?? cards.totalCoachings ?? 0;
   const totalProducts = cards.totalProducts ?? 0;
   const activeProducts = cards.activeProducts ?? 0;
   const totalMemberships = cards.totalMemberships ?? 0;
@@ -750,8 +900,8 @@ export default function AdminDashboard() {
               ? revenue.changePct > 0
                 ? "up"
                 : revenue.changePct < 0
-                ? "down"
-                : "neutral"
+                  ? "down"
+                  : "neutral"
               : "neutral",
           icon: "💰",
         },
@@ -864,7 +1014,7 @@ export default function AdminDashboard() {
           label: "Campaigns",
           value: formatNumber(totalCampaigns),
           delta: `${formatNumber(sentCampaigns)} sent · ${formatNumber(
-            scheduledCampaigns
+            scheduledCampaigns,
           )} scheduled`,
           trend: sentCampaigns > 0 || scheduledCampaigns > 0 ? "up" : "neutral",
           icon: "🚀",
@@ -913,7 +1063,7 @@ export default function AdminDashboard() {
           item.total ??
           item.value ??
           item.count ??
-          0
+          0,
       );
 
       return {
@@ -924,7 +1074,7 @@ export default function AdminDashboard() {
 
   const maxRevenue = revenueSeries.reduce(
     (max, point) => (point.value > max ? point.value : max),
-    0
+    0,
   );
 
   const safeMax = maxRevenue || 1;
@@ -949,8 +1099,8 @@ export default function AdminDashboard() {
     topCourses.length > 0
       ? topCourses
       : coursesFromAdminStats.length > 0
-      ? coursesFromAdminStats
-      : realCourses;
+        ? coursesFromAdminStats
+        : realCourses;
 
   const users =
     recent?.users?.map((user) => ({
@@ -980,7 +1130,8 @@ export default function AdminDashboard() {
               .slice(0, 2)
               .map((item) => {
                 const title = item?.title || "Item";
-                const qty = typeof item?.quantity === "number" ? item.quantity : 1;
+                const qty =
+                  typeof item?.quantity === "number" ? item.quantity : 1;
                 return `${title} ×${qty}`;
               })
               .join(", ")
@@ -1149,7 +1300,8 @@ export default function AdminDashboard() {
                     <RevenueChart>
                       {revenueSeries.map((point) => {
                         const normalized = point.value / safeMax;
-                        const height = point.value > 0 ? 40 + normalized * 80 : 16;
+                        const height =
+                          point.value > 0 ? 40 + normalized * 80 : 16;
 
                         return (
                           <RevenueBar
@@ -1253,7 +1405,9 @@ export default function AdminDashboard() {
                     </TableHeader>
 
                     {users.length === 0 ? (
-                      <EmptyTableState>No real users found yet.</EmptyTableState>
+                      <EmptyTableState>
+                        No real users found yet.
+                      </EmptyTableState>
                     ) : (
                       users.map((user) => (
                         <TableRow
@@ -1336,7 +1490,9 @@ export default function AdminDashboard() {
                     </TableHeader>
 
                     {orders.length === 0 ? (
-                      <EmptyTableState>No real orders found yet.</EmptyTableState>
+                      <EmptyTableState>
+                        No real orders found yet.
+                      </EmptyTableState>
                     ) : (
                       orders.map((order) => (
                         <TableRow

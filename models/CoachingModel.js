@@ -52,7 +52,7 @@ const sourceSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const coachingSchema = new mongoose.Schema(
@@ -231,7 +231,7 @@ const coachingSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 coachingSchema.index({ createdAt: -1 });

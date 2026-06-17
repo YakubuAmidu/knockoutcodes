@@ -5,7 +5,7 @@ import { courseDetailInitialState } from "./courseDetailInitialState";
 
 export const courseDetailReducer = (
   state = courseDetailInitialState,
-  action
+  action,
 ) => {
   switch (action.type) {
     case COURSE_DETAIL_ACTIONS.COURSE_DETAIL_REQUEST:

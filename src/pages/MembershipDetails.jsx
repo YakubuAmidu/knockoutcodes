@@ -17,7 +17,9 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 
 const normalizePlanSlug = (raw) => {
-  const value = String(raw || "").toLowerCase().trim();
+  const value = String(raw || "")
+    .toLowerCase()
+    .trim();
 
   if (value === "advanced") return "advance";
   if (value.includes("beginner")) return "beginner";
@@ -67,21 +69,23 @@ export default function MembershipDetails() {
   const dispatch = useDispatch();
 
   const {
-  isAuthenticated,
-  loading: authLoading,
-  user,
-  currentUser,
-  authUser,
-} = useAuth();
+    isAuthenticated,
+    loading: authLoading,
+    user,
+    currentUser,
+    authUser,
+  } = useAuth();
 
-const toast = useToast();
+  const toast = useToast();
 
-const loggedInUser = user || currentUser || authUser || {};
+  const loggedInUser = user || currentUser || authUser || {};
 
-const isAdmin =
-  ["admin", "superadmin"].includes(
-    String(loggedInUser?.role || loggedInUser?.user?.role || "").toLowerCase()
-  ) || loggedInUser?.isAdmin === true;
+  const isAdmin =
+    ["admin", "superadmin"].includes(
+      String(
+        loggedInUser?.role || loggedInUser?.user?.role || "",
+      ).toLowerCase(),
+    ) || loggedInUser?.isAdmin === true;
 
   const { startingId, switchingId, canceling, mySubscription, error } =
     useSelector((s) => s.membership);
@@ -94,20 +98,21 @@ const isAdmin =
   const [billingPeriod, setBillingPeriod] = useState(stateBillingPeriod);
 
   const [reviews, setReviews] = useState([]);
-const [reviewStats, setReviewStats] = useState({
-  totalReviews: 0,
-  averageRating: 0,
-});
-const [reviewLoading, setReviewLoading] = useState(false);
-const [reviewSubmitting, setReviewSubmitting] = useState(false);
-const [reviewForm, setReviewForm] = useState({
-  rating: 5,
-  title: "",
-  comment: "",
-});
+  const [reviewStats, setReviewStats] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+  });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    title: "",
+    comment: "",
+  });
 
   const courseIdFromState = location?.state?.courseId || "";
-  const requiredMembershipFromState = location?.state?.requiredMembershipId || "";
+  const requiredMembershipFromState =
+    location?.state?.requiredMembershipId || "";
 
   const fetchMySubscription = useCallback(async () => {
     if (!isAuthenticated || authLoading) return;
@@ -133,48 +138,48 @@ const [reviewForm, setReviewForm] = useState({
   }, [dispatch, isAuthenticated, authLoading]);
 
   const fetchMembershipReviews = useCallback(async () => {
-  const membershipObjectId =
-  membership?._id ||
-  (String(membership?.id || "").match(/^[0-9a-fA-F]{24}$/)
-    ? membership.id
-    : "");
+    const membershipObjectId =
+      membership?._id ||
+      (String(membership?.id || "").match(/^[0-9a-fA-F]{24}$/)
+        ? membership.id
+        : "");
 
-  if (!membershipObjectId) return;
+    if (!membershipObjectId) return;
 
-  setReviewLoading(true);
+    setReviewLoading(true);
 
-  try {
-    const result = await getReviews(
-      `membershipId=${encodeURIComponent(membershipObjectId)}&page=1&limit=10`
-    );
+    try {
+      const result = await getReviews(
+        `membershipId=${encodeURIComponent(membershipObjectId)}&page=1&limit=10`,
+      );
 
-    const payload = result?.data || {};
-    const list = Array.isArray(payload?.reviews) ? payload.reviews : [];
+      const payload = result?.data || {};
+      const list = Array.isArray(payload?.reviews) ? payload.reviews : [];
 
-    setReviews(list);
-    setReviewStats({
-      totalReviews: Number(payload?.totalReviews || 0),
-      averageRating: Number(payload?.averageRating || 0),
-    });
-  } catch (err) {
-    console.error("Membership reviews load error:", err);
-    setReviews([]);
-    setReviewStats({
-      totalReviews: 0,
-      averageRating: 0,
-    });
-  } finally {
-    setReviewLoading(false);
-  }
+      setReviews(list);
+      setReviewStats({
+        totalReviews: Number(payload?.totalReviews || 0),
+        averageRating: Number(payload?.averageRating || 0),
+      });
+    } catch (err) {
+      console.error("Membership reviews load error:", err);
+      setReviews([]);
+      setReviewStats({
+        totalReviews: 0,
+        averageRating: 0,
+      });
+    } finally {
+      setReviewLoading(false);
+    }
   }, [membership?._id, membership?.id]);
-  
-  const handleReviewChange = useCallback((event) => {
-  const { name, value } = event.target;
 
-  setReviewForm((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
+  const handleReviewChange = useCallback((event) => {
+    const { name, value } = event.target;
+
+    setReviewForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   }, []);
 
   useEffect(() => {
@@ -196,7 +201,7 @@ const [reviewForm, setReviewForm] = useState({
       }
     }
 
-   loadMembership();
+    loadMembership();
     fetchMySubscription();
 
     return () => {
@@ -205,8 +210,8 @@ const [reviewForm, setReviewForm] = useState({
   }, [id, stateMembership, fetchMySubscription]);
 
   useEffect(() => {
-  fetchMembershipReviews();
-}, [fetchMembershipReviews]);
+    fetchMembershipReviews();
+  }, [fetchMembershipReviews]);
 
   const view = useMemo(() => {
     const m = membership || {};
@@ -237,8 +242,12 @@ const [reviewForm, setReviewForm] = useState({
 
     return {
       id: String(m.slug || m.membershipId || m.id || m._id || id),
-      membershipId: String(m.membershipId || m.accessLevel || m.slug || id || ""),
-      accessLevel: String(m.accessLevel || m.membershipId || m.slug || id || ""),
+      membershipId: String(
+        m.membershipId || m.accessLevel || m.slug || id || "",
+      ),
+      accessLevel: String(
+        m.accessLevel || m.membershipId || m.slug || id || "",
+      ),
       membershipDbId: String(m._id || m.id || ""),
       stripePriceId: m.stripePriceId || m.priceId || "",
       glyph: m.glyph || "KC",
@@ -261,124 +270,145 @@ const [reviewForm, setReviewForm] = useState({
   }, [membership, id, billingPeriod]);
 
   const checkoutId = normalizePlanSlug(
-  view.membershipId || view.accessLevel || view.id
+    view.membershipId || view.accessLevel || view.id,
   );
-  
-const isStarting =
-  !loading && normalizePlanSlug(startingId) === normalizePlanSlug(checkoutId);
 
-const isSwitching =
-  !loading && normalizePlanSlug(switchingId) === normalizePlanSlug(checkoutId);
+  const isStarting =
+    !loading && normalizePlanSlug(startingId) === normalizePlanSlug(checkoutId);
+
+  const isSwitching =
+    !loading &&
+    normalizePlanSlug(switchingId) === normalizePlanSlug(checkoutId);
 
   const isRequired =
     requiredMembershipFromState &&
-    normalizePlanSlug(view.id) === normalizePlanSlug(requiredMembershipFromState);
+    normalizePlanSlug(view.id) ===
+      normalizePlanSlug(requiredMembershipFromState);
 
-  const activeMembershipId = normalizePlanSlug(mySubscription?.membershipId || "");
-  const activeBillingPeriod = String(mySubscription?.billingPeriod || "").toLowerCase();
+  const activeMembershipId = normalizePlanSlug(
+    mySubscription?.membershipId || "",
+  );
+  const activeBillingPeriod = String(
+    mySubscription?.billingPeriod || "",
+  ).toLowerCase();
 
   const hasActiveSubscription =
-    Boolean(mySubscription?.hasSubscription) && Boolean(mySubscription?.isActive);
+    Boolean(mySubscription?.hasSubscription) &&
+    Boolean(mySubscription?.isActive);
 
   const currentMembershipSlug = normalizePlanSlug(
-    view.membershipId || view.accessLevel || view.id
+    view.membershipId || view.accessLevel || view.id,
   );
 
   const isCurrentPlan =
     hasActiveSubscription &&
     activeMembershipId === currentMembershipSlug &&
     activeBillingPeriod === billingPeriod;
-  
-    const handleSubmitReview = useCallback(
-  async (event) => {
-    event.preventDefault();
 
-    const membershipObjectId =
-  membership?._id ||
-  (String(membership?.id || "").match(/^[0-9a-fA-F]{24}$/)
-    ? membership.id
-    : "");
+  const handleSubmitReview = useCallback(
+    async (event) => {
+      event.preventDefault();
 
-    if (!membershipObjectId) {
-      toast?.push?.({
-        title: "Membership unavailable",
-        description: "This membership cannot be reviewed right now.",
-        variant: "danger",
-      });
-      return;
-    }
+      const membershipObjectId =
+        membership?._id ||
+        (String(membership?.id || "").match(/^[0-9a-fA-F]{24}$/)
+          ? membership.id
+          : "");
 
-    if (!isAuthenticated) {
-      navigate("/login", {
-        state: {
-          from: `/memberships/${id}`,
-          billingPeriod,
-        },
-      });
-      return;
-    }
+      if (!membershipObjectId) {
+        toast?.push?.({
+          title: "Membership unavailable",
+          description: "This membership cannot be reviewed right now.",
+          variant: "danger",
+        });
+        return;
+      }
 
-    if (!hasActiveSubscription || !isCurrentPlan) {
-      toast?.push?.({
-        title: "Review locked",
-        description:
-          "You must have this active membership before leaving a review.",
-        variant: "danger",
-      });
-      return;
-    }
+      if (!isAuthenticated) {
+        navigate("/login", {
+          state: {
+            from: `/memberships/${id}`,
+            billingPeriod,
+          },
+        });
+        return;
+      }
 
-    const cleanComment = String(reviewForm.comment || "").trim();
+      if (!hasActiveSubscription || !isCurrentPlan) {
+        toast?.push?.({
+          title: "Review locked",
+          description:
+            "You must have this active membership before leaving a review.",
+          variant: "danger",
+        });
+        return;
+      }
 
-    if (cleanComment.length < 10) {
-      toast?.push?.({
-        title: "Review too short",
-        description: "Please write at least 10 characters.",
-        variant: "danger",
-      });
-      return;
-    }
+      const cleanComment = String(reviewForm.comment || "").trim();
 
-    setReviewSubmitting(true);
+      if (cleanComment.length < 10) {
+        toast?.push?.({
+          title: "Review too short",
+          description: "Please write at least 10 characters.",
+          variant: "danger",
+        });
+        return;
+      }
 
-    try {
-      await createReview({
-        reviewType: "membership",
-        membershipId: membershipObjectId,
-        rating: Number(reviewForm.rating || 5),
-        title: String(reviewForm.title || "").trim(),
-        comment: cleanComment,
-      });
+      setReviewSubmitting(true);
 
-      setReviewForm({
-        rating: 5,
-        title: "",
-        comment: "",
-      });
+      try {
+        await createReview({
+          reviewType: "membership",
+          membershipId: membershipObjectId,
+          rating: Number(reviewForm.rating || 5),
+          title: String(reviewForm.title || "").trim(),
+          comment: cleanComment,
+        });
 
-      await fetchMembershipReviews();
+        setReviewForm({
+          rating: 5,
+          title: "",
+          comment: "",
+        });
 
-      toast?.push?.({
-        title: "Review submitted",
-        description:
-          "Your membership review was submitted and will appear after admin approval.",
-        variant: "success",
-      });
-    } catch (err) {
-      toast?.push?.({
-        title: "Review failed",
-        description:
-          err?.response?.data?.message ||
-          err?.message ||
-          "Could not submit your review.",
-        variant: "danger",
-      });
-    } finally {
-      setReviewSubmitting(false);
-    }
-  },
-  [membership?._id, membership?.id, isAuthenticated, hasActiveSubscription, isCurrentPlan, reviewForm.comment, reviewForm.rating, reviewForm.title, toast, navigate, id, billingPeriod, fetchMembershipReviews]
-);
+        await fetchMembershipReviews();
+
+        toast?.push?.({
+          title: "Review submitted",
+          description:
+            "Your membership review was submitted and will appear after admin approval.",
+          variant: "success",
+        });
+      } catch (err) {
+        toast?.push?.({
+          title: "Review failed",
+          description:
+            err?.response?.data?.message ||
+            err?.message ||
+            "Could not submit your review.",
+          variant: "danger",
+        });
+      } finally {
+        setReviewSubmitting(false);
+      }
+    },
+    [
+      membership?._id,
+      membership?.id,
+      isAuthenticated,
+      hasActiveSubscription,
+      isCurrentPlan,
+      reviewForm.comment,
+      reviewForm.rating,
+      reviewForm.title,
+      toast,
+      navigate,
+      id,
+      billingPeriod,
+      fetchMembershipReviews,
+    ],
+  );
 
   const startStripeCheckout = useCallback(async () => {
     try {
@@ -446,14 +476,14 @@ const isSwitching =
       e?.stopPropagation?.();
 
       if (isAdmin) {
-  toast?.push?.({
-    title: "Admins cannot subscribe",
-    description:
-      "Admin accounts are blocked from buying courses, products, or memberships.",
-    variant: "danger",
-  });
-  return;
-}
+        toast?.push?.({
+          title: "Admins cannot subscribe",
+          description:
+            "Admin accounts are blocked from buying courses, products, or memberships.",
+          variant: "danger",
+        });
+        return;
+      }
 
       if (!isAuthenticated) {
         navigate("/login", {
@@ -469,20 +499,30 @@ const isSwitching =
 
       startStripeCheckout();
     },
-    [isAdmin, isAuthenticated, startStripeCheckout, toast, navigate, view.id, courseIdFromState, requiredMembershipFromState, billingPeriod]
+    [
+      isAdmin,
+      isAuthenticated,
+      startStripeCheckout,
+      toast,
+      navigate,
+      view.id,
+      courseIdFromState,
+      requiredMembershipFromState,
+      billingPeriod,
+    ],
   );
 
   const handleSwitchPlan = useCallback(async () => {
     if (isAdmin) {
-  toast?.push?.({
-    title: "Admins cannot manage subscriptions",
-    description:
-      "Admin accounts cannot subscribe, switch, or purchase memberships.",
-    variant: "danger",
-  });
-  return;
+      toast?.push?.({
+        title: "Admins cannot manage subscriptions",
+        description:
+          "Admin accounts cannot subscribe, switch, or purchase memberships.",
+        variant: "danger",
+      });
+      return;
     }
-    
+
     if (!isAuthenticated) {
       navigate("/login", {
         state: {
@@ -518,13 +558,25 @@ const isSwitching =
     } finally {
       dispatch({ type: MEMBERSHIP_ACTIONS.STOP_SWITCH });
     }
-  }, [isAdmin, isAuthenticated, toast, navigate, view.id, courseIdFromState, requiredMembershipFromState, billingPeriod, dispatch, checkoutId, fetchMySubscription]);
+  }, [
+    isAdmin,
+    isAuthenticated,
+    toast,
+    navigate,
+    view.id,
+    courseIdFromState,
+    requiredMembershipFromState,
+    billingPeriod,
+    dispatch,
+    checkoutId,
+    fetchMySubscription,
+  ]);
 
   const handleCancelMembership = useCallback(async () => {
     if (mySubscription?.cancelAtPeriodEnd) return;
 
     const ok = window.confirm(
-      "Cancel membership? Your access remains active until your billing period ends."
+      "Cancel membership? Your access remains active until your billing period ends.",
     );
 
     if (!ok) return;
@@ -566,7 +618,11 @@ const isSwitching =
 
     if (hasActiveSubscription) {
       return (
-        <PrimaryBtn type="button" onClick={handleSwitchPlan} disabled={isSwitching}>
+        <PrimaryBtn
+          type="button"
+          onClick={handleSwitchPlan}
+          disabled={isSwitching}
+        >
           {isSwitching ? "Switching..." : `Switch to ${billingPeriod}`}
         </PrimaryBtn>
       );
@@ -615,13 +671,18 @@ const isSwitching =
           <StateCard>
             <StateTitle>Membership not found</StateTitle>
             <StateText>This membership could not be loaded.</StateText>
-            <OutlineBtn type="button" onClick={() => navigate("/memberships", { replace: true })}>
+            <OutlineBtn
+              type="button"
+              onClick={() => navigate("/memberships", { replace: true })}
+            >
               Back to Memberships
             </OutlineBtn>
           </StateCard>
         ) : (
           <>
-            <HeroCard $highlight={view.highlight || isRequired || isCurrentPlan}>
+            <HeroCard
+              $highlight={view.highlight || isRequired || isCurrentPlan}
+            >
               <HeroLeft>
                 <Eyebrow>{view.badgeLeft} • Membership Detail</Eyebrow>
                 <Title>{view.title}</Title>
@@ -651,15 +712,26 @@ const isSwitching =
                   <Pill>Price: {view.price}</Pill>
                   <Pill>Rating: {Number(view.rating || 0).toFixed(1)}</Pill>
                   <Pill>Students: {formatEnrolled(view.enrolled)}</Pill>
-                  {isCurrentPlan ? <RecommendedPill>Current Plan</RecommendedPill> : null}
-                  {isRequired ? <RecommendedPill>Required for selected course</RecommendedPill> : null}
-                  {!!error && !isStarting ? <ErrorPill>{String(error)}</ErrorPill> : null}
+                  {isCurrentPlan ? (
+                    <RecommendedPill>Current Plan</RecommendedPill>
+                  ) : null}
+                  {isRequired ? (
+                    <RecommendedPill>
+                      Required for selected course
+                    </RecommendedPill>
+                  ) : null}
+                  {!!error && !isStarting ? (
+                    <ErrorPill>{String(error)}</ErrorPill>
+                  ) : null}
                 </PillRow>
 
                 <Actions>
                   {renderMainAction()}
 
-                  <OutlineBtn type="button" onClick={() => navigate("/memberships", { replace: true })}>
+                  <OutlineBtn
+                    type="button"
+                    onClick={() => navigate("/memberships", { replace: true })}
+                  >
                     All Memberships
                   </OutlineBtn>
                 </Actions>
@@ -688,115 +760,115 @@ const isSwitching =
                       </FeatureItem>
                     ))}
                   </FeatureGrid>
-                    </InfoCard>
-                    
-                    <InfoCard>
-  <SectionLabel>Member Proof</SectionLabel>
-  <SectionTitle>Membership Reviews</SectionTitle>
+                </InfoCard>
 
-  <ReviewSummary>
-    <strong>
-      {reviewStats.averageRating > 0
-        ? `★ ${reviewStats.averageRating.toFixed(1)}`
-        : "New"}
-    </strong>
-    <span>
-      {reviewStats.totalReviews > 0
-        ? `${reviewStats.totalReviews} approved review${
-            reviewStats.totalReviews === 1 ? "" : "s"
-          }`
-        : "No approved reviews yet."}
-    </span>
-  </ReviewSummary>
+                <InfoCard>
+                  <SectionLabel>Member Proof</SectionLabel>
+                  <SectionTitle>Membership Reviews</SectionTitle>
 
-  {isCurrentPlan ? (
-    <ReviewForm onSubmit={handleSubmitReview}>
-      <ReviewGrid>
-        <ReviewField>
-          <label htmlFor="rating">Rating</label>
-          <select
-            id="rating"
-            name="rating"
-            value={reviewForm.rating}
-            onChange={handleReviewChange}
-            disabled={reviewSubmitting}
-          >
-            <option value="5">5 Stars</option>
-            <option value="4">4 Stars</option>
-            <option value="3">3 Stars</option>
-            <option value="2">2 Stars</option>
-            <option value="1">1 Star</option>
-          </select>
-        </ReviewField>
+                  <ReviewSummary>
+                    <strong>
+                      {reviewStats.averageRating > 0
+                        ? `★ ${reviewStats.averageRating.toFixed(1)}`
+                        : "New"}
+                    </strong>
+                    <span>
+                      {reviewStats.totalReviews > 0
+                        ? `${reviewStats.totalReviews} approved review${
+                            reviewStats.totalReviews === 1 ? "" : "s"
+                          }`
+                        : "No approved reviews yet."}
+                    </span>
+                  </ReviewSummary>
 
-        <ReviewField>
-          <label htmlFor="title">Title</label>
-          <input
-            id="title"
-            name="title"
-            value={reviewForm.title}
-            onChange={handleReviewChange}
-            maxLength={80}
-            placeholder="Example: Worth every dollar"
-            disabled={reviewSubmitting}
-          />
-        </ReviewField>
-      </ReviewGrid>
+                  {isCurrentPlan ? (
+                    <ReviewForm onSubmit={handleSubmitReview}>
+                      <ReviewGrid>
+                        <ReviewField>
+                          <label htmlFor="rating">Rating</label>
+                          <select
+                            id="rating"
+                            name="rating"
+                            value={reviewForm.rating}
+                            onChange={handleReviewChange}
+                            disabled={reviewSubmitting}
+                          >
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                          </select>
+                        </ReviewField>
 
-      <ReviewField>
-        <label htmlFor="comment">Review</label>
-        <textarea
-          id="comment"
-          name="comment"
-          value={reviewForm.comment}
-          onChange={handleReviewChange}
-          minLength={10}
-          maxLength={1000}
-          placeholder="Share what this membership helped you improve..."
-          disabled={reviewSubmitting}
-          required
-        />
-      </ReviewField>
+                        <ReviewField>
+                          <label htmlFor="title">Title</label>
+                          <input
+                            id="title"
+                            name="title"
+                            value={reviewForm.title}
+                            onChange={handleReviewChange}
+                            maxLength={80}
+                            placeholder="Example: Worth every dollar"
+                            disabled={reviewSubmitting}
+                          />
+                        </ReviewField>
+                      </ReviewGrid>
 
-      <PrimaryBtn type="submit" disabled={reviewSubmitting}>
-        {reviewSubmitting ? "Submitting..." : "Submit Review"}
-      </PrimaryBtn>
+                      <ReviewField>
+                        <label htmlFor="comment">Review</label>
+                        <textarea
+                          id="comment"
+                          name="comment"
+                          value={reviewForm.comment}
+                          onChange={handleReviewChange}
+                          minLength={10}
+                          maxLength={1000}
+                          placeholder="Share what this membership helped you improve..."
+                          disabled={reviewSubmitting}
+                          required
+                        />
+                      </ReviewField>
 
-      <ReviewNote>
-        Reviews appear publicly after admin approval.
-      </ReviewNote>
-    </ReviewForm>
-  ) : (
-    <ReviewLock>
-      You can review this membership after you become an active member of this
-      plan.
-    </ReviewLock>
-  )}
+                      <PrimaryBtn type="submit" disabled={reviewSubmitting}>
+                        {reviewSubmitting ? "Submitting..." : "Submit Review"}
+                      </PrimaryBtn>
 
-  <ReviewList>
-    {reviewLoading ? (
-      <ReviewLock>Loading reviews...</ReviewLock>
-    ) : reviews.length > 0 ? (
-      reviews.map((review) => (
-        <ReviewCard key={review._id}>
-          <strong>
-            ★ {Number(review.rating || 0).toFixed(1)}{" "}
-            {review.title ? `— ${review.title}` : ""}
-          </strong>
-          <p>{review.comment}</p>
-          <span>
-            {review.user?.name || "Verified Member"} •{" "}
-            {review.createdAt
-              ? new Date(review.createdAt).toLocaleDateString()
-              : "Recent"}
-          </span>
-        </ReviewCard>
-      ))
-    ) : (
-      <ReviewLock>No approved reviews yet.</ReviewLock>
-    )}
-  </ReviewList>
-</InfoCard>
+                      <ReviewNote>
+                        Reviews appear publicly after admin approval.
+                      </ReviewNote>
+                    </ReviewForm>
+                  ) : (
+                    <ReviewLock>
+                      You can review this membership after you become an active
+                      member of this plan.
+                    </ReviewLock>
+                  )}
+
+                  <ReviewList>
+                    {reviewLoading ? (
+                      <ReviewLock>Loading reviews...</ReviewLock>
+                    ) : reviews.length > 0 ? (
+                      reviews.map((review) => (
+                        <ReviewCard key={review._id}>
+                          <strong>
+                            ★ {Number(review.rating || 0).toFixed(1)}{" "}
+                            {review.title ? `— ${review.title}` : ""}
+                          </strong>
+                          <p>{review.comment}</p>
+                          <span>
+                            {review.user?.name || "Verified Member"} •{" "}
+                            {review.createdAt
+                              ? new Date(review.createdAt).toLocaleDateString()
+                              : "Recent"}
+                          </span>
+                        </ReviewCard>
+                      ))
+                    ) : (
+                      <ReviewLock>No approved reviews yet.</ReviewLock>
+                    )}
+                  </ReviewList>
+                </InfoCard>
 
                 <InfoCard>
                   <SectionLabel>How It Works</SectionLabel>
@@ -842,21 +914,25 @@ const isSwitching =
                     <li>Login required before checkout</li>
                     <li>Stripe verifies the payment</li>
                     <li>Access unlocks only after server confirmation</li>
-                    <li>Membership can be checked before protected course access</li>
+                    <li>
+                      Membership can be checked before protected course access
+                    </li>
                   </SummaryList>
 
                   {hasActiveSubscription ? (
                     <OutlineBtn
                       type="button"
                       onClick={handleCancelMembership}
-                      disabled={canceling || Boolean(mySubscription?.cancelAtPeriodEnd)}
+                      disabled={
+                        canceling || Boolean(mySubscription?.cancelAtPeriodEnd)
+                      }
                       style={{ width: "100%", marginBottom: "14px" }}
                     >
                       {canceling
                         ? "Canceling..."
                         : mySubscription?.cancelAtPeriodEnd
-                        ? "Membership Ends At Billing End"
-                        : "Cancel Membership"}
+                          ? "Membership Ends At Billing End"
+                          : "Cancel Membership"}
                     </OutlineBtn>
                   ) : null}
 
@@ -869,7 +945,7 @@ const isSwitching =
       </Wrap>
     </Page>
   );
-};
+}
 
 /* =========================
    Styles
@@ -884,7 +960,8 @@ const Page = styled.main`
   min-height: 100vh;
   padding: 96px 16px 70px;
   color: ${({ theme }) => theme.colors.white};
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at 18% 10%,
       rgba(214, 182, 159, 0.18),
       transparent 55%
@@ -958,7 +1035,8 @@ const HeroRight = styled.aside`
   place-items: center;
   gap: 16px;
   padding: 22px;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at 20% 10%,
       rgba(214, 182, 159, 0.22),
       transparent 48%

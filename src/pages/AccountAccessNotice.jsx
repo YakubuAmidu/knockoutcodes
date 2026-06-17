@@ -13,8 +13,7 @@ const DEFAULT_STATUS = "restricted";
 const DEFAULT_MESSAGE =
   "Your account access has been restricted. Please contact support if you believe this is a mistake.";
 
-const UPDATED_MESSAGE =
-  "Your account access was updated by an administrator.";
+const UPDATED_MESSAGE = "Your account access was updated by an administrator.";
 
 export default function AccountAccessNotice() {
   const location = useLocation();
@@ -93,9 +92,9 @@ export default function AccountAccessNotice() {
         <Message>{message}</Message>
 
         <SupportBox>
-          This action was taken to protect the KnockoutCodes platform, our users,
-          and account security. If this was a mistake, contact support with your
-          account email.
+          This action was taken to protect the KnockoutCodes platform, our
+          users, and account security. If this was a mistake, contact support
+          with your account email.
         </SupportBox>
 
         <ButtonRow>
@@ -112,7 +111,8 @@ const Page = styled.main`
   display: grid;
   place-items: center;
   padding: 2rem;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at top left,
       rgba(214, 182, 159, 0.18),
       transparent 40%
@@ -125,11 +125,8 @@ const Card = styled.section`
   width: min(100%, 680px);
   padding: clamp(1.5rem, 4vw, 2.7rem);
   border-radius: ${theme.radius.xl};
-  background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.06),
-      rgba(0, 0, 0, 0.72)
-    ),
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.72)),
     ${theme.colors.black};
   border: 1px solid rgba(214, 182, 159, 0.28);
   box-shadow: ${theme.shadow.hard};

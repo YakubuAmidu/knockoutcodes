@@ -69,7 +69,9 @@ export function createCoachingInitialForm() {
 
     goals: draft.goals || "",
     preferGoogleMeet:
-      typeof draft.preferGoogleMeet === "boolean" ? draft.preferGoogleMeet : true,
+      typeof draft.preferGoogleMeet === "boolean"
+        ? draft.preferGoogleMeet
+        : true,
     acceptPolicies:
       typeof draft.acceptPolicies === "boolean" ? draft.acceptPolicies : false,
     marketingOptIn:

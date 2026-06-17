@@ -3,7 +3,7 @@ import { emailDashboardInitialState } from "./emailDashboardInitialState";
 
 export function emailDashboardReducer(
   state = emailDashboardInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     case EMAIL_DASHBOARD_ACTIONS.FETCH_REQUEST:

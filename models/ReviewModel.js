@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 const REVIEW_TYPES = ["course", "product", "membership"];
 
 function normalizeText(value) {
-  return String(value || "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const reviewSchema = new mongoose.Schema(
@@ -71,7 +73,7 @@ const reviewSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 reviewSchema.pre("validate", function (next) {
@@ -79,11 +81,15 @@ reviewSchema.pre("validate", function (next) {
   const hasProduct = Boolean(this.product);
   const hasMembership = Boolean(this.membership);
 
-  const targetCount = [hasCourse, hasProduct, hasMembership].filter(Boolean).length;
+  const targetCount = [hasCourse, hasProduct, hasMembership].filter(
+    Boolean,
+  ).length;
 
   if (targetCount !== 1) {
     return next(
-      new Error("Review must belong to exactly one course, product, or membership.")
+      new Error(
+        "Review must belong to exactly one course, product, or membership.",
+      ),
     );
   }
 
@@ -100,15 +106,21 @@ reviewSchema.pre("validate", function (next) {
   }
 
   if (this.reviewType === "course" && (hasProduct || hasMembership)) {
-    return next(new Error("Course review cannot include product or membership."));
+    return next(
+      new Error("Course review cannot include product or membership."),
+    );
   }
 
   if (this.reviewType === "product" && (hasCourse || hasMembership)) {
-    return next(new Error("Product review cannot include course or membership."));
+    return next(
+      new Error("Product review cannot include course or membership."),
+    );
   }
 
   if (this.reviewType === "membership" && (hasCourse || hasProduct)) {
-    return next(new Error("Membership review cannot include course or product."));
+    return next(
+      new Error("Membership review cannot include course or product."),
+    );
   }
 
   return next();
@@ -133,7 +145,7 @@ reviewSchema.index(
       reviewType: "course",
       course: { $type: "objectId" },
     },
-  }
+  },
 );
 
 reviewSchema.index(
@@ -144,7 +156,7 @@ reviewSchema.index(
       reviewType: "product",
       product: { $type: "objectId" },
     },
-  }
+  },
 );
 
 reviewSchema.index(
@@ -155,7 +167,7 @@ reviewSchema.index(
       reviewType: "membership",
       membership: { $type: "objectId" },
     },
-  }
+  },
 );
 
 reviewSchema.index({ course: 1, isApproved: 1, createdAt: -1 });
@@ -164,7 +176,6 @@ reviewSchema.index({ membership: 1, isApproved: 1, createdAt: -1 });
 reviewSchema.index({ user: 1, createdAt: -1 });
 reviewSchema.index({ reviewType: 1, isApproved: 1, createdAt: -1 });
 
-const Review =
-  mongoose.models.Review || mongoose.model("Review", reviewSchema);
+const Review = mongoose.models.Review || mongoose.model("Review", reviewSchema);
 
 export default Review;

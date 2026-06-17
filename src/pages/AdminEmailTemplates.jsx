@@ -140,7 +140,17 @@ function AdminEmailTemplate() {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [dispatch, isAuthenticated, isAdmin, search, category, status, sort, page, limit]);
+  }, [
+    dispatch,
+    isAuthenticated,
+    isAdmin,
+    search,
+    category,
+    status,
+    sort,
+    page,
+    limit,
+  ]);
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -235,7 +245,9 @@ function AdminEmailTemplate() {
       return false;
     }
 
-    if (!["draft", "active", "inactive", "archived"].includes(formData.status)) {
+    if (
+      !["draft", "active", "inactive", "archived"].includes(formData.status)
+    ) {
       showToast("Choose a valid template status.", "error");
       return false;
     }
@@ -320,7 +332,7 @@ function AdminEmailTemplate() {
         status: nextStatus,
         isActive: nextStatus === "active",
         notes: template.notes || "",
-      })
+      }),
     );
 
     if (result?.success) {
@@ -673,7 +685,9 @@ function AdminEmailTemplate() {
                           <TemplateSubject>{template.subject}</TemplateSubject>
                         </div>
 
-                        <Status $status={templateStatus}>{templateStatus}</Status>
+                        <Status $status={templateStatus}>
+                          {templateStatus}
+                        </Status>
                       </TemplateTop>
 
                       <TemplateHeadline>{template.headline}</TemplateHeadline>
@@ -684,7 +698,9 @@ function AdminEmailTemplate() {
                         <span>Used: {template.usageCount || 0}</span>
                         <span>Created: {formatDate(template.createdAt)}</span>
                         <span>Updated: {formatDate(template.updatedAt)}</span>
-                        <span>Last Used: {formatDate(template.lastUsedAt)}</span>
+                        <span>
+                          Last Used: {formatDate(template.lastUsedAt)}
+                        </span>
                       </TemplateMeta>
 
                       <ActionRow>
@@ -717,7 +733,9 @@ function AdminEmailTemplate() {
                           onClick={() => handleToggleStatus(template)}
                           disabled={busy}
                         >
-                          {templateStatus === "active" ? "Deactivate" : "Activate"}
+                          {templateStatus === "active"
+                            ? "Deactivate"
+                            : "Activate"}
                         </SmallButton>
 
                         <SmallButton
@@ -728,7 +746,7 @@ function AdminEmailTemplate() {
                                 ...template,
                                 status: "archived",
                                 isActive: false,
-                              })
+                              }),
                             ).then(() => dispatch(fetchEmailTemplates()))
                           }
                           disabled={busy || templateStatus === "archived"}
@@ -758,7 +776,9 @@ function AdminEmailTemplate() {
                   <Select
                     value={limit}
                     onChange={(event) =>
-                      dispatch(setEmailTemplateLimit(Number(event.target.value)))
+                      dispatch(
+                        setEmailTemplateLimit(Number(event.target.value)),
+                      )
                     }
                   >
                     <option value={5}>5 / page</option>
@@ -799,7 +819,10 @@ function AdminEmailTemplate() {
                 <SectionText>{previewTemplate.subject}</SectionText>
               </div>
 
-              <GhostButton type="button" onClick={() => setPreviewTemplate(null)}>
+              <GhostButton
+                type="button"
+                onClick={() => setPreviewTemplate(null)}
+              >
                 Close
               </GhostButton>
             </ModalHeader>
@@ -844,7 +867,11 @@ function AdminEmailTemplate() {
                 Cancel
               </GhostButton>
 
-              <DangerButton type="button" onClick={confirmDelete} disabled={busy}>
+              <DangerButton
+                type="button"
+                onClick={confirmDelete}
+                disabled={busy}
+              >
                 {deleting ? "Deleting..." : "Yes, Delete"}
               </DangerButton>
             </ConfirmActions>
@@ -861,8 +888,16 @@ const PageShell = styled.main`
   min-height: 100vh;
   padding: 2rem;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(90, 56, 37, 0.45), transparent 30%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(90, 56, 37, 0.45),
+      transparent 30%
+    ),
     #1b0d07;
   color: #ffffff;
 
@@ -874,7 +909,11 @@ const PageShell = styled.main`
 const Hero = styled.section`
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.03)
+    ),
     #3d261a;
   border-radius: 30px;
   padding: 2rem;
@@ -1152,7 +1191,11 @@ const TemplateItem = styled.article`
   padding: 1rem;
   border-radius: 22px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.025)
+    ),
     rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;

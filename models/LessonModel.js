@@ -29,7 +29,7 @@ const resourceSchema = new Schema(
       },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const lessonSchema = new Schema(
@@ -125,7 +125,7 @@ const lessonSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 function generateSlug(title = "") {
@@ -199,7 +199,7 @@ lessonSchema.pre("findOneAndUpdate", function (next) {
   if ("durationInMinutes" in nextUpdate) {
     nextUpdate.$set.durationInMinutes = cleanNumber(
       nextUpdate.durationInMinutes,
-      0
+      0,
     );
     delete nextUpdate.durationInMinutes;
   }
@@ -230,7 +230,6 @@ lessonSchema.index({ course: 1, order: 1 });
 lessonSchema.index({ course: 1, isPublished: 1, order: 1 });
 lessonSchema.index({ course: 1, slug: 1 });
 
-const Lesson =
-  mongoose.models.Lesson || mongoose.model("Lesson", lessonSchema);
+const Lesson = mongoose.models.Lesson || mongoose.model("Lesson", lessonSchema);
 
 export default Lesson;

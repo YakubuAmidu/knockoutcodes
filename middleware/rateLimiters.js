@@ -65,7 +65,10 @@ export const coachingRateLimiter = rateLimit({
 
 // -------------------- CONTACT -------------------- //
 // eslint-disable-next-line no-undef
-const CONTACT_WINDOW_MS = parseInt(process.env.CONTACT_RATE_WINDOW_MS || "600000", 10);
+const CONTACT_WINDOW_MS = parseInt(
+  process.env.CONTACT_RATE_WINDOW_MS || "600000",
+  10,
+);
 // eslint-disable-next-line no-undef
 const CONTACT_MAX = parseInt(process.env.CONTACT_RATE_MAX || "5", 10);
 
@@ -114,15 +117,14 @@ export const testimonialCreateLimiter = rateLimit({
 // ----------------- TESTIMONIALS (READ) ----------------- //
 export const testimonialsReadLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 min
-  max: 120,            // 120 reads/min per IP
+  max: 120, // 120 reads/min per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
     message: "Too many requests. Please slow down.",
-  }
+  },
 });
-
 
 export default {
   loginLimiter,
@@ -133,5 +135,5 @@ export default {
   challengeLimiter,
   reviewCreateLimiter,
   testimonialCreateLimiter,
-  testimonialsReadLimiter
-}
+  testimonialsReadLimiter,
+};

@@ -89,7 +89,7 @@ export default function ManageMembership() {
 
   const safeMemberships = useMemo(
     () => (Array.isArray(memberships) ? memberships : []),
-    [memberships]
+    [memberships],
   );
 
   const isEditing = Boolean(selectedMembership?._id);
@@ -119,30 +119,45 @@ export default function ManageMembership() {
 
   const publishedCount = useMemo(
     () => safeMemberships.filter((item) => item?.isPublished).length,
-    [safeMemberships]
+    [safeMemberships],
   );
 
   const draftCount = useMemo(
     () => safeMemberships.filter((item) => !item?.isPublished).length,
-    [safeMemberships]
+    [safeMemberships],
   );
 
   const featuredCount = useMemo(
-    () => safeMemberships.filter((item) => item?.isFeatured || item?.highlight).length,
-    [safeMemberships]
+    () =>
+      safeMemberships.filter((item) => item?.isFeatured || item?.highlight)
+        .length,
+    [safeMemberships],
   );
 
   const filteredMemberships = useMemo(() => {
-    const term = String(search || "").toLowerCase().trim().slice(0, 120);
+    const term = String(search || "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 120);
 
     return safeMemberships.filter((item) => {
       const matchesSearch =
         !term ||
-        String(item?.title || "").toLowerCase().includes(term) ||
-        String(item?.membershipId || "").toLowerCase().includes(term) ||
-        String(item?.accessLevel || "").toLowerCase().includes(term) ||
-        String(item?.short || "").toLowerCase().includes(term) ||
-        String(item?.slug || "").toLowerCase().includes(term);
+        String(item?.title || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(item?.membershipId || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(item?.accessLevel || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(item?.short || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(item?.slug || "")
+          .toLowerCase()
+          .includes(term);
 
       const matchesLevel =
         levelFilter === "all" ||
@@ -227,11 +242,15 @@ export default function ManageMembership() {
     const title = String(formData.title || "").trim();
     const short = String(formData.short || "").trim();
 
-    if (!levels.includes(formData.membershipId)) return "Choose a valid membership ID.";
-    if (!levels.includes(formData.accessLevel)) return "Choose a valid access level.";
+    if (!levels.includes(formData.membershipId))
+      return "Choose a valid membership ID.";
+    if (!levels.includes(formData.accessLevel))
+      return "Choose a valid access level.";
     if (title.length < 3) return "Title must be at least 3 characters.";
-    if (!String(formData.priceLabel || "").trim()) return "Price label is required.";
-    if (short.length < 10) return "Short description must be at least 10 characters.";
+    if (!String(formData.priceLabel || "").trim())
+      return "Price label is required.";
+    if (short.length < 10)
+      return "Short description must be at least 10 characters.";
 
     const stripeIds = [
       formData.stripePriceId,
@@ -247,7 +266,7 @@ export default function ManageMembership() {
       (item) =>
         item?._id !== formData._id &&
         String(item?.membershipId || "").toLowerCase() ===
-          String(formData.membershipId || "").toLowerCase()
+          String(formData.membershipId || "").toLowerCase(),
     );
 
     if (!isEditing && duplicate) {
@@ -285,7 +304,7 @@ export default function ManageMembership() {
     }
 
     const ok = window.confirm(
-      `Delete "${item.title}"?\n\nThis can affect checkout cards and active membership display.`
+      `Delete "${item.title}"?\n\nThis can affect checkout cards and active membership display.`,
     );
 
     if (!ok) return;
@@ -320,7 +339,10 @@ export default function ManageMembership() {
               + Create New Membership
             </PrimaryButton>
 
-            <GhostButton type="button" onClick={() => dispatch(fetchManageMemberships())}>
+            <GhostButton
+              type="button"
+              onClick={() => dispatch(fetchManageMemberships())}
+            >
               Refresh Memberships
             </GhostButton>
           </HeroActions>
@@ -361,8 +383,12 @@ export default function ManageMembership() {
         <FormPanel>
           <PanelTop>
             <div>
-              <SectionEyebrow>{isEditing ? "Edit Membership" : "Create Membership"}</SectionEyebrow>
-              <SectionTitle>{isEditing ? "Upgrade This Plan" : "Build A Premium Plan"}</SectionTitle>
+              <SectionEyebrow>
+                {isEditing ? "Edit Membership" : "Create Membership"}
+              </SectionEyebrow>
+              <SectionTitle>
+                {isEditing ? "Upgrade This Plan" : "Build A Premium Plan"}
+              </SectionTitle>
             </div>
             <MiniBadge>{isEditing ? "Editing" : "New Plan"}</MiniBadge>
           </PanelTop>
@@ -370,7 +396,11 @@ export default function ManageMembership() {
           <Form onSubmit={handleSubmit}>
             <Field>
               <Label>Membership ID *</Label>
-              <Select name="membershipId" value={formData.membershipId} onChange={handleChange}>
+              <Select
+                name="membershipId"
+                value={formData.membershipId}
+                onChange={handleChange}
+              >
                 {levels.map((level) => (
                   <option key={level} value={level}>
                     {level}
@@ -381,7 +411,11 @@ export default function ManageMembership() {
 
             <Field>
               <Label>Access Level *</Label>
-              <Select name="accessLevel" value={formData.accessLevel} onChange={handleChange}>
+              <Select
+                name="accessLevel"
+                value={formData.accessLevel}
+                onChange={handleChange}
+              >
                 {levels.map((level) => (
                   <option key={level} value={level}>
                     {level}
@@ -402,12 +436,21 @@ export default function ManageMembership() {
 
             <Field>
               <Label>Instructor</Label>
-              <Input name="instructor" value={formData.instructor} onChange={handleChange} />
+              <Input
+                name="instructor"
+                value={formData.instructor}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <Label>Glyph</Label>
-              <Input name="glyph" value={formData.glyph} onChange={handleChange} placeholder="KC" />
+              <Input
+                name="glyph"
+                value={formData.glyph}
+                onChange={handleChange}
+                placeholder="KC"
+              />
             </Field>
 
             <Field>
@@ -503,12 +546,20 @@ export default function ManageMembership() {
 
             <Field>
               <Label>Left Badge</Label>
-              <Input name="badgeLeft" value={formData.badgeLeft} onChange={handleChange} />
+              <Input
+                name="badgeLeft"
+                value={formData.badgeLeft}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <Label>Right Badge</Label>
-              <Input name="badgeRight" value={formData.badgeRight} onChange={handleChange} />
+              <Input
+                name="badgeRight"
+                value={formData.badgeRight}
+                onChange={handleChange}
+              />
             </Field>
 
             <ToggleGrid>
@@ -549,7 +600,11 @@ export default function ManageMembership() {
               </GhostButton>
 
               <PrimaryButton type="submit" disabled={saving}>
-                {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Membership"}
+                {saving
+                  ? "Saving..."
+                  : isEditing
+                    ? "Save Changes"
+                    : "Create Membership"}
               </PrimaryButton>
             </FormActions>
           </Form>
@@ -636,7 +691,10 @@ export default function ManageMembership() {
                     </PlanMeta>
 
                     <CardActions>
-                      <GhostButton type="button" onClick={() => handleEdit(item)}>
+                      <GhostButton
+                        type="button"
+                        onClick={() => handleEdit(item)}
+                      >
                         Edit
                       </GhostButton>
 
@@ -671,9 +729,17 @@ const Page = styled.main`
   padding: 28px 18px 60px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 10% 5%, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(
+      circle at 10% 5%,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
     radial-gradient(circle at 90% 10%, rgba(90, 56, 37, 0.35), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Toast = styled.div`
@@ -722,7 +788,11 @@ const HeroLeft = styled.div`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.84), rgba(0, 0, 0, 0.64)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -773,7 +843,11 @@ const HeroPanel = styled.aside`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 22px;
   background:
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.16), transparent 34%),
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.16),
+      transparent 34%
+    ),
     rgba(0, 0, 0, 0.38);
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.soft};

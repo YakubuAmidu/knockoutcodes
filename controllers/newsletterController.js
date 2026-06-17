@@ -5,7 +5,10 @@ import Newsletter from "../models/NewsletterModel.js";
 import EmailSubscriber from "../models/EmailSubscriberModel.js";
 import { getIO } from "../config/socket.js";
 
-const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const normalizeEmail = (email) =>
+  String(email || "")
+    .trim()
+    .toLowerCase();
 
 const escapeRegex = (value = "") =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -42,7 +45,7 @@ const syncEmailSubscriber = async ({
       upsert: true,
       runValidators: true,
       setDefaultsOnInsert: true,
-    }
+    },
   );
 };
 
@@ -66,7 +69,7 @@ const emitNewsletterEvent = (event, payload) => {
     const io = getIO();
     io.emit(event, payload);
   } catch {
-      // Ignore realtime/socket failure.
+    // Ignore realtime/socket failure.
   }
 };
 
@@ -212,7 +215,7 @@ export const createNewsletter = async (req, res) => {
         message: Object.values(err.errors)?.[0]?.message || "Invalid data.",
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       message: "Failed to subscribe.",
@@ -348,7 +351,8 @@ export const updateNewsletter = async (req, res) => {
 
     if (typeof req.body.name === "string") subscriber.name = req.body.name;
     if (typeof req.body.topic === "string") subscriber.topic = req.body.topic;
-    if (typeof req.body.source === "string") subscriber.source = req.body.source;
+    if (typeof req.body.source === "string")
+      subscriber.source = req.body.source;
     if (typeof req.body.notes === "string") subscriber.notes = req.body.notes;
 
     if (typeof req.body.isActive === "boolean") {

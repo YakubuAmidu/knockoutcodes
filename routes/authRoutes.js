@@ -26,48 +26,24 @@ router.get("/csrf", issueCsrf);
  */
 router.get("/verify-email/:token", verifyEmail);
 
-router.post(
-  "/register",
-  ...authShield,
-  register
-);
+router.post("/register", ...authShield, register);
 
 /**
  * Resend email verification
  * POST /api/v1/auth/resend-verification
  */
-router.post(
-  "/resend-verification",
-  ...authShield,
-  resendVerificationEmail
-);
+router.post("/resend-verification", ...authShield, resendVerificationEmail);
 
-router.post(
-  "/login",
-  ...authShield,
-  login
-);
+router.post("/login", ...authShield, login);
 
-router.post(
-  "/forgot-password",
-  ...authShield,
-  forgotPassword
-);
+router.post("/forgot-password", ...authShield, forgotPassword);
 
-router.post(
-  "/reset-password/:token",
-  ...authShield,
-  resetPassword
-);
+router.post("/reset-password/:token", ...authShield, resetPassword);
 
 router.post("/refresh", refresh);
 
 router.get("/me", authRequired, me);
 
-router.post(
-  "/logout",
-  requireCsrf,
-  logoutUser
-);
+router.post("/logout", requireCsrf, logoutUser);
 
 export default router;

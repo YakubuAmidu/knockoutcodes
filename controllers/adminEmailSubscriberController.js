@@ -23,9 +23,7 @@ function cleanTags(tags = []) {
 
   return [
     ...new Set(
-      raw
-        .map((tag) => cleanString(tag, 40).toLowerCase())
-        .filter(Boolean)
+      raw.map((tag) => cleanString(tag, 40).toLowerCase()).filter(Boolean),
     ),
   ].slice(0, 30);
 }
@@ -37,7 +35,7 @@ function cleanIds(ids = []) {
     ...new Set(
       ids
         .map((id) => String(id || "").trim())
-        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .filter((id) => mongoose.Types.ObjectId.isValid(id)),
     ),
   ];
 }
@@ -72,7 +70,9 @@ function safeSubscriber(subscriber) {
     blockedReason: item.blockedReason || "",
 
     consent: item.consent || {},
-    activityLog: Array.isArray(item.activityLog) ? item.activityLog.slice(-20) : [],
+    activityLog: Array.isArray(item.activityLog)
+      ? item.activityLog.slice(-20)
+      : [],
 
     createdBy: item.createdBy || null,
     createdAt: item.createdAt,
@@ -185,7 +185,7 @@ export async function createEmailSubscriber(req, res, next) {
 
       existingSubscriber.addActivity(
         wasUnsubscribed ? "reactivated" : "updated",
-        "Subscriber was updated by admin."
+        "Subscriber was updated by admin.",
       );
 
       await existingSubscriber.save();
@@ -320,11 +320,17 @@ export async function getEmailSubscribers(req, res, next) {
     });
 
     if (summary.sentCount > 0) {
-      summary.openRate = Math.round((summary.openCount / summary.sentCount) * 100);
-      summary.clickRate = Math.round((summary.clickCount / summary.sentCount) * 100);
-      summary.bounceRate = Math.round((summary.bounceCount / summary.sentCount) * 100);
+      summary.openRate = Math.round(
+        (summary.openCount / summary.sentCount) * 100,
+      );
+      summary.clickRate = Math.round(
+        (summary.clickCount / summary.sentCount) * 100,
+      );
+      summary.bounceRate = Math.round(
+        (summary.bounceCount / summary.sentCount) * 100,
+      );
       summary.unsubscribeRate = Math.round(
-        (summary.unsubscribeCount / summary.sentCount) * 100
+        (summary.unsubscribeCount / summary.sentCount) * 100,
       );
     }
 
@@ -504,10 +510,12 @@ export async function bulkUpdateEmailSubscribers(req, res, next) {
     const result = await EmailSubscriber.updateMany(
       { _id: { $in: ids } },
       update,
-      { runValidators: true }
+      { runValidators: true },
     );
 
-    const subscribers = await EmailSubscriber.find({ _id: { $in: ids } }).lean();
+    const subscribers = await EmailSubscriber.find({
+      _id: { $in: ids },
+    }).lean();
     const safeData = subscribers.map(safeSubscriber);
 
     return res.status(200).json({

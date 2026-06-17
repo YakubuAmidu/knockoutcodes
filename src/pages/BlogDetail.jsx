@@ -45,7 +45,7 @@ function renderBlogContent(content = "") {
         {listItems.map((item, index) => (
           <li key={`item-${index}`}>{renderInlineMarkdown(item)}</li>
         ))}
-      </ListTag>
+      </ListTag>,
     );
 
     listItems = [];
@@ -69,7 +69,7 @@ function renderBlogContent(content = "") {
     if (line.startsWith("### ")) {
       flushList();
       elements.push(
-        <h3 key={index}>{renderInlineMarkdown(line.replace("### ", ""))}</h3>
+        <h3 key={index}>{renderInlineMarkdown(line.replace("### ", ""))}</h3>,
       );
       return;
     }
@@ -77,7 +77,7 @@ function renderBlogContent(content = "") {
     if (line.startsWith("## ")) {
       flushList();
       elements.push(
-        <h2 key={index}>{renderInlineMarkdown(line.replace("## ", ""))}</h2>
+        <h2 key={index}>{renderInlineMarkdown(line.replace("## ", ""))}</h2>,
       );
       return;
     }
@@ -85,7 +85,7 @@ function renderBlogContent(content = "") {
     if (line.startsWith("# ")) {
       flushList();
       elements.push(
-        <h1 key={index}>{renderInlineMarkdown(line.replace("# ", ""))}</h1>
+        <h1 key={index}>{renderInlineMarkdown(line.replace("# ", ""))}</h1>,
       );
       return;
     }
@@ -95,7 +95,7 @@ function renderBlogContent(content = "") {
       elements.push(
         <blockquote key={index}>
           {renderInlineMarkdown(line.replace("> ", ""))}
-        </blockquote>
+        </blockquote>,
       );
       return;
     }
@@ -132,11 +132,12 @@ const BlogDetail = () => {
 
   const loggedInUser = user || currentUser || authUser || {};
   const userRole = String(
-    loggedInUser?.role || loggedInUser?.user?.role || ""
+    loggedInUser?.role || loggedInUser?.user?.role || "",
   ).toLowerCase();
 
   const isAdmin =
-    ["admin", "superadmin"].includes(userRole) || loggedInUser?.isAdmin === true;
+    ["admin", "superadmin"].includes(userRole) ||
+    loggedInUser?.isAdmin === true;
 
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -249,7 +250,7 @@ const BlogDetail = () => {
                 likes: res.data.data.likes,
                 unlikes: res.data.data.unlikes,
               }
-            : prev
+            : prev,
         );
 
         toast?.push?.({
@@ -310,7 +311,7 @@ const BlogDetail = () => {
                 likes: res.data.data.likes,
                 unlikes: res.data.data.unlikes,
               }
-            : prev
+            : prev,
         );
 
         toast?.push?.({
@@ -356,8 +357,12 @@ const BlogDetail = () => {
           </BackButton>
 
           <TopPills>
-            {!loading && blog?.featured ? <MiniBadge>Featured Article</MiniBadge> : null}
-            {!loading && blog ? <MiniBadge>KnockoutCodes Journal</MiniBadge> : null}
+            {!loading && blog?.featured ? (
+              <MiniBadge>Featured Article</MiniBadge>
+            ) : null}
+            {!loading && blog ? (
+              <MiniBadge>KnockoutCodes Journal</MiniBadge>
+            ) : null}
           </TopPills>
         </BackRow>
 
@@ -384,7 +389,9 @@ const BlogDetail = () => {
         ) : !blog ? (
           <ErrorBox>
             <span>
-              {isNotFound ? "Article not found." : "This article isn’t available."}
+              {isNotFound
+                ? "Article not found."
+                : "This article isn’t available."}
             </span>
 
             <ActionBtn type="button" onClick={() => navigate("/blog")}>
@@ -424,7 +431,8 @@ const BlogDetail = () => {
                 <MetaGrid>
                   <MetaCard>
                     <strong>
-                      {formatDate(blog.publishedAt || blog.createdAt) || "Today"}
+                      {formatDate(blog.publishedAt || blog.createdAt) ||
+                        "Today"}
                     </strong>
                     <span>Published</span>
                   </MetaCard>
@@ -485,8 +493,12 @@ const BlogDetail = () => {
                 <Divider />
 
                 <StatsRow>
-                  <span>Published: {formatDate(blog.publishedAt || blog.createdAt)}</span>
-                  <span>Updated: {formatDate(blog.updatedAt || blog.createdAt)}</span>
+                  <span>
+                    Published: {formatDate(blog.publishedAt || blog.createdAt)}
+                  </span>
+                  <span>
+                    Updated: {formatDate(blog.updatedAt || blog.createdAt)}
+                  </span>
                   <span>
                     {views} real {views === 1 ? "view" : "views"}
                   </span>
@@ -519,7 +531,9 @@ const BlogDetail = () => {
                 transition={{ duration: 0.32, delay: 0.12 }}
               >
                 <SideLabel>Article Room</SideLabel>
-                <SideTitle>Train smarter. Move cleaner. Build discipline.</SideTitle>
+                <SideTitle>
+                  Train smarter. Move cleaner. Build discipline.
+                </SideTitle>
 
                 <SideList>
                   <li>Clear boxing education</li>
@@ -551,9 +565,17 @@ const PageWrap = styled.main`
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 15% 8%, rgba(214, 182, 159, 0.22), transparent 34%),
+    radial-gradient(
+      circle at 15% 8%,
+      rgba(214, 182, 159, 0.22),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 18%, rgba(90, 56, 37, 0.36), transparent 36%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   color: ${({ theme }) => theme.colors.white};
   padding: 100px 20px 80px;
   display: flex;
@@ -564,7 +586,11 @@ const LuxuryGlow = styled.div`
   position: absolute;
   inset: auto -15% -35% -15%;
   height: 420px;
-  background: radial-gradient(circle, rgba(214, 182, 159, 0.18), transparent 62%);
+  background: radial-gradient(
+    circle,
+    rgba(214, 182, 159, 0.18),
+    transparent 62%
+  );
   pointer-events: none;
 `;
 
@@ -605,7 +631,10 @@ const BackButton = styled.button`
   gap: 8px;
   cursor: pointer;
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
 
   &:hover {
     background: rgba(0, 0, 0, 0.74);
@@ -633,7 +662,11 @@ const HeroCard = styled.section`
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.86), rgba(0, 0, 0, 0.66)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 42%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 42%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   margin-bottom: 22px;
@@ -1028,7 +1061,11 @@ const SideCard = styled.aside`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 22px;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 42%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 42%
+    ),
     rgba(0, 0, 0, 0.42);
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -1129,7 +1166,10 @@ const ActionBtn = styled.button`
   letter-spacing: 0.12em;
   background: rgba(0, 0, 0, 0.42);
   color: ${({ theme }) => theme.colors.ivory};
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 
   &:hover {
     box-shadow: ${({ theme }) => theme.shadow.soft};

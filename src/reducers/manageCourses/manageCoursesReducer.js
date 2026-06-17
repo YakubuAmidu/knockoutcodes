@@ -17,7 +17,7 @@ const ensureMeta = (value) => ({
 
 export const manageCoursesReducer = (
   state = manageCoursesInitialState,
-  action
+  action,
 ) => {
   switch (action.type) {
     case T.FETCH_START:
@@ -57,7 +57,9 @@ export const manageCoursesReducer = (
       return {
         ...state,
         saving: false,
-        courses: [action.payload, ...ensureArray(state.courses)].filter(Boolean),
+        courses: [action.payload, ...ensureArray(state.courses)].filter(
+          Boolean,
+        ),
         selectedCourse: null,
         successMessage: "Course created successfully.",
         error: "",
@@ -68,7 +70,7 @@ export const manageCoursesReducer = (
         ...state,
         saving: false,
         courses: ensureArray(state.courses).map((course) =>
-          course?._id === action.payload?._id ? action.payload : course
+          course?._id === action.payload?._id ? action.payload : course,
         ),
         selectedCourse: action.payload,
         successMessage: "Course updated successfully.",
@@ -95,7 +97,7 @@ export const manageCoursesReducer = (
         ...state,
         deleting: false,
         courses: ensureArray(state.courses).filter(
-          (course) => course?._id !== action.payload
+          (course) => course?._id !== action.payload,
         ),
         selectedCourse:
           state.selectedCourse?._id === action.payload

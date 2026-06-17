@@ -60,7 +60,7 @@ export default function Session() {
       }
 
       const { data } = await axiosInstance.get(
-        `/auth/sessions/admin?${params.toString()}`
+        `/auth/sessions/admin?${params.toString()}`,
       );
 
       setSessions(Array.isArray(data?.items) ? data.items : []);
@@ -68,7 +68,7 @@ export default function Session() {
       setPages(Number(data?.pages) || 1);
     } catch (error) {
       toast?.error?.(
-        error?.response?.data?.message || "Failed to load admin sessions."
+        error?.response?.data?.message || "Failed to load admin sessions.",
       );
       setSessions([]);
       setTotal(0);
@@ -118,18 +118,18 @@ export default function Session() {
     try {
       const { data } = await axiosInstance.patch(
         `/auth/sessions/admin/${session.id}/trust`,
-        { isTrusted: !session.isTrusted }
+        { isTrusted: !session.isTrusted },
       );
 
       setSessions((prev) =>
-        prev.map((item) => (item.id === session.id ? data.item : item))
+        prev.map((item) => (item.id === session.id ? data.item : item)),
       );
 
       toast?.success?.(data?.message || "Session updated.");
       setActiveModal(null);
     } catch (error) {
       toast?.error?.(
-        error?.response?.data?.message || "Failed to update session."
+        error?.response?.data?.message || "Failed to update session.",
       );
     } finally {
       setActionLoading(false);
@@ -144,18 +144,18 @@ export default function Session() {
     try {
       const { data } = await axiosInstance.delete(
         `/auth/sessions/admin/${session.id}/revoke`,
-        { data: {} }
+        { data: {} },
       );
 
       setSessions((prev) =>
-        prev.map((item) => (item.id === session.id ? data.item : item))
+        prev.map((item) => (item.id === session.id ? data.item : item)),
       );
 
       toast?.success?.(data?.message || "Session revoked.");
       setActiveModal(null);
     } catch (error) {
       toast?.error?.(
-        error?.response?.data?.message || "Failed to revoke session."
+        error?.response?.data?.message || "Failed to revoke session.",
       );
     } finally {
       setActionLoading(false);
@@ -163,35 +163,35 @@ export default function Session() {
   }
 
   async function handleDelete(session) {
-  if (!session?.id) return;
+    if (!session?.id) return;
 
-  if (session.status !== "revoked") {
-    toast?.error?.("Only revoked sessions can be deleted.");
-    return;
+    if (session.status !== "revoked") {
+      toast?.error?.("Only revoked sessions can be deleted.");
+      return;
+    }
+
+    setActionLoading(true);
+
+    try {
+      const { data } = await axiosInstance.delete(
+        `/auth/sessions/admin/${session.id}/delete`,
+        { data: { confirm: true } },
+      );
+
+      setSessions((prev) => prev.filter((item) => item.id !== data.deletedId));
+
+      toast?.success?.(data?.message || "Revoked session deleted.");
+      setActiveModal(null);
+
+      await fetchSessions();
+    } catch (error) {
+      toast?.error?.(
+        error?.response?.data?.message || "Failed to delete revoked session.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
   }
-
-  setActionLoading(true);
-
-  try {
-    const { data } = await axiosInstance.delete(
-      `/auth/sessions/admin/${session.id}/delete`,
-      { data: { confirm: true } }
-    );
-
-    setSessions((prev) => prev.filter((item) => item.id !== data.deletedId));
-
-    toast?.success?.(data?.message || "Revoked session deleted.");
-    setActiveModal(null);
-
-    await fetchSessions();
-  } catch (error) {
-    toast?.error?.(
-      error?.response?.data?.message || "Failed to delete revoked session."
-    );
-  } finally {
-    setActionLoading(false);
-  }
-}
 
   async function handleCleanup() {
     setActionLoading(true);
@@ -199,7 +199,7 @@ export default function Session() {
     try {
       const { data } = await axiosInstance.delete(
         "/auth/sessions/admin/cleanup",
-        { data: { days: 1 } }
+        { data: { days: 1 } },
       );
 
       toast?.success?.(data?.message || "Old sessions cleaned.");
@@ -207,7 +207,7 @@ export default function Session() {
       await fetchSessions();
     } catch (error) {
       toast?.error?.(
-        error?.response?.data?.message || "Failed to cleanup sessions."
+        error?.response?.data?.message || "Failed to cleanup sessions.",
       );
     } finally {
       setActionLoading(false);
@@ -231,7 +231,10 @@ export default function Session() {
           </Subtitle>
 
           <HeroActions>
-            <PrimaryBtn onClick={fetchSessions} disabled={loading || actionLoading}>
+            <PrimaryBtn
+              onClick={fetchSessions}
+              disabled={loading || actionLoading}
+            >
               {loading ? "Refreshing..." : "Refresh Sessions"}
             </PrimaryBtn>
 
@@ -378,7 +381,9 @@ export default function Session() {
                         <Small>{formatDate(session.lastActiveAt)}</Small>
                         <Small>Created: {formatDate(session.createdAt)}</Small>
                         {session.revokedAt ? (
-                          <Small>Revoked: {formatDate(session.revokedAt)}</Small>
+                          <Small>
+                            Revoked: {formatDate(session.revokedAt)}
+                          </Small>
                         ) : null}
                       </td>
 
@@ -526,8 +531,7 @@ export default function Session() {
                       {formatDate(activeModal.session?.revokedAt)}
                     </Detail>
                     <Detail>
-                      <b>Reason:</b>{" "}
-                      {activeModal.session?.revokedReason || "—"}
+                      <b>Reason:</b> {activeModal.session?.revokedReason || "—"}
                     </Detail>
                   </DetailGrid>
 
@@ -608,7 +612,9 @@ export default function Session() {
               {activeModal.type === "delete" && (
                 <>
                   <ModalEyebrow>Delete Session</ModalEyebrow>
-                  <ModalTitle>Permanently delete this revoked session?</ModalTitle>
+                  <ModalTitle>
+                    Permanently delete this revoked session?
+                  </ModalTitle>
 
                   <ModalText>
                     This removes the revoked session record from the admin list.
@@ -654,7 +660,10 @@ export default function Session() {
                       Cancel
                     </ModalCancel>
 
-                    <ModalDelete onClick={handleCleanup} disabled={actionLoading}>
+                    <ModalDelete
+                      onClick={handleCleanup}
+                      disabled={actionLoading}
+                    >
                       {actionLoading ? "Cleaning..." : "Delete Old Revoked"}
                     </ModalDelete>
                   </ModalActions>
@@ -673,9 +682,18 @@ const Page = styled.main`
   padding: 120px 18px 80px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 14% 8%, rgba(214, 182, 159, 0.18), transparent 36%),
+    radial-gradient(
+      circle at 14% 8%,
+      rgba(214, 182, 159, 0.18),
+      transparent 36%
+    ),
     radial-gradient(circle at 88% 22%, rgba(90, 56, 37, 0.34), transparent 42%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown}, ${({ theme }) => theme.colors.black});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown},
+      ${({ theme }) => theme.colors.black}
+    );
 `;
 
 const Shell = styled.section`
@@ -864,7 +882,9 @@ const Table = styled.table`
 
   tbody tr {
     background: rgba(0, 0, 0, 0.34);
-    transition: transform 0.16s ease, background 0.16s ease;
+    transition:
+      transform 0.16s ease,
+      background 0.16s ease;
   }
 
   tbody tr:hover {
@@ -1054,7 +1074,11 @@ const ModalCard = styled(motion.div)`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 28px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(214, 182, 159, 0.07)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(214, 182, 159, 0.07)
+    ),
     ${({ theme }) => theme.colors.darkBrown};
   border: 1px solid rgba(214, 182, 159, 0.24);
   box-shadow: ${({ theme }) => theme.shadow.hard};

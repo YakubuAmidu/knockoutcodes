@@ -137,40 +137,34 @@ export async function getEmailCampaignAnalytics(req, res, next) {
 
     const campaignIds = campaigns.map((campaign) => campaign._id);
 
-    const [
-      totalCampaigns,
-      totalLogs,
-      opened,
-      clicked,
-      unsubscribed,
-      failed,
-    ] = await Promise.all([
-      EmailCampaign.countDocuments({}),
+    const [totalCampaigns, totalLogs, opened, clicked, unsubscribed, failed] =
+      await Promise.all([
+        EmailCampaign.countDocuments({}),
 
-      EmailCampaignLog.countDocuments({
-        campaign: { $in: campaignIds },
-      }),
+        EmailCampaignLog.countDocuments({
+          campaign: { $in: campaignIds },
+        }),
 
-      EmailCampaignLog.countDocuments({
-        campaign: { $in: campaignIds },
-        openCount: { $gt: 0 },
-      }),
+        EmailCampaignLog.countDocuments({
+          campaign: { $in: campaignIds },
+          openCount: { $gt: 0 },
+        }),
 
-      EmailCampaignLog.countDocuments({
-        campaign: { $in: campaignIds },
-        clickCount: { $gt: 0 },
-      }),
+        EmailCampaignLog.countDocuments({
+          campaign: { $in: campaignIds },
+          clickCount: { $gt: 0 },
+        }),
 
-      EmailCampaignLog.countDocuments({
-        campaign: { $in: campaignIds },
-        status: "unsubscribed",
-      }),
+        EmailCampaignLog.countDocuments({
+          campaign: { $in: campaignIds },
+          status: "unsubscribed",
+        }),
 
-      EmailCampaignLog.countDocuments({
-        campaign: { $in: campaignIds },
-        status: "failed",
-      }),
-    ]);
+        EmailCampaignLog.countDocuments({
+          campaign: { $in: campaignIds },
+          status: "failed",
+        }),
+      ]);
 
     const campaignSummaries = await Promise.all(
       campaigns.map(async (campaign) => {
@@ -196,17 +190,17 @@ export async function getEmailCampaignAnalytics(req, res, next) {
             bounceRate: 0,
           },
         };
-      })
+      }),
     );
 
     const totalSent = campaignSummaries.reduce(
       (sum, item) => sum + Number(item?.totals?.sent || 0),
-      0
+      0,
     );
 
     const totalRecipients = campaignSummaries.reduce(
       (sum, item) => sum + Number(item?.totals?.recipients || 0),
-      0
+      0,
     );
 
     return res.status(200).json({

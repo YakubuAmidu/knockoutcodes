@@ -74,19 +74,19 @@ export default function Login() {
               payload.type === "success"
                 ? "Success"
                 : payload.type === "error"
-                ? "Error"
-                : payload.type === "warning"
-                ? "Warning"
-                : payload.type === "info"
-                ? "Info"
-                : "Notice",
+                  ? "Error"
+                  : payload.type === "warning"
+                    ? "Warning"
+                    : payload.type === "info"
+                      ? "Info"
+                      : "Notice",
             description: payload.message || "",
             variant: payload.type || "info",
           };
 
       toast?.push?.(normalized);
     },
-    [toast]
+    [toast],
   );
 
   const [email, setEmail] = React.useState(() => {
@@ -104,11 +104,14 @@ export default function Login() {
 
   const registeredEmail = React.useMemo(() => {
     return normalizeEmail(
-      location.state?.registeredEmail || safeGetLocalStorage("lastRegisteredEmail")
+      location.state?.registeredEmail ||
+        safeGetLocalStorage("lastRegisteredEmail"),
     );
   }, [location.state?.registeredEmail]);
 
-  const needsEmailVerification = Boolean(location.state?.needsEmailVerification);
+  const needsEmailVerification = Boolean(
+    location.state?.needsEmailVerification,
+  );
 
   const verificationNotice = React.useMemo(() => {
     if (!needsEmailVerification) return "";
@@ -142,145 +145,145 @@ export default function Login() {
     initializing,
   ]);
 
- async function handleSubmit(e) {
-  e.preventDefault();
+  async function handleSubmit(e) {
+    e.preventDefault();
 
-  if (submitLockRef.current || submitting) return;
+    if (submitLockRef.current || submitting) return;
 
-  setError("");
+    setError("");
 
-  const cleanEmail = normalizeEmail(email);
-  const cleanPassword = String(password || "");
+    const cleanEmail = normalizeEmail(email);
+    const cleanPassword = String(password || "");
 
-  if (!cleanEmail || !cleanPassword) {
-    const msg = "Please enter both email and password.";
-    setError(msg);
-    pushToast({ type: "warning", message: msg });
-    return;
-  }
-
-  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
-    const msg = "Please enter a valid email address.";
-    setError(msg);
-    pushToast({ type: "warning", message: msg });
-    return;
-  }
-
-  try {
-    submitLockRef.current = true;
-    setSubmitting(true);
-
-    pushToast({ type: "info", message: "Signing you in…" });
-
-    const result = await login(
-      { email: cleanEmail, password: cleanPassword },
-      { remember }
-    );
-
-    if (result?.code === "ACCOUNT_ACCESS_RESTRICTED") {
-      const restrictedMessage =
-        result?.message ||
-        result?.error ||
-        "Your account access has been restricted. Please contact support.";
-
-      const restrictedStatus = result?.accountStatus || "restricted";
-
-      localStorage.setItem("accountAccessMessage", restrictedMessage);
-      localStorage.setItem("accountStatus", restrictedStatus);
-
-      navigate("/account-access-notice", {
-        replace: true,
-        state: {
-          message: restrictedMessage,
-          accountStatus: restrictedStatus,
-        },
-      });
-
+    if (!cleanEmail || !cleanPassword) {
+      const msg = "Please enter both email and password.";
+      setError(msg);
+      pushToast({ type: "warning", message: msg });
       return;
     }
 
-    if (!result?.ok) {
-      const msg =
-        result?.code === "ACCOUNT_LOCKED"
-          ? "Your account is temporarily locked because of too many failed attempts. Please wait and try again later."
-          : result?.code === "EMAIL_NOT_VERIFIED"
-          ? "Please verify your email before logging in."
-          : result?.error && !/not found|no user/i.test(result.error)
-          ? result.error
-          : "Invalid email or password.";
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      const msg = "Please enter a valid email address.";
+      setError(msg);
+      pushToast({ type: "warning", message: msg });
+      return;
+    }
 
+    try {
+      submitLockRef.current = true;
+      setSubmitting(true);
+
+      pushToast({ type: "info", message: "Signing you in…" });
+
+      const result = await login(
+        { email: cleanEmail, password: cleanPassword },
+        { remember },
+      );
+
+      if (result?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+        const restrictedMessage =
+          result?.message ||
+          result?.error ||
+          "Your account access has been restricted. Please contact support.";
+
+        const restrictedStatus = result?.accountStatus || "restricted";
+
+        localStorage.setItem("accountAccessMessage", restrictedMessage);
+        localStorage.setItem("accountStatus", restrictedStatus);
+
+        navigate("/account-access-notice", {
+          replace: true,
+          state: {
+            message: restrictedMessage,
+            accountStatus: restrictedStatus,
+          },
+        });
+
+        return;
+      }
+
+      if (!result?.ok) {
+        const msg =
+          result?.code === "ACCOUNT_LOCKED"
+            ? "Your account is temporarily locked because of too many failed attempts. Please wait and try again later."
+            : result?.code === "EMAIL_NOT_VERIFIED"
+              ? "Please verify your email before logging in."
+              : result?.error && !/not found|no user/i.test(result.error)
+                ? result.error
+                : "Invalid email or password.";
+
+        setError(msg);
+        pushToast({ type: "error", message: msg });
+        return;
+      }
+
+      const loggedInUser = result?.user;
+
+      if (loggedInUser && loggedInUser.isActive === false) {
+        const msg =
+          "Your account is currently inactive. Please contact support for assistance.";
+
+        localStorage.setItem("accountAccessMessage", msg);
+        localStorage.setItem("accountStatus", "inactive");
+
+        navigate("/account-access-notice", {
+          replace: true,
+          state: {
+            message: msg,
+            accountStatus: "inactive",
+          },
+        });
+
+        return;
+      }
+
+      safeRemoveLocalStorage("lastRegisteredEmail");
+      safeRemoveLocalStorage("accountAccessMessage");
+      safeRemoveLocalStorage("accountStatus");
+
+      pushToast({
+        type: "success",
+        message: "Login successful. Redirecting to your dashboard…",
+      });
+
+      const role = result?.role || loggedInUser?.role || "user";
+      const fallback = role === "admin" ? "/admin/dashboard" : "/user-profile";
+      const target = getSafeRedirectTarget(location?.state?.from, fallback);
+
+      didRoute.current = true;
+      navigate(target, { replace: true });
+    } catch (error) {
+      const data = error?.response?.data;
+
+      if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+        const restrictedMessage =
+          data?.message ||
+          "Your account access has been restricted. Please contact support.";
+
+        const restrictedStatus = data?.accountStatus || "restricted";
+
+        localStorage.setItem("accountAccessMessage", restrictedMessage);
+        localStorage.setItem("accountStatus", restrictedStatus);
+
+        navigate("/account-access-notice", {
+          replace: true,
+          state: {
+            message: restrictedMessage,
+            accountStatus: restrictedStatus,
+          },
+        });
+
+        return;
+      }
+
+      const msg = "Login failed. Please try again.";
       setError(msg);
       pushToast({ type: "error", message: msg });
-      return;
+    } finally {
+      submitLockRef.current = false;
+      setSubmitting(false);
     }
-
-    const loggedInUser = result?.user;
-
-    if (loggedInUser && loggedInUser.isActive === false) {
-      const msg =
-        "Your account is currently inactive. Please contact support for assistance.";
-
-      localStorage.setItem("accountAccessMessage", msg);
-      localStorage.setItem("accountStatus", "inactive");
-
-      navigate("/account-access-notice", {
-        replace: true,
-        state: {
-          message: msg,
-          accountStatus: "inactive",
-        },
-      });
-
-      return;
-    }
-
-    safeRemoveLocalStorage("lastRegisteredEmail");
-    safeRemoveLocalStorage("accountAccessMessage");
-    safeRemoveLocalStorage("accountStatus");
-
-    pushToast({
-      type: "success",
-      message: "Login successful. Redirecting to your dashboard…",
-    });
-
-    const role = result?.role || loggedInUser?.role || "user";
-    const fallback = role === "admin" ? "/admin/dashboard" : "/user-profile";
-    const target = getSafeRedirectTarget(location?.state?.from, fallback);
-
-    didRoute.current = true;
-    navigate(target, { replace: true });
-  } catch (error) {
-    const data = error?.response?.data;
-
-    if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
-      const restrictedMessage =
-        data?.message ||
-        "Your account access has been restricted. Please contact support.";
-
-      const restrictedStatus = data?.accountStatus || "restricted";
-
-      localStorage.setItem("accountAccessMessage", restrictedMessage);
-      localStorage.setItem("accountStatus", restrictedStatus);
-
-      navigate("/account-access-notice", {
-        replace: true,
-        state: {
-          message: restrictedMessage,
-          accountStatus: restrictedStatus,
-        },
-      });
-
-      return;
-    }
-
-    const msg = "Login failed. Please try again.";
-    setError(msg);
-    pushToast({ type: "error", message: msg });
-  } finally {
-    submitLockRef.current = false;
-    setSubmitting(false);
   }
-  };
 
   const isBusy = submitting;
   const canSubmit = Boolean(normalizeEmail(email) && password && !isBusy);
@@ -394,7 +397,11 @@ export default function Login() {
               <StyledLink to="/forgot-password">Forgot password?</StyledLink>
             </Row>
 
-            <Button type="submit" disabled={!canSubmit} aria-disabled={!canSubmit}>
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              aria-disabled={!canSubmit}
+            >
               {isBusy ? "Signing you in…" : "Enter Dashboard"}
             </Button>
 
@@ -496,11 +503,7 @@ const HeroPanel = styled.aside`
       rgba(214, 182, 159, 0.28),
       transparent 42%
     ),
-    linear-gradient(
-      135deg,
-      rgba(90, 56, 37, 0.78),
-      rgba(0, 0, 0, 0.92)
-    );
+    linear-gradient(135deg, rgba(90, 56, 37, 0.78), rgba(0, 0, 0, 0.92));
 
   border: 1px solid rgba(214, 182, 159, 0.2);
   box-shadow: ${({ theme }) => theme.shadow.hard};
@@ -594,12 +597,11 @@ const Stat = styled.div`
 
 const Card = styled.div`
   width: 100%;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.035)
-    );
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.035)
+  );
   border: 1px solid rgba(214, 182, 159, 0.18);
   backdrop-filter: blur(18px);
   border-radius: ${({ theme }) => theme.radius.xl};
@@ -639,7 +641,8 @@ const Form = styled.form`
       transparent 34%,
       rgba(255, 249, 242, 0.18)
     );
-    -webkit-mask: linear-gradient(#000 0 0) content-box,
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
       linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -749,8 +752,11 @@ const Field = styled.div`
     color: ${({ theme }) => theme.colors.ivory};
     padding: 0 14px;
     outline: none;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease,
-      transform 0.12s ease, background 0.2s ease;
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.12s ease,
+      background 0.2s ease;
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.38);
@@ -852,20 +858,22 @@ const Button = styled.button`
   height: 54px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background:
-    radial-gradient(
-      120% 160% at 10% 0%,
-      ${({ theme }) => theme.colors.ivory},
-      ${({ theme }) => theme.colors.lightBrown} 42%,
-      ${({ theme }) => theme.colors.brown}
-    );
+  background: radial-gradient(
+    120% 160% at 10% 0%,
+    ${({ theme }) => theme.colors.ivory},
+    ${({ theme }) => theme.colors.lightBrown} 42%,
+    ${({ theme }) => theme.colors.brown}
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   box-shadow: ${({ theme }) => theme.shadow.soft};
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease,
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
     opacity 0.2s ease;
 
   &:hover {

@@ -177,16 +177,19 @@ export const rootReducer = combineReducers({
   register: withInitialState(registerReducer, registerInitialState),
   forgotPassword: withInitialState(
     forgotPasswordReducer,
-    forgotPasswordInitialState
+    forgotPasswordInitialState,
   ),
-  resetPassword: withInitialState(resetPasswordReducer, resetPasswordInitialState),
+  resetPassword: withInitialState(
+    resetPasswordReducer,
+    resetPasswordInitialState,
+  ),
 
   // Users / Dashboard
   users: withInitialState(userReducer, userInitialState),
   manageUsers: withInitialState(manageUserReducer, manageUserInitialState),
   userDashboard: withInitialState(
     userDashboardReducer,
-    userDashboardInitialState
+    userDashboardInitialState,
   ),
 
   // Products / Orders
@@ -195,7 +198,7 @@ export const rootReducer = combineReducers({
   checkout: withInitialState(checkoutReducer, checkoutInitialState),
   manageProducts: withInitialState(
     manageProductReducer,
-    manageProductInitialState
+    manageProductInitialState,
   ),
   myProducts: withInitialState(myProductReducer, myProductInitialState),
   manageOrders: withInitialState(manageOrderReducer, manageOrderInitialState),
@@ -207,10 +210,16 @@ export const rootReducer = combineReducers({
   myCourses: withInitialState(myCoursesReducer, myCoursesInitialState),
   myCourseDetail: withInitialState(
     myCourseDetailReducer,
-    myCourseDetailInitialState
+    myCourseDetailInitialState,
   ),
-  manageCourses: withInitialState(manageCoursesReducer, manageCoursesInitialState),
-  manageLessons: withInitialState(manageLessonReducer, manageLessonInitialState),
+  manageCourses: withInitialState(
+    manageCoursesReducer,
+    manageCoursesInitialState,
+  ),
+  manageLessons: withInitialState(
+    manageLessonReducer,
+    manageLessonInitialState,
+  ),
   enrollment: withInitialState(enrollmentReducer, enrollmentInitialState),
   membership: withInitialState(membershipReducer, membershipInitialState),
 
@@ -219,16 +228,16 @@ export const rootReducer = combineReducers({
   coaching: withInitialState(coachingReducer, coachingInitialState),
   adminCoachings: withInitialState(
     adminCoachingsReducer,
-    adminCoachingsInitialState
+    adminCoachingsInitialState,
   ),
   newsletter: withInitialState(newsletterReducer, newsletterInitialState),
   manageNewsletter: withInitialState(
     manageNewsletterReducer,
-    manageNewsletterInitialState
+    manageNewsletterInitialState,
   ),
   manageContacts: withInitialState(
     manageContactReducer,
-    manageContactInitialState
+    manageContactInitialState,
   ),
   myMessages: withInitialState(myMessagesReducer, myMessagesInitialState),
 
@@ -238,56 +247,53 @@ export const rootReducer = combineReducers({
   testimonials: withInitialState(testimonialReducer, testimonialInitialState),
   manageTestimonials: withInitialState(
     manageTestimonialReducer,
-    manageTestimonialInitialState
+    manageTestimonialInitialState,
   ),
 
   // Security / Settings
   securityEvent: withInitialState(
     securityEventReducer,
-    securityEventInitialState
+    securityEventInitialState,
   ),
   systemSettings: withInitialState(
     systemSettingReducer,
-    systemSettingInitialState
+    systemSettingInitialState,
   ),
 
   // Email System
   emailDashboard: withInitialState(
     emailDashboardReducer,
-    emailDashboardInitialState
+    emailDashboardInitialState,
   ),
   emailCampaign: withInitialState(
     emailCampaignReducer,
-    emailCampaignInitialState
+    emailCampaignInitialState,
   ),
   emailSegment: withInitialState(emailSegmentReducer, emailSegmentInitialState),
   emailSubscribers: withInitialState(
     emailSubscriberReducer,
-    emailSubscriberInitialState
+    emailSubscriberInitialState,
   ),
 
   emailTemplate: withInitialState(
     emailTemplateReducer,
-    emailTemplateInitialState
+    emailTemplateInitialState,
   ),
 
   emailAnalytics: withInitialState(
     emailAnalyticsReducer,
-    emailAnalyticsInitialState
+    emailAnalyticsInitialState,
   ),
 
   manageMemberships: withInitialState(
-  manageMembershipsReducer,
-  manageMembershipsInitialState
-  ),
-  
-  adminStats: withInitialState(
-  adminStatsReducer,
-  adminStatsInitialState
+    manageMembershipsReducer,
+    manageMembershipsInitialState,
   ),
 
+  adminStats: withInitialState(adminStatsReducer, adminStatsInitialState),
+
   manageRevenue: withInitialState(
-  manageRevenueReducer,
-  manageRevenueInitialState
-),
+    manageRevenueReducer,
+    manageRevenueInitialState,
+  ),
 });

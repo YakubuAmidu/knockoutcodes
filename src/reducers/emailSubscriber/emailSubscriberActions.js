@@ -40,7 +40,7 @@ export const fetchEmailSubscribers =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to fetch email subscribers"
+        "Failed to fetch email subscribers",
       );
 
       dispatch({
@@ -67,7 +67,10 @@ export const getEmailSubscriberDetails = (id) => async (dispatch) => {
 
     return { success: true, data: subscriber };
   } catch (error) {
-    const message = getErrorMessage(error, "Failed to fetch subscriber details");
+    const message = getErrorMessage(
+      error,
+      "Failed to fetch subscriber details",
+    );
 
     dispatch({
       type: EMAIL_SUBSCRIBER_ACTIONS.DETAILS_FAIL,
@@ -178,7 +181,7 @@ export const bulkUpdateEmailSubscribers =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to update selected subscribers"
+        "Failed to update selected subscribers",
       );
 
       dispatch({
@@ -190,48 +193,50 @@ export const bulkUpdateEmailSubscribers =
     }
   };
 
-export const bulkDeleteEmailSubscribers = (ids = []) => async (dispatch) => {
-  try {
-    dispatch({ type: EMAIL_SUBSCRIBER_ACTIONS.BULK_DELETE_REQUEST });
+export const bulkDeleteEmailSubscribers =
+  (ids = []) =>
+  async (dispatch) => {
+    try {
+      dispatch({ type: EMAIL_SUBSCRIBER_ACTIONS.BULK_DELETE_REQUEST });
 
-    const { data } = await axiosInstance.delete(`${BASE_URL}/bulk`, {
-      data: { ids },
-    });
+      const { data } = await axiosInstance.delete(`${BASE_URL}/bulk`, {
+        data: { ids },
+      });
 
-    dispatch({
-      type: EMAIL_SUBSCRIBER_ACTIONS.BULK_DELETE_SUCCESS,
-      payload: {
-        ids,
-        message: data?.message,
-      },
-    });
+      dispatch({
+        type: EMAIL_SUBSCRIBER_ACTIONS.BULK_DELETE_SUCCESS,
+        payload: {
+          ids,
+          message: data?.message,
+        },
+      });
 
-    return { success: true, data };
-  } catch (error) {
-    const message = getErrorMessage(
-      error,
-      "Failed to delete selected subscribers"
+      return { success: true, data };
+    } catch (error) {
+      const message = getErrorMessage(
+        error,
+        "Failed to delete selected subscribers",
+      );
+
+      dispatch({
+        type: EMAIL_SUBSCRIBER_ACTIONS.BULK_DELETE_FAIL,
+        payload: message,
+      });
+
+      return { success: false, message };
+    }
+  };
+
+export const blockEmailSubscriber =
+  (id, shouldBlock = true) =>
+  async (dispatch) => {
+    return dispatch(
+      updateEmailSubscriber(id, {
+        status: shouldBlock ? "blocked" : "active",
+        blockedReason: shouldBlock ? "Blocked by admin" : "",
+      }),
     );
-
-    dispatch({
-      type: EMAIL_SUBSCRIBER_ACTIONS.BULK_DELETE_FAIL,
-      payload: message,
-    });
-
-    return { success: false, message };
-  }
-};
-
-export const blockEmailSubscriber = (id, shouldBlock = true) => async (
-  dispatch
-) => {
-  return dispatch(
-    updateEmailSubscriber(id, {
-      status: shouldBlock ? "blocked" : "active",
-      blockedReason: shouldBlock ? "Blocked by admin" : "",
-    })
-  );
-};
+  };
 
 export const setSelectedEmailSubscriber = (subscriber) => ({
   type: EMAIL_SUBSCRIBER_ACTIONS.SET_SELECTED,

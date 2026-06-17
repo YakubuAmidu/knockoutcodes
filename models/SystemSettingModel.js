@@ -47,7 +47,7 @@ const systemSettingSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 systemSettingSchema.index({ updatedAt: -1 });

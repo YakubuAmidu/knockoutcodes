@@ -16,10 +16,7 @@ function getClientIp(req) {
   }
 
   return normalizeIp(
-    req.ip ||
-      req.connection?.remoteAddress ||
-      req.socket?.remoteAddress ||
-      ""
+    req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || "",
   );
 }
 

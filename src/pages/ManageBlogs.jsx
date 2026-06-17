@@ -44,7 +44,11 @@ const AdminSection = styled.section`
   padding: 100px 20px 50px;
   border-bottom: 1px solid rgba(214, 182, 159, 0.18);
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    ),
     linear-gradient(
       180deg,
       ${({ theme }) => theme.colors.black},

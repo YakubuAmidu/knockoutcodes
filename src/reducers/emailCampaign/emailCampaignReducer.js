@@ -3,7 +3,7 @@ import { emailCampaignInitialState } from "./emailCampaignInitialState";
 
 export function emailCampaignReducer(
   state = emailCampaignInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     case EMAIL_CAMPAIGN_ACTIONS.LIST_REQUEST:
@@ -89,7 +89,7 @@ export function emailCampaignReducer(
         ...state,
         updating: false,
         campaigns: state.campaigns.map((campaign) =>
-          campaign?._id === updatedCampaign._id ? updatedCampaign : campaign
+          campaign?._id === updatedCampaign._id ? updatedCampaign : campaign,
         ),
         selectedCampaign:
           state.selectedCampaign?._id === updatedCampaign._id
@@ -104,7 +104,7 @@ export function emailCampaignReducer(
         ...state,
         deleting: false,
         campaigns: state.campaigns.filter(
-          (campaign) => campaign?._id !== action.payload
+          (campaign) => campaign?._id !== action.payload,
         ),
         selectedCampaign:
           state.selectedCampaign?._id === action.payload
@@ -113,24 +113,24 @@ export function emailCampaignReducer(
         successMessage: "Campaign deleted successfully",
       };
 
-  case EMAIL_CAMPAIGN_ACTIONS.SEND_SUCCESS: {
-  const sentCampaign = action.payload;
+    case EMAIL_CAMPAIGN_ACTIONS.SEND_SUCCESS: {
+      const sentCampaign = action.payload;
 
-  return {
-    ...state,
-    sending: false,
-    campaigns: sentCampaign?._id
-      ? state.campaigns.map((campaign) =>
-          campaign?._id === sentCampaign._id ? sentCampaign : campaign
-        )
-      : state.campaigns,
-    selectedCampaign:
-      state.selectedCampaign?._id === sentCampaign?._id
-        ? sentCampaign
-        : state.selectedCampaign,
-    successMessage: "Campaign sent successfully",
-  };
-}
+      return {
+        ...state,
+        sending: false,
+        campaigns: sentCampaign?._id
+          ? state.campaigns.map((campaign) =>
+              campaign?._id === sentCampaign._id ? sentCampaign : campaign,
+            )
+          : state.campaigns,
+        selectedCampaign:
+          state.selectedCampaign?._id === sentCampaign?._id
+            ? sentCampaign
+            : state.selectedCampaign,
+        successMessage: "Campaign sent successfully",
+      };
+    }
 
     case EMAIL_CAMPAIGN_ACTIONS.ANALYTICS_SUCCESS:
       return {

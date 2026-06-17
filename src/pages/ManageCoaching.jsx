@@ -77,9 +77,9 @@ export default function ManageCoaching() {
     email: "",
     phone: "",
     sessionMethod: "Google Meet",
-sessionLink: "",
-sessionPhone: "",
-sessionInstructions: "",
+    sessionLink: "",
+    sessionPhone: "",
+    sessionInstructions: "",
     coachingType: "",
     preferredDate: "",
     preferredTime: "",
@@ -95,10 +95,14 @@ sessionInstructions: "",
 
     return {
       total: total || list.length,
-      pending: list.filter((x) => getStatusLabel(x.status) === "pending").length,
-      confirmed: list.filter((x) => getStatusLabel(x.status) === "confirmed").length,
-      completed: list.filter((x) => getStatusLabel(x.status) === "completed").length,
-      cancelled: list.filter((x) => getStatusLabel(x.status) === "cancelled").length,
+      pending: list.filter((x) => getStatusLabel(x.status) === "pending")
+        .length,
+      confirmed: list.filter((x) => getStatusLabel(x.status) === "confirmed")
+        .length,
+      completed: list.filter((x) => getStatusLabel(x.status) === "completed")
+        .length,
+      cancelled: list.filter((x) => getStatusLabel(x.status) === "cancelled")
+        .length,
     };
   }, [items, total]);
 
@@ -136,11 +140,11 @@ sessionInstructions: "",
 
     try {
       const data = await fetchAdminCoachings({
-  page: safeUI.page,
-  limit: safeUI.limit,
-  q: safeUI.q,
-  sort: safeUI.sort,
-});
+        page: safeUI.page,
+        limit: safeUI.limit,
+        q: safeUI.q,
+        sort: safeUI.sort,
+      });
 
       if (!data?.success) {
         const msg = data?.message || "Failed to fetch coachings.";
@@ -155,7 +159,7 @@ sessionInstructions: "",
       });
     } catch (err) {
       console.error("Coachings fetch error:", err?.response?.data || err);
-      
+
       const msg =
         err?.response?.data?.message ||
         err?.message ||
@@ -188,10 +192,10 @@ sessionInstructions: "",
     setQInput("");
     setStatusFilter("all");
     setTypeFilter("all");
-   setUI("page", 1);
-setUI("limit", 20);
-setUI("sort", "-createdAt");
-setUI("q", "");
+    setUI("page", 1);
+    setUI("limit", 20);
+    setUI("sort", "-createdAt");
+    setUI("q", "");
   }
 
   function openEdit(item) {
@@ -203,9 +207,9 @@ setUI("q", "");
       email: item?.email || "",
       phone: item?.phone || "",
       sessionMethod: item?.sessionMethod || "Google Meet",
-sessionLink: item?.sessionLink || "",
-sessionPhone: item?.sessionPhone || "",
-sessionInstructions: item?.sessionInstructions || "",
+      sessionLink: item?.sessionLink || "",
+      sessionPhone: item?.sessionPhone || "",
+      sessionInstructions: item?.sessionInstructions || "",
       coachingType: item?.coachingType || "",
       preferredDate: item?.preferredDate || item?.date || "",
       preferredTime: item?.preferredTime || item?.time || "",
@@ -228,9 +232,9 @@ sessionInstructions: item?.sessionInstructions || "",
       email: "",
       phone: "",
       sessionMethod: "Google Meet",
-sessionLink: "",
-sessionPhone: "",
-sessionInstructions: "",
+      sessionLink: "",
+      sessionPhone: "",
+      sessionInstructions: "",
       coachingType: "",
       preferredDate: "",
       preferredTime: "",
@@ -247,21 +251,36 @@ sessionInstructions: "",
     const nextStatus = String(draft.status || "pending").trim();
 
     if (!STATUS_OPTIONS.includes(nextStatus)) {
-      if (typeof showToast === "function") showToast("Invalid status.", "error");
+      if (typeof showToast === "function")
+        showToast("Invalid status.", "error");
       return;
     }
 
+    const fullName = String(draft.fullName || "")
+      .trim()
+      .slice(0, 80);
+    const email = String(draft.email || "")
+      .trim()
+      .slice(0, 120);
+    const phone = String(draft.phone || "")
+      .trim()
+      .slice(0, 40);
 
-
-    const fullName = String(draft.fullName || "").trim().slice(0, 80);
-    const email = String(draft.email || "").trim().slice(0, 120);
-    const phone = String(draft.phone || "").trim().slice(0, 40);
-
-    const coachingType = String(draft.coachingType || "").trim().slice(0, 60);
-    const preferredDate = String(draft.preferredDate || "").trim().slice(0, 60);
-    const preferredTime = String(draft.preferredTime || "").trim().slice(0, 60);
-    const message = String(draft.message || "").trim().slice(0, 1200);
-    const adminNote = String(draft.adminNote || "").trim().slice(0, 500);
+    const coachingType = String(draft.coachingType || "")
+      .trim()
+      .slice(0, 60);
+    const preferredDate = String(draft.preferredDate || "")
+      .trim()
+      .slice(0, 60);
+    const preferredTime = String(draft.preferredTime || "")
+      .trim()
+      .slice(0, 60);
+    const message = String(draft.message || "")
+      .trim()
+      .slice(0, 1200);
+    const adminNote = String(draft.adminNote || "")
+      .trim()
+      .slice(0, 500);
 
     if (!isValidEmail(email)) {
       if (typeof showToast === "function")
@@ -276,9 +295,9 @@ sessionInstructions: "",
       email,
       phone,
       sessionMethod: draft.sessionMethod,
-sessionLink: draft.sessionLink,
-sessionPhone: draft.sessionPhone,
-sessionInstructions: draft.sessionInstructions,
+      sessionLink: draft.sessionLink,
+      sessionPhone: draft.sessionPhone,
+      sessionInstructions: draft.sessionInstructions,
       coachingType,
       preferredDate,
       preferredTime,
@@ -404,7 +423,8 @@ sessionInstructions: draft.sessionInstructions,
               <PanelKicker>Request Management</PanelKicker>
               <PanelTitle>Coaching Requests</PanelTitle>
               <PanelSub>
-                Showing {filteredItems.length} of {total || items.length} requests.
+                Showing {filteredItems.length} of {total || items.length}{" "}
+                requests.
               </PanelSub>
             </div>
 
@@ -496,7 +516,10 @@ sessionInstructions: draft.sessionInstructions,
                   </tr>
                 ) : (
                   filteredItems.map((it) => (
-                    <tr key={it._id} className={!it.adminViewedAt ? "is-new" : ""}>
+                    <tr
+                      key={it._id}
+                      className={!it.adminViewedAt ? "is-new" : ""}
+                    >
                       <td>
                         <ClientCell>
                           <Avatar>
@@ -518,10 +541,20 @@ sessionInstructions: draft.sessionInstructions,
 
                       <td>
                         <Stack>
-                          <Strong>{it.coachingType || "General Coaching"}</Strong>
+                          <Strong>
+                            {it.coachingType || "General Coaching"}
+                          </Strong>
                           <Muted>
-                            {(it.goals || it.message || it.details || "No message").slice(0, 58)}
-{(it.goals || it.message || it.details || "").length > 58 ? "..." : ""}
+                            {(
+                              it.goals ||
+                              it.message ||
+                              it.details ||
+                              "No message"
+                            ).slice(0, 58)}
+                            {(it.goals || it.message || it.details || "")
+                              .length > 58
+                              ? "..."
+                              : ""}
                           </Muted>
                         </Stack>
                       </td>
@@ -529,19 +562,19 @@ sessionInstructions: draft.sessionInstructions,
                       <td>
                         <Stack>
                           <span>{it.preferredDate || it.date || "—"}</span>
-                          <Muted>{it.preferredTime || it.time || "No time set"}</Muted>
+                          <Muted>
+                            {it.preferredTime || it.time || "No time set"}
+                          </Muted>
                         </Stack>
                       </td>
 
                       <td>
-  {!it.adminViewedAt && (
-    <NewBadge>NEW</NewBadge>
-  )}
+                        {!it.adminViewedAt && <NewBadge>NEW</NewBadge>}
 
-  <StatusBadge $status={getStatusLabel(it.status)}>
-    {getStatusLabel(it.status)}
-  </StatusBadge>
-</td>
+                        <StatusBadge $status={getStatusLabel(it.status)}>
+                          {getStatusLabel(it.status)}
+                        </StatusBadge>
+                      </td>
 
                       <td>{fmtDate(it.createdAt)}</td>
 
@@ -585,7 +618,9 @@ sessionInstructions: draft.sessionInstructions,
 
             <PageBtn
               type="button"
-              onClick={() => setUI("page", Math.min(totalPages, safeUI.page + 1))}
+              onClick={() =>
+                setUI("page", Math.min(totalPages, safeUI.page + 1))
+              }
               disabled={safeUI.page >= totalPages || isLoading}
             >
               Next
@@ -615,8 +650,8 @@ sessionInstructions: draft.sessionInstructions,
                     <ModalKicker>Private Coaching Update</ModalKicker>
                     <ModalTitle>Update Coaching Request</ModalTitle>
                     <ModalSub>
-                      Edit client details, preferred schedule, status, and private
-                      admin notes.
+                      Edit client details, preferred schedule, status, and
+                      private admin notes.
                     </ModalSub>
                   </div>
 
@@ -702,77 +737,79 @@ sessionInstructions: draft.sessionInstructions,
                   </Field>
 
                   <Field>
-  <Label>Session Method</Label>
+                    <Label>Session Method</Label>
 
-  <Select
-    value={draft.sessionMethod}
-    onChange={(e) =>
-      setDraft((d) => ({
-        ...d,
-        sessionMethod: e.target.value,
-      }))
-    }
-  >
-    {SESSION_METHOD_OPTIONS.map((method) => (
-      <option key={method} value={method}>
-        {method}
-      </option>
-    ))}
-  </Select>
+                    <Select
+                      value={draft.sessionMethod}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          sessionMethod: e.target.value,
+                        }))
+                      }
+                    >
+                      {SESSION_METHOD_OPTIONS.map((method) => (
+                        <option key={method} value={method}>
+                          {method}
+                        </option>
+                      ))}
+                    </Select>
                   </Field>
-                  
+
                   <Field>
-  <Label>Meeting Link</Label>
+                    <Label>Meeting Link</Label>
 
-  <Input
-    value={draft.sessionLink}
-    onChange={(e) =>
-      setDraft((d) => ({
-        ...d,
-        sessionLink: e.target.value.slice(0, 500),
-      }))
-    }
-    placeholder="Google Meet or Zoom link"
-  />
+                    <Input
+                      value={draft.sessionLink}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          sessionLink: e.target.value.slice(0, 500),
+                        }))
+                      }
+                      placeholder="Google Meet or Zoom link"
+                    />
                   </Field>
-                  
+
                   <Field>
-  <Label>Session Phone</Label>
+                    <Label>Session Phone</Label>
 
-  <Input
-    value={draft.sessionPhone}
-    onChange={(e) =>
-      setDraft((d) => ({
-        ...d,
-        sessionPhone: e.target.value.slice(0, 40),
-      }))
-    }
-    placeholder="+1 555 555 5555"
-  />
+                    <Input
+                      value={draft.sessionPhone}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          sessionPhone: e.target.value.slice(0, 40),
+                        }))
+                      }
+                      placeholder="+1 555 555 5555"
+                    />
                   </Field>
-                  
+
                   <Field style={{ gridColumn: "1 / -1" }}>
-  <Label>Session Instructions</Label>
+                    <Label>Session Instructions</Label>
 
-  <Textarea
-    rows={4}
-    value={draft.sessionInstructions}
-    onChange={(e) =>
-      setDraft((d) => ({
-        ...d,
-        sessionInstructions: e.target.value.slice(0, 800),
-      }))
-    }
-    placeholder="Special instructions for customer..."
-  />
-</Field>
+                    <Textarea
+                      rows={4}
+                      value={draft.sessionInstructions}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          sessionInstructions: e.target.value.slice(0, 800),
+                        }))
+                      }
+                      placeholder="Special instructions for customer..."
+                    />
+                  </Field>
 
                   <Field>
                     <Label>Coaching Type</Label>
                     <TypeRow>
                       <Select
                         value={
-                          TYPE_OPTIONS.includes(String(draft.coachingType || ""))
+                          TYPE_OPTIONS.includes(
+                            String(draft.coachingType || ""),
+                          )
                             ? String(draft.coachingType || "")
                             : ""
                         }
@@ -897,9 +934,17 @@ const Page = styled.main`
   padding: 96px 16px 70px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 86% 16%, rgba(90, 56, 37, 0.36), transparent 38%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Shell = styled.div`
@@ -925,7 +970,11 @@ const HeroCopy = styled.div`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.86), rgba(0, 0, 0, 0.66)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -1159,9 +1208,15 @@ const inputBase = `
   }
 `;
 
-const SearchInput = styled.input`${inputBase}`;
-const Select = styled.select`${inputBase}`;
-const Input = styled.input`${inputBase}`;
+const SearchInput = styled.input`
+  ${inputBase}
+`;
+const Select = styled.select`
+  ${inputBase}
+`;
+const Input = styled.input`
+  ${inputBase}
+`;
 
 const Textarea = styled.textarea`
   ${inputBase}
@@ -1299,24 +1354,24 @@ const StatusBadge = styled.span`
         color: #ffe08a;
       `
       : $status === "confirmed"
-      ? `
+        ? `
         background: rgba(64, 156, 255, 0.16);
         border-color: rgba(64, 156, 255, 0.52);
         color: #9dccff;
       `
-      : $status === "completed"
-      ? `
+        : $status === "completed"
+          ? `
         background: rgba(46, 204, 113, 0.16);
         border-color: rgba(46, 204, 113, 0.52);
         color: #9ff0bf;
       `
-      : $status === "cancelled"
-      ? `
+          : $status === "cancelled"
+            ? `
         background: rgba(255, 82, 82, 0.16);
         border-color: rgba(255, 82, 82, 0.52);
         color: #ffb4b4;
       `
-      : ""}
+            : ""}
 `;
 
 const NewBadge = styled.span`
@@ -1572,4 +1627,3 @@ const Primary = styled.button`
     cursor: not-allowed;
   }
 `;
-

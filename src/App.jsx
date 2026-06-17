@@ -51,12 +51,10 @@ const ProductDetail = lazy(() => import("./pages/ProductDetail.jsx"));
 const Cart = lazy(() => import("./pages/Cart.jsx"));
 const Curriculum = lazy(() => import("./pages/Curriculum.jsx"));
 const Memberships = lazy(() => import("./components/Membership.jsx"));
-const SubscriptionSuccess = lazy(() =>
-  import("./pages/SubscriptionSuccess.jsx")
+const SubscriptionSuccess = lazy(
+  () => import("./pages/SubscriptionSuccess.jsx"),
 );
-const SubscriptionFailed = lazy(() =>
-  import("./pages/SubscriptionFailed.jsx")
-);
+const SubscriptionFailed = lazy(() => import("./pages/SubscriptionFailed.jsx"));
 const MembershipDetails = lazy(() => import("./pages/MembershipDetails.jsx"));
 const RefundPolicy = lazy(() => import("./pages/refundPolicy.jsx"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
@@ -66,8 +64,8 @@ const ProductSuccess = lazy(() => import("./pages/ProductSusccess.jsx"));
 const Session = lazy(() => import("./pages/Session.jsx"));
 const FightCamp = lazy(() => import("./pages/FightCamp.jsx"));
 const MyProducts = lazy(() => import("./pages/MyProduct.jsx"));
-const AccountAccessNotice = lazy(() =>
-  import("./pages/AccountAccessNotice.jsx")
+const AccountAccessNotice = lazy(
+  () => import("./pages/AccountAccessNotice.jsx"),
 );
 const ProductFailed = lazy(() => import("./pages/ProductFailed.jsx"));
 const OrderSuccess = lazy(() => import("./pages/OrderSuccess.jsx"));
@@ -101,18 +99,30 @@ const ManageCoaching = lazy(() => import("./pages/ManageCoaching.jsx"));
 const ManageProducts = lazy(() => import("./pages/ManageProducts.jsx"));
 const ManageReviews = lazy(() => import("./pages/ManageReviews.jsx"));
 const AdminEmailCampaign = lazy(() => import("./pages/AdminEmailCampaign.jsx"));
-const AdminEmailSubscribers = lazy(() => import("./pages/AdminEmailSubscribers.jsx"));
-const AdminEmailTemplates = lazy(() => import("./pages/AdminEmailTemplates.jsx"));
-const AdminEmailAnalytics = lazy(() => import("./pages/AdminEmailAnalytics.jsx"));
-const AdminEmailAnalyticsDetail = lazy(() => import("./pages/AdminEmailAnalyticsDetail.jsx"));
+const AdminEmailSubscribers = lazy(
+  () => import("./pages/AdminEmailSubscribers.jsx"),
+);
+const AdminEmailTemplates = lazy(
+  () => import("./pages/AdminEmailTemplates.jsx"),
+);
+const AdminEmailAnalytics = lazy(
+  () => import("./pages/AdminEmailAnalytics.jsx"),
+);
+const AdminEmailAnalyticsDetail = lazy(
+  () => import("./pages/AdminEmailAnalyticsDetail.jsx"),
+);
 const AdminEmailSegment = lazy(() => import("./pages/AdminEmailSegments.jsx"));
 const ManageLesson = lazy(() => import("./pages/ManageLesson.jsx"));
-const AdminSecurityEvents = lazy(() => import("./pages/AdminSecurityEvents.jsx"));
+const AdminSecurityEvents = lazy(
+  () => import("./pages/AdminSecurityEvents.jsx"),
+);
 const ManageTestimonial = lazy(() => import("./pages/ManageTestimonials.jsx"));
 const AdminSystemCleanup = lazy(() => import("./pages/AdminSystemCleanup.jsx"));
 const ManageMembership = lazy(() => import("./pages/ManageMembership.jsx"));
 const ManageEnrollment = lazy(() => import("./pages/ManageEnrollment.jsx"));
-const ManageUserSubscription = lazy(() => import("./pages/ManageUserSubscription.jsx"));
+const ManageUserSubscription = lazy(
+  () => import("./pages/ManageUserSubscription.jsx"),
+);
 
 function PageLoader() {
   return (
@@ -131,10 +141,7 @@ function RootRedirect() {
 
   if (isAuthenticated) {
     return (
-      <Navigate
-        to={isAdmin ? "/admin/dashboard" : "/user-dashboard"}
-        replace
-      />
+      <Navigate to={isAdmin ? "/admin/dashboard" : "/user-dashboard"} replace />
     );
   }
 
@@ -189,7 +196,7 @@ function AppShell() {
       path.startsWith("/verify-email");
 
     const adminCanBypass = Boolean(
-      isAuthenticated && isAdmin && allowAdminAccess
+      isAuthenticated && isAdmin && allowAdminAccess,
     );
 
     if (
@@ -263,7 +270,10 @@ function AppShell() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/curriculum" element={<Curriculum />} />
           <Route path="/memberships" element={<Memberships />} />
-          <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+          <Route
+            path="/subscription/success"
+            element={<SubscriptionSuccess />}
+          />
           <Route path="/subscription/failed" element={<SubscriptionFailed />} />
           <Route path="/memberships/:id" element={<MembershipDetails />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
@@ -312,8 +322,13 @@ function AppShell() {
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/coachings" element={<ManageCoaching />} />
             <Route path="/admin/products" element={<ManageProducts />} />
-            <Route path="/admin/email-campaigns" element={<AdminEmailCampaign />} />
-            <Route path="/admin/email-campaigns/create" element={<AdminEmailCampaign />}
+            <Route
+              path="/admin/email-campaigns"
+              element={<AdminEmailCampaign />}
+            />
+            <Route
+              path="/admin/email-campaigns/create"
+              element={<AdminEmailCampaign />}
             />
             <Route
               path="/admin/email-subscribers"
@@ -333,7 +348,10 @@ function AppShell() {
               element={<AdminEmailAnalyticsDetail />}
             />
             <Route path="/admin/testimonials" element={<ManageTestimonial />} />
-            <Route path="/admin/email-segments" element={<AdminEmailSegment />} />
+            <Route
+              path="/admin/email-segments"
+              element={<AdminEmailSegment />}
+            />
             <Route path="/admin/lessons" element={<ManageLesson />} />
             <Route
               path="/admin/security-events"
@@ -348,7 +366,10 @@ function AppShell() {
 
             <Route path="/admin/enrollments" element={<ManageEnrollment />} />
 
-            <Route path="/admin/user-subscriptions" element={<ManageUserSubscription />} />
+            <Route
+              path="/admin/user-subscriptions"
+              element={<ManageUserSubscription />}
+            />
           </Route>
 
           <Route path="*" element={<Navigate to="/home" replace />} />

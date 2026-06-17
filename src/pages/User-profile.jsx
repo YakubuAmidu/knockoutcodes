@@ -57,7 +57,10 @@ async function safeJson(res) {
 }
 
 function isLocalhost() {
-  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  return (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  );
 }
 
 /**
@@ -66,7 +69,9 @@ function isLocalhost() {
 function getCookie(name) {
   try {
     const match = document.cookie.match(
-      new RegExp(`(?:^|; )${name.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&")}=([^;]*)`)
+      new RegExp(
+        `(?:^|; )${name.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&")}=([^;]*)`,
+      ),
     );
     return match ? decodeURIComponent(match[1]) : "";
   } catch {
@@ -182,9 +187,7 @@ async function apiFetch(path, options = {}) {
 
   if (isLocalhost()) {
     const token =
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("token") ||
-      "";
+      localStorage.getItem("token") || sessionStorage.getItem("token") || "";
 
     if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -201,7 +204,9 @@ async function apiFetch(path, options = {}) {
   if (
     unsafe &&
     result.res.status === 403 &&
-    String(result.body?.message || "").toLowerCase().includes("csrf")
+    String(result.body?.message || "")
+      .toLowerCase()
+      .includes("csrf")
   ) {
     const freshToken = await ensureCsrfToken(true);
 
@@ -279,7 +284,11 @@ export default function UserProfile() {
 
   const toastTimerRef = useRef(null);
 
-  const { logout: authLogout, loading: authLoading, isAuthenticated } = useAuth();
+  const {
+    logout: authLogout,
+    loading: authLoading,
+    isAuthenticated,
+  } = useAuth();
 
   // ✅ forces avatar refresh when server returns same url (browser cache)
   const [avatarBust, setAvatarBust] = useState(0);
@@ -303,22 +312,24 @@ export default function UserProfile() {
 
   // ✅ Persist to localStorage so refresh keeps the profile + avatar
   function persistMe(user) {
-  try {
-    if (!user) return;
+    try {
+      if (!user) return;
 
-    // ✅ store ONLY safe fields
-    const safeUser = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      role: user.role,
-      createdAt: user.createdAt,
-    };
+      // ✅ store ONLY safe fields
+      const safeUser = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+        createdAt: user.createdAt,
+      };
 
-    localStorage.setItem(ME_CACHE_KEY, JSON.stringify(safeUser));
-  } catch { /* empty */ }
-}
+      localStorage.setItem(ME_CACHE_KEY, JSON.stringify(safeUser));
+    } catch {
+      /* empty */
+    }
+  }
 
   function readCachedMe() {
     try {
@@ -335,11 +346,11 @@ export default function UserProfile() {
   /**
    * ✅ Ensure CSRF cookie exists (best effort)
    */
- useEffect(() => {
-  return () => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-  };
-}, []);
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   // ✅ Hydrate Redux from localStorage first (fast reload), then fetch real profile
   useEffect(() => {
@@ -360,7 +371,7 @@ export default function UserProfile() {
           headline: cached.headline || "",
           bio: cached.bio || "",
           notifications: cached.notifications !== false,
-        })
+        }),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -368,72 +379,72 @@ export default function UserProfile() {
 
   // ✅ Fetch profile (cookie-first; bearer only on localhost)
   useEffect(() => {
-  if (loggingOutRef.current) return;
+    if (loggingOutRef.current) return;
 
-  // ✅ Wait for AuthContext to finish restoring session on browser refresh
-  if (authLoading) return;
+    // ✅ Wait for AuthContext to finish restoring session on browser refresh
+    if (authLoading) return;
 
-  // ✅ If AuthContext already knows user is not authenticated, then stop here
-  if (!isAuthenticated) {
-    dispatch(userMeFail("Authentication required."));
-    return;
-  }
-
-  const controller = new AbortController();
-  meFetchAbortRef.current = controller;
-
-  (async () => {
-    dispatch(userMeRequest());
-
-    try {
-      const { res, body } = await apiFetch(ME_ENDPOINT, {
-        method: "GET",
-        signal: controller.signal,
-      });
-
-      if (!res.ok) {
-        const msg = body?.message || "Failed to load profile.";
-        dispatch(userMeFail(msg));
-
-        // ✅ Do NOT force logout/navigation here.
-        // AuthContext is the single source of truth for session handling.
-        return;
-      }
-
-      const user = body?.data || body || null;
-
-      dispatch(userMeSuccess(user));
-      persistMe(user);
-
-      dispatch(
-        resetUserForm({
-          name: user?.name || "",
-          email: user?.email || "",
-          phone: user?.phone || "",
-          location: user?.location || "",
-          website: user?.website || "",
-          instagram: user?.instagram || "",
-          tiktok: user?.tiktok || "",
-          youtube: user?.youtube || "",
-          xhandle: user?.xhandle || "",
-          headline: user?.headline || "",
-          bio: user?.bio || "",
-          notifications: user?.notifications !== false,
-        })
-      );
-
-      setAvatarBust(Date.now());
-    } catch (e) {
-      if (e?.name === "AbortError") return;
-      if (import.meta.env.DEV) {
-  console.error("Profile update failed:", e);
-}
-      dispatch(userMeFail("Network error. Please try again."));
+    // ✅ If AuthContext already knows user is not authenticated, then stop here
+    if (!isAuthenticated) {
+      dispatch(userMeFail("Authentication required."));
+      return;
     }
-  })();
 
-  return () => controller.abort();
-}, [dispatch, authLoading, isAuthenticated]);
+    const controller = new AbortController();
+    meFetchAbortRef.current = controller;
+
+    (async () => {
+      dispatch(userMeRequest());
+
+      try {
+        const { res, body } = await apiFetch(ME_ENDPOINT, {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          const msg = body?.message || "Failed to load profile.";
+          dispatch(userMeFail(msg));
+
+          // ✅ Do NOT force logout/navigation here.
+          // AuthContext is the single source of truth for session handling.
+          return;
+        }
+
+        const user = body?.data || body || null;
+
+        dispatch(userMeSuccess(user));
+        persistMe(user);
+
+        dispatch(
+          resetUserForm({
+            name: user?.name || "",
+            email: user?.email || "",
+            phone: user?.phone || "",
+            location: user?.location || "",
+            website: user?.website || "",
+            instagram: user?.instagram || "",
+            tiktok: user?.tiktok || "",
+            youtube: user?.youtube || "",
+            xhandle: user?.xhandle || "",
+            headline: user?.headline || "",
+            bio: user?.bio || "",
+            notifications: user?.notifications !== false,
+          }),
+        );
+
+        setAvatarBust(Date.now());
+      } catch (e) {
+        if (e?.name === "AbortError") return;
+        if (import.meta.env.DEV) {
+          console.error("Profile update failed:", e);
+        }
+        dispatch(userMeFail("Network error. Please try again."));
+      }
+    })();
+
+    return () => controller.abort();
+  }, [dispatch, authLoading, isAuthenticated]);
 
   // ✅ Revoke object URL to prevent memory leaks
   useEffect(() => {
@@ -459,7 +470,9 @@ export default function UserProfile() {
       setSupport((p) => ({ ...p, loading: true }));
 
       try {
-        const { res, body } = await apiFetch(MY_CONTACTS_ENDPOINT, { method: "GET" });
+        const { res, body } = await apiFetch(MY_CONTACTS_ENDPOINT, {
+          method: "GET",
+        });
         if (!alive) return;
 
         if (!res.ok) {
@@ -485,7 +498,10 @@ export default function UserProfile() {
 
         if (hasAdminReply && now - lastStamp > 60_000) {
           localStorage.setItem(stampKey, String(now));
-          showToast("Support replied — open My Messages to view and respond.", "info");
+          showToast(
+            "Support replied — open My Messages to view and respond.",
+            "info",
+          );
         }
       } catch (e) {
         if (!alive) return;
@@ -503,17 +519,17 @@ export default function UserProfile() {
   }, [me]);
 
   useEffect(() => {
-  const handleAuthExpired = (e) => {
-    showToast(e.detail?.message || "Session expired", "error");
-    navigate("/login");
-  };
+    const handleAuthExpired = (e) => {
+      showToast(e.detail?.message || "Session expired", "error");
+      navigate("/login");
+    };
 
-  window.addEventListener("kc:auth-expired", handleAuthExpired);
+    window.addEventListener("kc:auth-expired", handleAuthExpired);
 
-  return () => {
-    window.removeEventListener("kc:auth-expired", handleAuthExpired);
-  };
-}, [navigate]);
+    return () => {
+      window.removeEventListener("kc:auth-expired", handleAuthExpired);
+    };
+  }, [navigate]);
 
   const joinedDate = useMemo(() => {
     if (!me?.createdAt) return "";
@@ -534,31 +550,33 @@ export default function UserProfile() {
   }, [me]);
 
   // ✅ Avatar handling: preview > backend url > initials avatar (no email leakage)
-const avatarUrl = useMemo(() => {
-  if (avatarPreview) return avatarPreview;
+  const avatarUrl = useMemo(() => {
+    if (avatarPreview) return avatarPreview;
 
-  const avatarField =
-    me?.avatar || me?.avatarUrl || me?.profileImage || me?.image || "";
+    const avatarField =
+      me?.avatar || me?.avatarUrl || me?.profileImage || me?.image || "";
 
-  if (avatarField) {
-    const bust =
-      avatarBust || (me?.updatedAt ? new Date(me.updatedAt).getTime() : 0) || 0;
+    if (avatarField) {
+      const bust =
+        avatarBust ||
+        (me?.updatedAt ? new Date(me.updatedAt).getTime() : 0) ||
+        0;
 
-    const qs = bust ? `?v=${encodeURIComponent(String(bust))}` : "";
+      const qs = bust ? `?v=${encodeURIComponent(String(bust))}` : "";
 
-    if (String(avatarField).startsWith("http")) {
-      return `${avatarField}${qs}`;
+      if (String(avatarField).startsWith("http")) {
+        return `${avatarField}${qs}`;
+      }
+
+      const normalized = String(avatarField).startsWith("/")
+        ? avatarField
+        : `/${avatarField}`;
+
+      return `${API_ORIGIN}${normalized}${qs}`;
     }
 
-    const normalized = String(avatarField).startsWith("/")
-      ? avatarField
-      : `/${avatarField}`;
-
-    return `${API_ORIGIN}${normalized}${qs}`;
-  }
-
-  return initialsAvatarDataUrl(me?.name || me?.email || "User");
-}, [me, avatarPreview, avatarBust]);
+    return initialsAvatarDataUrl(me?.name || me?.email || "User");
+  }, [me, avatarPreview, avatarBust]);
 
   const socialLinks = useMemo(() => {
     if (!me) return [];
@@ -572,7 +590,7 @@ const avatarUrl = useMemo(() => {
     return list.filter((item) => item.value);
   }, [me]);
 
-    async function handleLogout() {
+  async function handleLogout() {
     // ✅ stop any in-flight /me request + prevent 401 redirect loops
     loggingOutRef.current = true;
 
@@ -603,7 +621,7 @@ const avatarUrl = useMemo(() => {
 
     // ✅ optional but safe: keep the redirect (won’t hurt even if authLogout already handles it)
     navigate("/login", { replace: true });
-  };
+  }
 
   // ✅ Redux form change (single source of truth)
   function handleChange(e) {
@@ -612,11 +630,47 @@ const avatarUrl = useMemo(() => {
   }
 
   // ✅ Avatar selection -> store file + preview in Redux
- function handleAvatarChange(e) {
-  const file = e.target.files && e.target.files[0];
+  function handleAvatarChange(e) {
+    const file = e.target.files && e.target.files[0];
 
-  if (!file) {
-    // ✅ cleanup old preview if it exists
+    if (!file) {
+      // ✅ cleanup old preview if it exists
+      if (avatarPreview && String(avatarPreview).startsWith("blob:")) {
+        try {
+          URL.revokeObjectURL(avatarPreview);
+        } catch {
+          // ignore
+        }
+      }
+
+      avatarFileRef.current = null;
+      dispatch(clearAvatar());
+      return;
+    }
+
+    // ✅ validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      showToast("Only JPG, PNG, and WEBP images are allowed.", "error");
+
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      avatarFileRef.current = null;
+      dispatch(clearAvatar());
+      return;
+    }
+
+    // ✅ validate file size
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      showToast("Image must be under 2MB.", "error");
+
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      avatarFileRef.current = null;
+      dispatch(clearAvatar());
+      return;
+    }
+
+    // ✅ cleanup previous blob preview before creating a new one
     if (avatarPreview && String(avatarPreview).startsWith("blob:")) {
       try {
         URL.revokeObjectURL(avatarPreview);
@@ -625,61 +679,25 @@ const avatarUrl = useMemo(() => {
       }
     }
 
-    avatarFileRef.current = null;
-    dispatch(clearAvatar());
-    return;
+    // ✅ store real file in ref (NOT redux)
+    avatarFileRef.current = file;
+
+    // ✅ create safe local preview
+    const url = URL.createObjectURL(file);
+
+    // ✅ only store serializable file metadata in redux
+    dispatch(
+      setAvatarFileAction({
+        file: {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        },
+        preview: url,
+      }),
+    );
   }
-
-  // ✅ validate file type
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    showToast("Only JPG, PNG, and WEBP images are allowed.", "error");
-
-    if (avatarInputRef.current) avatarInputRef.current.value = "";
-    avatarFileRef.current = null;
-    dispatch(clearAvatar());
-    return;
-  }
-
-  // ✅ validate file size
-  const maxSize = 2 * 1024 * 1024; // 2MB
-  if (file.size > maxSize) {
-    showToast("Image must be under 2MB.", "error");
-
-    if (avatarInputRef.current) avatarInputRef.current.value = "";
-    avatarFileRef.current = null;
-    dispatch(clearAvatar());
-    return;
-  }
-
-  // ✅ cleanup previous blob preview before creating a new one
-  if (avatarPreview && String(avatarPreview).startsWith("blob:")) {
-    try {
-      URL.revokeObjectURL(avatarPreview);
-    } catch {
-      // ignore
-    }
-  }
-
-  // ✅ store real file in ref (NOT redux)
-  avatarFileRef.current = file;
-
-  // ✅ create safe local preview
-  const url = URL.createObjectURL(file);
-
-  // ✅ only store serializable file metadata in redux
-  dispatch(
-    setAvatarFileAction({
-      file: {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      },
-      preview: url,
-    })
-  );
-  };
 
   // ✅ reset the Redux form from current me (and clear avatar selection)
   function resetFormFromMe() {
@@ -699,7 +717,7 @@ const avatarUrl = useMemo(() => {
         headline: me.headline || "",
         bio: me.bio || "",
         notifications: me.notifications !== false,
-      })
+      }),
     );
 
     dispatch(clearAvatar());
@@ -772,31 +790,31 @@ const avatarUrl = useMemo(() => {
 
   // ✅ Upload avatar if needed (returns updated user); does NOT end edit mode early
   async function uploadAvatarIfNeeded() {
-  const file = avatarFileRef.current;
-  if (!file) return null;
+    const file = avatarFileRef.current;
+    if (!file) return null;
 
-  const fd = new FormData();
-  fd.append("avatar", file);
+    const fd = new FormData();
+    fd.append("avatar", file);
 
-  const { res, body } = await apiFetch(AVATAR_ENDPOINT, {
-    method: "POST",
-    body: fd,
-  });
+    const { res, body } = await apiFetch(AVATAR_ENDPOINT, {
+      method: "POST",
+      body: fd,
+    });
 
-  if (!res.ok) {
-    throw new Error(body?.message || "Avatar upload failed.");
+    if (!res.ok) {
+      throw new Error(body?.message || "Avatar upload failed.");
+    }
+
+    const updatedUser = body?.data || body || null;
+
+    // ✅ cleanup
+    avatarFileRef.current = null;
+    dispatch(clearAvatar());
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+
+    setAvatarBust(Date.now());
+    return updatedUser;
   }
-
-  const updatedUser = body?.data || body || null;
-
-  // ✅ cleanup
-  avatarFileRef.current = null;
-  dispatch(clearAvatar());
-  if (avatarInputRef.current) avatarInputRef.current.value = "";
-
-  setAvatarBust(Date.now());
-  return updatedUser;
-  };
 
   // ✅ Patch profile fields (returns updated user)
   async function patchProfile(payload) {
@@ -814,80 +832,80 @@ const avatarUrl = useMemo(() => {
   }
 
   async function handleSave(event) {
-  event.preventDefault();
-  if (!me) return;
+    event.preventDefault();
+    if (!me) return;
 
-  // ✅ prevent double submit
-  if (saveLockRef.current || saving) return;
-  saveLockRef.current = true;
+    // ✅ prevent double submit
+    if (saveLockRef.current || saving) return;
+    saveLockRef.current = true;
 
-  const patch = buildProfilePatch();
-  const hasPatch = patch && Object.keys(patch).length > 0;
-  const hasAvatarFile = !!avatarFileRef.current;
+    const patch = buildProfilePatch();
+    const hasPatch = patch && Object.keys(patch).length > 0;
+    const hasAvatarFile = !!avatarFileRef.current;
 
-  if (!hasAvatarFile && !hasPatch) {
-    showToast("Nothing to save.", "info");
-    saveLockRef.current = false;
-    return;
-  }
-
-  dispatch(userSaveRequest());
-
-  try {
-    let updatedUser = me;
-
-    // ✅ 1) upload avatar first if selected
-    const avatarUpdated = await uploadAvatarIfNeeded();
-    if (avatarUpdated && avatarUpdated._id) {
-      updatedUser = { ...updatedUser, ...avatarUpdated };
-      dispatch(userMeSuccess(updatedUser));
+    if (!hasAvatarFile && !hasPatch) {
+      showToast("Nothing to save.", "info");
+      saveLockRef.current = false;
+      return;
     }
 
-    // ✅ 2) patch profile fields only if changed
-    if (hasPatch) {
-      const profileUpdated = await patchProfile(patch);
-      if (profileUpdated && profileUpdated._id) {
-        updatedUser = { ...updatedUser, ...profileUpdated };
+    dispatch(userSaveRequest());
+
+    try {
+      let updatedUser = me;
+
+      // ✅ 1) upload avatar first if selected
+      const avatarUpdated = await uploadAvatarIfNeeded();
+      if (avatarUpdated && avatarUpdated._id) {
+        updatedUser = { ...updatedUser, ...avatarUpdated };
+        dispatch(userMeSuccess(updatedUser));
       }
+
+      // ✅ 2) patch profile fields only if changed
+      if (hasPatch) {
+        const profileUpdated = await patchProfile(patch);
+        if (profileUpdated && profileUpdated._id) {
+          updatedUser = { ...updatedUser, ...profileUpdated };
+        }
+      }
+
+      // ✅ 3) commit final fresh user
+      dispatch(userMeSuccess(updatedUser));
+      dispatch(userSaveSuccess(updatedUser));
+      persistMe(updatedUser);
+
+      // ✅ 4) reset form to fresh values
+      dispatch(
+        resetUserForm({
+          name: updatedUser.name || "",
+          email: updatedUser.email || "",
+          phone: updatedUser.phone || "",
+          location: updatedUser.location || "",
+          website: updatedUser.website || "",
+          instagram: updatedUser.instagram || "",
+          tiktok: updatedUser.tiktok || "",
+          youtube: updatedUser.youtube || "",
+          xhandle: updatedUser.xhandle || "",
+          headline: updatedUser.headline || "",
+          bio: updatedUser.bio || "",
+          notifications: updatedUser.notifications !== false,
+        }),
+      );
+
+      setAvatarBust(Date.now());
+      dispatch(setUserEditMode(false));
+      showToast("Profile updated successfully.", "success");
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.error("Profile update failed:", e);
+      }
+      const msg = e?.message || "Failed to save changes.";
+      dispatch(userSaveFail(msg));
+      showToast(msg, "error");
+    } finally {
+      saveLockRef.current = false;
     }
-
-    // ✅ 3) commit final fresh user
-    dispatch(userMeSuccess(updatedUser));
-    dispatch(userSaveSuccess(updatedUser));
-    persistMe(updatedUser);
-
-    // ✅ 4) reset form to fresh values
-    dispatch(
-      resetUserForm({
-        name: updatedUser.name || "",
-        email: updatedUser.email || "",
-        phone: updatedUser.phone || "",
-        location: updatedUser.location || "",
-        website: updatedUser.website || "",
-        instagram: updatedUser.instagram || "",
-        tiktok: updatedUser.tiktok || "",
-        youtube: updatedUser.youtube || "",
-        xhandle: updatedUser.xhandle || "",
-        headline: updatedUser.headline || "",
-        bio: updatedUser.bio || "",
-        notifications: updatedUser.notifications !== false,
-      })
-    );
-
-    setAvatarBust(Date.now());
-    dispatch(setUserEditMode(false));
-    showToast("Profile updated successfully.", "success");
-  } catch (e) {
-    if (import.meta.env.DEV) {
-  console.error("Profile update failed:", e);
-}
-    const msg = e?.message || "Failed to save changes.";
-    dispatch(userSaveFail(msg));
-    showToast(msg, "error");
-  } finally {
-    saveLockRef.current = false;
   }
-}
 
   // ✅ Password fields are Redux-controlled now
   function handlePwChange(e) {
@@ -896,67 +914,70 @@ const avatarUrl = useMemo(() => {
   }
 
   async function handleChangePassword() {
-  const currentPassword = String(pw?.currentPassword || "").trim();
-  const newPassword = String(pw?.newPassword || "");
-  const confirmNewPassword = String(pw?.confirmNewPassword || "");
+    const currentPassword = String(pw?.currentPassword || "").trim();
+    const newPassword = String(pw?.newPassword || "");
+    const confirmNewPassword = String(pw?.confirmNewPassword || "");
 
-  if (!currentPassword || !newPassword || !confirmNewPassword) {
-    showToast("Please fill all password fields.", "error");
-    return;
-  }
-
-  if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(newPassword)) {
-    showToast(
-      "Password must be at least 8 characters, include letters and numbers.",
-      "error"
-    );
-    return;
-  }
-
-  if (newPassword !== confirmNewPassword) {
-    showToast("New passwords do not match.", "error");
-    return;
-  }
-
-  if (currentPassword === newPassword) {
-    showToast("New password must be different from your current password.", "error");
-    return;
-  }
-
-  if (actionLockRef.current) return;
-  actionLockRef.current = true;
-
-  try {
-    const { res, body } = await apiFetch(PASSWORD_ENDPOINT, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPassword, newPassword }),
-    });
-
-    if (!res.ok) {
-      throw new Error(body?.message || "Password change failed.");
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      showToast("Please fill all password fields.", "error");
+      return;
     }
 
-    dispatch(resetPassword());
-    dispatch(togglePasswordPanel());
-    showToast("Password changed successfully ✅", "success");
-  } catch (e) {
-    const msg = e?.message || "Password change failed.";
-    showToast(msg, "error");
-  } finally {
-    actionLockRef.current = false;
+    if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(newPassword)) {
+      showToast(
+        "Password must be at least 8 characters, include letters and numbers.",
+        "error",
+      );
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      showToast("New passwords do not match.", "error");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      showToast(
+        "New password must be different from your current password.",
+        "error",
+      );
+      return;
+    }
+
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+
+    try {
+      const { res, body } = await apiFetch(PASSWORD_ENDPOINT, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (!res.ok) {
+        throw new Error(body?.message || "Password change failed.");
+      }
+
+      dispatch(resetPassword());
+      dispatch(togglePasswordPanel());
+      showToast("Password changed successfully ✅", "success");
+    } catch (e) {
+      const msg = e?.message || "Password change failed.";
+      showToast(msg, "error");
+    } finally {
+      actionLockRef.current = false;
+    }
   }
-}
 
   // ✅ NEW: sessions/devices helpers (best-effort normalization)
   function normalizeSessions(body) {
     const raw = Array.isArray(body?.items)
       ? body.items
       : Array.isArray(body?.data)
-      ? body.data
-      : Array.isArray(body)
-      ? body
-      : [];
+        ? body.data
+        : Array.isArray(body)
+          ? body
+          : [];
     return raw
       .filter(Boolean)
       .map((s) => ({
@@ -966,13 +987,17 @@ const avatarUrl = useMemo(() => {
         os: s.os || s.uaOS || "",
         ip: s.ip || s.ipAddress || "",
         location: s.location || s.geo || "",
-        lastActiveAt: s.lastActiveAt || s.lastSeenAt || s.updatedAt || s.lastActive || "",
+        lastActiveAt:
+          s.lastActiveAt || s.lastSeenAt || s.updatedAt || s.lastActive || "",
         createdAt: s.createdAt || s.issuedAt || "",
         isCurrent: !!(s.isCurrent || s.current || s.thisDevice),
       }))
       .map((s) => ({
         ...s,
-        deviceLabel: s.device || [s.browser, s.os].filter(Boolean).join(" • ") || "Unknown device",
+        deviceLabel:
+          s.device ||
+          [s.browser, s.os].filter(Boolean).join(" • ") ||
+          "Unknown device",
       }));
   }
 
@@ -982,7 +1007,9 @@ const avatarUrl = useMemo(() => {
     setDevicesLoading(true);
 
     try {
-      const { res, body } = await apiFetch(SESSIONS_ENDPOINT, { method: "GET" });
+      const { res, body } = await apiFetch(SESSIONS_ENDPOINT, {
+        method: "GET",
+      });
 
       if (!res.ok) {
         const msg =
@@ -1014,7 +1041,9 @@ const avatarUrl = useMemo(() => {
     setDevicesError("");
     setDevicesLoading(true);
     try {
-      const { res, body } = await apiFetch(SESSIONS_ENDPOINT, { method: "GET" });
+      const { res, body } = await apiFetch(SESSIONS_ENDPOINT, {
+        method: "GET",
+      });
       if (!res.ok) {
         const msg = body?.message || "Failed to refresh devices/sessions.";
         setDevicesError(msg);
@@ -1034,44 +1063,46 @@ const avatarUrl = useMemo(() => {
   }
 
   async function revokeSession(sessionId) {
-  if (!sessionId) {
-    showToast("Missing session id.", "error");
-    return;
-  }
-
-  if (actionLockRef.current) return;
-  actionLockRef.current = true;
-
-  setRevokingId(sessionId);
-
-  try {
-    const { res, body } = await apiFetch(
-      `${SESSIONS_ENDPOINT}/${encodeURIComponent(sessionId)}`,
-      { method: "DELETE" }
-    );
-
-    if (!res.ok) {
-      const msg = body?.message || "Failed to sign out device.";
-      showToast(msg, "error");
-    } else {
-      setDevices((prev) => prev.filter((x) => x.id !== sessionId));
-      showToast("Device signed out ✅", "success");
+    if (!sessionId) {
+      showToast("Missing session id.", "error");
+      return;
     }
-  } catch {
-    showToast("Network error signing out device.", "error");
-  } finally {
-    setRevokingId("");
-    actionLockRef.current = false;
+
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+
+    setRevokingId(sessionId);
+
+    try {
+      const { res, body } = await apiFetch(
+        `${SESSIONS_ENDPOINT}/${encodeURIComponent(sessionId)}`,
+        { method: "DELETE" },
+      );
+
+      if (!res.ok) {
+        const msg = body?.message || "Failed to sign out device.";
+        showToast(msg, "error");
+      } else {
+        setDevices((prev) => prev.filter((x) => x.id !== sessionId));
+        showToast("Device signed out ✅", "success");
+      }
+    } catch {
+      showToast("Network error signing out device.", "error");
+    } finally {
+      setRevokingId("");
+      actionLockRef.current = false;
+    }
   }
-  };
 
   async function revokeOtherSessions() {
     if (actionLockRef.current) return;
     actionLockRef.current = true;
-    
+
     setRevokingOthers(true);
     try {
-      const { res, body } = await apiFetch(`${SESSIONS_ENDPOINT}/others`, { method: "DELETE" });
+      const { res, body } = await apiFetch(`${SESSIONS_ENDPOINT}/others`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         const msg =
@@ -1101,17 +1132,20 @@ const avatarUrl = useMemo(() => {
   return (
     <Page $t={t}>
       <Hero $t={t}>
-  <HeroGlow />
-  <HeroInner>
-    <Badge $t={t}>Private Member Command Center</Badge>
-    <Title $t={t}>
-      {me?.name ? `${me.name.split(" ")[0]}, this is your power profile.` : "Your power profile starts here."}
-    </Title>
-    <Subtitle $t={t}>
-      Control your identity, security, avatar, socials, support messages, and account settings from one premium dashboard.
-    </Subtitle>
-  </HeroInner>
-</Hero>
+        <HeroGlow />
+        <HeroInner>
+          <Badge $t={t}>Private Member Command Center</Badge>
+          <Title $t={t}>
+            {me?.name
+              ? `${me.name.split(" ")[0]}, this is your power profile.`
+              : "Your power profile starts here."}
+          </Title>
+          <Subtitle $t={t}>
+            Control your identity, security, avatar, socials, support messages,
+            and account settings from one premium dashboard.
+          </Subtitle>
+        </HeroInner>
+      </Hero>
 
       <Content as="form" $t={t} onSubmit={handleSave}>
         <MainGrid>
@@ -1121,7 +1155,10 @@ const avatarUrl = useMemo(() => {
               <AvatarColumn>
                 <AvatarWrap $t={t}>
                   <Avatar src={avatarUrl} alt={me?.name || "User"} />
-                  <StatusDot title={isActive ? "Active account" : "Inactive account"} $active={isActive} />
+                  <StatusDot
+                    title={isActive ? "Active account" : "Inactive account"}
+                    $active={isActive}
+                  />
                 </AvatarWrap>
 
                 {editMode && (
@@ -1132,15 +1169,20 @@ const avatarUrl = useMemo(() => {
                       accept="image/*"
                       onChange={handleAvatarChange}
                     />
-                    <AvatarUploadText>{avatarFile ? "Photo selected ✅" : "Change photo"}</AvatarUploadText>
+                    <AvatarUploadText>
+                      {avatarFile ? "Photo selected ✅" : "Change photo"}
+                    </AvatarUploadText>
                   </AvatarUploadLabel>
                 )}
               </AvatarColumn>
 
               <CardHeadings>
-                <Name $t={t}>{me?.name || (loading ? "Loading…" : "No name set")}</Name>
+                <Name $t={t}>
+                  {me?.name || (loading ? "Loading…" : "No name set")}
+                </Name>
                 <Small $t={t}>
-                  {(editMode ? form?.headline : me?.headline) || "Add a headline to describe who you are."}
+                  {(editMode ? form?.headline : me?.headline) ||
+                    "Add a headline to describe who you are."}
                 </Small>
                 <Small $t={t}>{me?.name || "Add your full name"}</Small>
               </CardHeadings>
@@ -1155,7 +1197,12 @@ const avatarUrl = useMemo(() => {
                   {editMode ? "Cancel" : "Edit Profile"}
                 </GhostButton>
 
-                <LogoutButton $t={t} type="button" onClick={handleLogout} aria-label="Logout">
+                <LogoutButton
+                  $t={t}
+                  type="button"
+                  onClick={handleLogout}
+                  aria-label="Logout"
+                >
                   Logout
                   <LogoutShine />
                 </LogoutButton>
@@ -1188,8 +1235,8 @@ const avatarUrl = useMemo(() => {
                       ? "On · Important & updates"
                       : "Off"
                     : notificationsEnabled
-                    ? "On · Important & updates"
-                    : "Off"}
+                      ? "On · Important & updates"
+                      : "Off"}
                 </Pill>
               </InfoItem>
             </InfoGrid>
@@ -1212,10 +1259,10 @@ const avatarUrl = useMemo(() => {
                     {support.loading
                       ? "Loading your messages…"
                       : support.count === 0
-                      ? "No tickets yet"
-                      : support.hasAdminReply
-                      ? "Support replied ✅"
-                      : "No new replies yet"}
+                        ? "No tickets yet"
+                        : support.hasAdminReply
+                          ? "Support replied ✅"
+                          : "No new replies yet"}
                   </SupportValue>
                 </SupportLine>
 
@@ -1229,7 +1276,11 @@ const avatarUrl = useMemo(() => {
                 </SupportLine>
 
                 <SupportActions>
-                  <PrimaryButton $t={t} type="button" onClick={() => navigate("/my-messages")}>
+                  <PrimaryButton
+                    $t={t}
+                    type="button"
+                    onClick={() => navigate("/my-messages")}
+                  >
                     Open My Messages
                   </PrimaryButton>
 
@@ -1239,15 +1290,23 @@ const avatarUrl = useMemo(() => {
                     onClick={async () => {
                       setSupport((p) => ({ ...p, loading: true }));
                       try {
-                        const { res, body } = await apiFetch(MY_CONTACTS_ENDPOINT, { method: "GET" });
+                        const { res, body } = await apiFetch(
+                          MY_CONTACTS_ENDPOINT,
+                          { method: "GET" },
+                        );
                         if (res.ok) {
-                          const items = Array.isArray(body?.items) ? body.items : [];
+                          const items = Array.isArray(body?.items)
+                            ? body.items
+                            : [];
                           const newest = items[0] || null;
                           setSupport({
                             loading: false,
                             count: items.length,
-                            hasAdminReply: items.some((x) => x?.replied === true),
-                            lastUpdatedAt: newest?.updatedAt || newest?.createdAt || "",
+                            hasAdminReply: items.some(
+                              (x) => x?.replied === true,
+                            ),
+                            lastUpdatedAt:
+                              newest?.updatedAt || newest?.createdAt || "",
                             lastSubject: newest?.subject || "",
                           });
                           showToast("Inbox refreshed ✅", "success");
@@ -1264,7 +1323,8 @@ const avatarUrl = useMemo(() => {
                 </SupportActions>
 
                 <SupportHint $t={t}>
-                  For privacy, your support replies are inside your account. Use <b>My Messages</b> to view and respond.
+                  For privacy, your support replies are inside your account. Use{" "}
+                  <b>My Messages</b> to view and respond.
                 </SupportHint>
               </SupportBody>
             </Card>
@@ -1357,27 +1417,27 @@ const avatarUrl = useMemo(() => {
           <Card $t={t}>
             <SectionTitle $t={t}>Account</SectionTitle>
             <GhostButton
-  $t={t}
-  type="button"
-  onClick={() => navigate("/dashboard/products")}
->
-  My Products
+              $t={t}
+              type="button"
+              onClick={() => navigate("/dashboard/products")}
+            >
+              My Products
             </GhostButton>
-            
+
             <GhostButton
-  $t={t}
-  type="button"
-  onClick={() => navigate("/my-courses")}
->
-  My Purchased Courses
+              $t={t}
+              type="button"
+              onClick={() => navigate("/my-courses")}
+            >
+              My Purchased Courses
             </GhostButton>
             <GhostButton
-  $t={t}
-  type="button"
-  onClick={() => navigate("/dashboard/orders")}
->
-  My Orders
-</GhostButton>
+              $t={t}
+              type="button"
+              onClick={() => navigate("/dashboard/orders")}
+            >
+              My Orders
+            </GhostButton>
             <Rows>
               <Row>
                 <RowLabel $t={t}>Account Status</RowLabel>
@@ -1390,7 +1450,11 @@ const avatarUrl = useMemo(() => {
             </Rows>
 
             <Actions>
-              <GhostButton $t={t} type="button" onClick={() => dispatch(togglePasswordPanel())}>
+              <GhostButton
+                $t={t}
+                type="button"
+                onClick={() => dispatch(togglePasswordPanel())}
+              >
                 {showPassword ? "Close Password" : "Change Password"}
               </GhostButton>
 
@@ -1455,7 +1519,12 @@ const avatarUrl = useMemo(() => {
                     Cancel
                   </GhostButton>
 
-                  <SaveButton $t={t} type="button" disabled={pwSaving} onClick={handleChangePassword}>
+                  <SaveButton
+                    $t={t}
+                    type="button"
+                    disabled={pwSaving}
+                    onClick={handleChangePassword}
+                  >
                     {pwSaving ? "Updating…" : "Update Password"}
                   </SaveButton>
                 </PasswordActions>
@@ -1490,7 +1559,10 @@ const avatarUrl = useMemo(() => {
                 </>
               ) : (
                 <>
-                  <HeadlineText $t={t}>{me?.headline || "Craft a strong headline to introduce yourself."}</HeadlineText>
+                  <HeadlineText $t={t}>
+                    {me?.headline ||
+                      "Craft a strong headline to introduce yourself."}
+                  </HeadlineText>
                   <BioText $t={t}>
                     {me?.bio ||
                       "Tell people who you are, what you do, and what they get when they work with you. This is your mini elevator pitch."}
@@ -1552,7 +1624,13 @@ const avatarUrl = useMemo(() => {
             ) : socialLinks.length > 0 ? (
               <SocialGrid>
                 {socialLinks.map((link) => (
-                  <SocialLink key={link.label} href={link.value} target="_blank" rel="noreferrer" $t={t}>
+                  <SocialLink
+                    key={link.label}
+                    href={link.value}
+                    target="_blank"
+                    rel="noreferrer"
+                    $t={t}
+                  >
                     <SocialLabel>{link.label}</SocialLabel>
                     <SocialValue>{link.value}</SocialValue>
                   </SocialLink>
@@ -1560,7 +1638,8 @@ const avatarUrl = useMemo(() => {
               </SocialGrid>
             ) : (
               <SocialPlaceholder $t={t}>
-                Add your website and social links so clients and followers can find you instantly.
+                Add your website and social links so clients and followers can
+                find you instantly.
               </SocialPlaceholder>
             )}
 
@@ -1574,11 +1653,19 @@ const avatarUrl = useMemo(() => {
                 <PrefLabel $t={t}>Notifications</PrefLabel>
                 <PrefValue $t={t}>
                   {editMode ? (
-                    <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       <input
                         type="checkbox"
                         name="notifications"
-                        checked={!!(form?.notifications ?? me?.notifications !== false)}
+                        checked={
+                          !!(form?.notifications ?? me?.notifications !== false)
+                        }
                         onChange={handleChange}
                       />
                       <span>Enable important updates</span>
@@ -1648,10 +1735,17 @@ const avatarUrl = useMemo(() => {
               </ModalClose>
             </ModalHeader>
 
-            <ModalSub $t={t}>Review active sessions and sign out devices you don’t recognize.</ModalSub>
+            <ModalSub $t={t}>
+              Review active sessions and sign out devices you don’t recognize.
+            </ModalSub>
 
             <ModalActions>
-              <GhostButton $t={t} type="button" onClick={refreshDevices} disabled={devicesLoading}>
+              <GhostButton
+                $t={t}
+                type="button"
+                onClick={refreshDevices}
+                disabled={devicesLoading}
+              >
                 {devicesLoading ? "Refreshing…" : "Refresh"}
               </GhostButton>
 
@@ -1666,13 +1760,19 @@ const avatarUrl = useMemo(() => {
               </DangerButton>
             </ModalActions>
 
-            {devicesLoading ? <ModalNote $t={t}>Loading devices/sessions…</ModalNote> : null}
-            {!devicesLoading && devicesError ? <ModalError>{devicesError}</ModalError> : null}
+            {devicesLoading ? (
+              <ModalNote $t={t}>Loading devices/sessions…</ModalNote>
+            ) : null}
+            {!devicesLoading && devicesError ? (
+              <ModalError>{devicesError}</ModalError>
+            ) : null}
 
             {!devicesLoading && !devicesError ? (
               <DeviceList>
                 {devices.length === 0 ? (
-                  <DeviceEmpty $t={t}>No devices to show right now.</DeviceEmpty>
+                  <DeviceEmpty $t={t}>
+                    No devices to show right now.
+                  </DeviceEmpty>
                 ) : (
                   devices.map((d) => (
                     <DeviceRow key={d.id || `${d.deviceLabel}-${d.createdAt}`}>
@@ -1680,7 +1780,9 @@ const avatarUrl = useMemo(() => {
                         <DeviceTop>
                           <DeviceName $t={t}>
                             {d.deviceLabel}
-                            {d.isCurrent ? <CurrentPill>Current</CurrentPill> : null}
+                            {d.isCurrent ? (
+                              <CurrentPill>Current</CurrentPill>
+                            ) : null}
                           </DeviceName>
                           <DeviceMeta $t={t}>
                             {d.ip ? `IP: ${d.ip}` : "IP: —"}
@@ -1689,7 +1791,8 @@ const avatarUrl = useMemo(() => {
                         </DeviceTop>
 
                         <DeviceMeta $t={t}>
-                          Last active: {fmtTime(d.lastActiveAt) || "—"} {"  "}•{"  "}
+                          Last active: {fmtTime(d.lastActiveAt) || "—"} {"  "}•
+                          {"  "}
                           Signed in: {fmtTime(d.createdAt) || "—"}
                         </DeviceMeta>
                       </DeviceLeft>
@@ -1700,15 +1803,26 @@ const avatarUrl = useMemo(() => {
                           type="button"
                           onClick={() => {
                             if (d.isCurrent) {
-                              showToast("That’s your current device/session.", "info");
+                              showToast(
+                                "That’s your current device/session.",
+                                "info",
+                              );
                               return;
                             }
                             revokeSession(d.id);
                           }}
                           disabled={revokingId === d.id || d.isCurrent}
-                          title={d.isCurrent ? "Cannot sign out current session here" : "Sign out this device"}
+                          title={
+                            d.isCurrent
+                              ? "Cannot sign out current session here"
+                              : "Sign out this device"
+                          }
                         >
-                          {d.isCurrent ? "Current" : revokingId === d.id ? "Signing out…" : "Sign Out"}
+                          {d.isCurrent
+                            ? "Current"
+                            : revokingId === d.id
+                              ? "Signing out…"
+                              : "Sign Out"}
                         </MiniButton>
                       </DeviceRight>
                     </DeviceRow>
@@ -1718,7 +1832,8 @@ const avatarUrl = useMemo(() => {
             ) : null}
 
             <ModalHint $t={t}>
-              If you see a device you don’t recognize, sign it out immediately and change your password.
+              If you see a device you don’t recognize, sign it out immediately
+              and change your password.
             </ModalHint>
           </ModalCard>
         </ModalOverlay>
@@ -1739,9 +1854,22 @@ const avatarUrl = useMemo(() => {
 const Page = styled.div`
   min-height: 100svh;
   background:
-    radial-gradient(900px 460px at 8% -8%, rgba(214, 182, 159, 0.2), transparent 62%),
-    radial-gradient(780px 420px at 105% 8%, rgba(255, 249, 242, 0.1), transparent 60%),
-    linear-gradient(145deg, #000 0%, ${({ $t }) => $t.colors.darkBrown} 42%, ${({ $t }) => $t.colors.cocoa} 100%);
+    radial-gradient(
+      900px 460px at 8% -8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 62%
+    ),
+    radial-gradient(
+      780px 420px at 105% 8%,
+      rgba(255, 249, 242, 0.1),
+      transparent 60%
+    ),
+    linear-gradient(
+      145deg,
+      #000 0%,
+      ${({ $t }) => $t.colors.darkBrown} 42%,
+      ${({ $t }) => $t.colors.cocoa} 100%
+    );
   color: ${({ $t }) => $t.colors.ivory};
 `;
 
@@ -1759,8 +1887,16 @@ const HeroGlow = styled.div`
   position: absolute;
   inset: -30%;
   background:
-    radial-gradient(circle at 20% 20%, rgba(214, 182, 159, 0.26), transparent 34%),
-    radial-gradient(circle at 80% 10%, rgba(255, 249, 242, 0.12), transparent 30%);
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(214, 182, 159, 0.26),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 80% 10%,
+      rgba(255, 249, 242, 0.12),
+      transparent 30%
+    );
   filter: blur(44px);
   pointer-events: none;
 `;
@@ -1784,7 +1920,7 @@ const Badge = styled.span`
   color: ${({ $t }) => $t.colors.lightBrown};
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(214, 182, 159, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 `;
 
 const Title = styled.h1`
@@ -1830,13 +1966,20 @@ const CardBase = styled.section`
   position: relative;
   border-radius: ${({ $t }) => $t.radius.xl};
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.035)
+    ),
     linear-gradient(145deg, rgba(90, 56, 37, 0.92), rgba(0, 0, 0, 0.72));
   box-shadow: ${({ $t }) => $t.shadow.glow};
   border: 1px solid rgba(214, 182, 159, 0.16);
   overflow: hidden;
   backdrop-filter: blur(14px);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 
   &::before {
     content: "";
@@ -1844,8 +1987,12 @@ const CardBase = styled.section`
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(135deg, rgba(255,255,255,0.12), transparent 28%),
-      radial-gradient(circle at 15% 0%, rgba(214,182,159,0.16), transparent 34%);
+      linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 28%),
+      radial-gradient(
+        circle at 15% 0%,
+        rgba(214, 182, 159, 0.16),
+        transparent 34%
+      );
     opacity: 0.75;
   }
 
@@ -1894,8 +2041,8 @@ const AvatarWrap = styled.div`
   border-radius: 28px;
   background: ${({ $t }) => $t.colors.black};
   box-shadow:
-    0 18px 46px rgba(0,0,0,0.38),
-    inset 0 0 0 1px rgba(214,182,159,0.22);
+    0 18px 46px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(214, 182, 159, 0.22);
   overflow: hidden;
 `;
 
@@ -1914,7 +2061,11 @@ const StatusDot = styled.span`
   height: 15px;
   border-radius: 999px;
   background: ${({ $active }) => ($active ? "#2ecc71" : "#e74c3c")};
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.45), 0 0 20px ${({ $active }) => ($active ? "rgba(46,204,113,.7)" : "rgba(231,76,60,.7)")};
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, 0.45),
+    0 0 20px
+      ${({ $active }) =>
+        $active ? "rgba(46,204,113,.7)" : "rgba(231,76,60,.7)"};
 `;
 
 const AvatarUploadLabel = styled.label`
@@ -1978,12 +2129,18 @@ const LogoutButton = styled.button`
   padding: 12px 17px;
   border-radius: ${({ $t }) => $t.radius.pill};
   color: ${({ $t }) => $t.colors.black};
-  background:
-    radial-gradient(120% 160% at 10% 0%, ${({ $t }) => $t.colors.ivory}, ${({ $t }) => $t.colors.lightBrown} 45%, ${({ $t }) => $t.colors.brown});
+  background: radial-gradient(
+    120% 160% at 10% 0%,
+    ${({ $t }) => $t.colors.ivory},
+    ${({ $t }) => $t.colors.lightBrown} 45%,
+    ${({ $t }) => $t.colors.brown}
+  );
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: transform 0.18s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.25s ease;
   box-shadow: 0 14px 34px rgba(214, 182, 159, 0.23);
 
   &:hover {
@@ -2000,7 +2157,11 @@ const LogoutShine = styled.span`
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 42%);
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.45),
+    rgba(255, 255, 255, 0) 42%
+  );
   mix-blend-mode: screen;
   opacity: 0.35;
 `;
@@ -2008,7 +2169,12 @@ const LogoutShine = styled.span`
 const Divider = styled.hr`
   border: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(214, 182, 159, 0.28), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(214, 182, 159, 0.28),
+    transparent
+  );
   margin: 18px 0 14px;
 `;
 
@@ -2094,8 +2260,11 @@ const SupportPill = styled.span`
   font-weight: 900;
   font-size: 12px;
   color: ${({ $t }) => $t.colors.ivory};
-  background: ${({ $hot }) => ($hot ? "rgba(46, 204, 113, 0.16)" : "rgba(255,255,255,0.06)")};
-  border: 1px solid ${({ $hot }) => ($hot ? "rgba(46, 204, 113, 0.38)" : "rgba(255,255,255,0.10)")};
+  background: ${({ $hot }) =>
+    $hot ? "rgba(46, 204, 113, 0.16)" : "rgba(255,255,255,0.06)"};
+  border: 1px solid
+    ${({ $hot }) =>
+      $hot ? "rgba(46, 204, 113, 0.38)" : "rgba(255,255,255,0.10)"};
 `;
 
 const SupportBody = styled.div`
@@ -2147,7 +2316,9 @@ const PrimaryButton = styled.button`
   background: ${({ $t }) => $t.colors.lightBrown};
   font-weight: 950;
   box-shadow: 0 12px 28px rgba(214, 182, 159, 0.22);
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -2206,7 +2377,10 @@ const FieldInput = styled.input`
   color: ${({ $t }) => $t.colors.ivory};
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.12s ease;
 
   &:focus {
     border-color: rgba(214, 182, 159, 0.95);
@@ -2224,13 +2398,16 @@ const Actions = styled.div`
 
 const GhostButton = styled.button`
   border: 1px solid rgba(214, 182, 159, 0.2);
-  background: rgba(255,255,255,0.035);
+  background: rgba(255, 255, 255, 0.035);
   color: ${({ $t }) => $t.colors.ivory};
   padding: 11px 15px;
   border-radius: ${({ $t }) => $t.radius.pill};
   cursor: pointer;
   font-weight: 850;
-  transition: background 0.22s ease, transform 0.18s ease, border-color 0.22s ease;
+  transition:
+    background 0.22s ease,
+    transform 0.18s ease,
+    border-color 0.22s ease;
 
   &:hover:enabled {
     background: rgba(214, 182, 159, 0.11);
@@ -2312,7 +2489,10 @@ const SocialLink = styled.a`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  transition: background 0.22s ease, transform 0.18s ease, border-color 0.22s ease;
+  transition:
+    background 0.22s ease,
+    transform 0.18s ease,
+    border-color 0.22s ease;
 
   &:hover {
     background: rgba(214, 182, 159, 0.1);
@@ -2411,11 +2591,17 @@ const SaveButton = styled.button`
   padding: 11px 19px;
   border-radius: ${({ $t }) => $t.radius.pill};
   color: ${({ $t }) => $t.colors.black};
-  background:
-    radial-gradient(120% 160% at 10% 0%, ${({ $t }) => $t.colors.ivory}, ${({ $t }) => $t.colors.lightBrown} 48%, ${({ $t }) => $t.colors.brown});
+  background: radial-gradient(
+    120% 160% at 10% 0%,
+    ${({ $t }) => $t.colors.ivory},
+    ${({ $t }) => $t.colors.lightBrown} 48%,
+    ${({ $t }) => $t.colors.brown}
+  );
   font-weight: 950;
   box-shadow: 0 14px 32px rgba(214, 182, 159, 0.24);
-  transition: transform 0.2s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease;
   min-width: 145px;
 
   &:hover:enabled {
@@ -2517,8 +2703,16 @@ const ModalCard = styled.div`
   overflow: hidden;
   border: 1px solid rgba(214, 182, 159, 0.18);
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.035)),
-    linear-gradient(145deg, ${({ $t }) => $t.colors.brown} 0%, ${({ $t }) => $t.colors.cocoa} 100%);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.035)
+    ),
+    linear-gradient(
+      145deg,
+      ${({ $t }) => $t.colors.brown} 0%,
+      ${({ $t }) => $t.colors.cocoa} 100%
+    );
   box-shadow: ${({ $t }) => $t.shadow.hard};
 `;
 
@@ -2724,8 +2918,8 @@ const ToastContainer = styled.div`
     $type === "success"
       ? "rgba(46, 204, 113, 0.95)"
       : $type === "error"
-      ? "rgba(231, 76, 60, 0.95)"
-      : "rgba(47, 27, 18, 0.96)"};
+        ? "rgba(231, 76, 60, 0.95)"
+        : "rgba(47, 27, 18, 0.96)"};
   color: #ffffff;
   box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38);
   backdrop-filter: blur(10px);

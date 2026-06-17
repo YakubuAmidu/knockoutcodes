@@ -34,12 +34,12 @@ export function authReducer(state = authInitialState, action) {
       return {
         ...authInitialState,
       };
-    
+
     case AUTH_ACTIONS.ACCOUNT_ACCESS_RESTRICTED:
-  return {
-    ...authInitialState,
-    error: action.payload?.message || "Account access restricted.",
-  };
+      return {
+        ...authInitialState,
+        error: action.payload?.message || "Account access restricted.",
+      };
 
     case AUTH_ACTIONS.AUTH_CLEAR_ERROR:
       return {

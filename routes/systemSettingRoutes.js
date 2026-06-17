@@ -28,7 +28,7 @@ router.get(
   publicShield,
   authRequired,
   adminOnly,
-  getAdminSystemSettings
+  getAdminSystemSettings,
 );
 
 router.put(
@@ -38,7 +38,7 @@ router.put(
   authRequired,
   adminOnly,
   csrfRequired,
-  updateMaintenanceMode
+  updateMaintenanceMode,
 );
 
 router.delete(
@@ -48,7 +48,7 @@ router.delete(
   authRequired,
   adminOnly,
   csrfRequired,
-  deleteSystemSetting
+  deleteSystemSetting,
 );
 
 export default router;

@@ -29,7 +29,9 @@ const VALID_SUBSCRIPTION_STATUSES = [
 ];
 
 function normalizeStatus(status) {
-  const safeStatus = String(status || "").trim().toLowerCase();
+  const safeStatus = String(status || "")
+    .trim()
+    .toLowerCase();
 
   return VALID_SUBSCRIPTION_STATUSES.includes(safeStatus)
     ? safeStatus
@@ -37,16 +39,24 @@ function normalizeStatus(status) {
 }
 
 const isActiveStatus = (status) =>
-  ["active", "trialing"].includes(String(status || "").trim().toLowerCase());
+  ["active", "trialing"].includes(
+    String(status || "")
+      .trim()
+      .toLowerCase(),
+  );
 
 function normalizeBillingPeriod(value) {
-  return String(value || "").trim().toLowerCase() === "yearly"
+  return String(value || "")
+    .trim()
+    .toLowerCase() === "yearly"
     ? "yearly"
     : "monthly";
 }
 
 function normalizeMembershipId(value) {
-  const clean = String(value || "").trim().toLowerCase();
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (!clean) return "";
   if (clean === "advanced") return "advance";
@@ -71,7 +81,7 @@ function getStripePriceId(plan, billingPeriod) {
       plan.stripePriceIdYearly ||
         plan.stripeYearlyPriceId ||
         plan.yearlyStripePriceId ||
-        ""
+        "",
     ).trim();
   }
 
@@ -80,12 +90,14 @@ function getStripePriceId(plan, billingPeriod) {
       plan.stripeMonthlyPriceId ||
       plan.monthlyStripePriceId ||
       plan.stripePriceId ||
-      ""
+      "",
   ).trim();
 }
 
 async function findMembershipPlan(rawMembershipId) {
-  const raw = String(rawMembershipId || "").trim().toLowerCase();
+  const raw = String(rawMembershipId || "")
+    .trim()
+    .toLowerCase();
   const safeLevel = normalizeMembershipId(raw);
 
   if (!raw) return null;
@@ -168,7 +180,11 @@ async function syncUserMembershipPlan(userId, status, membershipLevel) {
 
 export const createCheckoutSession = async (req, res) => {
   try {
-    const { membershipId, courseId, billingPeriod: rawBillingPeriod } = req.body;
+    const {
+      membershipId,
+      courseId,
+      billingPeriod: rawBillingPeriod,
+    } = req.body;
 
     const billingPeriod = normalizeBillingPeriod(rawBillingPeriod);
     const userId = req.user?._id || req.user?.id;
@@ -197,7 +213,7 @@ export const createCheckoutSession = async (req, res) => {
     }
 
     const safeMembershipId = normalizeMembershipId(
-      plan.accessLevel || plan.membershipId || plan.slug || membershipId
+      plan.accessLevel || plan.membershipId || plan.slug || membershipId,
     );
 
     if (!isValidMembershipLevel(safeMembershipId)) {
@@ -274,7 +290,7 @@ export const createCheckoutSession = async (req, res) => {
         new: true,
         runValidators: true,
         setDefaultsOnInsert: true,
-      }
+      },
     );
 
     const safeCourseId = courseId ? String(courseId).trim() : "";
@@ -356,7 +372,7 @@ export const stripeWebhook = async (req, res) => {
         const userId = session.metadata?.userId || session.client_reference_id;
 
         if (!userId) {
-            return res.status(200).json({ received: true });
+          return res.status(200).json({ received: true });
         } else {
           const existingOrder = await Order.findOne({
             stripeSessionId: session.id,
@@ -391,14 +407,15 @@ export const stripeWebhook = async (req, res) => {
 
               for (const cartItem of parsedItems) {
                 const product = products.find(
-                  (p) => String(p._id) === String(cartItem.productId)
+                  (p) => String(p._id) === String(cartItem.productId),
                 );
 
                 if (!product) continue;
 
                 const qty = Math.max(1, parseInt(cartItem.qty || 1, 10));
 
-                if (Number(product.stock || 0) < qty) {                  continue;
+                if (Number(product.stock || 0) < qty) {
+                  continue;
                 }
 
                 const unitPrice = Number(product.price || 0);
@@ -470,26 +487,30 @@ export const stripeWebhook = async (req, res) => {
         }).lean();
 
         if (!existingSubscriptionOrder) {
-          const userId = session.metadata?.userId || session.client_reference_id;
+          const userId =
+            session.metadata?.userId || session.client_reference_id;
           const membershipId = normalizeMembershipId(
-            session.metadata?.membershipId
+            session.metadata?.membershipId,
           );
           const courseId = session.metadata?.courseId || "";
 
           const plan = await findMembershipPlan(membershipId);
 
           if (!userId || !plan) {
-              // Missing user or membership plan. Skip subscription order creation.
+            // Missing user or membership plan. Skip subscription order creation.
           } else {
             const safeMembershipId = normalizeMembershipId(
-              plan.accessLevel || plan.membershipId || plan.slug || membershipId
+              plan.accessLevel ||
+                plan.membershipId ||
+                plan.slug ||
+                membershipId,
             );
 
             if (!isValidMembershipLevel(safeMembershipId)) {
-  return res.status(200).json({ received: true });
-} else {
+              return res.status(200).json({ received: true });
+            } else {
               const stripeSub = await stripe.subscriptions.retrieve(
-                session.subscription
+                session.subscription,
               );
 
               const finalStatus = normalizeStatus(stripeSub.status);
@@ -508,7 +529,7 @@ export const stripeWebhook = async (req, res) => {
                       getStripePriceId(plan, session.metadata?.billingPeriod) ||
                       "",
                     billingPeriod: normalizeBillingPeriod(
-                      session.metadata?.billingPeriod
+                      session.metadata?.billingPeriod,
                     ),
                     status: finalStatus,
                     currentPeriodStart: stripeSub.current_period_start
@@ -525,13 +546,13 @@ export const stripeWebhook = async (req, res) => {
                   new: true,
                   runValidators: true,
                   setDefaultsOnInsert: true,
-                }
+                },
               );
 
               await syncUserMembershipPlan(
                 userId,
                 finalStatus,
-                safeMembershipId
+                safeMembershipId,
               );
 
               const courseDoc = await findCourseByIdOrSlug(courseId);
@@ -608,14 +629,14 @@ export const stripeWebhook = async (req, res) => {
         {
           new: true,
           runValidators: true,
-        }
+        },
       );
 
       if (subscription?.user) {
         await syncUserMembershipPlan(
           subscription.user,
           finalStatus,
-          subscription.accessLevel
+          subscription.accessLevel,
         );
       }
     }
@@ -637,7 +658,7 @@ export const stripeWebhook = async (req, res) => {
         {
           new: true,
           runValidators: true,
-        }
+        },
       );
 
       if (subscription?.user) {
@@ -671,7 +692,7 @@ export const getMySubscription = async (req, res) => {
 
     const sub = await UserSubscription.findOne({ user: userId }).populate(
       "membership",
-      "membershipId accessLevel title stripePriceId stripePriceIdMonthly stripePriceIdYearly"
+      "membershipId accessLevel title stripePriceId stripePriceIdMonthly stripePriceIdYearly",
     );
 
     if (!sub) {
@@ -760,7 +781,7 @@ export const confirmCheckoutSession = async (req, res) => {
 
     const membershipId = normalizeMembershipId(session?.metadata?.membershipId);
     const billingPeriod = normalizeBillingPeriod(
-      session?.metadata?.billingPeriod || session?.metadata?.plan
+      session?.metadata?.billingPeriod || session?.metadata?.plan,
     );
 
     const priceId = session?.metadata?.priceId || "";
@@ -778,7 +799,7 @@ export const confirmCheckoutSession = async (req, res) => {
     }
 
     const safeMembershipId = normalizeMembershipId(
-      plan.accessLevel || plan.membershipId || membershipId
+      plan.accessLevel || plan.membershipId || membershipId,
     );
 
     if (!isValidMembershipLevel(safeMembershipId)) {
@@ -807,7 +828,9 @@ export const confirmCheckoutSession = async (req, res) => {
           billingPeriod,
           stripeCustomerId: String(stripeCustomerId || ""),
           stripeSubscriptionId: String(stripeSubscriptionId || ""),
-          stripePriceId: String(priceId || getStripePriceId(plan, billingPeriod)),
+          stripePriceId: String(
+            priceId || getStripePriceId(plan, billingPeriod),
+          ),
           status: finalStatus,
           currentPeriodStart: stripeSub?.current_period_start
             ? new Date(stripeSub.current_period_start * 1000)
@@ -823,7 +846,7 @@ export const confirmCheckoutSession = async (req, res) => {
         new: true,
         runValidators: true,
         setDefaultsOnInsert: true,
-      }
+      },
     ).lean();
 
     await syncUserMembershipPlan(userId, finalStatus, safeMembershipId);
@@ -872,7 +895,8 @@ export const switchMembershipPlan = async (req, res) => {
     if (!currentSub || !currentSub.stripeSubscriptionId) {
       return res.status(404).json({
         success: false,
-        message: "No active subscription found. Please start a membership first.",
+        message:
+          "No active subscription found. Please start a membership first.",
       });
     }
 
@@ -893,7 +917,7 @@ export const switchMembershipPlan = async (req, res) => {
     }
 
     const newMembershipId = normalizeMembershipId(
-      newPlan.accessLevel || newPlan.membershipId || newPlan.slug
+      newPlan.accessLevel || newPlan.membershipId || newPlan.slug,
     );
 
     if (!isValidMembershipLevel(newMembershipId)) {
@@ -924,7 +948,7 @@ export const switchMembershipPlan = async (req, res) => {
     }
 
     const stripeSub = await stripe.subscriptions.retrieve(
-      currentSub.stripeSubscriptionId
+      currentSub.stripeSubscriptionId,
     );
 
     if (
@@ -964,7 +988,7 @@ export const switchMembershipPlan = async (req, res) => {
           billingPeriod,
           kind: "membership",
         },
-      }
+      },
     );
 
     const finalStatus = normalizeStatus(updatedStripeSub.status);
@@ -991,7 +1015,7 @@ export const switchMembershipPlan = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     ).lean();
 
     await syncUserMembershipPlan(userId, finalStatus, newMembershipId);
@@ -1037,7 +1061,7 @@ export const cancelMySubscription = async (req, res) => {
     }
 
     const existingStripeSub = await stripe.subscriptions.retrieve(
-      sub.stripeSubscriptionId
+      sub.stripeSubscriptionId,
     );
 
     if (
@@ -1069,7 +1093,7 @@ export const cancelMySubscription = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     ).lean();
 
     return res.status(200).json({
@@ -1092,7 +1116,7 @@ export const getAllSubscriptionsAdmin = async (_req, res) => {
       .populate("user", "name fullName email role")
       .populate(
         "membership",
-        "title membershipId accessLevel billingPeriod price monthlyPrice yearlyPrice"
+        "title membershipId accessLevel billingPeriod price monthlyPrice yearlyPrice",
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -1176,7 +1200,7 @@ export const createSubscriptionAdmin = async (req, res) => {
         membershipId ||
         membershipDoc.accessLevel ||
         membershipDoc.membershipId ||
-        membershipDoc.slug
+        membershipDoc.slug,
     );
 
     if (!isValidMembershipLevel(safeLevel)) {
@@ -1205,11 +1229,13 @@ export const createSubscriptionAdmin = async (req, res) => {
 
     await syncUserMembershipPlan(user, safeStatus, safeLevel);
 
-    const populatedSubscription = await UserSubscription.findById(subscription._id)
+    const populatedSubscription = await UserSubscription.findById(
+      subscription._id,
+    )
       .populate("user", "name fullName email role")
       .populate(
         "membership",
-        "title membershipId accessLevel billingPeriod price monthlyPrice yearlyPrice"
+        "title membershipId accessLevel billingPeriod price monthlyPrice yearlyPrice",
       )
       .lean();
 
@@ -1300,7 +1326,7 @@ export const updateSubscriptionAdmin = async (req, res) => {
       const derivedLevel = normalizeMembershipId(
         membershipDoc.accessLevel ||
           membershipDoc.membershipId ||
-          membershipDoc.slug
+          membershipDoc.slug,
       );
 
       if (!isValidMembershipLevel(derivedLevel)) {
@@ -1331,7 +1357,8 @@ export const updateSubscriptionAdmin = async (req, res) => {
     }
 
     if (
-      ("membershipId" in update && !isValidMembershipLevel(update.membershipId)) ||
+      ("membershipId" in update &&
+        !isValidMembershipLevel(update.membershipId)) ||
       ("accessLevel" in update && !isValidMembershipLevel(update.accessLevel))
     ) {
       return res.status(400).json({
@@ -1354,7 +1381,7 @@ export const updateSubscriptionAdmin = async (req, res) => {
 
     if ("stripeSubscriptionId" in update) {
       update.stripeSubscriptionId = String(
-        update.stripeSubscriptionId || ""
+        update.stripeSubscriptionId || "",
       ).trim();
     }
 
@@ -1380,12 +1407,12 @@ export const updateSubscriptionAdmin = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     )
       .populate("user", "name fullName email role")
       .populate(
         "membership",
-        "title membershipId accessLevel billingPeriod price monthlyPrice yearlyPrice"
+        "title membershipId accessLevel billingPeriod price monthlyPrice yearlyPrice",
       );
 
     if (!subscription) {
@@ -1398,7 +1425,7 @@ export const updateSubscriptionAdmin = async (req, res) => {
     await syncUserMembershipPlan(
       subscription.user?._id,
       subscription.status,
-      subscription.accessLevel
+      subscription.accessLevel,
     );
 
     return res.status(200).json({

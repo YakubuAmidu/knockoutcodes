@@ -5,12 +5,14 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
 function cleanString(value, maxLength = 200) {
   if (typeof value !== "string") return "";
 
-  return value
-    .trim()
-    .replace(/\s+/g, " ")
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001F\u007F]/g, "")
-    .slice(0, maxLength);
+  return (
+    value
+      .trim()
+      .replace(/\s+/g, " ")
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      .slice(0, maxLength)
+  );
 }
 
 function blockUnsafeBodyKeys(obj) {
@@ -42,9 +44,7 @@ function blockUnsafeBodyKeys(obj) {
 function validateAllowedFields(req, res, allowedKeys) {
   const incomingKeys = Object.keys(req.body || {});
 
-  const extraKeys = incomingKeys.filter(
-    (key) => !allowedKeys.includes(key)
-  );
+  const extraKeys = incomingKeys.filter((key) => !allowedKeys.includes(key));
 
   if (extraKeys.length > 0) {
     return res.status(400).json({
@@ -72,11 +72,7 @@ function validateEmail(email) {
 ========================================= */
 export function newsletterBodyGuard(req, res, next) {
   try {
-    if (
-      !req.body ||
-      typeof req.body !== "object" ||
-      Array.isArray(req.body)
-    ) {
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       return res.status(400).json({
         success: false,
         message: "Invalid request body.",
@@ -99,45 +95,24 @@ export function newsletterBodyGuard(req, res, next) {
       "website",
     ];
 
-    const fieldError = validateAllowedFields(
-      req,
-      res,
-      allowedKeys
-    );
+    const fieldError = validateAllowedFields(req, res, allowedKeys);
 
     if (fieldError) return fieldError;
 
     req.body.name = cleanString(req.body.name, 80);
 
-    req.body.email = cleanString(
-      req.body.email,
-      160
-    ).toLowerCase();
+    req.body.email = cleanString(req.body.email, 160).toLowerCase();
 
-    req.body.topic = cleanString(
-      req.body.topic,
-      80
-    );
+    req.body.topic = cleanString(req.body.topic, 80);
 
-    req.body.source =
-      cleanString(req.body.source, 60) || "footer";
+    req.body.source = cleanString(req.body.source, 60) || "footer";
 
-    if (
-      typeof req.body.company === "string"
-    ) {
-      req.body.company = cleanString(
-        req.body.company,
-        120
-      );
+    if (typeof req.body.company === "string") {
+      req.body.company = cleanString(req.body.company, 120);
     }
 
-    if (
-      typeof req.body.website === "string"
-    ) {
-      req.body.website = cleanString(
-        req.body.website,
-        200
-      );
+    if (typeof req.body.website === "string") {
+      req.body.website = cleanString(req.body.website, 200);
     }
 
     if (!req.body.email) {
@@ -166,17 +141,9 @@ export function newsletterBodyGuard(req, res, next) {
 /* =========================================
    ADMIN NEWSLETTER BODY GUARD
 ========================================= */
-export function newsletterAdminBodyGuard(
-  req,
-  res,
-  next
-) {
+export function newsletterAdminBodyGuard(req, res, next) {
   try {
-    if (
-      !req.body ||
-      typeof req.body !== "object" ||
-      Array.isArray(req.body)
-    ) {
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
       return res.status(400).json({
         success: false,
         message: "Invalid request body.",
@@ -199,57 +166,35 @@ export function newsletterAdminBodyGuard(
       "isActive",
     ];
 
-    const fieldError = validateAllowedFields(
-      req,
-      res,
-      allowedKeys
-    );
+    const fieldError = validateAllowedFields(req, res, allowedKeys);
 
     if (fieldError) return fieldError;
 
     if (req.body.name !== undefined) {
-      req.body.name = cleanString(
-        req.body.name,
-        80
-      );
+      req.body.name = cleanString(req.body.name, 80);
     }
 
     if (req.body.email !== undefined) {
-      req.body.email = cleanString(
-        req.body.email,
-        160
-      ).toLowerCase();
+      req.body.email = cleanString(req.body.email, 160).toLowerCase();
 
-      if (
-        req.body.email &&
-        !validateEmail(req.body.email)
-      ) {
+      if (req.body.email && !validateEmail(req.body.email)) {
         return res.status(400).json({
           success: false,
-          message:
-            "Please provide a valid email address.",
+          message: "Please provide a valid email address.",
         });
       }
     }
 
     if (req.body.topic !== undefined) {
-      req.body.topic = cleanString(
-        req.body.topic,
-        80
-      );
+      req.body.topic = cleanString(req.body.topic, 80);
     }
 
     if (req.body.source !== undefined) {
-      req.body.source =
-        cleanString(req.body.source, 60) ||
-        "admin";
+      req.body.source = cleanString(req.body.source, 60) || "admin";
     }
 
     if (req.body.notes !== undefined) {
-      req.body.notes = cleanString(
-        req.body.notes,
-        1000
-      );
+      req.body.notes = cleanString(req.body.notes, 1000);
     }
 
     if (
@@ -258,8 +203,7 @@ export function newsletterAdminBodyGuard(
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "isActive must be a boolean.",
+        message: "isActive must be a boolean.",
       });
     }
 
@@ -267,8 +211,7 @@ export function newsletterAdminBodyGuard(
   } catch {
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to validate admin request body.",
+      message: "Failed to validate admin request body.",
     });
   }
 }
@@ -276,34 +219,22 @@ export function newsletterAdminBodyGuard(
 /* =========================================
    ADMIN QUERY GUARD
 ========================================= */
-export function newsletterQueryGuard(
-  req,
-  res,
-  next
-) {
+export function newsletterQueryGuard(req, res, next) {
   try {
     const q =
-      typeof req.query.q === "string"
-        ? cleanString(req.query.q, 100)
-        : "";
+      typeof req.query.q === "string" ? cleanString(req.query.q, 100) : "";
 
     const status =
       typeof req.query.status === "string"
         ? cleanString(req.query.status, 20)
         : "";
 
-    const allowedStatuses = [
-      "active",
-      "inactive",
-      "all",
-      "",
-    ];
+    const allowedStatuses = ["active", "inactive", "all", ""];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid newsletter status filter.",
+        message: "Invalid newsletter status filter.",
       });
     }
 

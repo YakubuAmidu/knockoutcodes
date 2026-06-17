@@ -12,8 +12,8 @@ export const fetchMyCourses = () => async (dispatch) => {
     const data = Array.isArray(payload.data)
       ? payload.data
       : Array.isArray(payload.enrollments)
-      ? payload.enrollments
-      : [];
+        ? payload.enrollments
+        : [];
 
     dispatch({
       type: MY_COURSES_ACTIONS.FETCH_MY_COURSES_SUCCESS,

@@ -30,7 +30,9 @@ const emptyForm = {
 };
 
 function normalizeText(value) {
-  return String(value || "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function uniqueArray(arr) {
@@ -43,7 +45,7 @@ function parseCsv(text) {
     String(text)
       .split(",")
       .map((s) => normalizeText(s))
-      .filter(Boolean)
+      .filter(Boolean),
   );
 }
 
@@ -53,7 +55,7 @@ function parseLines(text) {
     String(text)
       .split("\n")
       .map((s) => s.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
 }
 
@@ -112,7 +114,7 @@ export default function ManageProducts() {
 
   const [state, dispatch] = useReducer(
     manageProductReducer,
-    manageProductInitialState
+    manageProductInitialState,
   );
 
   const [form, setForm] = useState(emptyForm);
@@ -127,7 +129,7 @@ export default function ManageProducts() {
         JSON.stringify({
           at: Date.now(),
           items: Array.isArray(items) ? items : [],
-        })
+        }),
       );
     } catch {
       // cache failure should never break admin page
@@ -292,7 +294,8 @@ export default function ManageProducts() {
     ) {
       push({
         title: "Invalid compare price",
-        description: "Compare price must be a valid number greater than or equal to 0.",
+        description:
+          "Compare price must be a valid number greater than or equal to 0.",
         variant: "warning",
       });
       return;
@@ -342,9 +345,7 @@ export default function ManageProducts() {
       const exists = currentItems.some((p) => getProductId(p) === productId);
 
       const nextCache = exists
-        ? currentItems.map((p) =>
-            getProductId(p) === productId ? product : p
-          )
+        ? currentItems.map((p) => (getProductId(p) === productId ? product : p))
         : [product, ...currentItems];
 
       writeCache(nextCache);
@@ -379,7 +380,7 @@ export default function ManageProducts() {
     if (!id || state.deletingId) return;
 
     const ok = window.confirm(
-      `Delete "${title || "this product"}"? This cannot be undone.`
+      `Delete "${title || "this product"}"? This cannot be undone.`,
     );
 
     if (!ok) return;
@@ -411,9 +412,7 @@ export default function ManageProducts() {
       if (form._id === id) resetForm();
     } catch (error) {
       const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Delete failed.";
+        error?.response?.data?.message || error?.message || "Delete failed.";
 
       dispatch({
         type: MANAGE_PRODUCT_ACTION_TYPES.DELETE_ERROR,
@@ -631,7 +630,9 @@ export default function ManageProducts() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, imagesText: e.target.value }))
                   }
-                  placeholder={"https://image-url-1.jpg\nhttps://image-url-2.jpg"}
+                  placeholder={
+                    "https://image-url-1.jpg\nhttps://image-url-2.jpg"
+                  }
                 />
               </Field>
 
@@ -664,8 +665,8 @@ export default function ManageProducts() {
                   {state.saving
                     ? "Saving..."
                     : form._id
-                    ? "Update Product"
-                    : "Create Product"}
+                      ? "Update Product"
+                      : "Create Product"}
                 </SaveBtn>
 
                 <GhostBtn
@@ -783,9 +784,21 @@ const Page = styled.main`
   padding: 96px 18px 80px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214, 182, 159, 0.22) 0%, rgba(0, 0, 0, 0) 40%),
-    radial-gradient(circle at 82% 14%, rgba(90, 56, 37, 0.35) 0%, rgba(0, 0, 0, 0) 44%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 85%);
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(214, 182, 159, 0.22) 0%,
+      rgba(0, 0, 0, 0) 40%
+    ),
+    radial-gradient(
+      circle at 82% 14%,
+      rgba(90, 56, 37, 0.35) 0%,
+      rgba(0, 0, 0, 0) 44%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      #000 85%
+    );
 `;
 
 const Inner = styled.section`
@@ -1170,8 +1183,7 @@ const Chip = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: ${(p) =>
     p.$on ? "rgba(214, 182, 159, 0.18)" : "rgba(0, 0, 0, 0.28)"};
-  color: ${(p) =>
-    p.$on ? p.theme.colors.ivory : "rgba(255, 255, 255, 0.8)"};
+  color: ${(p) => (p.$on ? p.theme.colors.ivory : "rgba(255, 255, 255, 0.8)")};
   font-weight: 900;
   font-size: 12px;
 `;

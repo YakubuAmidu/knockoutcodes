@@ -183,7 +183,7 @@ function AdminEmailSegment() {
     if (!id) return;
 
     const confirmed = window.confirm(
-      "Delete this email segment? This action cannot be undone."
+      "Delete this email segment? This action cannot be undone.",
     );
 
     if (!confirmed) return;
@@ -215,8 +215,9 @@ function AdminEmailSegment() {
             <Kicker>Email Segmentation Engine</Kicker>
             <Title>Turn Your Audience Into Buyer Groups</Title>
             <Subtitle>
-              Build clean customer segments for coaching offers, course launches,
-              product drops, newsletters, VIP buyers, and inactive subscribers.
+              Build clean customer segments for coaching offers, course
+              launches, product drops, newsletters, VIP buyers, and inactive
+              subscribers.
             </Subtitle>
           </HeroContent>
 
@@ -254,9 +255,13 @@ function AdminEmailSegment() {
         <MainGrid>
           <FormCard onSubmit={handleSubmit}>
             <SectionHeader>
-              <Kicker>{selectedSegment ? "Update Segment" : "Create Segment"}</Kicker>
+              <Kicker>
+                {selectedSegment ? "Update Segment" : "Create Segment"}
+              </Kicker>
               <SectionTitle>
-                {selectedSegment ? "Refine This Buyer Group" : "Create A Money Segment"}
+                {selectedSegment
+                  ? "Refine This Buyer Group"
+                  : "Create A Money Segment"}
               </SectionTitle>
             </SectionHeader>
 
@@ -295,7 +300,11 @@ function AdminEmailSegment() {
 
               <Field>
                 <Label>Status</Label>
-                <Select name="status" value={form.status} onChange={handleChange}>
+                <Select
+                  name="status"
+                  value={form.status}
+                  onChange={handleChange}
+                >
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
                 </Select>
@@ -346,8 +355,8 @@ function AdminEmailSegment() {
                 {creating || updating
                   ? "Saving..."
                   : selectedSegment
-                  ? "Update Segment"
-                  : "Create Segment"}
+                    ? "Update Segment"
+                    : "Create Segment"}
               </PrimaryButton>
 
               {selectedSegment && (
@@ -412,7 +421,10 @@ function AdminEmailSegment() {
                       )}
 
                     <ActionRow>
-                      <SmallButton type="button" onClick={() => handleEdit(segment)}>
+                      <SmallButton
+                        type="button"
+                        onClick={() => handleEdit(segment)}
+                      >
                         Edit
                       </SmallButton>
 
@@ -451,8 +463,16 @@ const colors = {
 const Page = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(90, 56, 37, 0.24), transparent 38%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(90, 56, 37, 0.24),
+      transparent 38%
+    ),
     ${colors.black};
   color: ${colors.ivory};
   padding: 3rem 1.25rem;
@@ -478,7 +498,11 @@ const Hero = styled.section`
 const HeroContent = styled.div`
   padding: 3rem;
   border-radius: 28px;
-  background: linear-gradient(135deg, rgba(255, 249, 242, 0.08), rgba(61, 38, 26, 0.46));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 249, 242, 0.08),
+    rgba(61, 38, 26, 0.46)
+  );
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
 
@@ -492,7 +516,9 @@ const HeroPanel = styled.aside`
   border-radius: 28px;
   background: ${colors.glass};
   border: 1px solid rgba(214, 182, 159, 0.18);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 16px 40px rgba(45, 18, 8, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 16px 40px rgba(45, 18, 8, 0.35);
 `;
 
 const Kicker = styled.p`

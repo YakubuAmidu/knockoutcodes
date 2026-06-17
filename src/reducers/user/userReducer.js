@@ -70,7 +70,7 @@ export function userReducer(state = userInitialState, action) {
          * When turning ON edit mode, guarantee `form` is initialized from `me`.
          * This makes ALL inputs (including textarea) type correctly every time.
          */
-        form: turningOn ? (state.form || buildFormFromMe(state.me)) : state.form,
+        form: turningOn ? state.form || buildFormFromMe(state.me) : state.form,
       };
     }
 

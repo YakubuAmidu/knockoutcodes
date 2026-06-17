@@ -6,7 +6,6 @@ export const userDashboardInitialState = {
   // ========= Filter ==============
   timeRange: "7h",
 
-
   // ======== Main Dashboard Payload ===========
   stats: {
     streakDays: 0,
@@ -22,4 +21,4 @@ export const userDashboardInitialState = {
 
   // ====== Next Move Actions ========
   nextSteps: [],
-}
+};

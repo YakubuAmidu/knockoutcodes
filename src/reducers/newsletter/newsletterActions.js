@@ -14,14 +14,14 @@ const failPayload = (message, status = 0, raw = null) => ({
 });
 
 const getErrorMessage = (error, fallback = "Subscription failed.") =>
-  error?.response?.data?.message ||
-  error?.message ||
-  fallback;
+  error?.response?.data?.message || error?.message || fallback;
 
 export const subscribeToNewsletter =
   (email, meta = {}) =>
   async (dispatch) => {
-    const cleanEmail = String(email || "").trim().toLowerCase();
+    const cleanEmail = String(email || "")
+      .trim()
+      .toLowerCase();
 
     if (!cleanEmail) {
       const msg = "Email is required.";
@@ -54,7 +54,10 @@ export const subscribeToNewsletter =
     });
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), NEWSLETTER_TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      NEWSLETTER_TIMEOUT_MS,
+    );
 
     try {
       try {
@@ -117,8 +120,8 @@ export const subscribeToNewsletter =
       const msg = isAbort
         ? "Request timed out. Please try again."
         : navigator.onLine === false
-        ? "No internet connection detected."
-        : getErrorMessage(error, "Network error. Please try again.");
+          ? "No internet connection detected."
+          : getErrorMessage(error, "Network error. Please try again.");
 
       dispatch({
         type: NEWSLETTER_ACTIONS.SUBSCRIBE_FAIL,

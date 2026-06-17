@@ -14,36 +14,36 @@ export default function VerifyEmail() {
   const [message, setMessage] = useState("Verifying your email...");
 
   useEffect(() => {
-  if (hasVerified.current) return;
-  hasVerified.current = true;
+    if (hasVerified.current) return;
+    hasVerified.current = true;
 
-  const verifyEmail = async () => {
-    try {
-      if (!token) {
+    const verifyEmail = async () => {
+      try {
+        if (!token) {
+          setStatus("error");
+          setMessage("Verification token is missing.");
+          toast?.error?.("Verification token is missing.");
+          return;
+        }
+
+        const { data } = await axiosInstance.get(`/auth/verify-email/${token}`);
+
+        setStatus("success");
+        setMessage(data?.message || "Email verified successfully.");
+        toast?.success?.("Email verified successfully. You can now log in.");
+      } catch (error) {
+        const errorMessage =
+          error?.response?.data?.message ||
+          "This verification link is invalid, expired, or already used. If you already verified your email, please log in.";
+
         setStatus("error");
-        setMessage("Verification token is missing.");
-        toast?.error?.("Verification token is missing.");
-        return;
+        setMessage(errorMessage);
+        toast?.error?.(errorMessage);
       }
+    };
 
-      const { data } = await axiosInstance.get(`/auth/verify-email/${token}`);
-
-      setStatus("success");
-      setMessage(data?.message || "Email verified successfully.");
-      toast?.success?.("Email verified successfully. You can now log in.");
-    } catch (error) {
-      const errorMessage =
-        error?.response?.data?.message ||
-        "This verification link is invalid, expired, or already used. If you already verified your email, please log in.";
-
-      setStatus("error");
-      setMessage(errorMessage);
-      toast?.error?.(errorMessage);
-    }
-  };
-
-  verifyEmail();
-}, [token, toast]);
+    verifyEmail();
+  }, [token, toast]);
 
   return (
     <Page>
@@ -63,8 +63,8 @@ export default function VerifyEmail() {
           {status === "loading"
             ? "Verifying Email"
             : status === "success"
-            ? "Email Verified"
-            : "Verification Failed"}
+              ? "Email Verified"
+              : "Verification Failed"}
         </Title>
 
         <Text>{message}</Text>
@@ -87,7 +87,11 @@ const Page = styled.main`
   place-items: center;
   padding: 30px;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
     linear-gradient(135deg, #000000 0%, #2f1b12 50%, #000000 100%);
   color: #ffffff;
 `;
@@ -98,7 +102,11 @@ const Card = styled.section`
   border-radius: 28px;
   padding: 42px 30px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(214, 182, 159, 0.06)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(214, 182, 159, 0.06)
+    ),
     rgba(61, 38, 26, 0.82);
   border: 1px solid rgba(214, 182, 159, 0.22);
   box-shadow:

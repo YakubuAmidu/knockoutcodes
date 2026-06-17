@@ -52,7 +52,8 @@ function cleanObject(obj) {
 export function noSqlShield(req, _res, next) {
   if (req.body && isPlainObject(req.body)) req.body = cleanObject(req.body);
   if (req.query && isPlainObject(req.query)) req.query = cleanObject(req.query);
-  if (req.params && isPlainObject(req.params)) req.params = cleanObject(req.params);
+  if (req.params && isPlainObject(req.params))
+    req.params = cleanObject(req.params);
 
   next();
 }

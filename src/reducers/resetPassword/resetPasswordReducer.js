@@ -3,7 +3,10 @@
 import { RESET_PASSWORD_ACTIONS } from "./resetPasswordActionTypes";
 import { resetPasswordInitialState } from "./resetPasswordInitialState";
 
-export function resetPasswordReducer(state = resetPasswordInitialState, action) {
+export function resetPasswordReducer(
+  state = resetPasswordInitialState,
+  action,
+) {
   switch (action.type) {
     case RESET_PASSWORD_ACTIONS.REQUEST_START:
       return {

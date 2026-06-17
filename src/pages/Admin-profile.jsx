@@ -70,7 +70,7 @@ const useBrand = (theme) =>
       shadow: { ...FallbackTheme.shadow, ...(theme?.shadow || {}) },
       layout: { ...FallbackTheme.layout, ...(theme?.layout || {}) },
     }),
-    [theme]
+    [theme],
   );
 
 function persistMe(user) {
@@ -107,9 +107,11 @@ const pulseGlow = keyframes`
 
 // ===== Styled =====
 const Wrap = styled.div`
-  --darkBrown: ${({ theme }) => theme?.colors?.darkBrown || FallbackTheme.colors.darkBrown};
+  --darkBrown: ${({ theme }) =>
+    theme?.colors?.darkBrown || FallbackTheme.colors.darkBrown};
   --brown: ${({ theme }) => theme?.colors?.brown || FallbackTheme.colors.brown};
-  --light: ${({ theme }) => theme?.colors?.lightBrown || FallbackTheme.colors.lightBrown};
+  --light: ${({ theme }) =>
+    theme?.colors?.lightBrown || FallbackTheme.colors.lightBrown};
   --black: ${({ theme }) => theme?.colors?.black || FallbackTheme.colors.black};
   --white: ${({ theme }) => theme?.colors?.white || FallbackTheme.colors.white};
   --ivory: ${({ theme }) => theme?.colors?.ivory || FallbackTheme.colors.ivory};
@@ -122,17 +124,28 @@ const Wrap = styled.div`
   --r-xl: ${({ theme }) => theme?.radius?.xl || FallbackTheme.radius.xl};
   --r-pill: ${({ theme }) => theme?.radius?.pill || FallbackTheme.radius.pill};
 
-  --shadow-soft: ${({ theme }) => theme?.shadow?.soft || FallbackTheme.shadow.soft};
-  --shadow-hard: ${({ theme }) => theme?.shadow?.hard || FallbackTheme.shadow.hard};
-  --shadow-glow: ${({ theme }) => theme?.shadow?.glow || FallbackTheme.shadow.glow};
+  --shadow-soft: ${({ theme }) =>
+    theme?.shadow?.soft || FallbackTheme.shadow.soft};
+  --shadow-hard: ${({ theme }) =>
+    theme?.shadow?.hard || FallbackTheme.shadow.hard};
+  --shadow-glow: ${({ theme }) =>
+    theme?.shadow?.glow || FallbackTheme.shadow.glow};
 
   box-sizing: border-box;
   min-height: 100dvh;
   width: 100%;
   color: var(--ivory);
   background:
-    radial-gradient(1200px 600px at 10% 0%, rgba(214,182,159,0.12), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(61,38,26,0.25), transparent 60%),
+    radial-gradient(
+      1200px 600px at 10% 0%,
+      rgba(214, 182, 159, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 100% 0%,
+      rgba(61, 38, 26, 0.25),
+      transparent 60%
+    ),
     linear-gradient(180deg, var(--black), var(--darkBrown));
   display: flex;
   justify-content: center;
@@ -157,8 +170,8 @@ const Hook = styled.div`
     gap: 10px;
     padding: 8px 14px;
     border-radius: var(--r-pill);
-    background: rgba(214,182,159,0.12);
-    border: 1px solid rgba(214,182,159,0.25);
+    background: rgba(214, 182, 159, 0.12);
+    border: 1px solid rgba(214, 182, 159, 0.25);
     color: var(--light);
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -172,11 +185,11 @@ const Hook = styled.div`
     line-height: 1.1;
     letter-spacing: 0.02em;
     color: var(--ivory);
-    text-shadow: 0 6px 30px rgba(0,0,0,0.35);
+    text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
   }
   p {
     margin: 0;
-    color: rgba(255,255,255,0.78);
+    color: rgba(255, 255, 255, 0.78);
     max-width: 70ch;
   }
 `;
@@ -191,18 +204,25 @@ const Grid = styled.div`
 `;
 
 const Card = styled.section`
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-glow);
   backdrop-filter: blur(8px);
   padding: 18px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
   will-change: transform;
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-    border-color: rgba(214,182,159,0.28);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    border-color: rgba(214, 182, 159, 0.28);
   }
 `;
 
@@ -212,18 +232,22 @@ const ProfileTop = styled.div`
   align-items: center;
   gap: 16px;
   padding: 8px 6px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
   .avatarWrap {
     position: relative;
     width: 120px;
     height: 120px;
     border-radius: var(--r-pill);
-    background: linear-gradient(145deg, rgba(214,182,159,0.24), rgba(61,38,26,0.4));
+    background: linear-gradient(
+      145deg,
+      rgba(214, 182, 159, 0.24),
+      rgba(61, 38, 26, 0.4)
+    );
     display: grid;
     place-items: center;
     overflow: hidden;
-    border: 1px solid rgba(214,182,159,0.28);
+    border: 1px solid rgba(214, 182, 159, 0.28);
     transition: transform 0.25s ease;
   }
   .avatarWrap:hover {
@@ -234,7 +258,7 @@ const ProfileTop = styled.div`
     height: 112px;
     border-radius: var(--r-pill);
     object-fit: cover;
-    border: 2px solid rgba(214,182,159,0.55);
+    border: 2px solid rgba(214, 182, 159, 0.55);
   }
   .meta h3 {
     margin: 0 0 6px;
@@ -281,30 +305,33 @@ const Field = styled.label`
   display: grid;
   gap: 8px;
   font-size: 14px;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255, 255, 255, 0.85);
 
   input,
   textarea,
   select {
     width: 100%;
     color: var(--ivory);
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--r-lg);
     padding: 12px 14px;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.06s ease;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.06s ease;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   }
   input::placeholder,
   textarea::placeholder {
-    color: rgba(255,255,255,0.55);
+    color: rgba(255, 255, 255, 0.55);
   }
   input:focus,
   textarea:focus,
   select:focus {
-    border-color: rgba(214,182,159,0.52);
-    box-shadow: 0 0 0 3px rgba(214,182,159,0.18);
+    border-color: rgba(214, 182, 159, 0.52);
+    box-shadow: 0 0 0 3px rgba(214, 182, 159, 0.18);
   }
   textarea {
     min-height: 110px;
@@ -338,9 +365,14 @@ const Btn = styled.button`
   font-weight: 800;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: transform 0.06s ease, filter 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.06s ease,
+    filter 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
   box-shadow: var(--shadow-soft);
-  color: ${({ $variant }) => ($variant === "ghost" ? "var(--light)" : "var(--black)")};
+  color: ${({ $variant }) =>
+    $variant === "ghost" ? "var(--light)" : "var(--black)"};
   background: ${({ $variant }) =>
     $variant === "ghost"
       ? "transparent"
@@ -376,21 +408,28 @@ const StatGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-lg);
   padding: 14px;
   text-align: center;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   will-change: transform;
   &:hover {
     transform: translateY(-4px) scale(1.01);
-    border-color: rgba(214,182,159,0.28);
-    box-shadow: 0 14px 40px rgba(0,0,0,0.24);
+    border-color: rgba(214, 182, 159, 0.28);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
   }
   .label {
     font-size: 12px;
-    color: rgba(255,255,255,0.68);
+    color: rgba(255, 255, 255, 0.68);
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -408,23 +447,25 @@ const List = styled.ul`
   display: grid;
   gap: 10px;
   li {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--r-lg);
     padding: 12px 14px;
     display: flex;
     justify-content: space-between;
     gap: 14px;
     align-items: center;
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
   }
   li:hover {
-    border-color: rgba(214,182,159,0.28);
+    border-color: rgba(214, 182, 159, 0.28);
     transform: translateY(-2px);
   }
   .when {
     font-size: 12px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255, 255, 255, 0.6);
   }
 `;
 
@@ -442,7 +483,7 @@ const Toggle = styled.label`
     border-radius: 40px;
     background: ${({ $on }) =>
       $on ? "rgba(214,182,159,0.5)" : "rgba(255,255,255,0.18)"};
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
     transition: background 0.2s ease;
   }
@@ -455,11 +496,11 @@ const Toggle = styled.label`
     height: 22px;
     border-radius: 999px;
     background: var(--ivory);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
     transition: left 0.2s ease;
   }
   .label {
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
   }
 `;
@@ -472,49 +513,49 @@ export default function AdminProfile({ theme }) {
 
   // ✅ Keep File out of Redux to prevent RTK mutation errors
   const avatarFileRef = useRef(null);
-  
+
   // ✅ CSRF token cache (like UserProfile)
-const csrfRef = useRef(null);
+  const csrfRef = useRef(null);
 
-function readCookie(name) {
-  try {
-    const parts = String(document.cookie || "")
-      .split("; ")
-      .map((p) => p.trim());
-    const hit = parts.find((p) => p.startsWith(`${name}=`));
-    if (!hit) return null;
-    return decodeURIComponent(hit.split("=").slice(1).join("="));
-  } catch {
-    return null;
-  }
-}
-
-async function ensureCsrf() {
-  if (csrfRef.current) return csrfRef.current;
-
-  const fromCookie = readCookie("csrfToken");
-
-  if (fromCookie) {
-    csrfRef.current = fromCookie;
-    return fromCookie;
+  function readCookie(name) {
+    try {
+      const parts = String(document.cookie || "")
+        .split("; ")
+        .map((p) => p.trim());
+      const hit = parts.find((p) => p.startsWith(`${name}=`));
+      if (!hit) return null;
+      return decodeURIComponent(hit.split("=").slice(1).join("="));
+    } catch {
+      return null;
+    }
   }
 
-  const { data } = await axiosInstance.get("/auth/csrf");
+  async function ensureCsrf() {
+    if (csrfRef.current) return csrfRef.current;
 
-  const token =
-    data?.csrfToken ||
-    data?.token ||
-    data?.data?.csrfToken ||
-    data?.data?.token ||
-    readCookie("csrfToken");
+    const fromCookie = readCookie("csrfToken");
 
-  if (!token) {
-    throw new Error("CSRF token missing after issuance.");
+    if (fromCookie) {
+      csrfRef.current = fromCookie;
+      return fromCookie;
+    }
+
+    const { data } = await axiosInstance.get("/auth/csrf");
+
+    const token =
+      data?.csrfToken ||
+      data?.token ||
+      data?.data?.csrfToken ||
+      data?.data?.token ||
+      readCookie("csrfToken");
+
+    if (!token) {
+      throw new Error("CSRF token missing after issuance.");
+    }
+
+    csrfRef.current = token;
+    return token;
   }
-
-  csrfRef.current = token;
-  return token;
-}
 
   // ✅ Use toast EXACTLY like Cart.jsx
   const toast = useToast();
@@ -547,10 +588,11 @@ async function ensureCsrf() {
           tiktok: cached.tiktok || "",
           youtube: cached.youtube || "",
           xhandle: cached.xhandle || "",
-          headline: cached.headline || "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
+          headline:
+            cached.headline || "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
           bio: cached.bio || "",
           notifications: cached.notifications !== false,
-        })
+        }),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -585,10 +627,11 @@ async function ensureCsrf() {
             tiktok: user?.tiktok || "",
             youtube: user?.youtube || "",
             xhandle: user?.xhandle || "",
-            headline: user?.headline || "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
+            headline:
+              user?.headline || "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
             bio: user?.bio || "",
             notifications: user?.notifications !== false,
-          })
+          }),
         );
       } catch (e) {
         if (e?.name === "AbortError") return;
@@ -620,7 +663,7 @@ async function ensureCsrf() {
       { label: "Sales", value: "$38,920" },
       { label: "Messages", value: "126" },
     ],
-    []
+    [],
   );
 
   const activity = useMemo(
@@ -630,7 +673,7 @@ async function ensureCsrf() {
       { text: "Added 'Body Shot Mastery' lesson", when: "Yesterday" },
       { text: "New affiliate joined (ID: AFF-7721)", when: "2 days ago" },
     ],
-    []
+    [],
   );
 
   // ✅ Passwords keep local (no need to mix with your user slice)
@@ -642,7 +685,10 @@ async function ensureCsrf() {
 
   // ✅ A profile object used ONLY for display where you previously had static data
   const profile = useMemo(() => {
-    const roleLabel = (me?.role || "admin") === "admin" ? "Admin · KnockoutCodes" : me?.role || "Admin";
+    const roleLabel =
+      (me?.role || "admin") === "admin"
+        ? "Admin · KnockoutCodes"
+        : me?.role || "Admin";
     return {
       name: form?.name ?? me?.name ?? "Admin",
       role: roleLabel,
@@ -655,39 +701,43 @@ async function ensureCsrf() {
       youtube: form?.youtube ?? me?.youtube ?? "",
       xhandle: form?.xhandle ?? me?.xhandle ?? "",
       bio: form?.bio ?? me?.bio ?? "",
-      headline: form?.headline ?? me?.headline ?? "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
+      headline:
+        form?.headline ??
+        me?.headline ??
+        "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
       notifications:
         typeof (form?.notifications ?? me?.notifications) === "boolean"
           ? (form?.notifications ?? me?.notifications)
           : true,
-      avatarField: me?.avatarUrl || me?.avatar || me?.image || me?.profileImage || "",
+      avatarField:
+        me?.avatarUrl || me?.avatar || me?.image || me?.profileImage || "",
     };
   }, [me, form]);
 
   // ✅ Preview URL priority: redux preview > backend image > fallback image
-const previewUrl = useMemo(() => {
-  if (avatarPreview) return avatarPreview;
+  const previewUrl = useMemo(() => {
+    if (avatarPreview) return avatarPreview;
 
-  const a = String(profile.avatarField || "").trim();
+    const a = String(profile.avatarField || "").trim();
 
-  if (!a) {
-    return "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=512&auto=format&fit=crop";
-  }
+    if (!a) {
+      return "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=512&auto=format&fit=crop";
+    }
 
-  const API_URL =
-    String(import.meta.env.VITE_API_BASE_URL || "").trim() ||
-    "https://knockoutcodes.onrender.com/api/v1";
+    const API_URL =
+      String(import.meta.env.VITE_API_BASE_URL || "").trim() ||
+      "https://knockoutcodes.onrender.com/api/v1";
 
-  const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, "");
+    const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, "");
 
-  const cleanAvatar = a.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
+    const cleanAvatar = a.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
 
-  const imageUrl = cleanAvatar.startsWith("http")
-    ? cleanAvatar
-    : `${API_ORIGIN}${cleanAvatar.startsWith("/") ? cleanAvatar : `/${cleanAvatar}`}`;
+    const imageUrl = cleanAvatar.startsWith("http")
+      ? cleanAvatar
+      : `${API_ORIGIN}${cleanAvatar.startsWith("/") ? cleanAvatar : `/${cleanAvatar}`}`;
 
-  return `${imageUrl}?v=${me?.updatedAt || Date.now()}`;
-}, [avatarPreview, profile.avatarField, me?.updatedAt]);
+    return `${imageUrl}?v=${me?.updatedAt || Date.now()}`;
+  }, [avatarPreview, profile.avatarField, me?.updatedAt]);
 
   // ✅ Update Redux form on input change
   function handleChange(e) {
@@ -701,53 +751,49 @@ const previewUrl = useMemo(() => {
 
   // ✅ Avatar file select (redux stores file + preview)
   function handleAvatar(e) {
-  const file = e.target.files?.[0];
+    const file = e.target.files?.[0];
 
-  if (!file) return;
+    if (!file) return;
 
-  // ✅ Store the real file in a ref (NOT redux);
-  avatarFileRef.current = file;
+    // ✅ Store the real file in a ref (NOT redux);
+    avatarFileRef.current = file;
 
-  const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
 
-  dispatch(setAvatarFile({ file: null, preview: url }));
-}
+    dispatch(setAvatarFile({ file: null, preview: url }));
+  }
 
   // ✅ Upload avatar to DB if user selected a file
   async function uploadAvatarIfNeeded() {
-  const fileToUpload = avatarFileRef.current || null;
-  if (!fileToUpload) return null;
+    const fileToUpload = avatarFileRef.current || null;
+    if (!fileToUpload) return null;
 
-  const fd = new FormData();
-  fd.append("avatar", fileToUpload);
+    const fd = new FormData();
+    fd.append("avatar", fileToUpload);
 
-  const csrf = await ensureCsrf();
+    const csrf = await ensureCsrf();
 
-const { data: body } = await axiosInstance.post(
-  AVATAR_ENDPOINT,
-  fd,
-  {
-    headers: {
-      "x-csrf-token": csrf,
-    },
+    const { data: body } = await axiosInstance.post(AVATAR_ENDPOINT, fd, {
+      headers: {
+        "x-csrf-token": csrf,
+      },
+    });
+
+    const raw = body?.data || body || {};
+    const updatedUser = raw?.user || raw || null;
+
+    if (updatedUser) {
+      dispatch(userMeSuccess(updatedUser));
+      dispatch(userSaveSuccess(updatedUser));
+      persistMe(updatedUser);
+    }
+
+    // ✅ clear ref + redux preview
+    avatarFileRef.current = null;
+    dispatch(clearAvatar());
+
+    return updatedUser;
   }
-);
-
-  const raw = body?.data || body || {};
-  const updatedUser = raw?.user || raw || null;
-
-  if (updatedUser) {
-    dispatch(userMeSuccess(updatedUser));
-    dispatch(userSaveSuccess(updatedUser));
-    persistMe(updatedUser);
-  }
-
-  // ✅ clear ref + redux preview
-  avatarFileRef.current = null;
-  dispatch(clearAvatar());
-
-  return updatedUser;
-}
 
   // ✅ Patch profile fields to DB
   async function patchProfile() {
@@ -768,15 +814,11 @@ const { data: body } = await axiosInstance.post(
 
     const csrf = await ensureCsrf();
 
-    const { data: body } = await axiosInstance.patch(
-  ME_ENDPOINT,
-  payload,
-  {
-    headers: {
-      "x-csrf-token": csrf,
-    },
-  }
-);
+    const { data: body } = await axiosInstance.patch(ME_ENDPOINT, payload, {
+      headers: {
+        "x-csrf-token": csrf,
+      },
+    });
 
     const raw = body?.data || body || {};
     const updatedUser = raw?.user || raw || null;
@@ -797,10 +839,11 @@ const { data: body } = await axiosInstance.post(
           tiktok: updatedUser.tiktok || "",
           youtube: updatedUser.youtube || "",
           xhandle: updatedUser.xhandle || "",
-          headline: updatedUser.headline || "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
+          headline:
+            updatedUser.headline || "HIT HARD. MOVE SMART. STAY DISCIPLINED.",
           bio: updatedUser.bio || "",
           notifications: updatedUser.notifications !== false,
-        })
+        }),
       );
     }
 
@@ -810,36 +853,37 @@ const { data: body } = await axiosInstance.post(
 
   // ----- SAVE PROFILE (Redux + DB + localStorage) -----
   async function handleSave(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  dispatch(userSaveRequest());
+    dispatch(userSaveRequest());
 
-  try {
-    const avatarUpdatedUser = await uploadAvatarIfNeeded();
-    const profileUpdatedUser = await patchProfile();
+    try {
+      const avatarUpdatedUser = await uploadAvatarIfNeeded();
+      const profileUpdatedUser = await patchProfile();
 
-    const finalUser = profileUpdatedUser || avatarUpdatedUser || me || null;
+      const finalUser = profileUpdatedUser || avatarUpdatedUser || me || null;
 
-    if (finalUser) {
-      dispatch(userSaveSuccess(finalUser));
-      persistMe(finalUser);
+      if (finalUser) {
+        dispatch(userSaveSuccess(finalUser));
+        persistMe(finalUser);
+      }
+
+      pushToast({
+        title: "Profile updated",
+        description:
+          "Your admin details were successfully saved to the database.",
+        variant: "success",
+      });
+    } catch (err) {
+      const msg = err?.message || "Unable to update profile.";
+      dispatch(userSaveFail(msg));
+      pushToast({
+        title: "Update failed",
+        description: msg,
+        variant: "error",
+      });
     }
-
-    pushToast({
-      title: "Profile updated",
-      description: "Your admin details were successfully saved to the database.",
-      variant: "success",
-    });
-  } catch (err) {
-    const msg = err?.message || "Unable to update profile.";
-    dispatch(userSaveFail(msg));
-    pushToast({
-      title: "Update failed",
-      description: msg,
-      variant: "error",
-    });
   }
-}
 
   // ----- UPDATE PASSWORD (kept your original behavior) -----
   async function handlePasswordUpdate(e) {
@@ -853,7 +897,7 @@ const { data: body } = await axiosInstance.post(
         variant: "error",
       });
       return;
-    };
+    }
 
     try {
       // IMPORTANT: use me/password (not /:id)
@@ -866,23 +910,24 @@ const { data: body } = await axiosInstance.post(
         },
         {
           withCredentials: true,
-        }
+        },
       );
 
       pushToast({
         title: "Password updated successfully",
-        description: res.data.message || "Your admin password was updated successfully!",
+        description:
+          res.data.message || "Your admin password was updated successfully!",
         variant: "success",
       });
 
       setPasswords({ current: "", next: "", confirm: "" });
     } catch (err) {
       const msg =
-  err?.response?.data?.message ||
-  err?.response?.data?.error ||
-  err?.message ||
-  "Password update failed";
-      
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Password update failed";
+
       pushToast({
         title: "Password update failed",
         description: msg,
@@ -895,41 +940,41 @@ const { data: body } = await axiosInstance.post(
 
   // ----- SECURE LOGOUT -----
   // ----- SECURE LOGOUT -----
-async function handleLogout() {
-  try {
-    let csrf = null;
+  async function handleLogout() {
     try {
-      csrf = await ensureCsrf();
-    } catch {
-      csrf = null;
-    }
+      let csrf = null;
+      try {
+        csrf = await ensureCsrf();
+      } catch {
+        csrf = null;
+      }
 
-    await axiosInstance.post(
-  "/auth/logout",
-  {},
-  {
-    headers: csrf
-      ? { "x-csrf-token": csrf }
-      : {},
-  }
-).catch(() => {});
-  } finally {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
-      localStorage.removeItem("user");
-      localStorage.removeItem(ME_CACHE_KEY);
-      sessionStorage.clear();
-
-      const past = "Thu, 01 Jan 1970 00:00:00 GMT";
-      document.cookie = `token=; expires=${past}; path=/;`;
-      document.cookie = `refreshToken=; expires=${past}; path=/;`;
-      document.cookie = `csrfToken=; expires=${past}; path=/;`;
+      await axiosInstance
+        .post(
+          "/auth/logout",
+          {},
+          {
+            headers: csrf ? { "x-csrf-token": csrf } : {},
+          },
+        )
+        .catch(() => {});
     } finally {
-      window.location.replace("/login");
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("user");
+        localStorage.removeItem(ME_CACHE_KEY);
+        sessionStorage.clear();
+
+        const past = "Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = `token=; expires=${past}; path=/;`;
+        document.cookie = `refreshToken=; expires=${past}; path=/;`;
+        document.cookie = `csrfToken=; expires=${past}; path=/;`;
+      } finally {
+        window.location.replace("/login");
+      }
     }
   }
-  };
 
   return (
     <>
@@ -939,8 +984,9 @@ async function handleLogout() {
             <div className="badge">KnockoutCodes • Admin Profile</div>
             <h1>{profile.headline}</h1>
             <p>
-              Luxury admin control for a combat-sport brand: clean UI, hard-hitting first
-              impression, and everything you need to manage users, content, and sales — fast.
+              Luxury admin control for a combat-sport brand: clean UI,
+              hard-hitting first impression, and everything you need to manage
+              users, content, and sales — fast.
             </p>
           </Hook>
 
@@ -960,7 +1006,14 @@ async function handleLogout() {
                       Loading…
                     </div>
                   ) : error ? (
-                    <div style={{ marginTop: 6, opacity: 0.85, fontSize: 12, color: "#ffb4b4" }}>
+                    <div
+                      style={{
+                        marginTop: 6,
+                        opacity: 0.85,
+                        fontSize: 12,
+                        color: "#ffb4b4",
+                      }}
+                    >
                       {error}
                     </div>
                   ) : null}
@@ -1105,7 +1158,16 @@ async function handleLogout() {
 
                   <Field>
                     (Auto)
-                    <input readOnly value={saveError ? `Error: ${saveError}` : saving ? "Saving…" : "Ready"} />
+                    <input
+                      readOnly
+                      value={
+                        saveError
+                          ? `Error: ${saveError}`
+                          : saving
+                            ? "Saving…"
+                            : "Ready"
+                      }
+                    />
                   </Field>
                 </Row>
 
@@ -1130,7 +1192,9 @@ async function handleLogout() {
                   <Btn
                     type="button"
                     $variant="ghost"
-                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    onClick={() =>
+                      window.scrollTo({ top: 0, behavior: "smooth" })
+                    }
                   >
                     Back to Top
                   </Btn>
@@ -1181,7 +1245,10 @@ async function handleLogout() {
                       type="password"
                       value={passwords.current}
                       onChange={(e) =>
-                        setPasswords((p) => ({ ...p, current: e.target.value || "" }))
+                        setPasswords((p) => ({
+                          ...p,
+                          current: e.target.value || "",
+                        }))
                       }
                       required
                       autoComplete="current-password"
@@ -1193,7 +1260,10 @@ async function handleLogout() {
                       type="password"
                       value={passwords.next}
                       onChange={(e) =>
-                        setPasswords((p) => ({ ...p, next: e.target.value || "" }))
+                        setPasswords((p) => ({
+                          ...p,
+                          next: e.target.value || "",
+                        }))
                       }
                       required
                       autoComplete="new-password"
@@ -1207,7 +1277,10 @@ async function handleLogout() {
                       type="password"
                       value={passwords.confirm}
                       onChange={(e) =>
-                        setPasswords((p) => ({ ...p, confirm: e.target.value || "" }))
+                        setPasswords((p) => ({
+                          ...p,
+                          confirm: e.target.value || "",
+                        }))
                       }
                       required
                       autoComplete="new-password"
@@ -1219,42 +1292,42 @@ async function handleLogout() {
                   </Field>
                 </Row>
                 <Actions>
-  <Btn type="submit">Update Password</Btn>
+                  <Btn type="submit">Update Password</Btn>
 
-  {/* 
+                  {/* 
     MANAGE SESSIONS / DEVICES BUTTON
     Big-tech style security feature:
     - Lets admin see all active logged-in devices
     - Lets admin revoke old sessions
     - Opens the existing ManageDevices page
   */}
-  <Btn
-    type="button"
-    $variant="ghost"
-    onClick={() => navigate("/manage-devices")}
-  >
-    Manage Active Sessions
-  </Btn>
+                  <Btn
+                    type="button"
+                    $variant="ghost"
+                    onClick={() => navigate("/manage-devices")}
+                  >
+                    Manage Active Sessions
+                  </Btn>
 
-  {/* 
+                  {/* 
     FUTURE 2FA BUTTON
     Keep this for later when authenticator/SMS security is ready
   */}
-  <Btn
-    type="button"
-    $variant="ghost"
-    onClick={() =>
-      pushToast({
-        title: "2FA setup coming soon",
-        description:
-          "Once backend is wired, you can enable authenticator + SMS backup here.",
-        variant: "info",
-      })
-    }
-  >
-    Manage 2FA
-  </Btn>
-</Actions>
+                  <Btn
+                    type="button"
+                    $variant="ghost"
+                    onClick={() =>
+                      pushToast({
+                        title: "2FA setup coming soon",
+                        description:
+                          "Once backend is wired, you can enable authenticator + SMS backup here.",
+                        variant: "info",
+                      })
+                    }
+                  >
+                    Manage 2FA
+                  </Btn>
+                </Actions>
               </form>
             </Card>
 
@@ -1282,12 +1355,7 @@ async function handleLogout() {
                 </Field>
               </Row>
               <Actions>
-                <Btn
-                  type="button"
-                  onClick={() =>
-                    navigate("/admin/courses")
-                  }
-                >
+                <Btn type="button" onClick={() => navigate("/admin/courses")}>
                   Open Courses
                 </Btn>
                 <Btn
@@ -1304,5 +1372,4 @@ async function handleLogout() {
       </Wrap>
     </>
   );
-};
-
+}

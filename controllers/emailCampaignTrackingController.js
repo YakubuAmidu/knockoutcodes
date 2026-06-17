@@ -98,11 +98,14 @@ export const trackEmailOpen = async (req, res) => {
     // eslint-disable-next-line no-undef
     const pixel = Buffer.from(
       "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
-      "base64"
+      "base64",
     );
 
     res.set("Content-Type", "image/gif");
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate",
+    );
     res.set("Pragma", "no-cache");
     res.set("Expires", "0");
 

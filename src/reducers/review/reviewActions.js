@@ -55,7 +55,7 @@ export const createCourseReview =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to submit review. Please try again."
+        "Failed to submit review. Please try again.",
       );
 
       dispatch({
@@ -106,7 +106,7 @@ export const createProductReview =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to submit product review. Please try again."
+        "Failed to submit product review. Please try again.",
       );
 
       dispatch({
@@ -131,7 +131,10 @@ export const fetchCourseReviews =
 
       if (courseId) params.set("courseId", courseId);
       params.set("page", String(Math.max(1, Number(page) || 1)));
-      params.set("limit", String(Math.min(50, Math.max(1, Number(limit) || 20))));
+      params.set(
+        "limit",
+        String(Math.min(50, Math.max(1, Number(limit) || 20))),
+      );
 
       const { data } = await axiosInstance.get(`/reviews?${params.toString()}`);
 
@@ -151,10 +154,7 @@ export const fetchCourseReviews =
         data: data?.data,
       };
     } catch (error) {
-      const message = getErrorMessage(
-        error,
-        "Failed to load course reviews."
-      );
+      const message = getErrorMessage(error, "Failed to load course reviews.");
 
       dispatch({
         type: REVIEW_LIST_FAIL,
@@ -178,7 +178,10 @@ export const fetchProductReviews =
 
       if (productId) params.set("productId", productId);
       params.set("page", String(Math.max(1, Number(page) || 1)));
-      params.set("limit", String(Math.min(50, Math.max(1, Number(limit) || 20))));
+      params.set(
+        "limit",
+        String(Math.min(50, Math.max(1, Number(limit) || 20))),
+      );
 
       const { data } = await axiosInstance.get(`/reviews?${params.toString()}`);
 
@@ -198,10 +201,7 @@ export const fetchProductReviews =
         data: data?.data,
       };
     } catch (error) {
-      const message = getErrorMessage(
-        error,
-        "Failed to load product reviews."
-      );
+      const message = getErrorMessage(error, "Failed to load product reviews.");
 
       dispatch({
         type: REVIEW_LIST_FAIL,

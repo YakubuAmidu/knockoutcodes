@@ -73,8 +73,12 @@ export default function ManageEnrollment() {
         !search ||
         item.userLabel.toLowerCase().includes(search) ||
         item.courseLabel.toLowerCase().includes(search) ||
-        String(item.paymentPlan || "").toLowerCase().includes(search) ||
-        String(item.accessType || "").toLowerCase().includes(search);
+        String(item.paymentPlan || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(item.accessType || "")
+          .toLowerCase()
+          .includes(search);
 
       const matchesStatus =
         statusFilter === "all" || item.status === statusFilter;
@@ -93,7 +97,7 @@ export default function ManageEnrollment() {
       completed: enrollments.filter((e) => e.status === "completed").length,
       paid: enrollments.filter((e) => e.paymentStatus === "paid").length,
     }),
-    [enrollments]
+    [enrollments],
   );
 
   async function fetchEnrollments() {
@@ -109,7 +113,7 @@ export default function ManageEnrollment() {
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Failed to load enrollments. Admin manage route may be missing."
+          "Failed to load enrollments. Admin manage route may be missing.",
       );
     } finally {
       setLoading(false);
@@ -156,32 +160,36 @@ export default function ManageEnrollment() {
   }
 
   function buildPayload() {
-  const basePayload = {
-    pricePaid: Math.max(0, Number(form.pricePaid || 0)),
-    currency: String(form.currency || "USD").trim().toUpperCase(),
-    paymentPlan: form.paymentPlan,
-    paymentStatus: form.paymentStatus,
-    status: form.status,
-    accessType: form.accessType,
-    progressPercent: Math.min(
-      100,
-      Math.max(0, Number(form.progressPercent || 0))
-    ),
-    rating: form.rating ? Number(form.rating) : null,
-    review: String(form.review || "").trim().slice(0, 1000),
-    expiresAt: form.expiresAt || null,
-  };
+    const basePayload = {
+      pricePaid: Math.max(0, Number(form.pricePaid || 0)),
+      currency: String(form.currency || "USD")
+        .trim()
+        .toUpperCase(),
+      paymentPlan: form.paymentPlan,
+      paymentStatus: form.paymentStatus,
+      status: form.status,
+      accessType: form.accessType,
+      progressPercent: Math.min(
+        100,
+        Math.max(0, Number(form.progressPercent || 0)),
+      ),
+      rating: form.rating ? Number(form.rating) : null,
+      review: String(form.review || "")
+        .trim()
+        .slice(0, 1000),
+      expiresAt: form.expiresAt || null,
+    };
 
-  if (isEditing) {
-    return basePayload;
+    if (isEditing) {
+      return basePayload;
+    }
+
+    return {
+      ...basePayload,
+      user: form.user.trim(),
+      course: form.course.trim(),
+    };
   }
-
-  return {
-    ...basePayload,
-    user: form.user.trim(),
-    course: form.course.trim(),
-  };
-}
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -189,9 +197,9 @@ export default function ManageEnrollment() {
     const payload = buildPayload();
 
     if (!isEditing && (!payload.user || !payload.course)) {
-  setError("User ID and Course ID are required.");
-  return;
-}
+      setError("User ID and Course ID are required.");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -211,7 +219,7 @@ export default function ManageEnrollment() {
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Failed to save enrollment. Check backend validation."
+          "Failed to save enrollment. Check backend validation.",
       );
     } finally {
       setSaving(false);
@@ -235,7 +243,7 @@ export default function ManageEnrollment() {
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Failed to delete enrollment. Delete route may be missing."
+          "Failed to delete enrollment. Delete route may be missing.",
       );
     } finally {
       setDeletingId("");
@@ -261,10 +269,22 @@ export default function ManageEnrollment() {
         </Hero>
 
         <StatsGrid>
-          <StatCard><strong>{stats.total}</strong><span>Total</span></StatCard>
-          <StatCard><strong>{stats.active}</strong><span>Active</span></StatCard>
-          <StatCard><strong>{stats.completed}</strong><span>Completed</span></StatCard>
-          <StatCard><strong>{stats.paid}</strong><span>Paid</span></StatCard>
+          <StatCard>
+            <strong>{stats.total}</strong>
+            <span>Total</span>
+          </StatCard>
+          <StatCard>
+            <strong>{stats.active}</strong>
+            <span>Active</span>
+          </StatCard>
+          <StatCard>
+            <strong>{stats.completed}</strong>
+            <span>Completed</span>
+          </StatCard>
+          <StatCard>
+            <strong>{stats.paid}</strong>
+            <span>Paid</span>
+          </StatCard>
         </StatsGrid>
 
         {(message || error) && (
@@ -273,94 +293,157 @@ export default function ManageEnrollment() {
 
         <Panel>
           <PanelHeader>
-            <h2>{isEditing ? "Edit Enrollment" : "Create Manual Enrollment"}</h2>
+            <h2>
+              {isEditing ? "Edit Enrollment" : "Create Manual Enrollment"}
+            </h2>
             <p>Use valid MongoDB ObjectIds for user and course.</p>
           </PanelHeader>
 
           <Form onSubmit={handleSubmit}>
             <Field>
-  <label>User ID</label>
-  <input
-    name="user"
-    value={form.user}
-    onChange={handleChange}
-    required
-    disabled={isEditing}
-  />
-</Field>
+              <label>User ID</label>
+              <input
+                name="user"
+                value={form.user}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+              />
+            </Field>
 
-<Field>
-  <label>Course ID</label>
-  <input
-    name="course"
-    value={form.course}
-    onChange={handleChange}
-    required
-    disabled={isEditing}
-  />
-</Field>
+            <Field>
+              <label>Course ID</label>
+              <input
+                name="course"
+                value={form.course}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+              />
+            </Field>
 
             <Field>
               <label>Price Paid</label>
-              <input name="pricePaid" type="number" min="0" value={form.pricePaid} onChange={handleChange} />
+              <input
+                name="pricePaid"
+                type="number"
+                min="0"
+                value={form.pricePaid}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Currency</label>
-              <input name="currency" maxLength="10" value={form.currency} onChange={handleChange} />
+              <input
+                name="currency"
+                maxLength="10"
+                value={form.currency}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Payment Plan</label>
-              <select name="paymentPlan" value={form.paymentPlan} onChange={handleChange}>
-                {paymentPlans.map((x) => <option key={x}>{x}</option>)}
+              <select
+                name="paymentPlan"
+                value={form.paymentPlan}
+                onChange={handleChange}
+              >
+                {paymentPlans.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Payment Status</label>
-              <select name="paymentStatus" value={form.paymentStatus} onChange={handleChange}>
-                {paymentStatuses.map((x) => <option key={x}>{x}</option>)}
+              <select
+                name="paymentStatus"
+                value={form.paymentStatus}
+                onChange={handleChange}
+              >
+                {paymentStatuses.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Status</label>
               <select name="status" value={form.status} onChange={handleChange}>
-                {statuses.map((x) => <option key={x}>{x}</option>)}
+                {statuses.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Access Type</label>
-              <select name="accessType" value={form.accessType} onChange={handleChange}>
-                {accessTypes.map((x) => <option key={x}>{x}</option>)}
+              <select
+                name="accessType"
+                value={form.accessType}
+                onChange={handleChange}
+              >
+                {accessTypes.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Progress %</label>
-              <input name="progressPercent" type="number" min="0" max="100" value={form.progressPercent} onChange={handleChange} />
+              <input
+                name="progressPercent"
+                type="number"
+                min="0"
+                max="100"
+                value={form.progressPercent}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Rating</label>
-              <input name="rating" type="number" min="1" max="5" value={form.rating} onChange={handleChange} placeholder="Optional" />
+              <input
+                name="rating"
+                type="number"
+                min="1"
+                max="5"
+                value={form.rating}
+                onChange={handleChange}
+                placeholder="Optional"
+              />
             </Field>
 
             <Field>
               <label>Expires At</label>
-              <input name="expiresAt" type="date" value={form.expiresAt} onChange={handleChange} />
+              <input
+                name="expiresAt"
+                type="date"
+                value={form.expiresAt}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field $full>
               <label>Review</label>
-              <textarea name="review" value={form.review} onChange={handleChange} maxLength="1000" placeholder="Optional review..." />
+              <textarea
+                name="review"
+                value={form.review}
+                onChange={handleChange}
+                maxLength="1000"
+                placeholder="Optional review..."
+              />
             </Field>
 
             <Actions>
               <PrimaryButton disabled={saving}>
-                {saving ? "Saving..." : isEditing ? "Update Enrollment" : "Create Enrollment"}
+                {saving
+                  ? "Saving..."
+                  : isEditing
+                    ? "Update Enrollment"
+                    : "Create Enrollment"}
               </PrimaryButton>
 
               {isEditing && (
@@ -374,16 +457,30 @@ export default function ManageEnrollment() {
 
         <Panel>
           <Toolbar>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search user, course, plan..." />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search user, course, plan..."
+            />
 
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
               <option value="all">All Statuses</option>
-              {statuses.map((x) => <option key={x}>{x}</option>)}
+              {statuses.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
             </select>
 
-            <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}>
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+            >
               <option value="all">All Payments</option>
-              {paymentStatuses.map((x) => <option key={x}>{x}</option>)}
+              {paymentStatuses.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
             </select>
           </Toolbar>
 
@@ -412,15 +509,25 @@ export default function ManageEnrollment() {
                     <tr key={item._id}>
                       <td>{item.userLabel}</td>
                       <td>{item.courseLabel}</td>
-                      <td><Badge $status={item.status}>{item.status}</Badge></td>
-                      <td>{item.paymentStatus} · {item.currency} {Number(item.pricePaid || 0).toFixed(2)}</td>
+                      <td>
+                        <Badge $status={item.status}>{item.status}</Badge>
+                      </td>
+                      <td>
+                        {item.paymentStatus} · {item.currency}{" "}
+                        {Number(item.pricePaid || 0).toFixed(2)}
+                      </td>
                       <td>{item.accessType}</td>
                       <td>{Number(item.progressPercent || 0)}%</td>
                       <td>{formatDate(item.expiresAt)}</td>
                       <td>
                         <RowActions>
-                          <SmallButton onClick={() => startEdit(item)}>Edit</SmallButton>
-                          <DangerButton onClick={() => handleDelete(item._id)} disabled={deletingId === item._id}>
+                          <SmallButton onClick={() => startEdit(item)}>
+                            Edit
+                          </SmallButton>
+                          <DangerButton
+                            onClick={() => handleDelete(item._id)}
+                            disabled={deletingId === item._id}
+                          >
                             {deletingId === item._id ? "Deleting..." : "Delete"}
                           </DangerButton>
                         </RowActions>
@@ -440,7 +547,11 @@ export default function ManageEnrollment() {
 const Page = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34rem),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 34rem
+    ),
     linear-gradient(135deg, ${theme.colors.black}, ${theme.colors.darkBrown});
   color: ${theme.colors.white};
   padding: 48px 0;
@@ -459,8 +570,12 @@ const Hero = styled.section`
   align-items: center;
   padding: 34px;
   border-radius: ${theme.radius.xl};
-  background: linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
-  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${theme.shadow.glow};
 
   @media (max-width: 760px) {
@@ -484,7 +599,7 @@ const Title = styled.h1`
 `;
 
 const HeroText = styled.p`
-  color: rgba(255,255,255,0.78);
+  color: rgba(255, 255, 255, 0.78);
   max-width: 680px;
   margin-top: 14px;
 `;
@@ -519,8 +634,8 @@ const StatCard = styled.div`
 `;
 
 const Panel = styled.section`
-  background: rgba(255,255,255,0.075);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: ${theme.radius.xl};
   padding: 26px;
   margin-top: 24px;
@@ -538,7 +653,7 @@ const PanelHeader = styled.div`
 
   p {
     margin: 8px 0 0;
-    color: rgba(255,255,255,0.68);
+    color: rgba(255, 255, 255, 0.68);
   }
 `;
 
@@ -567,10 +682,10 @@ const Field = styled.div`
   select,
   textarea {
     width: 100%;
-    border: 1px solid rgba(255,255,255,0.14);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: ${theme.radius.md};
     padding: 14px 15px;
-    background: rgba(0,0,0,0.34);
+    background: rgba(0, 0, 0, 0.34);
     color: ${theme.colors.white};
     outline: none;
   }
@@ -589,10 +704,10 @@ const Toolbar = styled.div`
 
   input,
   select {
-    border: 1px solid rgba(255,255,255,0.14);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: ${theme.radius.md};
     padding: 14px 15px;
-    background: rgba(0,0,0,0.34);
+    background: rgba(0, 0, 0, 0.34);
     color: ${theme.colors.white};
     outline: none;
   }
@@ -630,9 +745,9 @@ const RefreshButton = styled(PrimaryButton)`
 `;
 
 const GhostButton = styled(ButtonBase)`
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: ${theme.colors.white};
-  border: 1px solid rgba(255,255,255,0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 `;
 
 const SmallButton = styled(GhostButton)`
@@ -657,8 +772,9 @@ const Alert = styled.div`
   border-radius: ${theme.radius.md};
   background: ${({ $error }) =>
     $error ? "rgba(255,80,80,0.14)" : "rgba(120,255,180,0.12)"};
-  border: 1px solid ${({ $error }) =>
-    $error ? "rgba(255,80,80,0.32)" : "rgba(120,255,180,0.28)"};
+  border: 1px solid
+    ${({ $error }) =>
+      $error ? "rgba(255,80,80,0.32)" : "rgba(120,255,180,0.28)"};
 `;
 
 const TableWrap = styled.div`
@@ -674,7 +790,7 @@ const TableWrap = styled.div`
   td {
     text-align: left;
     padding: 16px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.09);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   }
 
   th {
@@ -685,7 +801,7 @@ const TableWrap = styled.div`
   }
 
   td {
-    color: rgba(255,255,255,0.84);
+    color: rgba(255, 255, 255, 0.84);
   }
 `;
 
@@ -699,10 +815,10 @@ const Badge = styled.span`
     $status === "active"
       ? "rgba(120,255,180,0.15)"
       : $status === "completed"
-      ? "rgba(214,182,159,0.18)"
-      : $status === "expired"
-      ? "rgba(255,180,90,0.16)"
-      : "rgba(255,80,80,0.14)"};
+        ? "rgba(214,182,159,0.18)"
+        : $status === "expired"
+          ? "rgba(255,180,90,0.16)"
+          : "rgba(255,80,80,0.14)"};
 `;
 
 const RowActions = styled.div`
@@ -711,5 +827,5 @@ const RowActions = styled.div`
 `;
 
 const Muted = styled.p`
-  color: rgba(255,255,255,0.68);
+  color: rgba(255, 255, 255, 0.68);
 `;

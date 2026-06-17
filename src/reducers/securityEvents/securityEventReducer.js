@@ -32,13 +32,13 @@ function markEventAction(items, eventId, patch = {}) {
           ...item,
           ...patch,
         }
-      : item
+      : item,
   );
 }
 
 export function securityEventReducer(
   state = securityEventInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     case SECURITY_EVENT_ACTIONS.FETCH_SECURITY_EVENTS_START:
@@ -101,8 +101,7 @@ export function securityEventReducer(
             action.payload?.adminNote ||
             "User deactivated from admin security review.",
         }),
-        actionMessage:
-          action.payload?.message || "User account deactivated.",
+        actionMessage: action.payload?.message || "User account deactivated.",
       };
 
     case SECURITY_EVENT_ACTIONS.BLOCK_SECURITY_EVENT_IP_SUCCESS:
@@ -132,7 +131,7 @@ export function securityEventReducer(
         ...state,
         actionLoading: false,
         items: state.items.filter(
-          (item) => item._id !== action.payload?.deletedId
+          (item) => item._id !== action.payload?.deletedId,
         ),
         total: Math.max((state.total || 0) - 1, 0),
         actionMessage: action.payload?.message || "Security event deleted.",
@@ -162,7 +161,8 @@ export function securityEventReducer(
         ...state,
         cleanupLoading: false,
         cleanupMessage:
-          action.payload?.message || "Old security events cleaned successfully.",
+          action.payload?.message ||
+          "Old security events cleaned successfully.",
       };
 
     case SECURITY_EVENT_ACTIONS.CLEANUP_SECURITY_EVENTS_FAIL:

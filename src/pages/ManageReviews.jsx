@@ -85,7 +85,7 @@ export default function ManageReview() {
         type,
         page,
         limit: LIMIT,
-      })
+      }),
     );
   }, [dispatch, query, status, type, page]);
 
@@ -231,16 +231,23 @@ export default function ManageReview() {
         >
           <HeroContent>
             <Eyebrow>KO ADMIN • REVIEW COMMAND CENTER</Eyebrow>
-            <Title>Protect the brand. Publish only the reviews that deserve the spotlight.</Title>
+            <Title>
+              Protect the brand. Publish only the reviews that deserve the
+              spotlight.
+            </Title>
             <Sub>
-              Approve verified course and product reviews, hold weak feedback for
-              moderation, remove unsafe comments, and keep KnockoutCodes looking
-              premium, trusted, and enterprise-ready.
+              Approve verified course and product reviews, hold weak feedback
+              for moderation, remove unsafe comments, and keep KnockoutCodes
+              looking premium, trusted, and enterprise-ready.
             </Sub>
           </HeroContent>
 
           <HeroActions>
-            <RefreshButton type="button" onClick={loadReviews} disabled={loading || Boolean(busyId)}>
+            <RefreshButton
+              type="button"
+              onClick={loadReviews}
+              disabled={loading || Boolean(busyId)}
+            >
               {loading ? "Refreshing..." : "Refresh Reviews"}
             </RefreshButton>
           </HeroActions>
@@ -273,7 +280,8 @@ export default function ManageReview() {
             <div>
               <PanelTitle>Review Moderation</PanelTitle>
               <PanelText>
-                Showing {reviews.length} of {total} review record{total === 1 ? "" : "s"}.
+                Showing {reviews.length} of {total} review record
+                {total === 1 ? "" : "s"}.
               </PanelText>
             </div>
           </PanelTop>
@@ -286,7 +294,10 @@ export default function ManageReview() {
               autoComplete="off"
             />
 
-            <Select value={status} onChange={(e) => updateStatus(e.target.value)}>
+            <Select
+              value={status}
+              onChange={(e) => updateStatus(e.target.value)}
+            >
               {STATUS_OPTIONS.map((item) => (
                 <option key={item} value={item}>
                   {normalizeStatusLabel(item)}
@@ -370,7 +381,9 @@ export default function ManageReview() {
                     <Actions>
                       <GhostAction
                         type="button"
-                        onClick={() => setActiveModal({ type: "details", review })}
+                        onClick={() =>
+                          setActiveModal({ type: "details", review })
+                        }
                         disabled={busyId === id}
                       >
                         Details
@@ -380,7 +393,9 @@ export default function ManageReview() {
                         <UnapproveButton
                           type="button"
                           disabled={busyId === id}
-                          onClick={() => setActiveModal({ type: "unapprove", review })}
+                          onClick={() =>
+                            setActiveModal({ type: "unapprove", review })
+                          }
                         >
                           {busyId === id ? "Working..." : "Unapprove"}
                         </UnapproveButton>
@@ -388,7 +403,9 @@ export default function ManageReview() {
                         <ApproveButton
                           type="button"
                           disabled={busyId === id}
-                          onClick={() => setActiveModal({ type: "approve", review })}
+                          onClick={() =>
+                            setActiveModal({ type: "approve", review })
+                          }
                         >
                           {busyId === id ? "Approving..." : "Approve"}
                         </ApproveButton>
@@ -397,7 +414,9 @@ export default function ManageReview() {
                       <DeleteButton
                         type="button"
                         disabled={busyId === id}
-                        onClick={() => setActiveModal({ type: "delete", review })}
+                        onClick={() =>
+                          setActiveModal({ type: "delete", review })
+                        }
                       >
                         {busyId === id ? "Working..." : "Delete"}
                       </DeleteButton>
@@ -477,15 +496,20 @@ export default function ManageReview() {
                       <b>Title:</b> {activeModal.review?.title || "No title"}
                     </Detail>
                     <Detail>
-                      <b>Comment:</b> {activeModal.review?.comment || "No comment"}
+                      <b>Comment:</b>{" "}
+                      {activeModal.review?.comment || "No comment"}
                     </Detail>
                     <Detail>
-                      <b>Submitted:</b> {formatDate(activeModal.review?.createdAt)}
+                      <b>Submitted:</b>{" "}
+                      {formatDate(activeModal.review?.createdAt)}
                     </Detail>
                   </DetailGrid>
 
                   <ModalActions>
-                    <ModalCancel type="button" onClick={() => setActiveModal(null)}>
+                    <ModalCancel
+                      type="button"
+                      onClick={() => setActiveModal(null)}
+                    >
                       Close
                     </ModalCancel>
                   </ModalActions>
@@ -598,7 +622,11 @@ const Page = styled.main`
   justify-content: center;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 12%, rgba(90, 56, 37, 0.42), transparent 34%),
     linear-gradient(
       180deg,
@@ -623,7 +651,11 @@ const Hero = styled(motion.section)`
   margin-bottom: 18px;
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.92), rgba(0, 0, 0, 0.68)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 38%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 38%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   backdrop-filter: blur(18px);
@@ -816,7 +848,11 @@ const ReviewCard = styled.article`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 18px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.11), transparent 34%),
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(214, 182, 159, 0.11),
+      transparent 34%
+    ),
     ${({ theme }) => theme.colors.cocoa};
   border: 1px solid
     ${({ $approved }) =>
@@ -1052,7 +1088,11 @@ const ModalCard = styled(motion.div)`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 28px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(214, 182, 159, 0.07)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(214, 182, 159, 0.07)
+    ),
     ${({ theme }) => theme.colors.darkBrown};
   border: 1px solid rgba(214, 182, 159, 0.24);
   box-shadow: ${({ theme }) => theme.shadow.hard};

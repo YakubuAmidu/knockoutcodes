@@ -7,8 +7,7 @@ const BASE_URL = "/admin/email-segments";
 const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
-const getSegmentsFromResponse = (data) =>
-  data?.data || data?.segments || [];
+const getSegmentsFromResponse = (data) => data?.data || data?.segments || [];
 
 /* =========================
    GET ALL SEGMENTS

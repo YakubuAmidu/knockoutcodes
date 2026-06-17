@@ -77,7 +77,7 @@ function AdminEmailSubscribers() {
           search,
           status: filter === "all" ? "" : filter,
           sort,
-        })
+        }),
       );
     }
   }, [dispatch, isAuthenticated, isAdmin, filter, sort, search]);
@@ -92,7 +92,7 @@ function AdminEmailSubscribers() {
             search,
             status: filter === "all" ? "" : filter,
             sort,
-          })
+          }),
         );
       }
     }, 400);
@@ -133,7 +133,9 @@ function AdminEmailSubscribers() {
   const safeSubscribers = Array.isArray(subscribers) ? subscribers : [];
 
   const filteredSubscribers = useMemo(() => {
-    const cleanSearch = String(search || "").toLowerCase().trim();
+    const cleanSearch = String(search || "")
+      .toLowerCase()
+      .trim();
 
     return safeSubscribers.filter((subscriber) => {
       const emailMatch = subscriber.email?.toLowerCase().includes(cleanSearch);
@@ -144,18 +146,20 @@ function AdminEmailSubscribers() {
 
       const statusMatch = filter === "all" || subscriber.status === filter;
 
-      return (emailMatch || nameMatch || tagMatch || !cleanSearch) && statusMatch;
+      return (
+        (emailMatch || nameMatch || tagMatch || !cleanSearch) && statusMatch
+      );
     });
   }, [safeSubscribers, search, filter]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredSubscribers.length / subscribersPerPage)
+    Math.ceil(filteredSubscribers.length / subscribersPerPage),
   );
 
   const paginatedSubscribers = filteredSubscribers.slice(
     (currentPage - 1) * subscribersPerPage,
-    currentPage * subscribersPerPage
+    currentPage * subscribersPerPage,
   );
 
   const stats = {
@@ -242,7 +246,7 @@ function AdminEmailSubscribers() {
     };
 
     const result = await dispatch(
-      updateEmailSubscriber(selectedSubscriber._id, payload)
+      updateEmailSubscriber(selectedSubscriber._id, payload),
     );
 
     if (result?.success) {
@@ -255,7 +259,7 @@ function AdminEmailSubscribers() {
     if (!subscriber?._id) return;
 
     const confirmed = window.confirm(
-      `Delete this subscriber?\n\n${subscriber.email}\n\nThis action cannot be undone.`
+      `Delete this subscriber?\n\n${subscriber.email}\n\nThis action cannot be undone.`,
     );
 
     if (!confirmed) return;
@@ -271,7 +275,9 @@ function AdminEmailSubscribers() {
     if (!subscriber?._id) return;
 
     const shouldBlock = subscriber.status !== "blocked";
-    const result = await dispatch(blockEmailSubscriber(subscriber._id, shouldBlock));
+    const result = await dispatch(
+      blockEmailSubscriber(subscriber._id, shouldBlock),
+    );
 
     if (result?.success) {
       dispatch(fetchEmailSubscribers({ page: 1, limit: 100 }));
@@ -284,7 +290,7 @@ function AdminEmailSubscribers() {
     setSelectedIds((prev) =>
       prev.includes(id)
         ? prev.filter((selectedId) => selectedId !== id)
-        : [...prev, id]
+        : [...prev, id],
     );
   };
 
@@ -295,7 +301,7 @@ function AdminEmailSubscribers() {
     setSelectedIds((prev) =>
       allPageSelected
         ? prev.filter((id) => !pageIds.includes(id))
-        : [...new Set([...prev, ...pageIds])]
+        : [...new Set([...prev, ...pageIds])],
     );
   };
 
@@ -331,7 +337,7 @@ function AdminEmailSubscribers() {
         ids: selectedIds,
         status,
         reason,
-      })
+      }),
     );
 
     if (result?.success) {
@@ -347,7 +353,10 @@ function AdminEmailSubscribers() {
       return;
     }
 
-    localStorage.setItem("selectedCampaignEmails", JSON.stringify(selectedEmails));
+    localStorage.setItem(
+      "selectedCampaignEmails",
+      JSON.stringify(selectedEmails),
+    );
     showToast("Subscribers added to campaign", "success");
     navigate("/admin/email-campaigns/create");
   };
@@ -397,7 +406,7 @@ function AdminEmailSubscribers() {
     const csvContent = [
       headers.join(","),
       ...rows.map((row) =>
-        row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
+        row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","),
       ),
     ].join("\n");
 
@@ -543,7 +552,7 @@ function AdminEmailSubscribers() {
               checked={
                 paginatedSubscribers.length > 0 &&
                 paginatedSubscribers.every((subscriber) =>
-                  selectedIds.includes(subscriber._id)
+                  selectedIds.includes(subscriber._id),
                 )
               }
               onChange={toggleSelectAll}
@@ -552,7 +561,8 @@ function AdminEmailSubscribers() {
           </label>
 
           <span>
-            {selectedIds.length} selected • Showing {paginatedSubscribers.length}
+            {selectedIds.length} selected • Showing{" "}
+            {paginatedSubscribers.length}
           </span>
 
           <ReasonInput
@@ -563,7 +573,11 @@ function AdminEmailSubscribers() {
         </BulkLeft>
 
         <BulkActions>
-          <ActionButton $danger disabled={bulkLoading} onClick={handleBulkDelete}>
+          <ActionButton
+            $danger
+            disabled={bulkLoading}
+            onClick={handleBulkDelete}
+          >
             {bulkLoading ? "Working..." : "Delete"}
           </ActionButton>
 
@@ -694,7 +708,9 @@ function AdminEmailSubscribers() {
 
         <PageButton
           disabled={currentPage >= totalPages}
-          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+          onClick={() =>
+            setCurrentPage((page) => Math.min(totalPages, page + 1))
+          }
         >
           Next
         </PageButton>
@@ -714,7 +730,9 @@ function AdminEmailSubscribers() {
               </CloseButton>
             </ModalTop>
 
-            {detailsLoading && <ModalNote>Loading full subscriber history...</ModalNote>}
+            {detailsLoading && (
+              <ModalNote>Loading full subscriber history...</ModalNote>
+            )}
 
             <FieldGroup>
               <label>Email Address</label>
@@ -826,7 +844,9 @@ function AdminEmailSubscribers() {
               <span>
                 Last Sent:{" "}
                 {selectedSubscriber.lastEmailSentAt
-                  ? new Date(selectedSubscriber.lastEmailSentAt).toLocaleString()
+                  ? new Date(
+                      selectedSubscriber.lastEmailSentAt,
+                    ).toLocaleString()
                   : "Never"}
               </span>
               <span>
@@ -896,7 +916,11 @@ const Container = styled.div`
   overflow: hidden;
   color: #fff9f2;
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.24), transparent 28%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.24),
+      transparent 28%
+    ),
     radial-gradient(circle at 88% 0%, rgba(90, 56, 37, 0.42), transparent 28%),
     linear-gradient(135deg, #050201, #1b0d07 42%, #3d261a);
 `;
@@ -1009,7 +1033,11 @@ const StatCard = styled.div`
   padding: 20px;
   border-radius: 24px;
   border: 1px solid rgba(214, 182, 159, 0.18);
-  background: linear-gradient(145deg, rgba(47, 27, 18, 0.92), rgba(61, 38, 26, 0.82));
+  background: linear-gradient(
+    145deg,
+    rgba(47, 27, 18, 0.92),
+    rgba(61, 38, 26, 0.82)
+  );
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
 
   span {
@@ -1165,7 +1193,11 @@ const Card = styled.div`
   border-radius: 26px;
   border: 1px solid rgba(214, 182, 159, 0.18);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.035)
+    ),
     rgba(47, 27, 18, 0.72);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(16px);
@@ -1249,16 +1281,16 @@ const ActionButton = styled.button`
       $danger
         ? "rgba(255, 120, 90, 0.28)"
         : $warn
-        ? "rgba(214, 182, 159, 0.3)"
-        : "rgba(214, 182, 159, 0.36)"};
+          ? "rgba(214, 182, 159, 0.3)"
+          : "rgba(214, 182, 159, 0.36)"};
   background: ${({ $danger, $warn, $gold }) =>
     $danger
       ? "linear-gradient(135deg, #2f1b12, #1b0d07)"
       : $warn
-      ? "linear-gradient(135deg, #5a3825, #3d261a)"
-      : $gold
-      ? "linear-gradient(135deg, #fff9f2, #d6b69f, #5a3825)"
-      : "linear-gradient(135deg, #d6b69f, #5a3825)"};
+        ? "linear-gradient(135deg, #5a3825, #3d261a)"
+        : $gold
+          ? "linear-gradient(135deg, #fff9f2, #d6b69f, #5a3825)"
+          : "linear-gradient(135deg, #d6b69f, #5a3825)"};
   color: ${({ $gold }) => ($gold ? "#2f1b12" : "#ffffff")};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
   opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
@@ -1359,7 +1391,11 @@ const ModalCard = styled.div`
   border-radius: 28px;
   border: 1px solid rgba(214, 182, 159, 0.28);
   background:
-    radial-gradient(circle at top right, rgba(214, 182, 159, 0.16), transparent 35%),
+    radial-gradient(
+      circle at top right,
+      rgba(214, 182, 159, 0.16),
+      transparent 35%
+    ),
     linear-gradient(145deg, #1b0d07, #2f1b12 54%, #3d261a);
 `;
 

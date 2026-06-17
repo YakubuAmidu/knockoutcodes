@@ -1,7 +1,10 @@
 // src/reducers/contact/contactReducer.js
 
 import { CONTACT_ACTIONS } from "./contactActionTypes";
-import { CONTACT_STORAGE_KEY, contactInitialState } from "./contactInitialState";
+import {
+  CONTACT_STORAGE_KEY,
+  contactInitialState,
+} from "./contactInitialState";
 
 const ALLOWED_DRAFT_KEYS = ["subject", "message"];
 

@@ -21,7 +21,9 @@ const ALLOWED_UPDATE_FIELDS = [
 ];
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level || "beginner";
 }
@@ -41,7 +43,9 @@ function isSubscriptionActive(sub) {
 }
 
 function cleanText(value = "", max = 2000) {
-  return String(value || "").trim().slice(0, max);
+  return String(value || "")
+    .trim()
+    .slice(0, max);
 }
 
 function cleanNumber(value, fallback = 0) {
@@ -158,11 +162,11 @@ async function verifyCourseAccess(userId, course) {
   }
 
   const userLevel = normalizeLevel(
-    subscription.accessLevel || subscription.membershipId
+    subscription.accessLevel || subscription.membershipId,
   );
 
   const requiredLevel = normalizeLevel(
-    course.requiredMembershipLevel || course.level || "beginner"
+    course.requiredMembershipLevel || course.level || "beginner",
   );
 
   if (userLevel === requiredLevel) {
@@ -189,7 +193,10 @@ async function verifyCourseAccess(userId, course) {
 export const getAllLessons = async (req, res) => {
   try {
     const lessons = await Lesson.find({})
-      .populate("course", "title slug category level requiredMembershipLevel isFree price")
+      .populate(
+        "course",
+        "title slug category level requiredMembershipLevel isFree price",
+      )
       .sort({ course: 1, order: 1, createdAt: -1 })
       .lean();
 
@@ -237,7 +244,10 @@ export const createLesson = async (req, res) => {
     const lesson = await Lesson.create(payload);
 
     const populatedLesson = await Lesson.findById(lesson._id)
-      .populate("course", "title slug category level requiredMembershipLevel isFree price")
+      .populate(
+        "course",
+        "title slug category level requiredMembershipLevel isFree price",
+      )
       .lean();
 
     return res.status(201).json({
@@ -249,7 +259,8 @@ export const createLesson = async (req, res) => {
     if (error?.name === "ValidationError") {
       return res.status(400).json({
         success: false,
-        message: Object.values(error.errors)[0]?.message || "Validation failed.",
+        message:
+          Object.values(error.errors)[0]?.message || "Validation failed.",
       });
     }
 
@@ -279,7 +290,7 @@ export const getLessonsByCourse = async (req, res) => {
     if (isValidObjectId(courseId)) {
       course = await Course.findById(courseId)
         .select(
-          "_id title slug isFree level requiredMembershipLevel isPublished durationInMinutes totalLessons"
+          "_id title slug isFree level requiredMembershipLevel isPublished durationInMinutes totalLessons",
         )
         .lean();
     }
@@ -289,7 +300,7 @@ export const getLessonsByCourse = async (req, res) => {
         slug: String(courseId).trim().toLowerCase(),
       })
         .select(
-          "_id title slug isFree level requiredMembershipLevel isPublished durationInMinutes totalLessons"
+          "_id title slug isFree level requiredMembershipLevel isPublished durationInMinutes totalLessons",
         )
         .lean();
     }
@@ -302,8 +313,7 @@ export const getLessonsByCourse = async (req, res) => {
     }
 
     const isAdmin =
-      req.user &&
-      ["admin", "superadmin"].includes(String(req.user.role));
+      req.user && ["admin", "superadmin"].includes(String(req.user.role));
 
     if (course.isPublished === false && !isAdmin) {
       return res.status(403).json({
@@ -344,7 +354,7 @@ export const getLessonsByCourse = async (req, res) => {
 
     const totalDurationInMinutes = safeLessons.reduce(
       (sum, lesson) => sum + (Number(lesson.durationInMinutes) || 0),
-      0
+      0,
     );
 
     return res.status(200).json({
@@ -397,7 +407,10 @@ export const getLesson = async (req, res) => {
       : { slug: String(id).trim().toLowerCase() };
 
     const lesson = await Lesson.findOne(query)
-      .populate("course", "_id title slug isFree level requiredMembershipLevel isPublished")
+      .populate(
+        "course",
+        "_id title slug isFree level requiredMembershipLevel isPublished",
+      )
       .lean();
 
     if (!lesson || !lesson.course) {
@@ -479,7 +492,7 @@ export const updateLessonProgress = async (req, res) => {
     const lesson = await Lesson.findById(lessonId)
       .populate(
         "course",
-        "_id title slug isFree price salePrice level requiredMembershipLevel isPublished"
+        "_id title slug isFree price salePrice level requiredMembershipLevel isPublished",
       )
       .select("_id course isPublished")
       .lean();
@@ -543,7 +556,7 @@ export const updateLessonProgress = async (req, res) => {
           new: true,
           upsert: true,
           runValidators: true,
-        }
+        },
       );
     }
 
@@ -569,7 +582,11 @@ export const updateLessonProgress = async (req, res) => {
     const elapsedSeconds = previousProgress?.lastWatchedAt
       ? Math.max(
           0,
-          Math.floor((now.getTime() - new Date(previousProgress.lastWatchedAt).getTime()) / 1000)
+          Math.floor(
+            (now.getTime() -
+              new Date(previousProgress.lastWatchedAt).getTime()) /
+              1000,
+          ),
         )
       : 0;
 
@@ -581,7 +598,7 @@ export const updateLessonProgress = async (req, res) => {
     const cappedWatched = Math.min(
       safeWatchedSeconds,
       safeDurationSeconds,
-      maxAllowedWatched
+      maxAllowedWatched,
     );
 
     const attemptedSkip =
@@ -612,7 +629,7 @@ export const updateLessonProgress = async (req, res) => {
         new: true,
         upsert: true,
         runValidators: true,
-      }
+      },
     );
 
     const totalLessons = await Lesson.countDocuments({
@@ -707,15 +724,30 @@ export const updateLesson = async (req, res) => {
 
     const cleanedUpdate = {};
 
-    if ("course" in allowedUpdates) cleanedUpdate.course = allowedUpdates.course;
-    if ("title" in allowedUpdates) cleanedUpdate.title = cleanText(allowedUpdates.title, 160);
-    if ("description" in allowedUpdates) cleanedUpdate.description = cleanText(allowedUpdates.description, 2000);
-    if ("videoUrl" in allowedUpdates) cleanedUpdate.videoUrl = cleanText(allowedUpdates.videoUrl, 500);
-    if ("durationInMinutes" in allowedUpdates) cleanedUpdate.durationInMinutes = cleanNumber(allowedUpdates.durationInMinutes, 0);
-    if ("order" in allowedUpdates) cleanedUpdate.order = cleanNumber(allowedUpdates.order, 0);
-    if ("isPreview" in allowedUpdates) cleanedUpdate.isPreview = cleanBoolean(allowedUpdates.isPreview, false);
-    if ("isPublished" in allowedUpdates) cleanedUpdate.isPublished = cleanBoolean(allowedUpdates.isPublished, true);
-    if ("resources" in allowedUpdates) cleanedUpdate.resources = cleanResources(allowedUpdates.resources);
+    if ("course" in allowedUpdates)
+      cleanedUpdate.course = allowedUpdates.course;
+    if ("title" in allowedUpdates)
+      cleanedUpdate.title = cleanText(allowedUpdates.title, 160);
+    if ("description" in allowedUpdates)
+      cleanedUpdate.description = cleanText(allowedUpdates.description, 2000);
+    if ("videoUrl" in allowedUpdates)
+      cleanedUpdate.videoUrl = cleanText(allowedUpdates.videoUrl, 500);
+    if ("durationInMinutes" in allowedUpdates)
+      cleanedUpdate.durationInMinutes = cleanNumber(
+        allowedUpdates.durationInMinutes,
+        0,
+      );
+    if ("order" in allowedUpdates)
+      cleanedUpdate.order = cleanNumber(allowedUpdates.order, 0);
+    if ("isPreview" in allowedUpdates)
+      cleanedUpdate.isPreview = cleanBoolean(allowedUpdates.isPreview, false);
+    if ("isPublished" in allowedUpdates)
+      cleanedUpdate.isPublished = cleanBoolean(
+        allowedUpdates.isPublished,
+        true,
+      );
+    if ("resources" in allowedUpdates)
+      cleanedUpdate.resources = cleanResources(allowedUpdates.resources);
 
     const lesson = await Lesson.findByIdAndUpdate(
       id,
@@ -723,8 +755,11 @@ export const updateLesson = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
-    ).populate("course", "title slug category level requiredMembershipLevel isFree price");
+      },
+    ).populate(
+      "course",
+      "title slug category level requiredMembershipLevel isFree price",
+    );
 
     if (!lesson) {
       return res.status(404).json({
@@ -742,7 +777,8 @@ export const updateLesson = async (req, res) => {
     if (error?.name === "ValidationError") {
       return res.status(400).json({
         success: false,
-        message: Object.values(error.errors)[0]?.message || "Validation failed.",
+        message:
+          Object.values(error.errors)[0]?.message || "Validation failed.",
       });
     }
 

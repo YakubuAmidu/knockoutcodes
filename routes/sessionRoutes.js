@@ -25,7 +25,7 @@ router.post(
   ...writeShield,
   csrfRequired,
   authRequired,
-  upsertCurrentSession
+  upsertCurrentSession,
 );
 
 router.post(
@@ -33,7 +33,7 @@ router.post(
   ...writeShield,
   csrfRequired,
   authRequired,
-  revokeOtherSessions
+  revokeOtherSessions,
 );
 
 router.delete(
@@ -41,7 +41,7 @@ router.delete(
   ...writeShield,
   csrfRequired,
   authRequired,
-  revokeOtherSessions
+  revokeOtherSessions,
 );
 
 router.get(
@@ -49,7 +49,7 @@ router.get(
   ...publicShield,
   authRequired,
   adminOnly,
-  listAllSessionsAdmin
+  listAllSessionsAdmin,
 );
 
 router.patch(
@@ -58,10 +58,15 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  updateSessionTrustAdmin
+  updateSessionTrustAdmin,
 );
 
-router.delete("/admin/cleanup", authRequired, adminOnly, cleanupOldSessionsAdmin);
+router.delete(
+  "/admin/cleanup",
+  authRequired,
+  adminOnly,
+  cleanupOldSessionsAdmin,
+);
 
 router.delete(
   "/admin/:id/revoke",
@@ -69,17 +74,22 @@ router.delete(
   csrfRequired,
   authRequired,
   adminOnly,
-  revokeSessionAdmin
+  revokeSessionAdmin,
 );
 
-router.delete("/admin/:id/delete", authRequired, adminOnly, deleteRevokedSessionAdmin);
+router.delete(
+  "/admin/:id/delete",
+  authRequired,
+  adminOnly,
+  deleteRevokedSessionAdmin,
+);
 
 router.delete(
   "/:id",
   ...writeShield,
   csrfRequired,
   authRequired,
-  revokeSessionById
+  revokeSessionById,
 );
 
 export default router;

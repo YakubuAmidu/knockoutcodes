@@ -49,7 +49,10 @@ const clamp = (v, max) => {
 };
 
 const stripAngles = (v) => String(v || "").replace(/[<>]/g, "");
-const normalizeSpaces = (v) => String(v || "").replace(/\s+/g, " ").trim();
+const normalizeSpaces = (v) =>
+  String(v || "")
+    .replace(/\s+/g, " ")
+    .trim();
 const onlyDigitsPlus = (v) => String(v || "").replace(/[^\d+]/g, "");
 
 const isDateYYYYMMDD = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
@@ -195,21 +198,21 @@ function buildSessionDetailsHtml(doc) {
     ${
       doc.sessionLink
         ? `<p><strong>Session Link:</strong> <a href="${escapeHtml(
-            doc.sessionLink
+            doc.sessionLink,
           )}">${escapeHtml(doc.sessionLink)}</a></p>`
         : ""
     }
     ${
       doc.sessionPhone
         ? `<p><strong>Session Phone:</strong> ${escapeHtml(
-            doc.sessionPhone
+            doc.sessionPhone,
           )}</p>`
         : ""
     }
     ${
       doc.sessionInstructions
         ? `<p><strong>Instructions:</strong> ${escapeHtml(
-            doc.sessionInstructions
+            doc.sessionInstructions,
           )}</p>`
         : ""
     }
@@ -225,10 +228,10 @@ async function sendCustomerCoachingUpdateEmail(doc, reason = "updated") {
     reason === "confirmed"
       ? "Your coaching session is confirmed"
       : reason === "completed"
-      ? "Your coaching session is completed"
-      : reason === "cancelled"
-      ? "Your coaching session was cancelled"
-      : "Your coaching session was updated";
+        ? "Your coaching session is completed"
+        : reason === "cancelled"
+          ? "Your coaching session was cancelled"
+          : "Your coaching session was updated";
 
   const sessionDetails = buildSessionDetails(doc);
 
@@ -275,9 +278,7 @@ KnockoutCodes
 
         ${
           doc.adminNote
-            ? `<p><strong>Admin Note:</strong> ${escapeHtml(
-                doc.adminNote
-              )}</p>`
+            ? `<p><strong>Admin Note:</strong> ${escapeHtml(doc.adminNote)}</p>`
             : ""
         }
 
@@ -302,12 +303,12 @@ export const createCoaching = async (req, res) => {
 
     const fullName = clamp(
       normalizeSpaces(stripAngles(body.fullName)),
-      LIMITS.fullName.max
+      LIMITS.fullName.max,
     );
 
     const email = clamp(
       normalizeSpaces(stripAngles(body.email)).toLowerCase(),
-      LIMITS.email.max
+      LIMITS.email.max,
     );
 
     const phoneRaw = clamp(normalizeSpaces(stripAngles(body.phone)), 60);
@@ -315,14 +316,14 @@ export const createCoaching = async (req, res) => {
 
     const coachingType = clamp(
       normalizeSpaces(stripAngles(body.coachingType)),
-      LIMITS.coachingType.max
+      LIMITS.coachingType.max,
     );
 
     const duration = Number(body.duration);
 
     const timeZone = clamp(
       normalizeSpaces(stripAngles(body.timeZone)),
-      LIMITS.timeZone.max
+      LIMITS.timeZone.max,
     );
 
     const preferredDate = normalizeSpaces(String(body.preferredDate || ""));
@@ -335,20 +336,20 @@ export const createCoaching = async (req, res) => {
     const preferGoogleMeet = !!body.preferGoogleMeet;
 
     const requestedSessionMethod = normalizeSpaces(
-      stripAngles(body.sessionMethod)
+      stripAngles(body.sessionMethod),
     );
 
     const sessionMethod = SESSION_METHODS.includes(requestedSessionMethod)
       ? requestedSessionMethod
       : preferGoogleMeet
-      ? "Google Meet"
-      : "Phone Call";
+        ? "Google Meet"
+        : "Phone Call";
 
     const marketingOptIn = !!body.marketingOptIn;
 
     const goals = clamp(
       normalizeSpaces(stripAngles(body.goals)),
-      LIMITS.goals.max
+      LIMITS.goals.max,
     );
 
     const emailSubject = body.emailSubject
@@ -365,7 +366,7 @@ export const createCoaching = async (req, res) => {
       "Full name",
       fullName,
       LIMITS.fullName.min,
-      LIMITS.fullName.max
+      LIMITS.fullName.max,
     );
     if (nameLen) return badReq(res, nameLen);
 
@@ -386,7 +387,7 @@ export const createCoaching = async (req, res) => {
       "Phone number",
       phone,
       LIMITS.phone.min,
-      LIMITS.phone.max
+      LIMITS.phone.max,
     );
     if (phoneLen) return badReq(res, phoneLen);
 
@@ -406,7 +407,7 @@ export const createCoaching = async (req, res) => {
       "Time zone",
       timeZone,
       LIMITS.timeZone.min,
-      LIMITS.timeZone.max
+      LIMITS.timeZone.max,
     );
     if (tzLen) return badReq(res, tzLen);
 
@@ -441,7 +442,7 @@ export const createCoaching = async (req, res) => {
     if (!goals) {
       return badReq(
         res,
-        "Please write what you want from this session (goals)."
+        "Please write what you want from this session (goals).",
       );
     }
 
@@ -449,14 +450,14 @@ export const createCoaching = async (req, res) => {
       "Message",
       goals,
       LIMITS.goals.min,
-      LIMITS.goals.max
+      LIMITS.goals.max,
     );
     if (goalsLen) return badReq(res, goalsLen);
 
     if (hasSpamPattern(goals)) {
       return badReq(
         res,
-        "Message looks like spam. Please rewrite and try again."
+        "Message looks like spam. Please rewrite and try again.",
       );
     }
 
@@ -494,7 +495,7 @@ export const createCoaching = async (req, res) => {
       source: {
         channel: clamp(
           normalizeSpaces(stripAngles(body?.source?.channel || "web")),
-          40
+          40,
         ),
         pageUrl: body?.source?.pageUrl
           ? clamp(stripAngles(body.source.pageUrl), 500)
@@ -570,8 +571,8 @@ ${goals}
         adminEmailSent = true;
       }
     } catch {
-  // Email failure should not block the coaching request.
-}
+      // Email failure should not block the coaching request.
+    }
 
     try {
       await sendMail({
@@ -614,8 +615,8 @@ KnockoutCodes
 
       customerEmailSent = true;
     } catch {
-  // Email failure should not block the coaching request.
-}
+      // Email failure should not block the coaching request.
+    }
 
     return res.status(201).json({
       success: true,
@@ -639,7 +640,9 @@ export const getAllCoachings = async (req, res) => {
     const limit = Math.min(100, Math.max(10, Number(req.query.limit || 20)));
     const skip = (page - 1) * limit;
 
-    const q = String(req.query.q || "").trim().slice(0, 60);
+    const q = String(req.query.q || "")
+      .trim()
+      .slice(0, 60);
     const safeQ = q ? escapeRegex(q) : "";
 
     const filter = safeQ
@@ -684,7 +687,7 @@ export const getCoachingById = async (req, res) => {
         $inc: { viewCount: 1 },
         $set: { adminViewedAt: new Date() },
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .select("-__v")
       .lean();
@@ -711,7 +714,9 @@ export const updateCoaching = async (req, res) => {
     if (!oldDoc) return notFound(res);
 
     if (updates.status !== undefined) {
-      const status = String(updates.status || "").trim().toLowerCase();
+      const status = String(updates.status || "")
+        .trim()
+        .toLowerCase();
 
       if (!STATUSES.includes(status)) return badReq(res, "Invalid status.");
 
@@ -726,7 +731,7 @@ export const updateCoaching = async (req, res) => {
     if (updates.adminNote !== undefined) {
       allowed.adminNote = clamp(
         normalizeSpaces(stripAngles(updates.adminNote)),
-        LIMITS.adminNote.max
+        LIMITS.adminNote.max,
       );
 
       if (allowed.adminNote !== oldDoc.adminNote) shouldEmailCustomer = true;
@@ -747,7 +752,7 @@ export const updateCoaching = async (req, res) => {
     if (updates.sessionLink !== undefined) {
       allowed.sessionLink = clamp(
         normalizeSpaces(stripAngles(updates.sessionLink)),
-        LIMITS.sessionLink.max
+        LIMITS.sessionLink.max,
       );
 
       if (allowed.sessionLink !== oldDoc.sessionLink) {
@@ -758,7 +763,7 @@ export const updateCoaching = async (req, res) => {
     if (updates.sessionPhone !== undefined) {
       allowed.sessionPhone = clamp(
         normalizeSpaces(stripAngles(updates.sessionPhone)),
-        LIMITS.sessionPhone.max
+        LIMITS.sessionPhone.max,
       );
 
       if (allowed.sessionPhone !== oldDoc.sessionPhone) {
@@ -769,7 +774,7 @@ export const updateCoaching = async (req, res) => {
     if (updates.sessionInstructions !== undefined) {
       allowed.sessionInstructions = clamp(
         normalizeSpaces(stripAngles(updates.sessionInstructions)),
-        LIMITS.sessionInstructions.max
+        LIMITS.sessionInstructions.max,
       );
 
       if (allowed.sessionInstructions !== oldDoc.sessionInstructions) {
@@ -780,14 +785,14 @@ export const updateCoaching = async (req, res) => {
     if (updates.fullName !== undefined) {
       const fullName = clamp(
         normalizeSpaces(stripAngles(updates.fullName)),
-        LIMITS.fullName.max
+        LIMITS.fullName.max,
       );
 
       const nameLen = lenErr(
         "Full name",
         fullName,
         LIMITS.fullName.min,
-        LIMITS.fullName.max
+        LIMITS.fullName.max,
       );
       if (nameLen) return badReq(res, nameLen);
 
@@ -803,14 +808,14 @@ export const updateCoaching = async (req, res) => {
     if (updates.email !== undefined) {
       const email = clamp(
         normalizeSpaces(stripAngles(updates.email)).toLowerCase(),
-        LIMITS.email.max
+        LIMITS.email.max,
       );
 
       const emailLen = lenErr(
         "Email",
         email,
         LIMITS.email.min,
-        LIMITS.email.max
+        LIMITS.email.max,
       );
       if (emailLen) return badReq(res, emailLen);
       if (!isEmail(email)) return badReq(res, "Enter a valid email.");
@@ -826,7 +831,7 @@ export const updateCoaching = async (req, res) => {
         "Phone number",
         phone,
         LIMITS.phone.min,
-        LIMITS.phone.max
+        LIMITS.phone.max,
       );
       if (phoneLen) return badReq(res, phoneLen);
 
@@ -838,7 +843,7 @@ export const updateCoaching = async (req, res) => {
     if (updates.coachingType !== undefined) {
       const coachingType = clamp(
         normalizeSpaces(stripAngles(updates.coachingType)),
-        LIMITS.coachingType.max
+        LIMITS.coachingType.max,
       );
 
       if (!BOXING_COACHING_TYPES.includes(coachingType)) {
@@ -865,14 +870,14 @@ export const updateCoaching = async (req, res) => {
     if (updates.timeZone !== undefined) {
       const timeZone = clamp(
         normalizeSpaces(stripAngles(updates.timeZone)),
-        LIMITS.timeZone.max
+        LIMITS.timeZone.max,
       );
 
       const tzLen = lenErr(
         "Time zone",
         timeZone,
         LIMITS.timeZone.min,
-        LIMITS.timeZone.max
+        LIMITS.timeZone.max,
       );
       if (tzLen) return badReq(res, tzLen);
 
@@ -886,7 +891,9 @@ export const updateCoaching = async (req, res) => {
     }
 
     if (updates.preferredDate !== undefined) {
-      const preferredDate = normalizeSpaces(String(updates.preferredDate || ""));
+      const preferredDate = normalizeSpaces(
+        String(updates.preferredDate || ""),
+      );
 
       if (!isDateYYYYMMDD(preferredDate)) {
         return badReq(res, "Invalid date format. Use YYYY-MM-DD.");
@@ -898,7 +905,9 @@ export const updateCoaching = async (req, res) => {
     }
 
     if (updates.preferredTime !== undefined) {
-      const preferredTime = normalizeSpaces(String(updates.preferredTime || ""));
+      const preferredTime = normalizeSpaces(
+        String(updates.preferredTime || ""),
+      );
 
       if (!isTimeHHMM(preferredTime)) {
         return badReq(res, "Invalid time format. Use HH:mm.");
@@ -931,21 +940,21 @@ export const updateCoaching = async (req, res) => {
 
       const goals = clamp(
         normalizeSpaces(stripAngles(goalsValue)),
-        LIMITS.goals.max
+        LIMITS.goals.max,
       );
 
       const goalsLen = lenErr(
         "Message",
         goals,
         LIMITS.goals.min,
-        LIMITS.goals.max
+        LIMITS.goals.max,
       );
       if (goalsLen) return badReq(res, goalsLen);
 
       if (hasSpamPattern(goals)) {
         return badReq(
           res,
-          "Message looks like spam. Please rewrite and try again."
+          "Message looks like spam. Please rewrite and try again.",
         );
       }
 
@@ -958,10 +967,14 @@ export const updateCoaching = async (req, res) => {
       return badReq(res, "No valid fields provided for update.");
     }
 
-    const updatedDoc = await Coaching.findByIdAndUpdate(req.params.id, allowed, {
-      new: true,
-      runValidators: true,
-    })
+    const updatedDoc = await Coaching.findByIdAndUpdate(
+      req.params.id,
+      allowed,
+      {
+        new: true,
+        runValidators: true,
+      },
+    )
       .select("-__v")
       .lean();
 
@@ -973,11 +986,11 @@ export const updateCoaching = async (req, res) => {
       try {
         customerEmailSent = await sendCustomerCoachingUpdateEmail(
           updatedDoc,
-          emailReason
+          emailReason,
         );
       } catch {
-  // Email failure should not block the coaching update.
-}
+        // Email failure should not block the coaching update.
+      }
     }
 
     const finalDoc = await Coaching.findById(req.params.id)

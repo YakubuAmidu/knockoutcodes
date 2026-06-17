@@ -1,16 +1,16 @@
 // controllers/planController.js
-import mongoose from 'mongoose';
-import Plan from '../models/PlanModel.js';
+import mongoose from "mongoose";
+import Plan from "../models/PlanModel.js";
 
 // Simple slug generator
 const generateSlug = (value) => {
-  if (!value) return '';
+  if (!value) return "";
   return value
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 };
 
 // @desc    Create a new subscription plan
@@ -28,10 +28,10 @@ export const createPlan = async (req, res) => {
       isActive,
     } = req.body;
 
-    if (!name || !stripePriceId || (price === undefined || price === null)) {
+    if (!name || !stripePriceId || price === undefined || price === null) {
       return res.status(400).json({
         success: false,
-        message: 'name, stripePriceId and price are required',
+        message: "name, stripePriceId and price are required",
       });
     }
 
@@ -45,7 +45,7 @@ export const createPlan = async (req, res) => {
     if (existing) {
       return res.status(409).json({
         success: false,
-        message: 'Plan with this name or slug already exists',
+        message: "Plan with this name or slug already exists",
       });
     }
 
@@ -61,13 +61,13 @@ export const createPlan = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Plan created successfully',
+      message: "Plan created successfully",
       data: plan,
     });
   } catch {
     return res.status(500).json({
       success: false,
-      message: 'Failed to create plan',
+      message: "Failed to create plan",
     });
   }
 };
@@ -80,9 +80,9 @@ export const getPlans = async (req, res) => {
     const { active } = req.query;
 
     const filter = {};
-    if (active === 'true') {
+    if (active === "true") {
       filter.isActive = true;
-    } else if (active === 'false') {
+    } else if (active === "false") {
       filter.isActive = false;
     }
 
@@ -96,7 +96,7 @@ export const getPlans = async (req, res) => {
   } catch {
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch plans',
+      message: "Failed to fetch plans",
     });
   }
 };
@@ -121,7 +121,7 @@ export const getPlan = async (req, res) => {
     if (!plan) {
       return res.status(404).json({
         success: false,
-        message: 'Plan not found',
+        message: "Plan not found",
       });
     }
 
@@ -132,7 +132,7 @@ export const getPlan = async (req, res) => {
   } catch {
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch plan',
+      message: "Failed to fetch plan",
     });
   }
 };
@@ -158,19 +158,19 @@ export const updatePlan = async (req, res) => {
     if (!plan) {
       return res.status(404).json({
         success: false,
-        message: 'Plan not found',
+        message: "Plan not found",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Plan updated successfully',
+      message: "Plan updated successfully",
       data: plan,
     });
   } catch {
     return res.status(500).json({
       success: false,
-      message: 'Failed to update plan',
+      message: "Failed to update plan",
     });
   }
 };
@@ -187,18 +187,18 @@ export const deletePlan = async (req, res) => {
     if (!plan) {
       return res.status(404).json({
         success: false,
-        message: 'Plan not found',
+        message: "Plan not found",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Plan deleted successfully',
+      message: "Plan deleted successfully",
     });
   } catch {
     return res.status(500).json({
       success: false,
-      message: 'Failed to delete plan',
+      message: "Failed to delete plan",
     });
   }
 };

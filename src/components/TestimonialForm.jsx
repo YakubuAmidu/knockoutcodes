@@ -82,7 +82,7 @@ export default function TestimonialForm({ onSubmitted }) {
 
       showToast(
         "Testimonial submitted. Admin will approve it before it goes public.",
-        "success"
+        "success",
       );
 
       setForm(initialForm);
@@ -92,7 +92,7 @@ export default function TestimonialForm({ onSubmitted }) {
       showToast(
         error?.response?.data?.message ||
           "Could not submit testimonial. Please login and try again.",
-        "error"
+        "error",
       );
     } finally {
       setSubmitting(false);
@@ -183,7 +183,11 @@ export default function TestimonialForm({ onSubmitted }) {
           </Counter>
         </Field>
 
-        <SubmitButton type="submit" disabled={submitting} aria-busy={submitting}>
+        <SubmitButton
+          type="submit"
+          disabled={submitting}
+          aria-busy={submitting}
+        >
           {submitting ? "Submitting..." : "Submit Testimonial"}
         </SubmitButton>
 
@@ -201,7 +205,11 @@ const FormShell = styled.div`
   padding: 1.5rem;
   border-radius: ${theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 249, 242, 0.1), rgba(255, 255, 255, 0.025)),
+    linear-gradient(
+      145deg,
+      rgba(255, 249, 242, 0.1),
+      rgba(255, 255, 255, 0.025)
+    ),
     rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(214, 182, 159, 0.22);
   box-shadow: ${theme.shadow.glow};

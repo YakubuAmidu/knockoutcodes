@@ -19,7 +19,7 @@ export const fetchManageMemberships =
       params.set("limit", String(limit));
 
       const { data } = await axiosInstance.get(
-        `/memberships?${params.toString()}`
+        `/memberships?${params.toString()}`,
       );
 
       dispatch({
@@ -32,10 +32,7 @@ export const fetchManageMemberships =
 
       return { success: true, data };
     } catch (error) {
-      const message = getErrorMessage(
-        error,
-        "Failed to fetch memberships."
-      );
+      const message = getErrorMessage(error, "Failed to fetch memberships.");
 
       dispatch({
         type: MANAGE_MEMBERSHIPS_ACTIONS.FETCH_FAIL,
@@ -77,7 +74,7 @@ export const updateManageMembership =
 
       const { data } = await axiosInstance.put(
         `/memberships/${encodeURIComponent(membershipId)}`,
-        payload
+        payload,
       );
 
       dispatch({
@@ -103,7 +100,7 @@ export const deleteManageMembership = (membershipId) => async (dispatch) => {
     dispatch({ type: MANAGE_MEMBERSHIPS_ACTIONS.DELETE_REQUEST });
 
     await axiosInstance.delete(
-      `/memberships/${encodeURIComponent(membershipId)}`
+      `/memberships/${encodeURIComponent(membershipId)}`,
     );
 
     dispatch({

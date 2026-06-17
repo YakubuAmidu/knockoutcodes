@@ -22,7 +22,7 @@ function getRatingAverage(product) {
       product?.averageRating ??
       product?.avgRating ??
       product?.rating ??
-      0
+      0,
   );
 }
 
@@ -33,7 +33,7 @@ function getReviewCount(product) {
       product?.reviewsCount ??
       product?.totalReviews ??
       product?.numReviews ??
-      0
+      0,
   );
 }
 
@@ -42,7 +42,7 @@ function renderStars(ratingAverage) {
   const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
 
   return Array.from({ length: 5 }, (_, index) =>
-    index + 1 <= fullStars ? "★" : "☆"
+    index + 1 <= fullStars ? "★" : "☆",
   ).join("");
 }
 
@@ -64,7 +64,7 @@ function getImages(product) {
 
 export default function ProductDetail() {
   const { idOrSlug, id, slug } = useParams();
-const productIdOrSlug = idOrSlug || id || slug;
+  const productIdOrSlug = idOrSlug || id || slug;
 
   const toast = useToast();
   const dispatch = useDispatch();
@@ -81,10 +81,10 @@ const productIdOrSlug = idOrSlug || id || slug;
   const [buyingNow, setBuyingNow] = useState(false);
 
   const ratingAverage = getRatingAverage(product);
-const reviewCount = getReviewCount(product);
+  const reviewCount = getReviewCount(product);
 
-const isBestSeller =
-  Boolean(product?.isFeatured) || (ratingAverage >= 4.7 && reviewCount >= 20);
+  const isBestSeller =
+    Boolean(product?.isFeatured) || (ratingAverage >= 4.7 && reviewCount >= 20);
 
   const images = useMemo(() => getImages(product), [product]);
 
@@ -344,24 +344,32 @@ const isBestSeller =
                 )}
 
                 <ImageBadges>
-  {isBestSeller ? <Pill>Best Seller</Pill> : null}
+                  {isBestSeller ? <Pill>Best Seller</Pill> : null}
 
-  <Pill>{outOfStock ? "Out Of Stock" : `${stock} In Stock`}</Pill>
-</ImageBadges>
+                  <Pill>
+                    {outOfStock ? "Out Of Stock" : `${stock} In Stock`}
+                  </Pill>
+                </ImageBadges>
               </ImageStage>
 
               <ThumbRow>
-                {(images.length ? images : [""]).slice(0, 6).map((src, index) => (
-                  <ThumbBtn
-                    key={`${src}_${index}`}
-                    type="button"
-                    $active={src === activeImg}
-                    onClick={() => src && setActiveImg(src)}
-                    disabled={!src}
-                  >
-                    {src ? <ThumbImg src={src} alt="" /> : <ThumbFallback>—</ThumbFallback>}
-                  </ThumbBtn>
-                ))}
+                {(images.length ? images : [""])
+                  .slice(0, 6)
+                  .map((src, index) => (
+                    <ThumbBtn
+                      key={`${src}_${index}`}
+                      type="button"
+                      $active={src === activeImg}
+                      onClick={() => src && setActiveImg(src)}
+                      disabled={!src}
+                    >
+                      {src ? (
+                        <ThumbImg src={src} alt="" />
+                      ) : (
+                        <ThumbFallback>—</ThumbFallback>
+                      )}
+                    </ThumbBtn>
+                  ))}
               </ThumbRow>
             </Media>
 
@@ -369,25 +377,30 @@ const isBestSeller =
               <HookBadge>1–2 SECOND HOOK</HookBadge>
 
               <Title>
-                This is not just gear. <span>It is your training advantage.</span>
+                This is not just gear.{" "}
+                <span>It is your training advantage.</span>
               </Title>
 
-                  <ProductName>{title}</ProductName>
+              <ProductName>{title}</ProductName>
 
-<RatingRow>
-  <Stars>{renderStars(ratingAverage)}</Stars>
+              <RatingRow>
+                <Stars>{renderStars(ratingAverage)}</Stars>
 
-  <RatingText>
-    {ratingAverage > 0 ? `${ratingAverage.toFixed(1)}/5` : "New Product"}
-    {reviewCount > 0
-      ? ` • ${reviewCount} reviews`
-      : " • No reviews yet"}
-  </RatingText>
-</RatingRow>
+                <RatingText>
+                  {ratingAverage > 0
+                    ? `${ratingAverage.toFixed(1)}/5`
+                    : "New Product"}
+                  {reviewCount > 0
+                    ? ` • ${reviewCount} reviews`
+                    : " • No reviews yet"}
+                </RatingText>
+              </RatingRow>
 
               <PriceRow>
                 <Price>{formatMoney(price)}</Price>
-                {hasDiscount ? <Compare>{formatMoney(compareAtPrice)}</Compare> : null}
+                {hasDiscount ? (
+                  <Compare>{formatMoney(compareAtPrice)}</Compare>
+                ) : null}
               </PriceRow>
 
               <Description>{description}</Description>
@@ -400,7 +413,9 @@ const isBestSeller =
 
                 <DetailCard>
                   <DetailLabel>Category</DetailLabel>
-                  <DetailValue>{product?.category || "Premium Gear"}</DetailValue>
+                  <DetailValue>
+                    {product?.category || "Premium Gear"}
+                  </DetailValue>
                 </DetailCard>
 
                 <DetailCard>
@@ -410,20 +425,24 @@ const isBestSeller =
 
                 <DetailCard>
                   <DetailLabel>Status</DetailLabel>
-                  <DetailValue>{outOfStock ? "Sold Out" : "Ready To Ship"}</DetailValue>
-                    </DetailCard>
-                    
-                   <DetailCard>
-  <DetailLabel>Rating</DetailLabel>
-  <DetailValue>
-    {ratingAverage > 0 ? `${ratingAverage.toFixed(1)} / 5` : "New"}
-  </DetailValue>
-</DetailCard>
+                  <DetailValue>
+                    {outOfStock ? "Sold Out" : "Ready To Ship"}
+                  </DetailValue>
+                </DetailCard>
 
-<DetailCard>
-  <DetailLabel>Reviews</DetailLabel>
-  <DetailValue>{reviewCount}</DetailValue>
-</DetailCard>
+                <DetailCard>
+                  <DetailLabel>Rating</DetailLabel>
+                  <DetailValue>
+                    {ratingAverage > 0
+                      ? `${ratingAverage.toFixed(1)} / 5`
+                      : "New"}
+                  </DetailValue>
+                </DetailCard>
+
+                <DetailCard>
+                  <DetailLabel>Reviews</DetailLabel>
+                  <DetailValue>{reviewCount}</DetailValue>
+                </DetailCard>
               </DetailGrid>
 
               <Divider />
@@ -513,7 +532,11 @@ const isBestSeller =
                   onClick={addToCart}
                   disabled={outOfStock || busy || buyingNow}
                 >
-                  {outOfStock ? "Out Of Stock" : busy ? "Adding..." : "Add To Cart"}
+                  {outOfStock
+                    ? "Out Of Stock"
+                    : busy
+                      ? "Adding..."
+                      : "Add To Cart"}
                 </PrimaryBtn>
 
                 <BuyNowBtn
@@ -541,26 +564,28 @@ const isBestSeller =
               <TrustNote>
                 The cart shows your estimate. Checkout verifies the real product
                 price from the backend before Stripe payment.
-                  </TrustNote>
-                  
-                  <ReviewSection>
-  <ReviewHeader>
-    <ReviewEyebrow>Verified Product Review</ReviewEyebrow>
-    <ReviewTitle>Purchased this product? Share your experience.</ReviewTitle>
-    <ReviewText>
-      Only logged-in customers who purchased this product should be allowed to
-      leave a review. The backend must verify the user, purchase record, and
-      prevent duplicate reviews.
-    </ReviewText>
-  </ReviewHeader>
+              </TrustNote>
 
-  <ReviewForm
-    type="product"
-    productId={productId}
-    productTitle={title}
-    onSuccess={fetchProduct}
-  />
-</ReviewSection>
+              <ReviewSection>
+                <ReviewHeader>
+                  <ReviewEyebrow>Verified Product Review</ReviewEyebrow>
+                  <ReviewTitle>
+                    Purchased this product? Share your experience.
+                  </ReviewTitle>
+                  <ReviewText>
+                    Only logged-in customers who purchased this product should
+                    be allowed to leave a review. The backend must verify the
+                    user, purchase record, and prevent duplicate reviews.
+                  </ReviewText>
+                </ReviewHeader>
+
+                <ReviewForm
+                  type="product"
+                  productId={productId}
+                  productTitle={title}
+                  onSuccess={fetchProduct}
+                />
+              </ReviewSection>
             </Info>
           </Shell>
         )}
@@ -576,9 +601,21 @@ const Page = styled.main`
   padding: 96px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214, 182, 159, 0.22) 0%, rgba(0, 0, 0, 0) 42%),
-    radial-gradient(circle at 82% 16%, rgba(90, 56, 37, 0.34) 0%, rgba(0, 0, 0, 0) 46%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(214, 182, 159, 0.22) 0%,
+      rgba(0, 0, 0, 0) 42%
+    ),
+    radial-gradient(
+      circle at 82% 16%,
+      rgba(90, 56, 37, 0.34) 0%,
+      rgba(0, 0, 0, 0) 46%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      #000 86%
+    );
 `;
 
 const Inner = styled.section`
@@ -619,7 +656,11 @@ const CartLink = styled(Link)`
   font-weight: 950;
   padding: 11px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
 `;
 
 const Dot = styled.span`
@@ -969,7 +1010,11 @@ const PrimaryBtn = styled.button`
   padding: 13px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   cursor: pointer;

@@ -97,7 +97,9 @@ function stripAngleBrackets(str) {
 }
 
 function normalizeSpaces(str) {
-  return String(str || "").replace(/\s+/g, " ").trim();
+  return String(str || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isEmailLike(str) {
@@ -158,7 +160,7 @@ export default function Coaching() {
 
   const selectedCoachingType = useMemo(
     () => normalizeCoachingType(safeForm.coachingType),
-    [safeForm.coachingType]
+    [safeForm.coachingType],
   );
 
   const emailSubject = useMemo(
@@ -166,7 +168,7 @@ export default function Coaching() {
       `KnockoutCodes Boxing Coaching — ${
         normalizeSpaces(stripAngleBrackets(safeForm.fullName)) || "(no name)"
       }`,
-    [safeForm.fullName]
+    [safeForm.fullName],
   );
 
   const emailSummary = useMemo(
@@ -187,7 +189,7 @@ export default function Coaching() {
         `Marketing Opt-In: ${safeForm.marketingOptIn ? "Yes" : "No"}`,
         `Goals: ${normalizeSpaces(stripAngleBrackets(safeForm.goals)) || "—"}`,
       ].join("\n"),
-    [safeForm, selectedCoachingType]
+    [safeForm, selectedCoachingType],
   );
 
   function setField(name, value) {
@@ -223,7 +225,10 @@ export default function Coaching() {
       const nextChecked = !!checked;
       setField("preferGoogleMeet", nextChecked);
       if (nextChecked) setField("sessionMethod", "Google Meet");
-      else if (!safeForm.sessionMethod || safeForm.sessionMethod === "Google Meet") {
+      else if (
+        !safeForm.sessionMethod ||
+        safeForm.sessionMethod === "Google Meet"
+      ) {
         setField("sessionMethod", "Phone Call");
       }
       return;
@@ -237,28 +242,28 @@ export default function Coaching() {
 
     const fullName = clampLen(
       normalizeSpaces(stripAngleBrackets(safeForm.fullName)),
-      LIMITS.fullName.max
+      LIMITS.fullName.max,
     );
 
     const email = clampLen(
       normalizeSpaces(stripAngleBrackets(safeForm.email)).toLowerCase(),
-      LIMITS.email.max
+      LIMITS.email.max,
     );
 
     const phone = onlyDigitsPlus(
-      clampLen(normalizeSpaces(stripAngleBrackets(safeForm.phone)), 40)
+      clampLen(normalizeSpaces(stripAngleBrackets(safeForm.phone)), 40),
     ).slice(0, LIMITS.phone.max);
 
     const goals = clampLen(
       normalizeSpaces(stripAngleBrackets(safeForm.goals)),
-      LIMITS.goals.max
+      LIMITS.goals.max,
     );
 
     const coachingType = normalizeCoachingType(safeForm.coachingType);
 
     const timeZone = clampLen(
       normalizeSpaces(stripAngleBrackets(safeForm.timeZone)),
-      LIMITS.timeZone.max
+      LIMITS.timeZone.max,
     );
 
     const duration = Number(safeForm.duration);
@@ -269,7 +274,7 @@ export default function Coaching() {
       "Full name",
       fullName,
       LIMITS.fullName.min,
-      LIMITS.fullName.max
+      LIMITS.fullName.max,
     );
     if (nameLenErr) return { ok: false, msg: nameLenErr };
 
@@ -283,7 +288,7 @@ export default function Coaching() {
       "Email",
       email,
       LIMITS.email.min,
-      LIMITS.email.max
+      LIMITS.email.max,
     );
     if (emailLenErr) return { ok: false, msg: emailLenErr };
 
@@ -295,7 +300,7 @@ export default function Coaching() {
       "Phone number",
       phone,
       LIMITS.phone.min,
-      LIMITS.phone.max
+      LIMITS.phone.max,
     );
     if (phoneLenErr) return { ok: false, msg: phoneLenErr };
 
@@ -313,7 +318,7 @@ export default function Coaching() {
       "Time zone",
       timeZone,
       LIMITS.timeZone.min,
-      LIMITS.timeZone.max
+      LIMITS.timeZone.max,
     );
     if (tzLenErr) return { ok: false, msg: tzLenErr };
 
@@ -348,7 +353,7 @@ export default function Coaching() {
       "Message",
       goals,
       LIMITS.goals.min,
-      LIMITS.goals.max
+      LIMITS.goals.max,
     );
     if (goalsLenErr) return { ok: false, msg: goalsLenErr };
 
@@ -404,7 +409,7 @@ export default function Coaching() {
 
       const preferredStartISO = toISOFromLocalDateTime(
         safeForm.date,
-        safeForm.time
+        safeForm.time,
       );
 
       const payload = {
@@ -435,14 +440,14 @@ export default function Coaching() {
       };
 
       const { data } = await axiosInstance.post(COACHING_ENDPOINT, payload, {
-  headers: {
-    Accept: "application/json",
-    "X-Requested-With": "axios",
-    "X-Form-TS": String(Date.now()),
-    "X-Honey": "",
-  },
-  signal: controller.signal,
-});
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "axios",
+          "X-Form-TS": String(Date.now()),
+          "X-Honey": "",
+        },
+        signal: controller.signal,
+      });
 
       const successMsg =
         data?.message || "Request received. We’ll email you shortly.";
@@ -477,11 +482,19 @@ export default function Coaching() {
   }
 
   return (
-    <Page initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.45 }}>
+    <Page
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.45 }}
+    >
       <Hero>
         <HeroGlow />
 
-        <Badge as={motion.div} initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+        <Badge
+          as={motion.div}
+          initial={{ y: -12, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+        >
           Private KnockoutCodes Boxing Coaching
         </Badge>
 
@@ -508,7 +521,12 @@ export default function Coaching() {
 
         {CAL_URL && (
           <CalBar>
-            <a href={CAL_URL} target="_blank" rel="noreferrer" className="cal-btn">
+            <a
+              href={CAL_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="cal-btn"
+            >
               Book Instantly
             </a>
             <span className="or">or</span>
@@ -524,19 +542,26 @@ export default function Coaching() {
           as={motion.div}
           initial={{ y: 22, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.12, type: "spring", stiffness: 120, damping: 18 }}
+          transition={{
+            delay: 0.12,
+            type: "spring",
+            stiffness: 120,
+            damping: 18,
+          }}
         >
           <CardHeader>
             <MiniLabel>Elite Session Request</MiniLabel>
             <CardTitle>Tell Me What You Want Fixed First</CardTitle>
             <CardText>
-              The better your details, the sharper the session. Share your level,
-              stance, biggest weakness, and what you want to improve.
+              The better your details, the sharper the session. Share your
+              level, stance, biggest weakness, and what you want to improve.
             </CardText>
           </CardHeader>
 
           {status?.message && (
-            <StatusMessage $state={status?.state}>{status.message}</StatusMessage>
+            <StatusMessage $state={status?.state}>
+              {status.message}
+            </StatusMessage>
           )}
 
           <Form id="book-form" onSubmit={onSubmit} noValidate>
@@ -690,7 +715,8 @@ export default function Coaching() {
                   placeholder="Example: I’m orthodox, my right hand feels slow, I lose balance after combinations, and I want sharper footwork without training in a gym..."
                 />
                 <Hint $count={String(safeForm.goals || "").length}>
-                  {String(safeForm.goals || "").length}/{LIMITS.goals.max} characters
+                  {String(safeForm.goals || "").length}/{LIMITS.goals.max}{" "}
+                  characters
                 </Hint>
               </Field>
             </Row>
@@ -721,7 +747,9 @@ export default function Coaching() {
 
                 {!safeForm.preferGoogleMeet && (
                   <MethodBox>
-                    <Label htmlFor="sessionMethod">Choose another session method</Label>
+                    <Label htmlFor="sessionMethod">
+                      Choose another session method
+                    </Label>
                     <Select
                       id="sessionMethod"
                       name="sessionMethod"
@@ -744,7 +772,9 @@ export default function Coaching() {
                     checked={!!safeForm.marketingOptIn}
                     onChange={onChange}
                   />
-                  <span>Send me occasional KnockoutCodes updates and discounts.</span>
+                  <span>
+                    Send me occasional KnockoutCodes updates and discounts.
+                  </span>
                 </label>
 
                 <label className="check">
@@ -789,14 +819,20 @@ export default function Coaching() {
           as={motion.aside}
           initial={{ y: 22, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.18, type: "spring", stiffness: 120, damping: 18 }}
+          transition={{
+            delay: 0.18,
+            type: "spring",
+            stiffness: 120,
+            damping: 18,
+          }}
         >
           <PanelTop>
             <MiniLabel>What You Get</MiniLabel>
             <PolicyTitle>Train Cleaner. Move Smarter. Hit Harder.</PolicyTitle>
             <PanelText>
-              This is not random boxing advice. This is a focused private session
-              built around your weakness, your level, your setup, and your next step.
+              This is not random boxing advice. This is a focused private
+              session built around your weakness, your level, your setup, and
+              your next step.
             </PanelText>
           </PanelTop>
 
@@ -811,8 +847,9 @@ export default function Coaching() {
 
           <LuxuryNote>
             <span>Best for:</span>
-            beginners, self-trained fighters, outdoor training, bagwork, defense,
-            footwork, power mechanics, and confidence on camera or in sparring.
+            beginners, self-trained fighters, outdoor training, bagwork,
+            defense, footwork, power mechanics, and confidence on camera or in
+            sparring.
           </LuxuryNote>
         </SidePanel>
       </Shell>
@@ -828,15 +865,23 @@ const Page = styled(motion.main)`
   --glass: ${({ theme }) => theme?.colors?.glass || "rgba(255,255,255,0.08)"};
   --black: ${({ theme }) => theme?.colors?.black || "#050505"};
   --white: ${({ theme }) => theme?.colors?.white || "#ffffff"};
-  --shadow: ${({ theme }) => theme?.shadow?.glow || "0 24px 80px rgba(0,0,0,0.38)"};
+  --shadow: ${({ theme }) =>
+    theme?.shadow?.glow || "0 24px 80px rgba(0,0,0,0.38)"};
 
   min-height: 100svh;
   overflow: hidden;
   background:
-    radial-gradient(900px 520px at 8% 0%, rgba(214, 182, 159, 0.2), transparent 62%),
-    radial-gradient(760px 460px at 88% 8%, rgba(255, 255, 255, 0.08), transparent 58%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 35%),
-    var(--bg);
+    radial-gradient(
+      900px 520px at 8% 0%,
+      rgba(214, 182, 159, 0.2),
+      transparent 62%
+    ),
+    radial-gradient(
+      760px 460px at 88% 8%,
+      rgba(255, 255, 255, 0.08),
+      transparent 58%
+    ),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 35%), var(--bg);
   color: var(--ink);
 `;
 
@@ -853,7 +898,11 @@ const HeroGlow = styled.div`
   inset: 18px 16% auto;
   height: 220px;
   pointer-events: none;
-  background: radial-gradient(circle, rgba(214, 182, 159, 0.18), transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgba(214, 182, 159, 0.18),
+    transparent 68%
+  );
   filter: blur(18px);
 `;
 
@@ -865,7 +914,8 @@ const Badge = styled.div`
   padding: 10px 17px;
   border-radius: ${({ theme }) => theme?.radius?.pill || "999px"};
   background: rgba(255, 255, 255, 0.075);
-  box-shadow: ${({ theme }) => theme?.shadow?.soft || "0 14px 32px rgba(0,0,0,0.2)"};
+  box-shadow: ${({ theme }) =>
+    theme?.shadow?.soft || "0 14px 32px rgba(0,0,0,0.2)"};
   letter-spacing: 0.15em;
   text-transform: uppercase;
   font-weight: 900;
@@ -970,7 +1020,11 @@ const Shell = styled.section`
 
 const GlassCard = styled.div`
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0) 36%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.085),
+      rgba(255, 255, 255, 0) 36%
+    ),
     rgba(34, 22, 16, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: ${({ theme }) => theme?.radius?.lg || "28px"};
@@ -1266,7 +1320,11 @@ const LuxuryNote = styled.div`
   margin-top: 16px;
   padding: 16px;
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(214, 182, 159, 0.16), rgba(255, 255, 255, 0.045));
+  background: linear-gradient(
+    135deg,
+    rgba(214, 182, 159, 0.16),
+    rgba(255, 255, 255, 0.045)
+  );
   border: 1px solid rgba(214, 182, 159, 0.22);
   line-height: 1.7;
   opacity: 0.9;

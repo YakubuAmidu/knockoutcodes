@@ -3,8 +3,14 @@ import * as T from "./userActionTypes";
 
 // ---- profile fetch ----
 export const userMeRequest = () => ({ type: T.USER_ME_REQUEST });
-export const userMeSuccess = (user) => ({ type: T.USER_ME_SUCCESS, payload: user });
-export const userMeFail = (message) => ({ type: T.USER_ME_FAIL, payload: message });
+export const userMeSuccess = (user) => ({
+  type: T.USER_ME_SUCCESS,
+  payload: user,
+});
+export const userMeFail = (message) => ({
+  type: T.USER_ME_FAIL,
+  payload: message,
+});
 
 // ---- edit mode ----
 export const setUserEditMode = (isOn) => ({
@@ -25,8 +31,14 @@ export const resetUserForm = (fullForm) => ({
 
 // ---- save profile ----
 export const userSaveRequest = () => ({ type: T.USER_ME_SAVE_REQUEST });
-export const userSaveSuccess = (user) => ({ type: T.USER_ME_SAVE_SUCCESS, payload: user });
-export const userSaveFail = (message) => ({ type: T.USER_ME_SAVE_FAIL, payload: message });
+export const userSaveSuccess = (user) => ({
+  type: T.USER_ME_SAVE_SUCCESS,
+  payload: user,
+});
+export const userSaveFail = (message) => ({
+  type: T.USER_ME_SAVE_FAIL,
+  payload: message,
+});
 
 // ---- avatar ----
 export const setAvatarFile = ({ file, preview }) => ({
@@ -37,7 +49,9 @@ export const setAvatarFile = ({ file, preview }) => ({
 export const clearAvatar = () => ({ type: T.USER_AVATAR_CLEAR });
 
 // ---- password ----
-export const togglePasswordPanel = () => ({ type: T.USER_PASSWORD_PANEL_TOGGLE });
+export const togglePasswordPanel = () => ({
+  type: T.USER_PASSWORD_PANEL_TOGGLE,
+});
 
 export const updatePasswordField = (patch) => ({
   type: T.USER_PASSWORD_UPDATE_FIELD,

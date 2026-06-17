@@ -7,7 +7,9 @@ import UserSubscription from "../models/UserSubscriptionModel.js";
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(String(id));
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level || "beginner";
 }
@@ -79,14 +81,14 @@ async function verifyCourseAccess(userId, course) {
   }
 
   const userLevel = normalizeLevel(
-    subscription.accessLevel || subscription.membershipId
+    subscription.accessLevel || subscription.membershipId,
   );
 
   const requiredLevel = normalizeLevel(
-    course.requiredMembershipLevel || course.level || "beginner"
+    course.requiredMembershipLevel || course.level || "beginner",
   );
 
- if (userLevel === requiredLevel) {
+  if (userLevel === requiredLevel) {
     return {
       allowed: true,
       reason: "active_membership",
@@ -129,7 +131,7 @@ export const updateLessonProgress = async (req, res) => {
     const lesson = await Lesson.findById(lessonId)
       .populate(
         "course",
-        "_id title slug isFree price salePrice level requiredMembershipLevel isPublished"
+        "_id title slug isFree price salePrice level requiredMembershipLevel isPublished",
       )
       .select("_id course isPublished")
       .lean();
@@ -158,38 +160,38 @@ export const updateLessonProgress = async (req, res) => {
       });
     }
 
-   let enrollment = access.enrollment || null;
+    let enrollment = access.enrollment || null;
 
-if (!enrollment && isFreeCourse(lesson.course)) {
-  enrollment = await Enrollment.findOneAndUpdate(
-    {
-      user: userId,
-      course: lesson.course._id,
-    },
-    {
-      $setOnInsert: {
-  user: userId,
-  course: lesson.course._id,
-  status: "active",
-  paymentStatus: "paid",
-  paymentPlan: "free",
-  accessType: "free",
-  pricePaid: 0,
-  currency: "USD",
-  enrolledAt: new Date(),
-  startedAt: new Date(),
-},
-      $set: {
-        lastAccessedAt: new Date(),
-      },
-    },
-    {
-      new: true,
-      upsert: true,
-      runValidators: true,
+    if (!enrollment && isFreeCourse(lesson.course)) {
+      enrollment = await Enrollment.findOneAndUpdate(
+        {
+          user: userId,
+          course: lesson.course._id,
+        },
+        {
+          $setOnInsert: {
+            user: userId,
+            course: lesson.course._id,
+            status: "active",
+            paymentStatus: "paid",
+            paymentPlan: "free",
+            accessType: "free",
+            pricePaid: 0,
+            currency: "USD",
+            enrolledAt: new Date(),
+            startedAt: new Date(),
+          },
+          $set: {
+            lastAccessedAt: new Date(),
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+        },
+      );
     }
-  );
-}
 
     const safeWatchedSeconds = Math.max(0, Number(watchedSeconds) || 0);
     const safeDurationSeconds = Math.max(0, Number(durationSeconds) || 0);
@@ -223,7 +225,7 @@ if (!enrollment && isFreeCourse(lesson.course)) {
         new: true,
         upsert: true,
         runValidators: true,
-      }
+      },
     );
 
     const totalLessons = await Lesson.countDocuments({
@@ -243,19 +245,19 @@ if (!enrollment && isFreeCourse(lesson.course)) {
         : 0;
 
     if (enrollment) {
-  enrollment.progressPercent = progressPercent;
-  enrollment.lastAccessedAt = new Date();
+      enrollment.progressPercent = progressPercent;
+      enrollment.lastAccessedAt = new Date();
 
-  if (progressPercent >= 100) {
-  enrollment.status = "completed";
-  enrollment.completedAt = enrollment.completedAt || new Date();
-} else if (enrollment.status === "completed") {
-  enrollment.status = "active";
-  enrollment.completedAt = null;
-}
+      if (progressPercent >= 100) {
+        enrollment.status = "completed";
+        enrollment.completedAt = enrollment.completedAt || new Date();
+      } else if (enrollment.status === "completed") {
+        enrollment.status = "active";
+        enrollment.completedAt = null;
+      }
 
-  await enrollment.save();
-}
+      await enrollment.save();
+    }
 
     return res.status(200).json({
       success: true,

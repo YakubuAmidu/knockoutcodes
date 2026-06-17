@@ -140,7 +140,7 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 productSchema.pre("validate", function (next) {
@@ -162,8 +162,12 @@ productSchema.pre("validate", function (next) {
     this.tags = [
       ...new Set(
         this.tags
-          .map((tag) => String(tag || "").trim().toLowerCase())
-          .filter(Boolean)
+          .map((tag) =>
+            String(tag || "")
+              .trim()
+              .toLowerCase(),
+          )
+          .filter(Boolean),
       ),
     ].slice(0, 30);
   }
@@ -171,9 +175,7 @@ productSchema.pre("validate", function (next) {
   if (Array.isArray(this.sizes)) {
     this.sizes = [
       ...new Set(
-        this.sizes
-          .map((size) => String(size || "").trim())
-          .filter(Boolean)
+        this.sizes.map((size) => String(size || "").trim()).filter(Boolean),
       ),
     ].slice(0, 30);
   }
@@ -181,9 +183,7 @@ productSchema.pre("validate", function (next) {
   if (Array.isArray(this.colors)) {
     this.colors = [
       ...new Set(
-        this.colors
-          .map((color) => String(color || "").trim())
-          .filter(Boolean)
+        this.colors.map((color) => String(color || "").trim()).filter(Boolean),
       ),
     ].slice(0, 30);
   }
@@ -191,9 +191,7 @@ productSchema.pre("validate", function (next) {
   if (Array.isArray(this.images)) {
     this.images = [
       ...new Set(
-        this.images
-          .map((image) => String(image || "").trim())
-          .filter(Boolean)
+        this.images.map((image) => String(image || "").trim()).filter(Boolean),
       ),
     ].slice(0, 12);
   }
@@ -218,19 +216,29 @@ productSchema.pre("findOneAndUpdate", function (next) {
   }
 
   if (Array.isArray(set.tags)) {
-    set.tags = [...new Set(set.tags.map((v) => String(v).trim().toLowerCase()).filter(Boolean))].slice(0, 30);
+    set.tags = [
+      ...new Set(
+        set.tags.map((v) => String(v).trim().toLowerCase()).filter(Boolean),
+      ),
+    ].slice(0, 30);
   }
 
   if (Array.isArray(set.sizes)) {
-    set.sizes = [...new Set(set.sizes.map((v) => String(v).trim()).filter(Boolean))].slice(0, 30);
+    set.sizes = [
+      ...new Set(set.sizes.map((v) => String(v).trim()).filter(Boolean)),
+    ].slice(0, 30);
   }
 
   if (Array.isArray(set.colors)) {
-    set.colors = [...new Set(set.colors.map((v) => String(v).trim()).filter(Boolean))].slice(0, 30);
+    set.colors = [
+      ...new Set(set.colors.map((v) => String(v).trim()).filter(Boolean)),
+    ].slice(0, 30);
   }
 
   if (Array.isArray(set.images)) {
-    set.images = [...new Set(set.images.map((v) => String(v).trim()).filter(Boolean))].slice(0, 12);
+    set.images = [
+      ...new Set(set.images.map((v) => String(v).trim()).filter(Boolean)),
+    ].slice(0, 12);
   }
 
   if (update.$set) {
@@ -253,7 +261,12 @@ productSchema.index({
 });
 
 productSchema.index({ brand: 1, isActive: 1, isDeleted: 1, createdAt: -1 });
-productSchema.index({ isFeatured: 1, isActive: 1, isDeleted: 1, createdAt: -1 });
+productSchema.index({
+  isFeatured: 1,
+  isActive: 1,
+  isDeleted: 1,
+  createdAt: -1,
+});
 productSchema.index({ category: 1, isActive: 1, isDeleted: 1, createdAt: -1 });
 
 const Product =

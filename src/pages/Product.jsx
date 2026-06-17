@@ -1,5 +1,12 @@
 // src/pages/Product.jsx
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
@@ -40,7 +47,7 @@ function getRatingAverage(product) {
       product?.averageRating ??
       product?.avgRating ??
       product?.rating ??
-      0
+      0,
   );
 }
 
@@ -51,7 +58,7 @@ function getReviewCount(product) {
       product?.reviewsCount ??
       product?.totalReviews ??
       product?.numReviews ??
-      0
+      0,
   );
 }
 
@@ -60,7 +67,7 @@ function renderStars(ratingAverage) {
   const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
 
   return Array.from({ length: 5 }, (_, index) =>
-    index + 1 <= fullStars ? "★" : "☆"
+    index + 1 <= fullStars ? "★" : "☆",
   ).join("");
 }
 
@@ -135,8 +142,10 @@ export default function Product() {
         setMeta({
           total: typeof m.total === "number" ? m.total : null,
           totalPages: typeof m.totalPages === "number" ? m.totalPages : null,
-          hasNextPage: typeof m.hasNextPage === "boolean" ? m.hasNextPage : null,
-          hasPrevPage: typeof m.hasPrevPage === "boolean" ? m.hasPrevPage : null,
+          hasNextPage:
+            typeof m.hasNextPage === "boolean" ? m.hasNextPage : null,
+          hasPrevPage:
+            typeof m.hasPrevPage === "boolean" ? m.hasPrevPage : null,
         });
 
         lastToastMsgRef.current = "";
@@ -165,7 +174,7 @@ export default function Product() {
         }
       }
     },
-    [category, query, toast]
+    [category, query, toast],
   );
 
   useEffect(() => {
@@ -173,15 +182,15 @@ export default function Product() {
   }, [fetchProducts, page]);
 
   function handleSearchSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (page === 1) {
-    fetchProducts(1);
-    return;
+    if (page === 1) {
+      fetchProducts(1);
+      return;
+    }
+
+    setPage(1);
   }
-
-  setPage(1);
-}
 
   function addToCart(product) {
     const id = getId(product);
@@ -262,8 +271,18 @@ export default function Product() {
             <SectionTitle id="products">Premium Product Vault</SectionTitle>
             <Hint>
               Page <b>{page}</b>
-              {meta.totalPages ? <> / <b>{meta.totalPages}</b></> : null}
-              {meta.total !== null ? <> • <b>{meta.total}</b> total</> : null}
+              {meta.totalPages ? (
+                <>
+                  {" "}
+                  / <b>{meta.totalPages}</b>
+                </>
+              ) : null}
+              {meta.total !== null ? (
+                <>
+                  {" "}
+                  • <b>{meta.total}</b> total
+                </>
+              ) : null}
             </Hint>
           </ToolbarLeft>
 
@@ -299,7 +318,11 @@ export default function Product() {
           <ErrorBox>
             <b>Couldn’t load products.</b>
             <p>{error}</p>
-            <RetryBtn type="button" onClick={() => fetchProducts(page)} disabled={loading}>
+            <RetryBtn
+              type="button"
+              onClick={() => fetchProducts(page)}
+              disabled={loading}
+            >
               Retry
             </RetryBtn>
           </ErrorBox>
@@ -358,15 +381,17 @@ function ProductCard({ product, onAddToCart }) {
   const image = getImage(product);
   const title = product?.title || "Untitled Product";
   const shortDescription =
-    product?.shortDescription || product?.description || "Premium KnockoutCodes product.";
+    product?.shortDescription ||
+    product?.description ||
+    "Premium KnockoutCodes product.";
   const price = Number(product?.price || 0);
   const compareAtPrice = Number(product?.compareAtPrice || 0);
   const stock = Number(product?.stock || 0);
   const hasDiscount = compareAtPrice > price && price >= 0;
   const ratingAverage = getRatingAverage(product);
-const reviewCount = getReviewCount(product);
-const isBestSeller =
-  Boolean(product?.isFeatured) || (ratingAverage >= 4.7 && reviewCount >= 20);
+  const reviewCount = getReviewCount(product);
+  const isBestSeller =
+    Boolean(product?.isFeatured) || (ratingAverage >= 4.7 && reviewCount >= 20);
   const productLink = `/products/${product?.slug || id}`;
 
   return (
@@ -384,7 +409,9 @@ const isBestSeller =
 
         <FloatingBadges>
           {isBestSeller ? <MiniBadge>Best Seller</MiniBadge> : null}
-<MiniBadge>{stock > 0 ? `${stock} in stock` : "Out of stock"}</MiniBadge>
+          <MiniBadge>
+            {stock > 0 ? `${stock} in stock` : "Out of stock"}
+          </MiniBadge>
         </FloatingBadges>
       </ImageWrap>
 
@@ -394,19 +421,21 @@ const isBestSeller =
         <CardDesc>{shortDescription}</CardDesc>
 
         <RatingRow>
-  <Stars>{renderStars(ratingAverage)}</Stars>
+          <Stars>{renderStars(ratingAverage)}</Stars>
 
-  <RatingText>
-    {ratingAverage > 0 ? `${ratingAverage.toFixed(1)}/5` : "New"}
-    {reviewCount > 0
-      ? ` • ${reviewCount} reviews`
-      : " • No reviews yet"}
-  </RatingText>
-</RatingRow>
+          <RatingText>
+            {ratingAverage > 0 ? `${ratingAverage.toFixed(1)}/5` : "New"}
+            {reviewCount > 0
+              ? ` • ${reviewCount} reviews`
+              : " • No reviews yet"}
+          </RatingText>
+        </RatingRow>
 
         <PriceRow>
           <Price>{formatMoney(price)}</Price>
-          {hasDiscount ? <Compare>{formatMoney(compareAtPrice)}</Compare> : null}
+          {hasDiscount ? (
+            <Compare>{formatMoney(compareAtPrice)}</Compare>
+          ) : null}
         </PriceRow>
 
         {Array.isArray(product?.tags) && product.tags.length ? (
@@ -460,9 +489,21 @@ const Page = styled.main`
   padding: 96px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214, 182, 159, 0.22) 0%, rgba(0, 0, 0, 0) 40%),
-    radial-gradient(circle at 82% 16%, rgba(90, 56, 37, 0.34) 0%, rgba(0, 0, 0, 0) 46%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(214, 182, 159, 0.22) 0%,
+      rgba(0, 0, 0, 0) 40%
+    ),
+    radial-gradient(
+      circle at 82% 16%,
+      rgba(90, 56, 37, 0.34) 0%,
+      rgba(0, 0, 0, 0) 46%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      #000 86%
+    );
 `;
 
 const Inner = styled.section`
@@ -527,7 +568,11 @@ const PrimaryAnchor = styled.a`
   justify-content: center;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   text-decoration: none;
@@ -606,7 +651,11 @@ const SearchBtn = styled.button`
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   cursor: pointer;
@@ -792,7 +841,11 @@ const ViewBtn = styled(Link)`
   border-radius: ${({ theme }) => theme.radius.pill};
   text-decoration: none;
   color: ${({ theme }) => theme.colors.black};
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   font-weight: 950;
 `;
 

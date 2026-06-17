@@ -49,18 +49,18 @@ export default function FightCamp() {
             transition={{ delay: 0.3 }}
           >
             This is not random boxing workouts. This is a structured fight
-            system designed to turn beginners into dangerous, disciplined,
-            sharp fighters — step by step.
+            system designed to turn beginners into dangerous, disciplined, sharp
+            fighters — step by step.
           </HeroText>
 
           <CTAGroup>
             <PrimaryCTA
-  to="/courses/free-7-day-fight-camp-challenge"
-  whileHover={{ y: -3 }}
-  whileTap={{ scale: 0.98 }}
->
-  START TRAINING →
-</PrimaryCTA>
+              to="/courses/free-7-day-fight-camp-challenge"
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              START TRAINING →
+            </PrimaryCTA>
 
             <GhostCTA
               to="/curriculum"
@@ -85,9 +85,7 @@ export default function FightCamp() {
             <LevelCard whileHover={{ y: -6 }}>
               <LevelTop>BEGINNER</LevelTop>
 
-              <LevelTitle>
-                Build Your Foundation Like A Real Fighter
-              </LevelTitle>
+              <LevelTitle>Build Your Foundation Like A Real Fighter</LevelTitle>
 
               <LevelText>
                 Learn stance, balance, jab mechanics, defense, movement, and
@@ -98,9 +96,7 @@ export default function FightCamp() {
             <LevelCard whileHover={{ y: -6 }}>
               <LevelTop>INTERMEDIATE</LevelTop>
 
-              <LevelTitle>
-                Turn Basic Skills Into Dangerous Weapons
-              </LevelTitle>
+              <LevelTitle>Turn Basic Skills Into Dangerous Weapons</LevelTitle>
 
               <LevelText>
                 Combination systems, counters, timing, angles, footwork, and
@@ -170,12 +166,12 @@ export default function FightCamp() {
 
             <CTAGroup>
               <PrimaryCTA
-  to="/courses/free-7-day-fight-camp-challenge"
-  whileHover={{ y: -3 }}
-  whileTap={{ scale: 0.98 }}
->
-  START TRAINING →
-</PrimaryCTA>
+                to="/courses/free-7-day-fight-camp-challenge"
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                START TRAINING →
+              </PrimaryCTA>
             </CTAGroup>
           </FreeCard>
         </Container>
@@ -197,9 +193,7 @@ export default function FightCamp() {
                 Structured modules from beginner → complete fight camp.
               </PremiumText>
 
-              <SmallCTA to="/courses">
-                ENTER COURSE →
-              </SmallCTA>
+              <SmallCTA to="/courses">ENTER COURSE →</SmallCTA>
             </PremiumCard>
 
             <PremiumCard whileHover={{ y: -5 }}>
@@ -209,9 +203,7 @@ export default function FightCamp() {
                 Premium fight principles, mindset, drills, and systems.
               </PremiumText>
 
-              <SmallCTA to="/ebook">
-                GRAB E-BOOK →
-              </SmallCTA>
+              <SmallCTA to="/ebook">GRAB E-BOOK →</SmallCTA>
             </PremiumCard>
 
             <PremiumCard whileHover={{ y: -5 }}>
@@ -221,120 +213,116 @@ export default function FightCamp() {
                 Personalized boxing guidance and elite corrections.
               </PremiumText>
 
-              <SmallCTA to="/coaching">
-                APPLY →
-              </SmallCTA>
+              <SmallCTA to="/coaching">APPLY →</SmallCTA>
             </PremiumCard>
           </PremiumGrid>
 
           <StatsSection>
-  <StatCard whileHover={{ y: -4 }}>
-    <StatNumber>4</StatNumber>
-    <StatLabel>Elite Training Levels</StatLabel>
-  </StatCard>
+            <StatCard whileHover={{ y: -4 }}>
+              <StatNumber>4</StatNumber>
+              <StatLabel>Elite Training Levels</StatLabel>
+            </StatCard>
 
-  <StatCard whileHover={{ y: -4 }}>
-    <StatNumber>50+</StatNumber>
-    <StatLabel>Fight System Drills</StatLabel>
-  </StatCard>
+            <StatCard whileHover={{ y: -4 }}>
+              <StatNumber>50+</StatNumber>
+              <StatLabel>Fight System Drills</StatLabel>
+            </StatCard>
 
-  <StatCard whileHover={{ y: -4 }}>
-    <StatNumber>100%</StatNumber>
-    <StatLabel>Structured Progression</StatLabel>
-  </StatCard>
+            <StatCard whileHover={{ y: -4 }}>
+              <StatNumber>100%</StatNumber>
+              <StatLabel>Structured Progression</StatLabel>
+            </StatCard>
 
-  <StatCard whileHover={{ y: -4 }}>
-    <StatNumber>1</StatNumber>
-    <StatLabel>Complete Boxing System</StatLabel>
-  </StatCard>
-</StatsSection>
+            <StatCard whileHover={{ y: -4 }}>
+              <StatNumber>1</StatNumber>
+              <StatLabel>Complete Boxing System</StatLabel>
+            </StatCard>
+          </StatsSection>
 
-<ProblemSection>
-  <ProblemKicker>⚠ WHY MOST FIGHTERS STAY STUCK</ProblemKicker>
+          <ProblemSection>
+            <ProblemKicker>⚠ WHY MOST FIGHTERS STAY STUCK</ProblemKicker>
 
-  <ProblemTitle>
-    Most people train randomly. That’s why they never evolve.
-  </ProblemTitle>
+            <ProblemTitle>
+              Most people train randomly. That’s why they never evolve.
+            </ProblemTitle>
 
-  <ProblemText>
-    They punch hard but move badly.
-    They train fast but think slowly.
-    They work hard but improve little.
-  </ProblemText>
+            <ProblemText>
+              They punch hard but move badly. They train fast but think slowly.
+              They work hard but improve little.
+            </ProblemText>
 
-  <ProblemText>
-    KnockoutCodes was built differently.
-    Every level connects together like an elite fight system:
-    mechanics → defense → movement → conditioning → ring IQ.
-  </ProblemText>
-</ProblemSection>
+            <ProblemText>
+              KnockoutCodes was built differently. Every level connects together
+              like an elite fight system: mechanics → defense → movement →
+              conditioning → ring IQ.
+            </ProblemText>
+          </ProblemSection>
 
-<TestimonialSection>
-  <SectionKicker>🏆 FIGHTER RESULTS</SectionKicker>
+          <TestimonialSection>
+            <SectionKicker>🏆 FIGHTER RESULTS</SectionKicker>
 
-  <SectionTitle>
-    The goal is not to look busy.
-    The goal is to become dangerous.
-  </SectionTitle>
+            <SectionTitle>
+              The goal is not to look busy. The goal is to become dangerous.
+            </SectionTitle>
 
-  <TestimonialGrid>
-    <TestimonialCard whileHover={{ y: -5 }}>
-      <Quote>
-        “For the first time, boxing actually made sense to me.”
-      </Quote>
+            <TestimonialGrid>
+              <TestimonialCard whileHover={{ y: -5 }}>
+                <Quote>
+                  “For the first time, boxing actually made sense to me.”
+                </Quote>
 
-      <FighterName>— Beginner Fighter</FighterName>
-    </TestimonialCard>
+                <FighterName>— Beginner Fighter</FighterName>
+              </TestimonialCard>
 
-    <TestimonialCard whileHover={{ y: -5 }}>
-      <Quote>
-        “My footwork and defense improved faster than months in the gym.”
-      </Quote>
+              <TestimonialCard whileHover={{ y: -5 }}>
+                <Quote>
+                  “My footwork and defense improved faster than months in the
+                  gym.”
+                </Quote>
 
-      <FighterName>— Intermediate Boxer</FighterName>
-    </TestimonialCard>
+                <FighterName>— Intermediate Boxer</FighterName>
+              </TestimonialCard>
 
-    <TestimonialCard whileHover={{ y: -5 }}>
-      <Quote>
-        “This feels like a real fight system, not random workouts.”
-      </Quote>
+              <TestimonialCard whileHover={{ y: -5 }}>
+                <Quote>
+                  “This feels like a real fight system, not random workouts.”
+                </Quote>
 
-      <FighterName>— Fight Camp Student</FighterName>
-    </TestimonialCard>
-  </TestimonialGrid>
-</TestimonialSection>
+                <FighterName>— Fight Camp Student</FighterName>
+              </TestimonialCard>
+            </TestimonialGrid>
+          </TestimonialSection>
 
-<FinalCTASection>
-  <FinalCard>
-    <FinalTitle>
-      Build the version of yourself
-      most people will never become.
-    </FinalTitle>
+          <FinalCTASection>
+            <FinalCard>
+              <FinalTitle>
+                Build the version of yourself most people will never become.
+              </FinalTitle>
 
-    <FinalText>
-      Faster. Sharper. Stronger. Smarter.
-      Start your elite fight journey today.
-    </FinalText>
+              <FinalText>
+                Faster. Sharper. Stronger. Smarter. Start your elite fight
+                journey today.
+              </FinalText>
 
-    <CTAGroup>
-      <PrimaryCTA
-        to="/courses"
-        whileHover={{ y: -3 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        ENTER THE ELITE COURSE →
-      </PrimaryCTA>
+              <CTAGroup>
+                <PrimaryCTA
+                  to="/courses"
+                  whileHover={{ y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  ENTER THE ELITE COURSE →
+                </PrimaryCTA>
 
-      <GhostCTA
-        to="/curriculum"
-        whileHover={{ y: -3 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        VIEW FULL SYSTEM →
-      </GhostCTA>
-    </CTAGroup>
-  </FinalCard>
-</FinalCTASection>
+                <GhostCTA
+                  to="/curriculum"
+                  whileHover={{ y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  VIEW FULL SYSTEM →
+                </GhostCTA>
+              </CTAGroup>
+            </FinalCard>
+          </FinalCTASection>
         </Container>
       </Section>
     </Page>
@@ -366,12 +354,16 @@ const Overlay = styled.div`
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top left, rgba(214,182,159,.22), transparent 35%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.22),
+      transparent 35%
+    ),
     linear-gradient(
       90deg,
-      rgba(0,0,0,.86),
-      rgba(0,0,0,.58),
-      rgba(0,0,0,.82)
+      rgba(0, 0, 0, 0.86),
+      rgba(0, 0, 0, 0.58),
+      rgba(0, 0, 0, 0.82)
     );
 `;
 
@@ -389,30 +381,24 @@ const Kicker = styled(motion.div)`
   width: fit-content;
   padding: 9px 14px;
   border-radius: 999px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
 `;
 
 const HeroTitle = styled(motion.h1)`
   margin: 0;
   max-width: 980px;
   font-size: clamp(48px, 8vw, 102px);
-  line-height: .95;
+  line-height: 0.95;
   font-weight: 950;
-  letter-spacing: -.05em;
+  letter-spacing: -0.05em;
 `;
 
 const Gradient = styled.span`
-  background: linear-gradient(
-    90deg,
-    #fff9f2,
-    #d6b69f,
-    #ffb347,
-    #ffd700
-  );
+  background: linear-gradient(90deg, #fff9f2, #d6b69f, #ffb347, #ffd700);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -422,8 +408,8 @@ const HookBadge = styled(motion.div)`
   width: fit-content;
   padding: 12px 16px;
   border-radius: 999px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   font-weight: 900;
 `;
 
@@ -432,7 +418,7 @@ const HeroText = styled(motion.p)`
   margin: 0;
   font-size: clamp(16px, 1.6vw, 22px);
   line-height: 1.7;
-  opacity: .94;
+  opacity: 0.94;
 `;
 
 const CTAGroup = styled.div`
@@ -452,9 +438,9 @@ const PrimaryCTA = styled(MotionLink)`
 `;
 
 const GhostCTA = styled(PrimaryCTA)`
-  background: rgba(255,255,255,.08);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  border: 1px solid rgba(255,255,255,.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 `;
 
 const Section = styled.section`
@@ -462,7 +448,7 @@ const Section = styled.section`
 `;
 
 const DarkSection = styled(Section)`
-  background: rgba(0,0,0,.24);
+  background: rgba(0, 0, 0, 0.24);
 `;
 
 const Container = styled.div`
@@ -474,7 +460,7 @@ const SectionKicker = styled.div`
   margin-bottom: 16px;
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   color: ${({ theme }) => theme.colors.lightBrown};
 `;
 
@@ -503,8 +489,8 @@ const LevelGrid = styled.div`
 const LevelCard = styled(motion.div)`
   padding: 28px;
   border-radius: 28px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(14px);
 `;
 
@@ -512,7 +498,7 @@ const LevelTop = styled.div`
   margin-bottom: 14px;
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   color: ${({ theme }) => theme.colors.lightBrown};
 `;
 
@@ -525,19 +511,18 @@ const LevelTitle = styled.h3`
 const LevelText = styled.p`
   margin: 0;
   line-height: 1.7;
-  opacity: .92;
+  opacity: 0.92;
 `;
 
 const FreeCard = styled(motion.div)`
   padding: 38px;
   border-radius: 32px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255,255,255,.08),
-      rgba(255,255,255,.03)
-    );
-  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.14);
 `;
 
 const FreeTitle = styled.h3`
@@ -574,8 +559,8 @@ const PremiumGrid = styled.div`
 const PremiumCard = styled(motion.div)`
   padding: 28px;
   border-radius: 28px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const PremiumTitle = styled.h3`
@@ -612,8 +597,8 @@ const StatsSection = styled.section`
 const StatCard = styled(motion.div)`
   padding: 28px;
   border-radius: 28px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   text-align: center;
 `;
 
@@ -629,7 +614,7 @@ const StatNumber = styled.div`
 
 const StatLabel = styled.div`
   font-size: 15px;
-  opacity: .92;
+  opacity: 0.92;
 `;
 
 const ProblemSection = styled.section`
@@ -640,7 +625,7 @@ const ProblemKicker = styled.div`
   margin-bottom: 14px;
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   color: ${({ theme }) => theme.colors.lightBrown};
 `;
 
@@ -655,7 +640,7 @@ const ProblemText = styled.p`
   max-width: 860px;
   font-size: 18px;
   line-height: 1.8;
-  opacity: .94;
+  opacity: 0.94;
 `;
 
 const TestimonialSection = styled.section`
@@ -675,8 +660,8 @@ const TestimonialGrid = styled.div`
 const TestimonialCard = styled(motion.div)`
   padding: 28px;
   border-radius: 28px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 `;
 
 const Quote = styled.p`
@@ -698,13 +683,12 @@ const FinalCTASection = styled.section`
 const FinalCard = styled.div`
   padding: clamp(38px, 5vw, 70px);
   border-radius: 36px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255,255,255,.08),
-      rgba(255,255,255,.03)
-    );
-  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.14);
   text-align: center;
 `;
 
@@ -712,7 +696,7 @@ const FinalTitle = styled.h2`
   margin: 0 auto 20px;
   max-width: 900px;
   font-size: clamp(38px, 6vw, 82px);
-  line-height: .98;
+  line-height: 0.98;
 `;
 
 const FinalText = styled.p`
@@ -720,5 +704,5 @@ const FinalText = styled.p`
   margin: 0 auto 30px;
   font-size: 20px;
   line-height: 1.8;
-  opacity: .94;
+  opacity: 0.94;
 `;

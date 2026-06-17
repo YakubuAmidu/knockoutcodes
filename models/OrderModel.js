@@ -59,7 +59,7 @@ const orderItemSchema = new mongoose.Schema(
       maxlength: 10,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /* =========================================================
@@ -77,7 +77,7 @@ const shippingAddressSchema = new mongoose.Schema(
     postalCode: { type: String, trim: true, default: "" },
     country: { type: String, trim: true, uppercase: true, default: "" },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /* =========================================================
@@ -98,7 +98,7 @@ const shippingSchema = new mongoose.Schema(
     shippedAt: { type: Date, default: null },
     deliveredAt: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /* =========================================================
@@ -219,7 +219,7 @@ const orderSchema = new mongoose.Schema(
       default: () => ({}),
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* =========================================================
@@ -259,7 +259,7 @@ orderSchema.index(
     unique: true,
     sparse: true,
     name: "unique_stripe_session_id",
-  }
+  },
 );
 
 /* =========================================================

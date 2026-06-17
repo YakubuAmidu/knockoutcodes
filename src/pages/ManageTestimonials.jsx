@@ -57,7 +57,7 @@ function getRating(item) {
 export default function ManageTestimonial() {
   const [state, dispatch] = useReducer(
     manageTestimonialReducer,
-    manageTestimonialInitialState
+    manageTestimonialInitialState,
   );
 
   const { showToast } = useToast();
@@ -161,7 +161,8 @@ export default function ManageTestimonial() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    const cleaned = typeof value === "string" ? value.replace(/\s{2,}/g, " ") : value;
+    const cleaned =
+      typeof value === "string" ? value.replace(/\s{2,}/g, " ") : value;
 
     setForm((prev) => ({
       ...prev,
@@ -194,7 +195,10 @@ export default function ManageTestimonial() {
       return;
     }
 
-    if (payload.imageUrl && !/^https?:\/\/.+|^\/?uploads\//i.test(payload.imageUrl)) {
+    if (
+      payload.imageUrl &&
+      !/^https?:\/\/.+|^\/?uploads\//i.test(payload.imageUrl)
+    ) {
       showToast("Please enter a valid image URL.", "warning");
       return;
     }
@@ -215,13 +219,13 @@ export default function ManageTestimonial() {
     const ok = await approveAdminTestimonial(
       dispatch,
       item._id,
-      !currentApproved
+      !currentApproved,
     );
 
     if (ok) {
       showToast(
         !currentApproved ? "Testimonial approved." : "Testimonial unapproved.",
-        !currentApproved ? "success" : "warning"
+        !currentApproved ? "success" : "warning",
       );
     }
   };
@@ -230,7 +234,7 @@ export default function ManageTestimonial() {
     if (actionLoading) return;
 
     const confirmDelete = window.confirm(
-      "Delete this testimonial permanently? This action cannot be undone."
+      "Delete this testimonial permanently? This action cannot be undone.",
     );
 
     if (!confirmDelete) return;
@@ -472,7 +476,9 @@ export default function ManageTestimonial() {
                       onClick={() => handleApproveToggle(item)}
                       disabled={actionLoading}
                       aria-label={
-                        approved ? "Unapprove testimonial" : "Approve testimonial"
+                        approved
+                          ? "Unapprove testimonial"
+                          : "Approve testimonial"
                       }
                     >
                       <FaCheckCircle />
@@ -502,7 +508,11 @@ const Page = styled.section`
   min-height: 100vh;
   padding: 2rem;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 34%),
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 34%
+    ),
     #000;
   color: #fff;
 

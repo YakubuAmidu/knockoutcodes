@@ -27,8 +27,7 @@ const Privacy = () => {
           "Contact data (messages you send via forms, support requests).",
           "Usage data (pages viewed, interactions, device/browser info) to improve performance and security.",
         ],
-        note:
-          "If you connect third-party services (payments, analytics, etc.), they may process data under their own policies.",
+        note: "If you connect third-party services (payments, analytics, etc.), they may process data under their own policies.",
       },
       {
         id: "how-we-use",
@@ -57,8 +56,7 @@ const Privacy = () => {
           "Legal compliance if required by law or to protect rights and safety.",
           "Business changes (merger, acquisition) with notice where required.",
         ],
-        note:
-          "We do not sell your personal information as a business model. We build value by serving you, not by selling your data.",
+        note: "We do not sell your personal information as a business model. We build value by serving you, not by selling your data.",
       },
       {
         id: "security",
@@ -93,7 +91,7 @@ const Privacy = () => {
         ],
       },
     ],
-    []
+    [],
   );
 
   const onCopySummary = async () => {
@@ -110,7 +108,7 @@ const Privacy = () => {
         description: "Privacy summary copied to clipboard.",
         variant: "success",
       });
-    // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
     } catch (e) {
       toast?.push?.({
         title: "Copy failed",
@@ -123,7 +121,8 @@ const Privacy = () => {
   const onEmailPrompt = () => {
     toast?.push?.({
       title: "Quick tip",
-      description: "Use the Contact page to request data access, correction, or deletion.",
+      description:
+        "Use the Contact page to request data access, correction, or deletion.",
       variant: "info",
     });
   };
@@ -158,7 +157,8 @@ const Privacy = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
           >
-            Clean. Secure. Transparent. Your data is handled with intent — and respect.
+            Clean. Secure. Transparent. Your data is handled with intent — and
+            respect.
           </Subtitle>
 
           <MetaRow>
@@ -192,8 +192,8 @@ const Privacy = () => {
           <NavDivider />
 
           <MiniNote>
-            This policy is provided for transparency and general guidance.
-            For specific legal needs, consult a qualified professional.
+            This policy is provided for transparency and general guidance. For
+            specific legal needs, consult a qualified professional.
           </MiniNote>
         </NavCard>
 
@@ -238,8 +238,9 @@ const Privacy = () => {
           >
             <BottomTitle>Control, clarity, confidence.</BottomTitle>
             <BottomText>
-              If you ever need help with account access, deletion, or privacy requests,
-              send a message through the Contact page — we’ll guide you.
+              If you ever need help with account access, deletion, or privacy
+              requests, send a message through the Contact page — we’ll guide
+              you.
             </BottomText>
             <BottomActions>
               <GhostBtn onClick={onEmailPrompt}>Open Request Tip</GhostBtn>
@@ -258,10 +259,23 @@ export default Privacy;
 
 const Wrap = styled.main`
   min-height: 100vh;
-  background: radial-gradient(1200px 700px at 20% 10%, rgba(214, 182, 159, 0.12), transparent 55%),
-              radial-gradient(900px 600px at 80% 25%, rgba(90, 56, 37, 0.20), transparent 60%),
-              radial-gradient(900px 700px at 50% 100%, rgba(61, 38, 26, 0.35), transparent 60%),
-              ${(p) => p.theme.colors.black};
+  background:
+    radial-gradient(
+      1200px 700px at 20% 10%,
+      rgba(214, 182, 159, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 600px at 80% 25%,
+      rgba(90, 56, 37, 0.2),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 700px at 50% 100%,
+      rgba(61, 38, 26, 0.35),
+      transparent 60%
+    ),
+    ${(p) => p.theme.colors.black};
   color: ${(p) => p.theme.colors.ivory};
   position: relative;
   overflow: hidden;
@@ -271,7 +285,11 @@ const Glow = styled.div`
   position: absolute;
   inset: -2px;
   pointer-events: none;
-  background: radial-gradient(650px 220px at 50% 0%, rgba(255, 249, 242, 0.10), transparent 60%);
+  background: radial-gradient(
+    650px 220px at 50% 0%,
+    rgba(255, 249, 242, 0.1),
+    transparent 60%
+  );
 `;
 
 const Top = styled.section`
@@ -289,7 +307,7 @@ const Badge = styled.div`
   border-radius: ${(p) => p.theme.radius.pill};
   background: ${(p) => p.theme.colors.glass};
   box-shadow: ${(p) => p.theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: ${(p) => p.theme.colors.lightBrown};
   letter-spacing: 0.22px;
   font-weight: 650;
@@ -299,22 +317,37 @@ const Hero = styled.div`
   margin-top: 18px;
   padding: 26px 22px;
   border-radius: ${(p) => p.theme.radius.xl};
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  border: 1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${(p) => p.theme.shadow.hard};
   position: relative;
   overflow: hidden;
 
-  &:before{
-    content:"";
-    position:absolute;
-    inset:0;
-    background: radial-gradient(700px 220px at 20% 10%, rgba(214,182,159,0.18), transparent 60%),
-                radial-gradient(700px 220px at 85% 30%, rgba(90,56,37,0.16), transparent 60%);
-    pointer-events:none;
+  &:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        700px 220px at 20% 10%,
+        rgba(214, 182, 159, 0.18),
+        transparent 60%
+      ),
+      radial-gradient(
+        700px 220px at 85% 30%,
+        rgba(90, 56, 37, 0.16),
+        transparent 60%
+      );
+    pointer-events: none;
   }
 
-  > * { position: relative; }
+  > * {
+    position: relative;
+  }
 `;
 
 const Title = styled.h1`
@@ -342,12 +375,13 @@ const MetaRow = styled.div`
 const MetaPill = styled.span`
   padding: 9px 12px;
   border-radius: ${(p) => p.theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: ${(p) =>
     p.$tone === "soft"
       ? "rgba(214, 182, 159, 0.10)"
       : "rgba(255,255,255,0.05)"};
-  color: ${(p) => (p.$tone === "soft" ? p.theme.colors.ivory : p.theme.colors.lightBrown)};
+  color: ${(p) =>
+    p.$tone === "soft" ? p.theme.colors.ivory : p.theme.colors.lightBrown};
   font-size: 0.92rem;
 `;
 
@@ -366,12 +400,23 @@ const PrimaryBtn = styled.button`
   font-weight: 800;
   letter-spacing: 0.2px;
   color: ${(p) => p.theme.colors.black};
-  background: linear-gradient(135deg, ${(p) => p.theme.colors.lightBrown}, ${(p) => p.theme.colors.ivory});
+  background: linear-gradient(
+    135deg,
+    ${(p) => p.theme.colors.lightBrown},
+    ${(p) => p.theme.colors.ivory}
+  );
   box-shadow: ${(p) => p.theme.shadow.soft};
-  transition: transform 0.14s ease, filter 0.14s ease;
+  transition:
+    transform 0.14s ease,
+    filter 0.14s ease;
 
-  &:hover { transform: translateY(-1px); filter: brightness(1.05); }
-  &:active { transform: translateY(0px) scale(0.99); }
+  &:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+  &:active {
+    transform: translateY(0px) scale(0.99);
+  }
 `;
 
 const GhostBtn = styled.button`
@@ -381,13 +426,20 @@ const GhostBtn = styled.button`
   font-weight: 750;
   letter-spacing: 0.2px;
   color: ${(p) => p.theme.colors.ivory};
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${(p) => p.theme.shadow.soft};
-  transition: transform 0.14s ease, background 0.14s ease;
+  transition:
+    transform 0.14s ease,
+    background 0.14s ease;
 
-  &:hover { transform: translateY(-1px); background: rgba(255,255,255,0.06); }
-  &:active { transform: translateY(0px) scale(0.99); }
+  &:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  &:active {
+    transform: translateY(0px) scale(0.99);
+  }
 `;
 
 const Shell = styled.div`
@@ -409,7 +461,7 @@ const CardBase = styled.div`
   background: ${(p) => p.theme.colors.glass};
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
-  border: 1px solid rgba(255,255,255,0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${(p) => p.theme.shadow.glow};
   position: relative;
   overflow: hidden;
@@ -420,10 +472,17 @@ const CardBase = styled.div`
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(255,249,242,0.22), rgba(214,182,159,0.12), rgba(90,56,37,0.14));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 249, 242, 0.22),
+      rgba(214, 182, 159, 0.12),
+      rgba(90, 56, 37, 0.14)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
-            mask-composite: exclude;
+    mask-composite: exclude;
     pointer-events: none;
   }
 `;
@@ -461,9 +520,12 @@ const NavLink = styled.a`
   border-radius: ${(p) => p.theme.radius.md};
   color: ${(p) => p.theme.colors.lightBrown};
   text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(0,0,0,0.18);
-  transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+  transition:
+    transform 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
 
   &:hover {
     transform: translateY(-1px);
@@ -474,7 +536,7 @@ const NavLink = styled.a`
 
 const NavDivider = styled.div`
   height: 1px;
-  background: rgba(255,255,255,0.10);
+  background: rgba(255, 255, 255, 0.1);
   margin: 14px 0;
 `;
 
@@ -506,8 +568,8 @@ const SectionKicker = styled.div`
   width: fit-content;
   padding: 6px 10px;
   border-radius: ${(p) => p.theme.radius.pill};
-  background: rgba(214, 182, 159, 0.10);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(214, 182, 159, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: ${(p) => p.theme.colors.ivory};
   font-weight: 800;
   letter-spacing: 0.18px;
@@ -542,8 +604,8 @@ const Note = styled.div`
   margin-top: 12px;
   padding: 12px 12px;
   border-radius: ${(p) => p.theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(90, 56, 37, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(90, 56, 37, 0.2);
   color: ${(p) => p.theme.colors.ivory};
   line-height: 1.55;
 `;

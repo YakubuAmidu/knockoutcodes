@@ -35,7 +35,7 @@ router.post(
   newsletterSubscribeLimiter,
   csrfRequired,
   newsletterBodyGuard,
-  createNewsletter
+  createNewsletter,
 );
 
 /* =========================
@@ -47,7 +47,7 @@ router.get(
   adminOnly,
   newsletterAdminReadLimiter,
   newsletterQueryGuard,
-  getNewsletters
+  getNewsletters,
 );
 
 router.get(
@@ -55,7 +55,7 @@ router.get(
   authRequired,
   adminOnly,
   newsletterAdminReadLimiter,
-  getNewsletter
+  getNewsletter,
 );
 
 /* =========================
@@ -68,7 +68,7 @@ router.patch(
   newsletterAdminWriteLimiter,
   csrfRequired,
   newsletterAdminBodyGuard,
-  updateNewsletter
+  updateNewsletter,
 );
 
 /* =========================
@@ -80,7 +80,7 @@ router.delete(
   adminOnly,
   newsletterAdminWriteLimiter,
   csrfRequired,
-  deleteNewsletter
+  deleteNewsletter,
 );
 
 export default router;

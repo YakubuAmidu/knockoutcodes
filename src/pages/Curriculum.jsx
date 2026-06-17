@@ -142,7 +142,8 @@ const ModuleItem = styled(motion.div)`
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(
+    background:
+      radial-gradient(
         900px 160px at 10% 18%,
         rgba(214, 182, 159, 0.16),
         transparent 55%
@@ -387,7 +388,8 @@ const Card = styled(motion.div)`
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(
+    background:
+      radial-gradient(
         900px 160px at 18% 18%,
         rgba(214, 182, 159, 0.16),
         transparent 55%
@@ -588,9 +590,20 @@ export default function Curriculum() {
         difficulty: "Beginner",
         summary:
           "Build a jab that controls range, scores, and sets up the right hand like a trap.",
-        drills: ["Step jab", "Double jab timing", "Jab to body", "Jab → exit footwork"],
-        fixes: ["Pawing jab", "No snap", "Standing still after jab", "Chin up on jab"],
-        checkpoint: "Your jab lands clean and you exit without standing in front.",
+        drills: [
+          "Step jab",
+          "Double jab timing",
+          "Jab to body",
+          "Jab → exit footwork",
+        ],
+        fixes: [
+          "Pawing jab",
+          "No snap",
+          "Standing still after jab",
+          "Chin up on jab",
+        ],
+        checkpoint:
+          "Your jab lands clean and you exit without standing in front.",
       },
       {
         id: "m3",
@@ -600,8 +613,18 @@ export default function Curriculum() {
         difficulty: "Beginner",
         summary:
           "Learn the clean sequence: feet → hips → shoulders → hand — for speed and power.",
-        drills: ["Hip turn reps", "Jab → right hand", "Right hand to body", "Right hand → pivot exit"],
-        fixes: ["Arm punching", "Over-rotating", "Dropping left hand", "Feet stuck"],
+        drills: [
+          "Hip turn reps",
+          "Jab → right hand",
+          "Right hand to body",
+          "Right hand → pivot exit",
+        ],
+        fixes: [
+          "Arm punching",
+          "Over-rotating",
+          "Dropping left hand",
+          "Feet stuck",
+        ],
         checkpoint:
           "Right hand feels effortless but hits harder — and you stay protected.",
       },
@@ -621,8 +644,14 @@ export default function Curriculum() {
           "Uppercut → hook flow",
           "Inside guard returns",
         ],
-        fixes: ["Wide hook", "Elbow flaring", "Chin high", "No base on inside punches"],
-        checkpoint: "Hooks stay tight and you can throw without losing defense.",
+        fixes: [
+          "Wide hook",
+          "Elbow flaring",
+          "Chin high",
+          "No base on inside punches",
+        ],
+        checkpoint:
+          "Hooks stay tight and you can throw without losing defense.",
       },
       {
         id: "m5",
@@ -638,7 +667,12 @@ export default function Curriculum() {
           "Body-head setups",
           "Finish-and-move rules",
         ],
-        fixes: ["Standing still after combo", "Same rhythm every time", "No angle", "Hands dropping"],
+        fixes: [
+          "Standing still after combo",
+          "Same rhythm every time",
+          "No angle",
+          "Hands dropping",
+        ],
         checkpoint: "Every combo ends with an exit or angle — automatic.",
       },
       {
@@ -649,7 +683,12 @@ export default function Curriculum() {
         difficulty: "Intermediate",
         summary: "Defense is not “avoid.” Defense is “avoid + punish.”",
         drills: ["Slip line", "Roll-under reps", "Slip → cross", "Roll → hook"],
-        fixes: ["Slipping too big", "Eyes closing", "No return fire", "Hands not protecting while moving"],
+        fixes: [
+          "Slipping too big",
+          "Eyes closing",
+          "No return fire",
+          "Hands not protecting while moving",
+        ],
         checkpoint: "You defend and counter in the same beat.",
       },
 
@@ -662,8 +701,18 @@ export default function Curriculum() {
         difficulty: "Advanced",
         summary:
           "Learn to draw reactions, then punish the reaction — that’s high-level boxing.",
-        drills: ["Jab feint → entry", "Shoulder feint counters", "Trap on jab", "Feint → body work"],
-        fixes: ["Feinting with no plan", "Over-feinting", "No foot positioning", "Watching your own hands"],
+        drills: [
+          "Jab feint → entry",
+          "Shoulder feint counters",
+          "Trap on jab",
+          "Feint → body work",
+        ],
+        fixes: [
+          "Feinting with no plan",
+          "Over-feinting",
+          "No foot positioning",
+          "Watching your own hands",
+        ],
         checkpoint: "Your feints create reactions you can predict.",
       },
       {
@@ -674,10 +723,19 @@ export default function Curriculum() {
         difficulty: "Advanced",
         summary:
           "You learn how to win without trading: position, angles, and pace.",
-        drills: ["Pivot attack rounds", "Cut-off steps", "Angle counters", "Corner escape patterns"],
-        fixes: ["Chasing in straight lines", "Wasting steps", "No angle after landing", "Backing up too much"],
-        checkpoint:
-          "You consistently land while staying off the center line.",
+        drills: [
+          "Pivot attack rounds",
+          "Cut-off steps",
+          "Angle counters",
+          "Corner escape patterns",
+        ],
+        fixes: [
+          "Chasing in straight lines",
+          "Wasting steps",
+          "No angle after landing",
+          "Backing up too much",
+        ],
+        checkpoint: "You consistently land while staying off the center line.",
       },
 
       // LEVEL 4: FIGHT-READY
@@ -695,9 +753,13 @@ export default function Curriculum() {
           "Plan A/B reps",
           "Reset protocols",
         ],
-        fixes: ["Brawling", "No pace control", "Forgetting defense late", "Not adjusting"],
-        checkpoint:
-          "You can explain your plan and execute it under fatigue.",
+        fixes: [
+          "Brawling",
+          "No pace control",
+          "Forgetting defense late",
+          "Not adjusting",
+        ],
+        checkpoint: "You can explain your plan and execute it under fatigue.",
       },
       {
         id: "m10",
@@ -707,12 +769,22 @@ export default function Curriculum() {
         difficulty: "Fight-Ready",
         summary:
           "Build a boxing engine: output, recovery, and composure so your form doesn’t break late rounds.",
-        drills: ["Intervals (boxing specific)", "12-round simulator (scaled)", "Active recovery", "Breath control rounds"],
-        fixes: ["Gassing early", "Form collapsing", "Panic breathing", "Wild punches under fatigue"],
+        drills: [
+          "Intervals (boxing specific)",
+          "12-round simulator (scaled)",
+          "Active recovery",
+          "Breath control rounds",
+        ],
+        fixes: [
+          "Gassing early",
+          "Form collapsing",
+          "Panic breathing",
+          "Wild punches under fatigue",
+        ],
         checkpoint: "Your technique stays clean late rounds.",
       },
     ],
-    []
+    [],
   );
 
   const grouped = useMemo(() => groupBy(modules, "level"), [modules]);
@@ -751,123 +823,163 @@ export default function Curriculum() {
               initial={{ y: 10, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.6 }}
-              transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.12,
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             >
-              This is what makes it premium: you don’t just “work out.” You train a system.
-              Every module comes with drills, the most common mistakes you’ll fix, and a checkpoint
-              that proves you’re improving.
+              This is what makes it premium: you don’t just “work out.” You
+              train a system. Every module comes with drills, the most common
+              mistakes you’ll fix, and a checkpoint that proves you’re
+              improving.
             </SectionDesc>
           </SectionHead>
 
           <ModulesWrap>
-            {Object.entries(grouped).map(([levelName, levelModules], levelIdx) => (
-              <LevelGroup key={levelName}>
-                <LevelTagRow>
-                  <LevelTag>🏷 {levelName}</LevelTag>
-                  <LevelNote>Tap any module to expand</LevelNote>
-                </LevelTagRow>
+            {Object.entries(grouped).map(
+              ([levelName, levelModules], levelIdx) => (
+                <LevelGroup key={levelName}>
+                  <LevelTagRow>
+                    <LevelTag>🏷 {levelName}</LevelTag>
+                    <LevelNote>Tap any module to expand</LevelNote>
+                  </LevelTagRow>
 
-                {levelModules.map((m, i) => {
-                  const isOpen = openModuleId === m.id;
-                  return (
-                    <ModuleItem
-                      key={m.id}
-                      initial={{ y: 12, opacity: 0 }}
-                      whileInView={{ y: 0, opacity: 1 }}
-                      viewport={{ once: true, amount: 0.25 }}
-                      transition={{
-                        delay: 0.04 * (levelIdx + i),
-                        duration: 0.55,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
-                    >
-                      <ModuleButton
-                        type="button"
-                        onMouseMove={setXY}
-                        onClick={() => setOpenModuleId((cur) => (cur === m.id ? "" : m.id))}
-                        aria-expanded={isOpen}
-                        aria-controls={`module-${m.id}`}
+                  {levelModules.map((m, i) => {
+                    const isOpen = openModuleId === m.id;
+                    return (
+                      <ModuleItem
+                        key={m.id}
+                        initial={{ y: 12, opacity: 0 }}
+                        whileInView={{ y: 0, opacity: 1 }}
+                        viewport={{ once: true, amount: 0.25 }}
+                        transition={{
+                          delay: 0.04 * (levelIdx + i),
+                          duration: 0.55,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                       >
-                        <ModuleTitleRow>
-                          <ModuleTitle>{m.title}</ModuleTitle>
+                        <ModuleButton
+                          type="button"
+                          onMouseMove={setXY}
+                          onClick={() =>
+                            setOpenModuleId((cur) => (cur === m.id ? "" : m.id))
+                          }
+                          aria-expanded={isOpen}
+                          aria-controls={`module-${m.id}`}
+                        >
+                          <ModuleTitleRow>
+                            <ModuleTitle>{m.title}</ModuleTitle>
 
-                          <ModuleMeta>
-                            <MetaPill>⏱ {m.duration}</MetaPill>
-                            <MetaPill>🎯 {m.difficulty}</MetaPill>
-                            <ModuleChevron
-                              animate={{ rotate: isOpen ? 180 : 0 }}
-                              transition={{ type: "spring", stiffness: 520, damping: 34 }}
-                              aria-hidden="true"
+                            <ModuleMeta>
+                              <MetaPill>⏱ {m.duration}</MetaPill>
+                              <MetaPill>🎯 {m.difficulty}</MetaPill>
+                              <ModuleChevron
+                                animate={{ rotate: isOpen ? 180 : 0 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 520,
+                                  damping: 34,
+                                }}
+                                aria-hidden="true"
+                              >
+                                ▼
+                              </ModuleChevron>
+                            </ModuleMeta>
+                          </ModuleTitleRow>
+
+                          <ModuleSummary>{m.summary}</ModuleSummary>
+                        </ModuleButton>
+
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <ModuleBody
+                              id={`module-${m.id}`}
+                              key={`body-${m.id}`}
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{
+                                duration: 0.32,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
                             >
-                              ▼
-                            </ModuleChevron>
-                          </ModuleMeta>
-                        </ModuleTitleRow>
+                              <BodyGrid>
+                                <BodyCard>
+                                  <BodyTitle>Drills Included</BodyTitle>
+                                  <List>
+                                    {m.drills.map((x) => (
+                                      <li key={x}>{x}</li>
+                                    ))}
+                                  </List>
+                                  <BodyNote>
+                                    Do these exactly as written. Clean reps beat
+                                    hard reps.
+                                  </BodyNote>
+                                </BodyCard>
 
-                        <ModuleSummary>{m.summary}</ModuleSummary>
-                      </ModuleButton>
+                                <BodyCard>
+                                  <BodyTitle>Mistakes You Fix</BodyTitle>
+                                  <List>
+                                    {m.fixes.map((x) => (
+                                      <li key={x}>{x}</li>
+                                    ))}
+                                  </List>
+                                  <BodyNote>
+                                    This is where most people stay stuck. You
+                                    won’t.
+                                  </BodyNote>
+                                </BodyCard>
 
-                      <AnimatePresence initial={false}>
-                        {isOpen && (
-                          <ModuleBody
-                            id={`module-${m.id}`}
-                            key={`body-${m.id}`}
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                          >
-                            <BodyGrid>
-                              <BodyCard>
-                                <BodyTitle>Drills Included</BodyTitle>
-                                <List>
-                                  {m.drills.map((x) => (
-                                    <li key={x}>{x}</li>
-                                  ))}
-                                </List>
-                                <BodyNote>Do these exactly as written. Clean reps beat hard reps.</BodyNote>
-                              </BodyCard>
-
-                              <BodyCard>
-                                <BodyTitle>Mistakes You Fix</BodyTitle>
-                                <List>
-                                  {m.fixes.map((x) => (
-                                    <li key={x}>{x}</li>
-                                  ))}
-                                </List>
-                                <BodyNote>This is where most people stay stuck. You won’t.</BodyNote>
-                              </BodyCard>
-
-                              <BodyCard style={{ gridColumn: "1 / -1" }}>
-                                <BodyTitle>Checkpoint (Prove Improvement)</BodyTitle>
-                                <List>
-                                  <li>{m.checkpoint}</li>
-                                </List>
-                                <BodyNote>
-                                  When you hit the checkpoint, you move on — not when you “feel tired.”
-                                </BodyNote>
-                              </BodyCard>
-                            </BodyGrid>
-                          </ModuleBody>
-                        )}
-                      </AnimatePresence>
-                    </ModuleItem>
-                  );
-                })}
-              </LevelGroup>
-            ))}
+                                <BodyCard style={{ gridColumn: "1 / -1" }}>
+                                  <BodyTitle>
+                                    Checkpoint (Prove Improvement)
+                                  </BodyTitle>
+                                  <List>
+                                    <li>{m.checkpoint}</li>
+                                  </List>
+                                  <BodyNote>
+                                    When you hit the checkpoint, you move on —
+                                    not when you “feel tired.”
+                                  </BodyNote>
+                                </BodyCard>
+                              </BodyGrid>
+                            </ModuleBody>
+                          )}
+                        </AnimatePresence>
+                      </ModuleItem>
+                    );
+                  })}
+                </LevelGroup>
+              ),
+            )}
           </ModulesWrap>
 
           <FooterCTA>
-            <CTA href="/courses" onMouseMove={setXY} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+            <CTA
+              href="/courses"
+              onMouseMove={setXY}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
               JOIN THE COURSE →
             </CTA>
 
-            <GhostCTA href="/coaching" onMouseMove={setXY} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+            <GhostCTA
+              href="/coaching"
+              onMouseMove={setXY}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
               START 1-ON-1 COACHING →
             </GhostCTA>
 
-            <GhostCTA href="/ebook" onMouseMove={setXY} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+            <GhostCTA
+              href="/ebook"
+              onMouseMove={setXY}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
               GRAB THE E-BOOK →
             </GhostCTA>
           </FooterCTA>
@@ -903,11 +1015,16 @@ export default function Curriculum() {
               initial={{ y: 10, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.6 }}
-              transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.12,
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             >
-              Here’s the structure: you train the right skills in the right order — mechanics, movement,
-              defense, combinations, conditioning, and ring IQ. Every week is designed to make you sharper,
-              faster, and more controlled — not just tired.
+              Here’s the structure: you train the right skills in the right
+              order — mechanics, movement, defense, combinations, conditioning,
+              and ring IQ. Every week is designed to make you sharper, faster,
+              and more controlled — not just tired.
             </SectionDesc>
           </SectionHead>
 
@@ -942,14 +1059,21 @@ export default function Curriculum() {
                 </li>
               </List>
 
-              <Note>You’re not “training random.” You’re building a system—so your skills stack.</Note>
+              <Note>
+                You’re not “training random.” You’re building a system—so your
+                skills stack.
+              </Note>
             </Card>
 
             <Card
               initial={{ y: 14, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.35 }}
-              transition={{ delay: 0.06, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.06,
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               whileHover={{ y: -4 }}
             >
               <CardTitleRow>
@@ -975,7 +1099,10 @@ export default function Curriculum() {
                 </li>
               </List>
 
-              <Note>Every session ends with a checkpoint—so you know you’re progressing.</Note>
+              <Note>
+                Every session ends with a checkpoint—so you know you’re
+                progressing.
+              </Note>
             </Card>
           </Grid>
 
@@ -993,9 +1120,14 @@ export default function Curriculum() {
               initial={{ y: 10, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.6 }}
-              transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.12,
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             >
-              Same program — different time. Pick what fits your life and stay consistent.
+              Same program — different time. Pick what fits your life and stay
+              consistent.
             </SectionDesc>
           </SectionHead>
 
@@ -1009,8 +1141,8 @@ export default function Curriculum() {
             >
               <TimeTitle>⏱ 15 Minutes</TimeTitle>
               <TimeDesc>
-                Quick sharp sessions: warm-up → skill block → 2 rounds → checkpoint. Perfect for consistency
-                when life is busy.
+                Quick sharp sessions: warm-up → skill block → 2 rounds →
+                checkpoint. Perfect for consistency when life is busy.
               </TimeDesc>
             </TimeCard>
 
@@ -1018,13 +1150,17 @@ export default function Curriculum() {
               initial={{ y: 12, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.35 }}
-              transition={{ delay: 0.06, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.06,
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               whileHover={{ y: -3 }}
             >
               <TimeTitle>⏱ 30 Minutes</TimeTitle>
               <TimeDesc>
-                The sweet spot: warm-up → skill + drills → 4 rounds → checkpoint. Fast improvement with real
-                structure.
+                The sweet spot: warm-up → skill + drills → 4 rounds →
+                checkpoint. Fast improvement with real structure.
               </TimeDesc>
             </TimeCard>
 
@@ -1032,13 +1168,17 @@ export default function Curriculum() {
               initial={{ y: 12, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true, amount: 0.35 }}
-              transition={{ delay: 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.12,
+                duration: 0.55,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               whileHover={{ y: -3 }}
             >
               <TimeTitle>⏱ 45–60 Minutes</TimeTitle>
               <TimeDesc>
-                Full camp: technique + rounds + conditioning + strategy. Best for fight prep and serious
-                athletes.
+                Full camp: technique + rounds + conditioning + strategy. Best
+                for fight prep and serious athletes.
               </TimeDesc>
             </TimeCard>
           </TimeGrid>
@@ -1047,7 +1187,11 @@ export default function Curriculum() {
             initial={{ y: 12, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true, amount: 0.35 }}
-            transition={{ delay: 0.06, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            transition={{
+              delay: 0.06,
+              duration: 0.55,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <StripRow>
               <StripPill>✅ Works with NO gym</StripPill>
@@ -1061,4 +1205,3 @@ export default function Curriculum() {
     </Page>
   );
 }
-

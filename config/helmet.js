@@ -42,43 +42,17 @@ export default function securityHeaders() {
       directives: {
         defaultSrc: ["'self'"],
 
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://js.stripe.com",
-        ],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
 
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https:",
-        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
 
-        imgSrc: [
-          "'self'",
-          "data:",
-          "blob:",
-          "https:",
-        ],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
 
-        connectSrc: [
-          "'self'",
-          "https:",
-          "ws:",
-          "wss:",
-        ],
+        connectSrc: ["'self'", "https:", "ws:", "wss:"],
 
-        fontSrc: [
-          "'self'",
-          "https:",
-          "data:",
-        ],
+        fontSrc: ["'self'", "https:", "data:"],
 
-        mediaSrc: [
-          "'self'",
-          "blob:",
-          "https:",
-        ],
+        mediaSrc: ["'self'", "blob:", "https:"],
 
         frameSrc: [
           "'self'",

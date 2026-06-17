@@ -62,7 +62,7 @@ async function startServer() {
     registerSocketHandlers(io);
 
     server.listen(PORT, () => {
-     if (process.env.NODE_ENV !== "production") {
+      if (process.env.NODE_ENV !== "production") {
         console.log(`KnockoutCodes API running on http://localhost:${PORT}`);
       }
       startEmailCampaignScheduler();
@@ -87,12 +87,8 @@ function shutdown(reason, err) {
   }
 }
 
-process.on("unhandledRejection", (err) =>
-  shutdown("Unhandled rejection", err)
-);
+process.on("unhandledRejection", (err) => shutdown("Unhandled rejection", err));
 
-process.on("uncaughtException", (err) =>
-  shutdown("Uncaught exception", err)
-);
+process.on("uncaughtException", (err) => shutdown("Uncaught exception", err));
 
 startServer();

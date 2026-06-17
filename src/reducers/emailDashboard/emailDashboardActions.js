@@ -5,7 +5,9 @@ export const fetchEmailDashboard = () => async (dispatch) => {
   try {
     dispatch({ type: EMAIL_DASHBOARD_ACTIONS.FETCH_REQUEST });
 
-    const { data } = await axiosInstance.get("/email-campaigns/admin/dashboard");
+    const { data } = await axiosInstance.get(
+      "/email-campaigns/admin/dashboard",
+    );
 
     dispatch({
       type: EMAIL_DASHBOARD_ACTIONS.FETCH_SUCCESS,

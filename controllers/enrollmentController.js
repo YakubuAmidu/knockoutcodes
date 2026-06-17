@@ -18,13 +18,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const processedStripeEvents = new Set();
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level || "beginner";
 }
 
 function normalizePaymentPlan(value) {
-  const plan = String(value || "one-time").trim().toLowerCase();
+  const plan = String(value || "one-time")
+    .trim()
+    .toLowerCase();
 
   if (plan === "one_time") return "one-time";
   if (plan === "one time") return "one-time";
@@ -82,7 +86,7 @@ function hasMembershipExactAccess(userLevel, requiredLevel) {
 
 function isMembershipCheckout(session) {
   const checkoutKind = String(
-    session?.metadata?.kind || session?.metadata?.type || ""
+    session?.metadata?.kind || session?.metadata?.type || "",
   )
     .trim()
     .toLowerCase();
@@ -90,7 +94,7 @@ function isMembershipCheckout(session) {
   const plan = normalizePaymentPlan(
     session?.metadata?.paymentPlan ||
       session?.metadata?.billingPlan ||
-      session?.metadata?.plan
+      session?.metadata?.plan,
   );
 
   return checkoutKind === "membership" || plan === "membership";
@@ -101,7 +105,7 @@ function getSessionPaymentPlan(session) {
     session?.metadata?.paymentPlan ||
       session?.metadata?.billingPlan ||
       session?.metadata?.plan ||
-      "one-time"
+      "one-time",
   );
 }
 
@@ -162,7 +166,9 @@ export const createEnrollment = async (req, res) => {
       user,
       course,
       pricePaid: Math.max(0, Number(pricePaid || 0)),
-      currency: String(currency || "USD").trim().toUpperCase(),
+      currency: String(currency || "USD")
+        .trim()
+        .toUpperCase(),
       paymentPlan,
       paymentStatus,
       status,
@@ -229,7 +235,7 @@ export const getMyEnrollments = async (req, res) => {
           description category level requiredMembershipLevel instructor
           price salePrice isFree ratingAverage ratingCount studentsCount
           isFeatured allowSinglePurchase
-        `
+        `,
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -238,7 +244,7 @@ export const getMyEnrollments = async (req, res) => {
       enrollments
         .map((item) => item.course?._id)
         .filter(Boolean)
-        .map(String)
+        .map(String),
     );
 
     const subscription = await UserSubscription.findOne({ user: userId })
@@ -249,16 +255,13 @@ export const getMyEnrollments = async (req, res) => {
 
     if (isSubscriptionActive(subscription)) {
       const userLevel = normalizeLevel(
-        subscription.accessLevel || subscription.membershipId
+        subscription.accessLevel || subscription.membershipId,
       );
 
       membershipCourses = await Course.find({
         isPublished: true,
         isFree: { $ne: true },
-        $or: [
-          { requiredMembershipLevel: userLevel },
-          { level: userLevel },
-        ],
+        $or: [{ requiredMembershipLevel: userLevel }, { level: userLevel }],
       })
         .select(
           `
@@ -266,12 +269,12 @@ export const getMyEnrollments = async (req, res) => {
             description category level requiredMembershipLevel instructor
             price salePrice isFree ratingAverage ratingCount studentsCount
             isFeatured allowSinglePurchase
-          `
+          `,
         )
         .lean();
 
       membershipCourses = membershipCourses.filter(
-        (course) => !ownedCourseIds.has(String(course._id))
+        (course) => !ownedCourseIds.has(String(course._id)),
       );
     }
 
@@ -286,7 +289,8 @@ export const getMyEnrollments = async (req, res) => {
       status: "active",
       accessType: "membership",
       progressPercent: 0,
-      startedAt: subscription.currentPeriodStart || subscription.createdAt || null,
+      startedAt:
+        subscription.currentPeriodStart || subscription.createdAt || null,
       completedAt: null,
       expiresAt: subscription.currentPeriodEnd || null,
       lastAccessedAt: null,
@@ -301,10 +305,7 @@ export const getMyEnrollments = async (req, res) => {
       updatedAt: subscription.updatedAt || new Date(),
     }));
 
-    const finalEnrollments = [
-      ...virtualMembershipEnrollments,
-      ...enrollments,
-    ];
+    const finalEnrollments = [...virtualMembershipEnrollments, ...enrollments];
 
     return res.status(200).json({
       success: true,
@@ -333,7 +334,7 @@ export const getEnrollmentStatus = async (req, res) => {
     }
 
     const course = await Course.findById(courseId).select(
-      "_id title level requiredMembershipLevel isFree"
+      "_id title level requiredMembershipLevel isFree",
     );
 
     if (!course) {
@@ -376,17 +377,19 @@ export const getEnrollmentStatus = async (req, res) => {
       });
     }
 
-    const subscription = await UserSubscription.findOne({ user: userId }).select(
-      "_id membershipId accessLevel status currentPeriodEnd billingPeriod"
+    const subscription = await UserSubscription.findOne({
+      user: userId,
+    }).select(
+      "_id membershipId accessLevel status currentPeriodEnd billingPeriod",
     );
 
     if (isSubscriptionActive(subscription)) {
       const requiredLevel = normalizeLevel(
-        course.requiredMembershipLevel || course.level || "beginner"
+        course.requiredMembershipLevel || course.level || "beginner",
       );
 
       const userLevel = normalizeLevel(
-        subscription.accessLevel || subscription.membershipId
+        subscription.accessLevel || subscription.membershipId,
       );
 
       if (hasMembershipExactAccess(userLevel, requiredLevel)) {
@@ -607,7 +610,7 @@ export const stripeWebhookHandler = async (req, res) => {
       req.body,
       signature,
       // eslint-disable-next-line no-undef
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch {
     return res.status(400).send("Webhook Error");
@@ -615,20 +618,20 @@ export const stripeWebhookHandler = async (req, res) => {
 
   try {
     const existingEvent = await WebhookEvent.findOne({
-  eventId: event.id,
-});
+      eventId: event.id,
+    });
 
-if (existingEvent) {
-  return res.status(200).json({
-    received: true,
-    duplicate: true,
-  });
-}
+    if (existingEvent) {
+      return res.status(200).json({
+        received: true,
+        duplicate: true,
+      });
+    }
 
-await WebhookEvent.create({
-  eventId: event.id,
-  eventType: event.type,
-});
+    await WebhookEvent.create({
+      eventId: event.id,
+      eventType: event.type,
+    });
 
     if (processedStripeEvents.size > 5000) {
       processedStripeEvents.clear();
@@ -686,7 +689,7 @@ await WebhookEvent.create({
           upsert: true,
           new: true,
           runValidators: true,
-        }
+        },
       );
     }
 
@@ -703,7 +706,7 @@ await WebhookEvent.create({
               status: "cancelled",
             },
           },
-          { new: true }
+          { new: true },
         );
       }
     }
@@ -721,7 +724,7 @@ await WebhookEvent.create({
               status: "cancelled",
             },
           },
-          { new: true }
+          { new: true },
         );
       }
     }
@@ -805,7 +808,8 @@ export const verifyStripeEnrollment = async (req, res) => {
     if (isMembershipCheckout(session)) {
       return res.status(403).json({
         success: false,
-        message: "Membership subscriptions cannot create permanent enrollments.",
+        message:
+          "Membership subscriptions cannot create permanent enrollments.",
       });
     }
 
@@ -864,7 +868,7 @@ export const verifyStripeEnrollment = async (req, res) => {
         upsert: true,
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     return res.status(200).json({
@@ -961,12 +965,14 @@ export const updateEnrollmentAdmin = async (req, res) => {
     if ("progressPercent" in update) {
       update.progressPercent = Math.min(
         100,
-        Math.max(0, Number(update.progressPercent || 0))
+        Math.max(0, Number(update.progressPercent || 0)),
       );
     }
 
     if ("review" in update) {
-      update.review = String(update.review || "").trim().slice(0, 1000);
+      update.review = String(update.review || "")
+        .trim()
+        .slice(0, 1000);
     }
 
     if ("rating" in update) {
@@ -988,7 +994,7 @@ export const updateEnrollmentAdmin = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     )
       .populate("user", "name fullName email role")
       .populate("course", "title slug level category price salePrice isFree");

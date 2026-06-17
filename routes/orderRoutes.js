@@ -55,7 +55,7 @@ router.patch(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  markOrderAsSeen
+  markOrderAsSeen,
 );
 
 router.patch(
@@ -63,7 +63,7 @@ router.patch(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  fulfillOrder
+  fulfillOrder,
 );
 
 router.patch(
@@ -71,7 +71,7 @@ router.patch(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  cancelOrder
+  cancelOrder,
 );
 
 router.patch(
@@ -79,7 +79,7 @@ router.patch(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  refundOrder
+  refundOrder,
 );
 
 router.patch(
@@ -87,7 +87,7 @@ router.patch(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  updateOrderTracking
+  updateOrderTracking,
 );
 
 /* =========================================================
@@ -104,7 +104,7 @@ router.put(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  updateOrder
+  updateOrder,
 );
 
 router.delete(
@@ -112,7 +112,7 @@ router.delete(
   authRequired,
   adminOnly,
   validateObjectId("id"),
-  deleteOrder
+  deleteOrder,
 );
 
 export default router;

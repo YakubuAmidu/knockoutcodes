@@ -26,10 +26,13 @@ export const fetchAdminReviews =
       if (type && type !== "all") params.set("type", type);
 
       params.set("page", String(Math.max(1, Number(page) || 1)));
-      params.set("limit", String(Math.min(100, Math.max(1, Number(limit) || 100))));
+      params.set(
+        "limit",
+        String(Math.min(100, Math.max(1, Number(limit) || 100))),
+      );
 
       const { data } = await axiosInstance.get(
-        `/reviews/admin/all?${params.toString()}`
+        `/reviews/admin/all?${params.toString()}`,
       );
 
       dispatch({
@@ -48,7 +51,7 @@ export const fetchAdminReviews =
     } catch (error) {
       const message = getErrorMessage(
         error,
-        "Failed to load reviews. Please try again."
+        "Failed to load reviews. Please try again.",
       );
 
       dispatch({
@@ -73,7 +76,7 @@ export const approveAdminReview = (reviewId) => async (dispatch) => {
     }
 
     const { data } = await axiosInstance.patch(
-      `/reviews/admin/${reviewId}/approve`
+      `/reviews/admin/${reviewId}/approve`,
     );
 
     dispatch({
@@ -104,7 +107,7 @@ export const unapproveAdminReview = (reviewId) => async (dispatch) => {
     }
 
     const { data } = await axiosInstance.patch(
-      `/reviews/admin/${reviewId}/unapprove`
+      `/reviews/admin/${reviewId}/unapprove`,
     );
 
     dispatch({

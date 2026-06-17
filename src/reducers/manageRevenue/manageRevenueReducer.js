@@ -53,7 +53,7 @@ export const manageRevenueReducer = (state, action) => {
         ...state,
         updating: false,
         revenues: state.revenues.map((item) =>
-          getId(item) === getId(action.payload) ? action.payload : item
+          getId(item) === getId(action.payload) ? action.payload : item,
         ),
         selectedRevenue: action.payload,
         editRevenue: action.payload,
@@ -70,7 +70,9 @@ export const manageRevenueReducer = (state, action) => {
       return {
         ...state,
         deleting: false,
-        revenues: state.revenues.filter((item) => getId(item) !== action.payload),
+        revenues: state.revenues.filter(
+          (item) => getId(item) !== action.payload,
+        ),
         selectedRevenue: null,
         editRevenue: null,
         error: "",

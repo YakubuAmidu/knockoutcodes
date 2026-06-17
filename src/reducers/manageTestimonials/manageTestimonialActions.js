@@ -19,8 +19,8 @@ const normalizeTestimonials = (payload) => {
   const list = Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.testimonials)
-    ? payload.testimonials
-    : [];
+      ? payload.testimonials
+      : [];
 
   return list
     .filter(Boolean)
@@ -33,13 +33,15 @@ const normalizeTestimonials = (payload) => {
         item?.isApproved === true ||
         item?.status === "approved",
       rating: Math.max(1, Math.min(5, Number(item?.rating ?? 5))),
-      message: String(item?.message || item?.review || item?.comment || "").trim(),
+      message: String(
+        item?.message || item?.review || item?.comment || "",
+      ).trim(),
       name: String(
         item?.name ||
           item?.user?.name ||
           item?.user?.fullName ||
           item?.user?.username ||
-          "Verified Member"
+          "Verified Member",
       ).trim(),
     }))
     .filter((item) => item?._id);

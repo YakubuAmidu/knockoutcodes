@@ -22,7 +22,9 @@ const REVENUE_STATUSES = [
 ];
 
 function normalizeText(value) {
-  return String(value || "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const revenueSchema = new mongoose.Schema(
@@ -142,7 +144,7 @@ const revenueSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /**

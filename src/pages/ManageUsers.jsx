@@ -30,13 +30,13 @@ export default function ManageUsers() {
 
   const manageUsersState = useSelector((state) => state.manageUsers || {});
   const currentAdmin = useSelector(
-    (state) => state.auth?.user || state.user?.user || null
+    (state) => state.auth?.user || state.user?.user || null,
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const users = Array.isArray(manageUsersState.users)
-  ? manageUsersState.users
-  : [];
+    ? manageUsersState.users
+    : [];
 
   const selected = manageUsersState.selectedUser || null;
   const loading = Boolean(manageUsersState.loading);
@@ -50,10 +50,9 @@ export default function ManageUsers() {
   const search = manageUsersState.search || "";
   const filter = manageUsersState.filter || "all";
   const analytics =
-  manageUsersState.analytics &&
-  typeof manageUsersState.analytics === "object"
-    ? manageUsersState.analytics
-    : {};
+    manageUsersState.analytics && typeof manageUsersState.analytics === "object"
+      ? manageUsersState.analytics
+      : {};
 
   const [localSelected, setLocalSelected] = useState(null);
   const [statusReason, setStatusReason] = useState("");
@@ -64,8 +63,8 @@ export default function ManageUsers() {
       typeof u?.name === "string"
         ? u.name
         : typeof u?.fullName === "string"
-        ? u.fullName
-        : "";
+          ? u.fullName
+          : "";
 
     const trimmed = raw.trim();
 
@@ -134,7 +133,7 @@ export default function ManageUsers() {
 
   const handleSave = async () => {
     if (saving) return;
-    
+
     const id = getUserId(localSelected);
     if (!id) return;
 
@@ -168,7 +167,7 @@ export default function ManageUsers() {
 
   const handleStatusChange = async (nextStatus) => {
     if (changingStatus) return;
-    
+
     const id = getUserId(localSelected);
     if (!id) return;
 
@@ -179,7 +178,7 @@ export default function ManageUsers() {
       updateManageUserStatus(id, {
         accountStatus: nextStatus,
         statusReason: reason,
-      })
+      }),
     );
 
     showToast?.({
@@ -196,8 +195,8 @@ export default function ManageUsers() {
 
     const ok = window.confirm(
       `Force logout ${
-  getSafeName(localSelected) || localSelected.email || "this user"
-}?`
+        getSafeName(localSelected) || localSelected.email || "this user"
+      }?`,
     );
 
     if (!ok) return;
@@ -220,8 +219,8 @@ export default function ManageUsers() {
 
     const ok = window.confirm(
       `Deactivate and archive ${
-  getSafeName(localSelected) || localSelected.email || "this user"
-}?`
+        getSafeName(localSelected) || localSelected.email || "this user"
+      }?`,
     );
 
     if (!ok) return;
@@ -230,7 +229,7 @@ export default function ManageUsers() {
       softDeleteManageUser(id, {
         statusReason:
           statusReason || "Account deactivated and archived by admin.",
-      })
+      }),
     );
 
     showToast?.({
@@ -242,30 +241,30 @@ export default function ManageUsers() {
   };
 
   const handleRestoreUser = async () => {
-  const id = getUserId(localSelected);
-  if (!id || selectedIsCurrentAdmin) return;
+    const id = getUserId(localSelected);
+    if (!id || selectedIsCurrentAdmin) return;
 
-  const ok = window.confirm(
-    `Restore ${
-  getSafeName(localSelected) || localSelected.email || "this user"
-} back to active access?`
-  );
+    const ok = window.confirm(
+      `Restore ${
+        getSafeName(localSelected) || localSelected.email || "this user"
+      } back to active access?`,
+    );
 
-  if (!ok) return;
+    if (!ok) return;
 
-  const res = await dispatch(
-    restoreManageUser(id, {
-      statusReason: statusReason || "Account restored by admin.",
-    })
-  );
+    const res = await dispatch(
+      restoreManageUser(id, {
+        statusReason: statusReason || "Account restored by admin.",
+      }),
+    );
 
-  showToast?.({
-    type: res?.ok ? "success" : "error",
-    message:
-      res?.message ||
-      (res?.ok ? "User restored successfully." : "Failed to restore user."),
-  });
-};
+    showToast?.({
+      type: res?.ok ? "success" : "error",
+      message:
+        res?.message ||
+        (res?.ok ? "User restored successfully." : "Failed to restore user."),
+    });
+  };
 
   const handleDelete = async (user) => {
     const id = getUserId(user);
@@ -274,7 +273,7 @@ export default function ManageUsers() {
     const ok = window.confirm(
       `Permanently delete ${
         getSafeName(user) || user.email || "this user"
-      }? This cannot be undone.`
+      }? This cannot be undone.`,
     );
 
     if (!ok) return;
@@ -318,81 +317,88 @@ export default function ManageUsers() {
         filter === "all"
           ? !u.isDeleted
           : filter === "admin"
-          ? role === "admin"
-          : filter === "deleted"
-          ? u.isDeleted === true
-          : status === filter && !u.isDeleted;
+            ? role === "admin"
+            : filter === "deleted"
+              ? u.isDeleted === true
+              : status === filter && !u.isDeleted;
 
       return matchesSearch && matchesFilter;
     });
   }, [users, search, filter]);
 
-  const filterOptions = useMemo(() => [
-    { value: "all", label: "All Active" },
-    { value: "active", label: "Active" },
-    { value: "on_hold", label: "On Hold" },
-    { value: "suspended", label: "Suspended" },
-    { value: "banned", label: "Banned" },
-    { value: "deactivated", label: "Deactivated" },
-    { value: "admin", label: "Admins" },
-    { value: "deleted", label: "Deleted" },
-  ], []);
+  const filterOptions = useMemo(
+    () => [
+      { value: "all", label: "All Active" },
+      { value: "active", label: "Active" },
+      { value: "on_hold", label: "On Hold" },
+      { value: "suspended", label: "Suspended" },
+      { value: "banned", label: "Banned" },
+      { value: "deactivated", label: "Deactivated" },
+      { value: "admin", label: "Admins" },
+      { value: "deleted", label: "Deleted" },
+    ],
+    [],
+  );
 
   return (
     <>
       <Page>
         <Inner>
           <HeaderRow>
-            <Kicker>10/10 Admin Protection • User Control • Elite Security</Kicker>
+            <Kicker>
+              10/10 Admin Protection • User Control • Elite Security
+            </Kicker>
 
             <Title>
-              Stop Risky Accounts Before They Damage The Platform <span>🛡️</span>
+              Stop Risky Accounts Before They Damage The Platform{" "}
+              <span>🛡️</span>
             </Title>
 
             <Subtitle>
               Search, inspect, edit, suspend, ban, force logout, archive, and
-              permanently remove users from one luxury-grade admin command center.
+              permanently remove users from one luxury-grade admin command
+              center.
             </Subtitle>
           </HeaderRow>
 
           <TopBar>
-           <StatsRow>
-  <StatCard>
-    <StatLabel>Total Users</StatLabel>
-    <StatValue>{totalUsers}</StatValue>
-    <StatHint>All registered users.</StatHint>
-  </StatCard>
+            <StatsRow>
+              <StatCard>
+                <StatLabel>Total Users</StatLabel>
+                <StatValue>{totalUsers}</StatValue>
+                <StatHint>All registered users.</StatHint>
+              </StatCard>
 
-  <StatCard>
-    <StatLabel>Active</StatLabel>
-    <StatValue>{activeCount}</StatValue>
-    <StatHint>Clean accounts with full access.</StatHint>
-  </StatCard>
+              <StatCard>
+                <StatLabel>Active</StatLabel>
+                <StatValue>{activeCount}</StatValue>
+                <StatHint>Clean accounts with full access.</StatHint>
+              </StatCard>
 
-  <StatCard>
-    <StatLabel>Admins</StatLabel>
-    <StatValue>{adminCount}</StatValue>
-    <StatHint>Elevated internal accounts.</StatHint>
-  </StatCard>
+              <StatCard>
+                <StatLabel>Admins</StatLabel>
+                <StatValue>{adminCount}</StatValue>
+                <StatHint>Elevated internal accounts.</StatHint>
+              </StatCard>
 
-  <StatCard>
-    <StatLabel>Verified</StatLabel>
-    <StatValue>{analytics.verifiedUsers || 0}</StatValue>
-    <StatHint>Users with verified accounts.</StatHint>
-  </StatCard>
+              <StatCard>
+                <StatLabel>Verified</StatLabel>
+                <StatValue>{analytics.verifiedUsers || 0}</StatValue>
+                <StatHint>Users with verified accounts.</StatHint>
+              </StatCard>
 
-  <StatCard>
-    <StatLabel>Unverified</StatLabel>
-    <StatValue>{analytics.unverifiedUsers || 0}</StatValue>
-    <StatHint>Accounts needing verification.</StatHint>
-  </StatCard>
+              <StatCard>
+                <StatLabel>Unverified</StatLabel>
+                <StatValue>{analytics.unverifiedUsers || 0}</StatValue>
+                <StatHint>Accounts needing verification.</StatHint>
+              </StatCard>
 
-  <StatCard>
-    <StatLabel>Archived</StatLabel>
-    <StatValue>{analytics.deleted || 0}</StatValue>
-    <StatHint>Soft-deleted user records.</StatHint>
-  </StatCard>
-</StatsRow>
+              <StatCard>
+                <StatLabel>Archived</StatLabel>
+                <StatValue>{analytics.deleted || 0}</StatValue>
+                <StatHint>Soft-deleted user records.</StatHint>
+              </StatCard>
+            </StatsRow>
 
             <SearchWrap>
               <SearchInput
@@ -416,27 +422,27 @@ export default function ManageUsers() {
               ))}
 
               <ArchiveToggle
-  type="button"
-  $active={includeDeleted}
-  onClick={() => {
-    const next = !includeDeleted;
+                type="button"
+                $active={includeDeleted}
+                onClick={() => {
+                  const next = !includeDeleted;
 
-    setIncludeDeleted(next);
+                  setIncludeDeleted(next);
 
-    if (next) {
-      dispatch(setManageUserFilter("deleted"));
-    } else {
-      dispatch(setManageUserFilter("all"));
+                  if (next) {
+                    dispatch(setManageUserFilter("deleted"));
+                  } else {
+                    dispatch(setManageUserFilter("all"));
 
-      if (localSelected?.isDeleted) {
-        dispatch(setSelectedManageUser(null));
-        setLocalSelected(null);
-      }
-    }
-  }}
->
-  {includeDeleted ? "Hide Archive" : "Show Archive"}
-</ArchiveToggle>
+                    if (localSelected?.isDeleted) {
+                      dispatch(setSelectedManageUser(null));
+                      setLocalSelected(null);
+                    }
+                  }
+                }}
+              >
+                {includeDeleted ? "Hide Archive" : "Show Archive"}
+              </ArchiveToggle>
             </FilterBar>
           </TopBar>
 
@@ -493,7 +499,10 @@ export default function ManageUsers() {
                               </Badge>
 
                               <Badge $variant={u.accountStatus || "active"}>
-                                {String(u.accountStatus || "active").replaceAll("_", " ")}
+                                {String(u.accountStatus || "active").replaceAll(
+                                  "_",
+                                  " ",
+                                )}
                               </Badge>
 
                               {u.isDeleted ? (
@@ -512,7 +521,7 @@ export default function ManageUsers() {
                                     year: "numeric",
                                     month: "short",
                                     day: "numeric",
-                                  }
+                                  },
                                 )}
                               </SmallText>
                             ) : null}
@@ -548,7 +557,10 @@ export default function ManageUsers() {
 
                   <ProfileStrip>
                     <BigAvatar>
-                      {getSafeName(localSelected).trim().charAt(0).toUpperCase()}
+                      {getSafeName(localSelected)
+                        .trim()
+                        .charAt(0)
+                        .toUpperCase()}
                     </BigAvatar>
 
                     <ProfileMeta>
@@ -568,7 +580,7 @@ export default function ManageUsers() {
                           $variant={localSelected.accountStatus || "active"}
                         >
                           {String(
-                            localSelected.accountStatus || "active"
+                            localSelected.accountStatus || "active",
                           ).replace("_", " ")}
                         </Badge>
 
@@ -770,7 +782,7 @@ export default function ManageUsers() {
                         <span>
                           {localSelected.createdAt
                             ? new Date(
-                                localSelected.createdAt
+                                localSelected.createdAt,
                               ).toLocaleDateString()
                             : "—"}
                         </span>
@@ -781,7 +793,7 @@ export default function ManageUsers() {
                         <span>
                           {localSelected.lastLoginAt
                             ? new Date(
-                                localSelected.lastLoginAt
+                                localSelected.lastLoginAt,
                               ).toLocaleString()
                             : "—"}
                         </span>
@@ -801,7 +813,8 @@ export default function ManageUsers() {
                     {selectedIsCurrentAdmin ? (
                       <SelfProtectionNotice>
                         You are viewing your own admin account. Archive and hard
-                        delete are locked to prevent accidental platform lockout.
+                        delete are locked to prevent accidental platform
+                        lockout.
                       </SelfProtectionNotice>
                     ) : null}
 
@@ -848,15 +861,15 @@ export default function ManageUsers() {
                         >
                           {softDeleting ? "Archiving..." : "Soft Delete"}
                         </DangerActionButton>
-                           {localSelected.isDeleted ? (
-  <ActionButton
-    type="button"
-    disabled={restoring || selectedIsCurrentAdmin}
-    onClick={handleRestoreUser}
-  >
-    {restoring ? "Restoring..." : "Restore User"}
-  </ActionButton>
-) : null}
+                        {localSelected.isDeleted ? (
+                          <ActionButton
+                            type="button"
+                            disabled={restoring || selectedIsCurrentAdmin}
+                            onClick={handleRestoreUser}
+                          >
+                            {restoring ? "Restoring..." : "Restore User"}
+                          </ActionButton>
+                        ) : null}
                         <ActionButton
                           type="button"
                           disabled={forceLoggingOut}
@@ -1042,7 +1055,9 @@ const SearchInput = styled.input`
   font-size: 0.95rem;
   outline: none;
   box-shadow: ${theme.shadow.soft};
-  transition: border-color 160ms ease, box-shadow 160ms ease,
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
     background 160ms ease;
 
   &::placeholder {
@@ -1052,7 +1067,8 @@ const SearchInput = styled.input`
   &:focus {
     border-color: ${theme.colors.lightBrown};
     background: #120a07;
-    box-shadow: 0 0 0 1px rgba(214, 182, 159, 0.4),
+    box-shadow:
+      0 0 0 1px rgba(214, 182, 159, 0.4),
       ${theme.shadow.soft};
   }
 `;
@@ -1083,7 +1099,9 @@ const FilterButton = styled.button`
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: ${({ $active }) => ($active ? theme.shadow.soft : "none")};
-  transition: transform 140ms ease, box-shadow 140ms ease,
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
     border-color 140ms ease;
 
   &:hover {
@@ -1185,8 +1203,11 @@ const UserRow = styled.button`
   cursor: pointer;
   text-align: left;
   color: ${theme.colors.ivory};
-  transition: background 160ms ease, border-color 160ms ease,
-    transform 140ms ease, box-shadow 140ms ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
 
   &:hover {
     background: rgba(214, 182, 159, 0.12);
@@ -1200,11 +1221,7 @@ const AvatarCircle = styled.div`
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  background: radial-gradient(
-    circle at 30% 0%,
-    #fff9f2,
-    ${theme.colors.brown}
-  );
+  background: radial-gradient(circle at 30% 0%, #fff9f2, ${theme.colors.brown});
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1260,45 +1277,45 @@ const Badge = styled.span`
           color: ${theme.colors.ivory};
         `
       : $variant === "active"
-      ? css`
-          background: rgba(116, 196, 124, 0.12);
-          color: #b8f5c0;
-          border-color: rgba(184, 245, 192, 0.4);
-        `
-      : $variant === "inactive"
-      ? css`
-          background: rgba(255, 85, 85, 0.05);
-          color: #ffb0b0;
-          border-color: rgba(255, 176, 176, 0.5);
-        `
-      : $variant === "on_hold"
-      ? css`
-          background: rgba(250, 204, 21, 0.12);
-          color: #fde68a;
-          border-color: rgba(253, 230, 138, 0.45);
-        `
-      : $variant === "suspended"
-      ? css`
-          background: rgba(251, 146, 60, 0.12);
-          color: #fed7aa;
-          border-color: rgba(254, 215, 170, 0.48);
-        `
-      : $variant === "banned"
-      ? css`
-          background: rgba(239, 68, 68, 0.14);
-          color: #fecaca;
-          border-color: rgba(254, 202, 202, 0.5);
-        `
-      : $variant === "deactivated"
-      ? css`
-          background: rgba(148, 163, 184, 0.12);
-          color: #cbd5e1;
-          border-color: rgba(203, 213, 225, 0.42);
-        `
-      : css`
-          background: rgba(255, 255, 255, 0.04);
-          color: ${theme.colors.lightBrown};
-        `}
+        ? css`
+            background: rgba(116, 196, 124, 0.12);
+            color: #b8f5c0;
+            border-color: rgba(184, 245, 192, 0.4);
+          `
+        : $variant === "inactive"
+          ? css`
+              background: rgba(255, 85, 85, 0.05);
+              color: #ffb0b0;
+              border-color: rgba(255, 176, 176, 0.5);
+            `
+          : $variant === "on_hold"
+            ? css`
+                background: rgba(250, 204, 21, 0.12);
+                color: #fde68a;
+                border-color: rgba(253, 230, 138, 0.45);
+              `
+            : $variant === "suspended"
+              ? css`
+                  background: rgba(251, 146, 60, 0.12);
+                  color: #fed7aa;
+                  border-color: rgba(254, 215, 170, 0.48);
+                `
+              : $variant === "banned"
+                ? css`
+                    background: rgba(239, 68, 68, 0.14);
+                    color: #fecaca;
+                    border-color: rgba(254, 202, 202, 0.5);
+                  `
+                : $variant === "deactivated"
+                  ? css`
+                      background: rgba(148, 163, 184, 0.12);
+                      color: #cbd5e1;
+                      border-color: rgba(203, 213, 225, 0.42);
+                    `
+                  : css`
+                      background: rgba(255, 255, 255, 0.04);
+                      color: ${theme.colors.lightBrown};
+                    `}
 `;
 
 const UserEdge = styled.div`
@@ -1506,7 +1523,9 @@ const baseInputCss = css`
   padding: 0.7rem 0.8rem;
   font-size: 0.92rem;
   outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease,
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
     background 150ms ease;
 
   &::placeholder {
@@ -1516,7 +1535,8 @@ const baseInputCss = css`
   &:focus {
     border-color: ${theme.colors.lightBrown};
     background: #120a07;
-    box-shadow: 0 0 0 1px rgba(214, 182, 159, 0.4),
+    box-shadow:
+      0 0 0 1px rgba(214, 182, 159, 0.4),
       ${theme.shadow.soft};
   }
 `;
@@ -1528,10 +1548,15 @@ const FormInput = styled.input`
 const Select = styled.select`
   ${baseInputCss}
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #d6b69f 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, #d6b69f 50%),
     linear-gradient(135deg, #d6b69f 50%, transparent 50%);
-  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
-  background-size: 6px 6px, 6px 6px;
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px;
   background-repeat: no-repeat;
 `;
 
@@ -1593,7 +1618,8 @@ const ActionPanel = styled.div`
   margin-top: 0.3rem;
   padding: 1rem;
   border-radius: ${theme.radius.lg};
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at top left,
       rgba(214, 182, 159, 0.12),
       transparent 48%
@@ -1655,8 +1681,12 @@ const BaseButton = styled.button`
   text-transform: uppercase;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease,
-    transform 120ms ease, border-color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease,
+    transform 120ms ease,
+    border-color 150ms ease;
 
   &:disabled {
     opacity: 0.6;

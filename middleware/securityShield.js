@@ -116,7 +116,9 @@ export function headerSanity(req, res, next) {
  * Keep it practical and safe.
  */
 export function botGuard(req, res, next) {
-  const ua = String(req.headers["user-agent"] || "").toLowerCase().trim();
+  const ua = String(req.headers["user-agent"] || "")
+    .toLowerCase()
+    .trim();
 
   if (!ua || ua.length < 3) {
     return res.status(403).json({
@@ -126,12 +128,12 @@ export function botGuard(req, res, next) {
   }
 
   const blockedAgents = [
-  "curl",
-  "wget",
-  "python-requests",
-  "scrapy",
-  "httpclient",
-];
+    "curl",
+    "wget",
+    "python-requests",
+    "scrapy",
+    "httpclient",
+  ];
 
   if (blockedAgents.some((item) => ua.includes(item))) {
     return res.status(403).json({
@@ -162,7 +164,7 @@ function cleanObject(input) {
 
     if (Array.isArray(value)) {
       output[key] = value.map((item) =>
-        isPlainObject(item) ? cleanObject(item) : item
+        isPlainObject(item) ? cleanObject(item) : item,
       );
       continue;
     }

@@ -152,7 +152,7 @@ const emailTemplateSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 emailTemplateSchema.pre("validate", function (next) {
@@ -204,8 +204,4 @@ const EmailTemplate =
 
 export default EmailTemplate;
 
-export {
-  EMAIL_TEMPLATE_CATEGORIES,
-  EMAIL_TEMPLATE_STATUSES,
-  isValidHttpUrl,
-};
+export { EMAIL_TEMPLATE_CATEGORIES, EMAIL_TEMPLATE_STATUSES, isValidHttpUrl };

@@ -21,7 +21,7 @@ const MyCourses = () => {
   const [sortBy, setSortBy] = useState("recent");
 
   const { loading, enrollments, error } = useSelector(
-    (state) => state.myCourses
+    (state) => state.myCourses,
   );
 
   useEffect(() => {
@@ -76,13 +76,13 @@ const MyCourses = () => {
   };
 
   function renderStars(ratingAverage) {
-  const rating = Number(ratingAverage) || 0;
-  const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
+    const rating = Number(ratingAverage) || 0;
+    const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
 
-  return Array.from({ length: 5 }, (_, index) =>
-    index + 1 <= fullStars ? "★" : "☆"
-  ).join("");
-}
+    return Array.from({ length: 5 }, (_, index) =>
+      index + 1 <= fullStars ? "★" : "☆",
+    ).join("");
+  }
 
   const normalizeText = (value) =>
     String(value || "")
@@ -104,12 +104,12 @@ const MyCourses = () => {
   };
 
   const getProgress = (enrollment) => {
-  const value = Number(enrollment?.progressPercent);
+    const value = Number(enrollment?.progressPercent);
 
-  if (!Number.isFinite(value)) return 0;
+    if (!Number.isFinite(value)) return 0;
 
-  return Math.min(Math.max(value, 0), 100);
-};
+    return Math.min(Math.max(value, 0), 100);
+  };
 
   const getStatusLabel = (status) => {
     switch (status) {
@@ -136,11 +136,11 @@ const MyCourses = () => {
     const total = safeEnrollments.length;
 
     const active = safeEnrollments.filter(
-      (item) => item.status === "active"
+      (item) => item.status === "active",
     ).length;
 
     const completed = safeEnrollments.filter(
-      (item) => item.status === "completed"
+      (item) => item.status === "completed",
     ).length;
 
     const totalPaid = safeEnrollments.reduce((sum, item) => {
@@ -152,7 +152,7 @@ const MyCourses = () => {
       ? Math.round(
           safeEnrollments.reduce((sum, item) => {
             return sum + getProgress(item);
-          }, 0) / total
+          }, 0) / total,
         )
       : 0;
 
@@ -164,9 +164,7 @@ const MyCourses = () => {
 
     const list = safeEnrollments.filter((item) => {
       const course =
-  item?.course && typeof item.course === "object"
-    ? item.course
-    : {};
+        item?.course && typeof item.course === "object" ? item.course : {};
       const title = String(course.title || "").toLowerCase();
       const level = String(course.level || "").toLowerCase();
       const instructor = String(course.instructor || "").toLowerCase();
@@ -192,7 +190,7 @@ const MyCourses = () => {
 
       if (sortBy === "title") {
         return String(a.course?.title || "").localeCompare(
-          String(b.course?.title || "")
+          String(b.course?.title || ""),
         );
       }
 
@@ -240,12 +238,12 @@ const MyCourses = () => {
     }
 
     navigate(`/my-courses/${encodeURIComponent(courseId)}`, {
-  state: {
-    courseId,
-    enrollmentId: enrollment._id,
-    enrollment,
-  },
-});
+      state: {
+        courseId,
+        enrollmentId: enrollment._id,
+        enrollment,
+      },
+    });
   };
 
   return (
@@ -298,7 +296,9 @@ const MyCourses = () => {
 
         <Toolbar>
           <SearchBox>
-            <SearchLabel htmlFor="courseSearch">Search Purchased Courses</SearchLabel>
+            <SearchLabel htmlFor="courseSearch">
+              Search Purchased Courses
+            </SearchLabel>
             <SearchInput
               id="courseSearch"
               value={searchTerm}
@@ -397,9 +397,9 @@ const MyCourses = () => {
               {filteredEnrollments.map((enrollment) => {
                 const courseId = getCourseId(enrollment);
                 const course =
-  enrollment?.course && typeof enrollment.course === "object"
-    ? enrollment.course
-    : {};
+                  enrollment?.course && typeof enrollment.course === "object"
+                    ? enrollment.course
+                    : {};
                 const image = getCourseImage(course);
                 const progress = getProgress(enrollment);
                 const currency = enrollment.currency || "USD";
@@ -407,25 +407,26 @@ const MyCourses = () => {
                 const pricePaid = Number.isFinite(Number(enrollment.pricePaid))
                   ? formatMoney(enrollment.pricePaid, currency)
                   : course.isFree
-                  ? "Free"
-                  : "Paid";
+                    ? "Free"
+                    : "Paid";
 
                 const paymentPlan = normalizeText(
-                  enrollment.paymentPlan || "one-time"
+                  enrollment.paymentPlan || "one-time",
                 );
 
                 const numericRating = Number(course.ratingAverage) || 0;
                 const numericRatingCount = Number(course.ratingCount) || 0;
                 const enrolledCount =
-  typeof course.studentsCount === "number" ? course.studentsCount : 0;
+                  typeof course.studentsCount === "number"
+                    ? course.studentsCount
+                    : 0;
 
-const isBestSeller =
-  Boolean(course.isFeatured) ||
-  (numericRating >= 4.7 && numericRatingCount >= 20);
+                const isBestSeller =
+                  Boolean(course.isFeatured) ||
+                  (numericRating >= 4.7 && numericRatingCount >= 20);
 
                 return (
-                  <Card
-                    key={enrollment?._id || courseId}>
+                  <Card key={enrollment?._id || courseId}>
                     <ThumbWrap>
                       {image ? (
                         <Thumb
@@ -448,29 +449,31 @@ const isBestSeller =
                         <Badge>{course.category || "Course"}</Badge>
 
                         <BadgeRightGroup>
-  <OwnedBadge>Purchased</OwnedBadge>
+                          <OwnedBadge>Purchased</OwnedBadge>
 
-  {isBestSeller ? (
-    <BestSellerBadge>Best Seller</BestSellerBadge>
-  ) : null}
+                          {isBestSeller ? (
+                            <BestSellerBadge>Best Seller</BestSellerBadge>
+                          ) : null}
 
-  <StatusBadge $status={enrollment.status}>
-    {getStatusLabel(enrollment.status)}
-  </StatusBadge>
-</BadgeRightGroup>
+                          <StatusBadge $status={enrollment.status}>
+                            {getStatusLabel(enrollment.status)}
+                          </StatusBadge>
+                        </BadgeRightGroup>
                       </BadgeRow>
 
                       <HookStrip>
                         {progress >= 100
                           ? "Completed. Review anytime and keep your skills sharp."
                           : progress > 0
-                          ? "You already started. Keep building momentum."
-                          : "Unlocked and ready. Start from lesson one."}
+                            ? "You already started. Keep building momentum."
+                            : "Unlocked and ready. Start from lesson one."}
                       </HookStrip>
                     </ThumbWrap>
 
                     <Body>
-                      <CourseTitle>{course.title || "Untitled Course"}</CourseTitle>
+                      <CourseTitle>
+                        {course.title || "Untitled Course"}
+                      </CourseTitle>
 
                       <PromiseText>
                         {course.shortDescription ||
@@ -479,9 +482,12 @@ const isBestSeller =
                       </PromiseText>
 
                       <MetaRow>
-                        <MetaPill>Level: {course.level || "All Levels"}</MetaPill>
                         <MetaPill>
-                          Instructor: {course.instructor || "KnockoutCodes Coach"}
+                          Level: {course.level || "All Levels"}
+                        </MetaPill>
+                        <MetaPill>
+                          Instructor:{" "}
+                          {course.instructor || "KnockoutCodes Coach"}
                         </MetaPill>
                         <MetaPill>Plan: {paymentPlan}</MetaPill>
                         <MetaPill>Paid: {pricePaid}</MetaPill>
@@ -489,18 +495,24 @@ const isBestSeller =
                       </MetaRow>
 
                       <RatingRow>
-  <Stars>{renderStars(course.ratingAverage)}</Stars>
+                        <Stars>{renderStars(course.ratingAverage)}</Stars>
 
-  <RatingText>
-    {numericRating > 0 ? `${numericRating.toFixed(1)}/5` : "New"}
-    {numericRatingCount > 0 ? ` • ${numericRatingCount} reviews` : ""}
-  </RatingText>
-</RatingRow>
+                        <RatingText>
+                          {numericRating > 0
+                            ? `${numericRating.toFixed(1)}/5`
+                            : "New"}
+                          {numericRatingCount > 0
+                            ? ` • ${numericRatingCount} reviews`
+                            : ""}
+                        </RatingText>
+                      </RatingRow>
 
                       <InfoGrid>
                         <InfoItem>
                           <InfoLabel>Enrollment ID</InfoLabel>
-                          <InfoValue>{enrollment._id || "Not available"}</InfoValue>
+                          <InfoValue>
+                            {enrollment._id || "Not available"}
+                          </InfoValue>
                         </InfoItem>
 
                         <InfoItem>
@@ -513,7 +525,9 @@ const isBestSeller =
                         <InfoItem>
                           <InfoLabel>Purchased</InfoLabel>
                           <InfoValue>
-                            {formatDate(enrollment.startedAt || enrollment.createdAt)}
+                            {formatDate(
+                              enrollment.startedAt || enrollment.createdAt,
+                            )}
                           </InfoValue>
                         </InfoItem>
 
@@ -589,9 +603,17 @@ const spin = keyframes`
 const PageWrap = styled.section`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 14%, rgba(90, 56, 37, 0.42), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   color: ${({ theme }) => theme.colors.white};
   display: flex;
   justify-content: center;
@@ -620,7 +642,11 @@ const HeroContent = styled.div`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.82), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -664,7 +690,11 @@ const HeroPanel = styled.aside`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 22px;
   background:
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.14), transparent 34%),
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.14),
+      transparent 34%
+    ),
     rgba(0, 0, 0, 0.38);
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -901,7 +931,10 @@ const Card = styled.article`
   display: flex;
   flex-direction: column;
   min-height: 620px;
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
   animation: ${fadeUp} 0.35s ease both;
 
   &:hover {
@@ -972,7 +1005,11 @@ const ImageShade = styled.div`
   inset: 0;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.12), transparent 38%);
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.12),
+      transparent 38%
+    );
 `;
 
 const BadgeRow = styled.div`

@@ -36,8 +36,12 @@ function normalizeEmails(list = []) {
   return [
     ...new Set(
       list
-        .map((email) => String(email || "").trim().toLowerCase())
-        .filter(Boolean)
+        .map((email) =>
+          String(email || "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean),
     ),
   ];
 }
@@ -252,7 +256,7 @@ const emailCampaignSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /**
@@ -266,7 +270,7 @@ emailCampaignSchema.pre("validate", function (next) {
   if (this.status === "scheduled") {
     if (!this.scheduledFor) {
       return next(
-        new Error("scheduledFor is required when campaign is scheduled")
+        new Error("scheduledFor is required when campaign is scheduled"),
       );
     }
 

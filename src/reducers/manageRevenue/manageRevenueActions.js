@@ -47,7 +47,10 @@ export const updateManageRevenue = (id, payload) => async (dispatch) => {
   try {
     dispatch({ type: MANAGE_REVENUE_ACTIONS.UPDATE_START });
 
-    const { data } = await axiosInstance.patch(`${ADMIN_REVENUE_URL}/${id}`, payload);
+    const { data } = await axiosInstance.patch(
+      `${ADMIN_REVENUE_URL}/${id}`,
+      payload,
+    );
 
     const updated = data?.data || data?.revenue || data?.order || data;
 

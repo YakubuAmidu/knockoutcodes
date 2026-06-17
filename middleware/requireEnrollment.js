@@ -17,7 +17,9 @@ const isAdminUser = (req) =>
   req.user && ["admin", "superadmin"].includes(String(req.user.role));
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
 
   if (level === "advanced") return "advance";
   if (level === "all") return "all-levels";
@@ -61,7 +63,7 @@ async function findCourseByIdOrSlug(courseId) {
   if (mongoose.Types.ObjectId.isValid(courseId)) {
     const course = await Course.findById(courseId)
       .select(
-        "_id title slug isFree level requiredMembershipLevel isPublished allowSinglePurchase"
+        "_id title slug isFree level requiredMembershipLevel isPublished allowSinglePurchase",
       )
       .lean();
 
@@ -70,7 +72,7 @@ async function findCourseByIdOrSlug(courseId) {
 
   return Course.findOne({ slug: String(courseId).toLowerCase().trim() })
     .select(
-      "_id title slug isFree level requiredMembershipLevel isPublished allowSinglePurchase"
+      "_id title slug isFree level requiredMembershipLevel isPublished allowSinglePurchase",
     )
     .lean();
 }
@@ -92,9 +94,14 @@ export const requireEnrollment = async (req, res, next) => {
     }
 
     if (!courseId) {
-      return sendAccessError(res, 400, "courseId is required for access check.", {
-        code: "COURSE_ID_REQUIRED",
-      });
+      return sendAccessError(
+        res,
+        400,
+        "courseId is required for access check.",
+        {
+          code: "COURSE_ID_REQUIRED",
+        },
+      );
     }
 
     const course = await findCourseByIdOrSlug(courseId);
@@ -124,7 +131,7 @@ export const requireEnrollment = async (req, res, next) => {
     }
 
     const requiredLevel = normalizeRequiredLevel(
-      course.requiredMembershipLevel || course.level || "beginner"
+      course.requiredMembershipLevel || course.level || "beginner",
     );
 
     if (course.isFree || requiredLevel === "none") {
@@ -167,7 +174,7 @@ export const requireEnrollment = async (req, res, next) => {
       status: { $in: ACTIVE_SUBSCRIPTION_STATUSES },
     })
       .select(
-        "_id membership membershipId accessLevel status currentPeriodEnd cancelAtPeriodEnd"
+        "_id membership membershipId accessLevel status currentPeriodEnd cancelAtPeriodEnd",
       )
       .lean();
 
@@ -179,7 +186,7 @@ export const requireEnrollment = async (req, res, next) => {
       const accessLevel = normalizeLevel(
         subscription.accessLevel ||
           subscription.membershipId ||
-          subscription.membership
+          subscription.membership,
       );
 
       if (!isExpired && membershipAllowsCourse(accessLevel, requiredLevel)) {
@@ -207,7 +214,7 @@ export const requireEnrollment = async (req, res, next) => {
         requiredMembershipLevel: requiredLevel,
         courseId: String(course._id),
         allowSinglePurchase: Boolean(course.allowSinglePurchase),
-      }
+      },
     );
   } catch (error) {
     console.error("requireEnrollment error:", error);

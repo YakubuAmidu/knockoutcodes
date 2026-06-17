@@ -42,7 +42,8 @@ const emailSubscriberWriteLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many email subscriber write attempts. Please try again later.",
+    message:
+      "Too many email subscriber write attempts. Please try again later.",
   },
 });
 
@@ -56,7 +57,7 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    createEmailSubscriber
+    createEmailSubscriber,
   );
 
 router.put(
@@ -65,7 +66,7 @@ router.put(
   requireJsonContent,
   ...adminRequestHardening,
   requireCsrf,
-  bulkUpdateEmailSubscribers
+  bulkUpdateEmailSubscribers,
 );
 
 router.delete(
@@ -74,26 +75,30 @@ router.delete(
   requireJsonContent,
   ...adminDeleteHardening,
   requireCsrf,
-  bulkDeleteEmailSubscribers
+  bulkDeleteEmailSubscribers,
 );
 
 router
   .route("/:id")
-  .get(emailSubscriberReadLimiter, validateObjectId("id"), getEmailSubscriberById)
+  .get(
+    emailSubscriberReadLimiter,
+    validateObjectId("id"),
+    getEmailSubscriberById,
+  )
   .put(
     emailSubscriberWriteLimiter,
     validateObjectId("id"),
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    updateEmailSubscriber
+    updateEmailSubscriber,
   )
   .delete(
     emailSubscriberWriteLimiter,
     validateObjectId("id"),
     ...adminDeleteHardening,
     requireCsrf,
-    deleteEmailSubscriber
+    deleteEmailSubscriber,
   );
 
 export default router;

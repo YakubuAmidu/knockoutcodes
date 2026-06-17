@@ -49,7 +49,7 @@ export default function AdminSystemCleanup() {
       failed: rows.filter((r) => String(r?.action || "").includes("failed"))
         .length,
     }),
-    [rows]
+    [rows],
   );
 
   const loadSettings = async () => {
@@ -75,7 +75,7 @@ export default function AdminSystemCleanup() {
         err?.response?.data?.message ||
           err?.response?.data?.error ||
           err?.message ||
-          "Failed to load system settings."
+          "Failed to load system settings.",
       );
     } finally {
       setSettingsLoading(false);
@@ -87,49 +87,38 @@ export default function AdminSystemCleanup() {
   }, []);
 
   useEffect(() => {
-  joinSystemSocketRoom();
+    joinSystemSocketRoom();
 
-  const handleMaintenanceUpdate = (payload) => {
-    if (!payload?._id) return;
+    const handleMaintenanceUpdate = (payload) => {
+      if (!payload?._id) return;
 
-    setActiveSetting(payload);
+      setActiveSetting(payload);
 
-    setSettings((prev) => {
-      const exists = prev.some((item) => item._id === payload._id);
+      setSettings((prev) => {
+        const exists = prev.some((item) => item._id === payload._id);
 
-      if (!exists) {
-        return [payload, ...prev];
-      }
+        if (!exists) {
+          return [payload, ...prev];
+        }
 
-      return prev.map((item) =>
-        item._id === payload._id ? payload : item
-      );
-    });
+        return prev.map((item) => (item._id === payload._id ? payload : item));
+      });
 
-    setForm({
-      maintenanceTitle:
-        payload.maintenanceTitle || DEFAULT_TITLE,
-      maintenanceMessage:
-        payload.maintenanceMessage || DEFAULT_MESSAGE,
-      allowAdminAccess:
-        payload.allowAdminAccess !== false,
-    });
-  };
+      setForm({
+        maintenanceTitle: payload.maintenanceTitle || DEFAULT_TITLE,
+        maintenanceMessage: payload.maintenanceMessage || DEFAULT_MESSAGE,
+        allowAdminAccess: payload.allowAdminAccess !== false,
+      });
+    };
 
-  socket.on(
-    "system:maintenance-updated",
-    handleMaintenanceUpdate
-  );
+    socket.on("system:maintenance-updated", handleMaintenanceUpdate);
 
-  return () => {
-    socket.off(
-      "system:maintenance-updated",
-      handleMaintenanceUpdate
-    );
+    return () => {
+      socket.off("system:maintenance-updated", handleMaintenanceUpdate);
 
-    leaveSystemSocketRoom();
-  };
-}, []);
+      leaveSystemSocketRoom();
+    };
+  }, []);
 
   const updateMaintenance = async (nextMode) => {
     if (maintenanceLoading || maintenanceLockRef.current) return;
@@ -161,7 +150,9 @@ export default function AdminSystemCleanup() {
           const exists = prev.some((item) => item._id === updated._id);
           if (!exists) return [updated, ...prev];
 
-          return prev.map((item) => (item._id === updated._id ? updated : item));
+          return prev.map((item) =>
+            item._id === updated._id ? updated : item,
+          );
         });
       }
 
@@ -169,14 +160,14 @@ export default function AdminSystemCleanup() {
         res.data?.message ||
           (nextMode
             ? "Maintenance mode has been enabled."
-            : "Maintenance mode has been disabled.")
+            : "Maintenance mode has been disabled."),
       );
     } catch (err) {
       setError(
         err?.response?.data?.message ||
           err?.response?.data?.error ||
           err?.message ||
-          "Failed to update maintenance mode."
+          "Failed to update maintenance mode.",
       );
     } finally {
       setMaintenanceLoading(false);
@@ -188,7 +179,7 @@ export default function AdminSystemCleanup() {
     if (loading || cleanupLockRef.current) return;
 
     const confirmRun = window.confirm(
-      "Run system cleanup? This safely repairs old database indexes."
+      "Run system cleanup? This safely repairs old database indexes.",
     );
 
     if (!confirmRun) return;
@@ -200,7 +191,10 @@ export default function AdminSystemCleanup() {
       setSuccess("");
       setResult(null);
 
-      const res = await axiosInstance.post("/system-cleanup/database-indexes", {});
+      const res = await axiosInstance.post(
+        "/system-cleanup/database-indexes",
+        {},
+      );
 
       setResult({
         success: Boolean(res.data?.success),
@@ -214,7 +208,7 @@ export default function AdminSystemCleanup() {
         err?.response?.data?.message ||
           err?.response?.data?.error ||
           err?.message ||
-          "Cleanup failed."
+          "Cleanup failed.",
       );
     } finally {
       setLoading(false);
@@ -226,12 +220,14 @@ export default function AdminSystemCleanup() {
     if (!setting?._id || deletingId) return;
 
     if (settings.length <= 1) {
-  setError("The main system setting is protected. You can only delete duplicate old records.");
-  return;
-}
+      setError(
+        "The main system setting is protected. You can only delete duplicate old records.",
+      );
+      return;
+    }
 
     const confirmDelete = window.confirm(
-      "Delete this system setting from the database? The system will safely recreate the default setting if needed."
+      "Delete this system setting from the database? The system will safely recreate the default setting if needed.",
     );
 
     if (!confirmDelete) return;
@@ -241,19 +237,21 @@ export default function AdminSystemCleanup() {
       setError("");
       setSuccess("");
 
-      const res = await axiosInstance.delete(`/system/admin/settings/${setting._id}`, {
-  data: {},
-});
+      const res = await axiosInstance.delete(
+        `/system/admin/settings/${setting._id}`,
+        {
+          data: {},
+        },
+      );
 
       setSettings((prev) => prev.filter((item) => item._id !== setting._id));
       setSuccess(res.data?.message || "System setting deleted successfully.");
-
     } catch (err) {
       setError(
         err?.response?.data?.message ||
           err?.response?.data?.error ||
           err?.message ||
-          "Failed to delete system setting."
+          "Failed to delete system setting.",
       );
     } finally {
       setDeletingId("");
@@ -281,11 +279,15 @@ export default function AdminSystemCleanup() {
                 {maintenanceLoading
                   ? "Updating..."
                   : maintenanceOn
-                  ? "Turn Maintenance Off"
-                  : "Turn Maintenance On"}
+                    ? "Turn Maintenance Off"
+                    : "Turn Maintenance On"}
               </PrimaryButton>
 
-              <CleanButton type="button" onClick={runCleanup} disabled={loading}>
+              <CleanButton
+                type="button"
+                onClick={runCleanup}
+                disabled={loading}
+              >
                 {loading ? "Cleaning..." : "Clean System"}
               </CleanButton>
 
@@ -303,7 +305,9 @@ export default function AdminSystemCleanup() {
             <StatusBadge $active={maintenanceOn}>
               {maintenanceOn ? "Maintenance On" : "System Live"}
             </StatusBadge>
-            <StatusNumber>{result ? stats.total : settings.length}</StatusNumber>
+            <StatusNumber>
+              {result ? stats.total : settings.length}
+            </StatusNumber>
             <StatusText>
               {result ? "Cleanup Operations" : "Setting Records"}
             </StatusText>
@@ -400,7 +404,9 @@ export default function AdminSystemCleanup() {
 
                 {settings.map((setting) => (
                   <SettingRow key={setting._id}>
-                    <strong>{setting.maintenanceTitle || "Untitled setting"}</strong>
+                    <strong>
+                      {setting.maintenanceTitle || "Untitled setting"}
+                    </strong>
 
                     <ActionPill $failed={setting.maintenanceMode}>
                       {setting.maintenanceMode
@@ -415,16 +421,16 @@ export default function AdminSystemCleanup() {
                     </span>
 
                     <DangerButton
-  type="button"
-  onClick={() => deleteSetting(setting)}
-  disabled={Boolean(deletingId) || settings.length <= 1}
->
-  {deletingId === setting._id
-    ? "Deleting..."
-    : settings.length <= 1
-    ? "Protected"
-    : "Delete"}
-</DangerButton>
+                      type="button"
+                      onClick={() => deleteSetting(setting)}
+                      disabled={Boolean(deletingId) || settings.length <= 1}
+                    >
+                      {deletingId === setting._id
+                        ? "Deleting..."
+                        : settings.length <= 1
+                          ? "Protected"
+                          : "Delete"}
+                    </DangerButton>
                   </SettingRow>
                 ))}
               </Table>
@@ -512,9 +518,21 @@ const Page = styled.main`
   padding: clamp(22px, 4vw, 48px);
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.22), transparent 34%),
-    radial-gradient(circle at 85% 15%, rgba(255, 249, 242, 0.08), transparent 28%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.22),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 85% 15%,
+      rgba(255, 249, 242, 0.08),
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Shell = styled.div`
@@ -538,7 +556,11 @@ const HeroContent = styled.div`
   padding: clamp(28px, 5vw, 56px);
   background:
     linear-gradient(145deg, rgba(0, 0, 0, 0.72), rgba(54, 33, 22, 0.76)),
-    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.22), transparent 35%);
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(214, 182, 159, 0.22),
+      transparent 35%
+    );
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
 
@@ -626,7 +648,11 @@ const StatusPanel = styled.aside`
   text-align: center;
   border: 1px solid rgba(255, 249, 242, 0.14);
   background:
-    radial-gradient(circle at 50% 0%, rgba(214, 182, 159, 0.24), transparent 42%),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(214, 182, 159, 0.24),
+      transparent 42%
+    ),
     rgba(0, 0, 0, 0.42);
   box-shadow: ${({ theme }) => theme.shadow.hard};
   animation: ${float} 4s ease-in-out infinite;

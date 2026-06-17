@@ -59,7 +59,7 @@ function getRating(product) {
       product?.avgRating ??
       product?.rating ??
       product?.ratingsAverage ??
-      0
+      0,
   );
 
   return Number.isFinite(rating) ? rating : 0;
@@ -72,7 +72,7 @@ function getReviewCount(product) {
       product?.reviewsCount ??
       product?.totalReviews ??
       product?.numReviews ??
-      0
+      0,
   );
 
   return Number.isFinite(count) ? count : 0;
@@ -137,20 +137,29 @@ export default function MyProducts() {
             </Badge>
 
             <Title>
-              Your purchased products. <span>Premium, private, and verified.</span>
+              Your purchased products.{" "}
+              <span>Premium, private, and verified.</span>
             </Title>
 
             <Subtitle>
-              This page shows only products you already purchased. Orders stay inside My Orders.
-              Product images, details, ratings, quantity, purchase history, and verified reviews stay here.
+              This page shows only products you already purchased. Orders stay
+              inside My Orders. Product images, details, ratings, quantity,
+              purchase history, and verified reviews stay here.
             </Subtitle>
 
             <HeroActions>
-              <PrimaryButton type="button" onClick={() => navigate("/products")}>
+              <PrimaryButton
+                type="button"
+                onClick={() => navigate("/products")}
+              >
                 Browse Products
               </PrimaryButton>
 
-              <GhostButton type="button" onClick={refreshProducts} disabled={loading}>
+              <GhostButton
+                type="button"
+                onClick={refreshProducts}
+                disabled={loading}
+              >
                 {loading ? "Refreshing…" : "Refresh Products"}
               </GhostButton>
 
@@ -174,7 +183,9 @@ export default function MyProducts() {
               </HeroMiniCard>
 
               <HeroMiniCard>
-                <MiniValue>{formatCurrency(totalSpent, topProduct?.currency || "USD")}</MiniValue>
+                <MiniValue>
+                  {formatCurrency(totalSpent, topProduct?.currency || "USD")}
+                </MiniValue>
                 <MiniLabel>Total Product Spend</MiniLabel>
               </HeroMiniCard>
             </HeroMiniGrid>
@@ -186,12 +197,16 @@ export default function MyProducts() {
             <div>
               <PanelTitle>My Products</PanelTitle>
               <PanelSub>
-                {totalProducts} purchased product{totalProducts === 1 ? "" : "s"} • Verified paid access
+                {totalProducts} purchased product
+                {totalProducts === 1 ? "" : "s"} • Verified paid access
               </PanelSub>
             </div>
 
-            <SmallButton type="button"
-              onClick={refreshProducts} disabled={loading}>
+            <SmallButton
+              type="button"
+              onClick={refreshProducts}
+              disabled={loading}
+            >
               {loading ? "Refreshing…" : "Refresh"}
             </SmallButton>
           </PanelHeader>
@@ -200,7 +215,9 @@ export default function MyProducts() {
             <StateBox>
               <Spinner />
               <StateTitle>Loading your purchased products…</StateTitle>
-              <StateText>Checking paid orders and hydrating full product information.</StateText>
+              <StateText>
+                Checking paid orders and hydrating full product information.
+              </StateText>
             </StateBox>
           ) : error ? (
             <StateBox>
@@ -215,8 +232,13 @@ export default function MyProducts() {
             <StateBox>
               <StateIcon>⌁</StateIcon>
               <StateTitle>No purchased products yet.</StateTitle>
-              <StateText>When you buy KnockoutCodes products, they will appear here.</StateText>
-              <PrimaryButton type="button" onClick={() => navigate("/products")}>
+              <StateText>
+                When you buy KnockoutCodes products, they will appear here.
+              </StateText>
+              <PrimaryButton
+                type="button"
+                onClick={() => navigate("/products")}
+              >
                 Shop Products
               </PrimaryButton>
             </StateBox>
@@ -254,7 +276,10 @@ export default function MyProducts() {
                               }))
                             }
                           >
-                            <ThumbImage src={img} alt={`${product.title} ${index + 1}`} />
+                            <ThumbImage
+                              src={img}
+                              alt={`${product.title} ${index + 1}`}
+                            />
                           </ThumbButton>
                         ))}
                       </ThumbRow>
@@ -265,7 +290,8 @@ export default function MyProducts() {
                         <div>
                           <ProductTitle>{product.title}</ProductTitle>
                           <ProductMetaLine>
-                            {product.brand || "KnockoutCodes"} • {product.category || "Product"}
+                            {product.brand || "KnockoutCodes"} •{" "}
+                            {product.category || "Product"}
                           </ProductMetaLine>
                         </div>
 
@@ -274,10 +300,13 @@ export default function MyProducts() {
 
                       <RatingRow>
                         {Array.from({ length: 5 }).map((_, index) => (
-                          <Star key={index}>{index < Math.round(rating) ? "★" : "☆"}</Star>
+                          <Star key={index}>
+                            {index < Math.round(rating) ? "★" : "☆"}
+                          </Star>
                         ))}
                         <RatingText>
-                          {rating ? rating.toFixed(1) : "0.0"} / 5 • {reviewCount} review
+                          {rating ? rating.toFixed(1) : "0.0"} / 5 •{" "}
+                          {reviewCount} review
                           {reviewCount === 1 ? "" : "s"}
                         </RatingText>
                       </RatingRow>
@@ -295,17 +324,29 @@ export default function MyProducts() {
 
                         <DetailBox>
                           <DetailLabel>Unit Price</DetailLabel>
-                          <DetailValue>{formatCurrency(product.unitPrice, product.currency)}</DetailValue>
+                          <DetailValue>
+                            {formatCurrency(
+                              product.unitPrice,
+                              product.currency,
+                            )}
+                          </DetailValue>
                         </DetailBox>
 
                         <DetailBox>
                           <DetailLabel>Total Spent</DetailLabel>
-                          <DetailValue>{formatCurrency(product.totalSpent, product.currency)}</DetailValue>
+                          <DetailValue>
+                            {formatCurrency(
+                              product.totalSpent,
+                              product.currency,
+                            )}
+                          </DetailValue>
                         </DetailBox>
 
                         <DetailBox>
                           <DetailLabel>Last Purchased</DetailLabel>
-                          <DetailValue>{formatDate(product.latestPurchasedAt)}</DetailValue>
+                          <DetailValue>
+                            {formatDate(product.latestPurchasedAt)}
+                          </DetailValue>
                         </DetailBox>
 
                         <DetailBox>
@@ -325,7 +366,9 @@ export default function MyProducts() {
 
                         <DetailBox>
                           <DetailLabel>Status</DetailLabel>
-                          <DetailValue>{product.status || "processing"}</DetailValue>
+                          <DetailValue>
+                            {product.status || "processing"}
+                          </DetailValue>
                         </DetailBox>
                       </DetailsGrid>
 
@@ -338,7 +381,8 @@ export default function MyProducts() {
                         />
 
                         <ReviewNote>
-                          Verified purchase review. Only paid customers can submit.
+                          Verified purchase review. Only paid customers can
+                          submit.
                         </ReviewNote>
                       </ReviewSlot>
 
@@ -346,24 +390,29 @@ export default function MyProducts() {
                         <PrimaryButton
                           type="button"
                           onClick={() => {
-  const productLinkId = product.slug || product.productId;
+                            const productLinkId =
+                              product.slug || product.productId;
 
-  if (!productLinkId) {
-    toast?.push?.({
-      title: "Product error",
-      description: "This product is missing a valid link.",
-      variant: "error",
-    });
-    return;
-  }
+                            if (!productLinkId) {
+                              toast?.push?.({
+                                title: "Product error",
+                                description:
+                                  "This product is missing a valid link.",
+                                variant: "error",
+                              });
+                              return;
+                            }
 
-  navigate(`/products/${productLinkId}`);
-}}
+                            navigate(`/products/${productLinkId}`);
+                          }}
                         >
                           View Product
                         </PrimaryButton>
 
-                        <GhostButton type="button" onClick={() => navigate("/dashboard/my-orders")}>
+                        <GhostButton
+                          type="button"
+                          onClick={() => navigate("/dashboard/my-orders")}
+                        >
                           View Orders
                         </GhostButton>
                       </CardActions>
@@ -395,7 +444,11 @@ const Page = styled.main`
   padding: 96px 18px 76px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 15% 6%, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(
+      circle at 15% 6%,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 14%, rgba(90, 56, 37, 0.28), transparent 38%),
     linear-gradient(
       180deg,
@@ -455,8 +508,16 @@ const HeroText = styled.div`
   padding: clamp(20px, 3vw, 28px);
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    radial-gradient(circle at 12% 0%, rgba(214, 182, 159, 0.16), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.026)),
+    radial-gradient(
+      circle at 12% 0%,
+      rgba(214, 182, 159, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.026)
+    ),
     rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 249, 242, 0.11);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -715,17 +776,28 @@ const ProductCard = styled.article`
   overflow: hidden;
   border-radius: 22px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.1), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(214, 182, 159, 0.1),
+      transparent 34%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.055),
+      rgba(255, 255, 255, 0.018)
+    ),
     rgba(0, 0, 0, 0.34);
   border: 1px solid rgba(255, 249, 242, 0.1);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 
- &:hover {
-  border-color: rgba(214, 182, 159, 0.22);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
-}
+  &:hover {
+    border-color: rgba(214, 182, 159, 0.22);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+  }
 `;
 
 const ImageWrap = styled.div`
@@ -918,7 +990,9 @@ const ReviewSlot = styled.div`
   isolation: isolate;
   transform: none !important;
   box-shadow: none !important;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 
   &:hover,
   &:focus,

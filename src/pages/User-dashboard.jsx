@@ -60,7 +60,11 @@ const fallbackActivity = [
 const quickActions = [
   { title: "Courses", desc: "Continue or explore training.", to: "/courses" },
   { title: "Lessons", desc: "Jump into your next lesson.", to: "/lessons" },
-  { title: "Curriculum", desc: "View your full learning path.", to: "/curriculum" },
+  {
+    title: "Curriculum",
+    desc: "View your full learning path.",
+    to: "/curriculum",
+  },
   { title: "Coaching", desc: "Book or view coaching.", to: "/coachings" },
   { title: "E-Books", desc: "Open premium guides.", to: "/ebooks" },
   { title: "Products", desc: "View training products.", to: "/products" },
@@ -123,7 +127,7 @@ export default function UserDashboard() {
 
   const unreadNotifications = useMemo(
     () => safeArray(notifications).filter((n) => !n?.read).length,
-    [notifications]
+    [notifications],
   );
 
   const activeEnrollments = useMemo(
@@ -132,7 +136,7 @@ export default function UserDashboard() {
         const status = String(en?.status || "active").toLowerCase();
         return status !== "cancelled" && status !== "expired";
       }),
-    [myEnrollments]
+    [myEnrollments],
   );
 
   const premiumNextSteps = useMemo(() => {
@@ -193,7 +197,8 @@ export default function UserDashboard() {
     };
 
     window.addEventListener("kc:auth-expired", handleAuthExpired);
-    return () => window.removeEventListener("kc:auth-expired", handleAuthExpired);
+    return () =>
+      window.removeEventListener("kc:auth-expired", handleAuthExpired);
   }, [navigate, showToast]);
 
   useEffect(() => {
@@ -261,12 +266,13 @@ export default function UserDashboard() {
           <HeroContent>
             <Eyebrow>KNOCKOUTCODES MEMBER COMMAND CENTER</Eyebrow>
             <Title>
-              {greeting}. Train sharper, move cleaner, and keep building champion
-              discipline.
+              {greeting}. Train sharper, move cleaner, and keep building
+              champion discipline.
             </Title>
             <Subtitle>
-              Your courses, lessons, curriculum, coaching, purchases, saved items,
-              updates, and support are organized in one premium dashboard.
+              Your courses, lessons, curriculum, coaching, purchases, saved
+              items, updates, and support are organized in one premium
+              dashboard.
             </Subtitle>
 
             <HeroActions>
@@ -274,20 +280,23 @@ export default function UserDashboard() {
                 Continue Training
               </PrimaryButton>
               <GhostButton
-  type="button"
-  onClick={() => navigate("/my-courses")}
->
-  My Courses
-              </GhostButton>
-              <GhostButton type="button" onClick={() => navigate("/dashboard/products")}>
-  My Products
+                type="button"
+                onClick={() => navigate("/my-courses")}
+              >
+                My Courses
               </GhostButton>
               <GhostButton
-  type="button"
-  onClick={() => navigate("/my-messages")}
->
-  My Messages
-</GhostButton>
+                type="button"
+                onClick={() => navigate("/dashboard/products")}
+              >
+                My Products
+              </GhostButton>
+              <GhostButton
+                type="button"
+                onClick={() => navigate("/my-messages")}
+              >
+                My Messages
+              </GhostButton>
               <GhostButton type="button" onClick={() => navigate("/courses")}>
                 Explore Courses
               </GhostButton>
@@ -372,23 +381,33 @@ export default function UserDashboard() {
               <PanelHeader>
                 <div>
                   <PanelTitle>Purchased Courses</PanelTitle>
-                  <PanelSub>Your unlocked KnockoutCodes training library.</PanelSub>
+                  <PanelSub>
+                    Your unlocked KnockoutCodes training library.
+                  </PanelSub>
                 </div>
 
-                <SmallButton type="button" onClick={() => dispatch(fetchMyEnrollments())}>
+                <SmallButton
+                  type="button"
+                  onClick={() => dispatch(fetchMyEnrollments())}
+                >
                   Refresh
                 </SmallButton>
               </PanelHeader>
 
-              {enrollLoading ? <EmptyState>Loading your courses...</EmptyState> : null}
+              {enrollLoading ? (
+                <EmptyState>Loading your courses...</EmptyState>
+              ) : null}
 
               {!enrollLoading && enrollError ? (
-                <EmptyState>Could not load enrollments. Try refreshing.</EmptyState>
+                <EmptyState>
+                  Could not load enrollments. Try refreshing.
+                </EmptyState>
               ) : null}
 
               {!enrollLoading && !enrollError && !activeEnrollments.length ? (
                 <EmptyState>
-                  No purchased courses yet. Start with one powerful course today.
+                  No purchased courses yet. Start with one powerful course
+                  today.
                 </EmptyState>
               ) : null}
 
@@ -420,14 +439,22 @@ export default function UserDashboard() {
                           <CoursePill>
                             Plan: {en?.plan || course?.plan || "Standard"}
                           </CoursePill>
-                          <CoursePill>Status: {en?.status || "Active"}</CoursePill>
+                          <CoursePill>
+                            Status: {en?.status || "Active"}
+                          </CoursePill>
                         </CourseMeta>
 
                         <CourseActions>
-                          <PrimaryButton type="button" onClick={() => continueCourse(en)}>
+                          <PrimaryButton
+                            type="button"
+                            onClick={() => continueCourse(en)}
+                          >
                             Continue
                           </PrimaryButton>
-                          <GhostButton type="button" onClick={() => navigate("/courses")}>
+                          <GhostButton
+                            type="button"
+                            onClick={() => navigate("/courses")}
+                          >
                             View More
                           </GhostButton>
                         </CourseActions>
@@ -441,31 +468,46 @@ export default function UserDashboard() {
             <Panel>
               <PanelTitle>Lessons & Curriculum Progress</PanelTitle>
               <PanelSub>
-                Track your learning path without turning the dashboard into a full
-                curriculum page.
+                Track your learning path without turning the dashboard into a
+                full curriculum page.
               </PanelSub>
 
               <InfoGrid>
                 <InfoCard>
                   <InfoLabel>Next Lesson</InfoLabel>
-                  <InfoValue>{stats?.nextLessonTitle || "Start your next lesson"}</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/lessons")}>
+                  <InfoValue>
+                    {stats?.nextLessonTitle || "Start your next lesson"}
+                  </InfoValue>
+                  <SmallButton
+                    type="button"
+                    onClick={() => navigate("/lessons")}
+                  >
                     Open Lessons
                   </SmallButton>
                 </InfoCard>
 
                 <InfoCard>
                   <InfoLabel>Curriculum</InfoLabel>
-                  <InfoValue>{stats?.curriculumProgress || progressPercent}% complete</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/curriculum")}>
+                  <InfoValue>
+                    {stats?.curriculumProgress || progressPercent}% complete
+                  </InfoValue>
+                  <SmallButton
+                    type="button"
+                    onClick={() => navigate("/curriculum")}
+                  >
                     View Path
                   </SmallButton>
                 </InfoCard>
 
                 <InfoCard>
                   <InfoLabel>Completed Lessons</InfoLabel>
-                  <InfoValue>{stats?.completedLessonsCount ?? stats?.completedCount ?? 0}</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/lessons")}>
+                  <InfoValue>
+                    {stats?.completedLessonsCount ?? stats?.completedCount ?? 0}
+                  </InfoValue>
+                  <SmallButton
+                    type="button"
+                    onClick={() => navigate("/lessons")}
+                  >
                     Continue
                   </SmallButton>
                 </InfoCard>
@@ -482,7 +524,10 @@ export default function UserDashboard() {
                 <InfoCard>
                   <InfoLabel>E-Books</InfoLabel>
                   <InfoValue>{stats?.ebooksCount ?? 0} available</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/ebooks")}>
+                  <SmallButton
+                    type="button"
+                    onClick={() => navigate("/ebooks")}
+                  >
                     Open E-Books
                   </SmallButton>
                 </InfoCard>
@@ -490,15 +535,21 @@ export default function UserDashboard() {
                 <InfoCard>
                   <InfoLabel>Products</InfoLabel>
                   <InfoValue>{stats?.productsCount ?? 0} items</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/dashboard/products")}>
-  My Products
-</SmallButton>
+                  <SmallButton
+                    type="button"
+                    onClick={() => navigate("/dashboard/products")}
+                  >
+                    My Products
+                  </SmallButton>
                 </InfoCard>
 
                 <InfoCard>
                   <InfoLabel>Orders</InfoLabel>
                   <InfoValue>{stats?.ordersCount ?? 0} orders</InfoValue>
-                  <SmallButton type="button" onClick={() => navigate("/dashboard/orders")}>
+                  <SmallButton
+                    type="button"
+                    onClick={() => navigate("/dashboard/orders")}
+                  >
                     View Orders
                   </SmallButton>
                 </InfoCard>
@@ -512,10 +563,14 @@ export default function UserDashboard() {
               <ActionGrid>
                 {premiumNextSteps.map((step, idx) => (
                   <ActionCard key={`${step?.title || "step"}-${idx}`}>
-                    <ActionNumber>{String(idx + 1).padStart(2, "0")}</ActionNumber>
+                    <ActionNumber>
+                      {String(idx + 1).padStart(2, "0")}
+                    </ActionNumber>
                     <ActionTitle>{step?.title || "Next step"}</ActionTitle>
                     <ActionDesc>
-                      {step?.desc || step?.description || "Keep moving forward."}
+                      {step?.desc ||
+                        step?.description ||
+                        "Keep moving forward."}
                     </ActionDesc>
                     <SmallButton
                       type="button"
@@ -540,7 +595,10 @@ export default function UserDashboard() {
                     <CourseBadge>{item.type}</CourseBadge>
                     <ActionTitle>{item.title}</ActionTitle>
                     <ActionDesc>{item.desc}</ActionDesc>
-                    <SmallButton type="button" onClick={() => navigate(item.to)}>
+                    <SmallButton
+                      type="button"
+                      onClick={() => navigate(item.to)}
+                    >
                       Open
                     </SmallButton>
                   </RecommendationCard>
@@ -569,7 +627,9 @@ export default function UserDashboard() {
                       }
                     }}
                   >
-                    <NotifTitle>{n?.title || "KnockoutCodes Update"}</NotifTitle>
+                    <NotifTitle>
+                      {n?.title || "KnockoutCodes Update"}
+                    </NotifTitle>
                     <NotifDesc>
                       {n?.desc || n?.message || "You have a new update."}
                     </NotifDesc>
@@ -585,22 +645,31 @@ export default function UserDashboard() {
 
             <Panel>
               <PanelTitle>Coaching</PanelTitle>
-              <PanelSub>Your private growth and training support area.</PanelSub>
+              <PanelSub>
+                Your private growth and training support area.
+              </PanelSub>
 
               <SideList>
                 <SideItem>
                   <SideTitle>Next Session</SideTitle>
-                  <SideText>{stats?.nextCoachingSession || "No session booked yet."}</SideText>
+                  <SideText>
+                    {stats?.nextCoachingSession || "No session booked yet."}
+                  </SideText>
                 </SideItem>
 
                 <SideItem>
                   <SideTitle>Coaching Status</SideTitle>
-                  <SideText>{stats?.coachingStatus || "Available when you are ready."}</SideText>
+                  <SideText>
+                    {stats?.coachingStatus || "Available when you are ready."}
+                  </SideText>
                 </SideItem>
               </SideList>
 
               <ButtonStack>
-                <PrimaryButton type="button" onClick={() => navigate("/coachings")}>
+                <PrimaryButton
+                  type="button"
+                  onClick={() => navigate("/coachings")}
+                >
                   Book Coaching
                 </PrimaryButton>
               </ButtonStack>
@@ -608,7 +677,9 @@ export default function UserDashboard() {
 
             <Panel>
               <PanelTitle>Saved & Wishlist</PanelTitle>
-              <PanelSub>Your favorite courses, products, ebooks, and blogs.</PanelSub>
+              <PanelSub>
+                Your favorite courses, products, ebooks, and blogs.
+              </PanelSub>
 
               <SideList>
                 <SideItem>
@@ -617,7 +688,9 @@ export default function UserDashboard() {
                 </SideItem>
                 <SideItem>
                   <SideTitle>Wishlist</SideTitle>
-                  <SideText>{stats?.wishlistCount ?? 0} items waiting.</SideText>
+                  <SideText>
+                    {stats?.wishlistCount ?? 0} items waiting.
+                  </SideText>
                 </SideItem>
               </SideList>
 
@@ -625,7 +698,10 @@ export default function UserDashboard() {
                 <GhostButton type="button" onClick={() => navigate("/courses")}>
                   Browse Courses
                 </GhostButton>
-                <GhostButton type="button" onClick={() => navigate("/products")}>
+                <GhostButton
+                  type="button"
+                  onClick={() => navigate("/products")}
+                >
                   Browse Products
                 </GhostButton>
               </ButtonStack>
@@ -634,20 +710,25 @@ export default function UserDashboard() {
             <Panel>
               <PanelTitle>Newsletter Preferences</PanelTitle>
               <PanelSub>
-                Keep receiving useful boxing, training, course, and product updates.
+                Keep receiving useful boxing, training, course, and product
+                updates.
               </PanelSub>
 
               <SideList>
                 <SideItem>
                   <SideTitle>Status</SideTitle>
                   <SideText>
-                    {stats?.newsletterStatus || "Subscribed / preference not loaded yet."}
+                    {stats?.newsletterStatus ||
+                      "Subscribed / preference not loaded yet."}
                   </SideText>
                 </SideItem>
               </SideList>
 
               <ButtonStack>
-                <GhostButton type="button" onClick={() => navigate("/newsletter")}>
+                <GhostButton
+                  type="button"
+                  onClick={() => navigate("/newsletter")}
+                >
                   Manage Newsletter
                 </GhostButton>
               </ButtonStack>
@@ -675,12 +756,15 @@ export default function UserDashboard() {
             <SupportPanel>
               <SupportTitle>Need help?</SupportTitle>
               <SupportText>
-                If anything feels blocked, reach out. FAQ, contact, privacy, and terms
-                are always one tap away.
+                If anything feels blocked, reach out. FAQ, contact, privacy, and
+                terms are always one tap away.
               </SupportText>
 
               <ButtonStack>
-                <PrimaryButton type="button" onClick={() => navigate("/contact")}>
+                <PrimaryButton
+                  type="button"
+                  onClick={() => navigate("/contact")}
+                >
                   Contact Support
                 </PrimaryButton>
                 <GhostButton type="button" onClick={() => navigate("/faq")}>
@@ -829,8 +913,16 @@ const ButtonStack = styled.div`
 const Page = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(900px 520px at 15% 8%, rgba(214, 182, 159, 0.14), transparent 58%),
-    radial-gradient(900px 520px at 88% 18%, rgba(90, 56, 37, 0.22), transparent 60%),
+    radial-gradient(
+      900px 520px at 15% 8%,
+      rgba(214, 182, 159, 0.14),
+      transparent 58%
+    ),
+    radial-gradient(
+      900px 520px at 88% 18%,
+      rgba(90, 56, 37, 0.22),
+      transparent 60%
+    ),
     linear-gradient(
       180deg,
       ${({ theme }) => theme.colors.black},
@@ -1263,7 +1355,7 @@ const NotificationCard = styled.div`
 
   &:hover {
     transform: translateY(-1px);
-    border-color: rgba(255,255,255,0.18);
+    border-color: rgba(255, 255, 255, 0.18);
   }
 `;
 

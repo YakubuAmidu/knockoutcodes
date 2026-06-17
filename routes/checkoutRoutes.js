@@ -2,7 +2,7 @@
 import express from "express";
 import {
   createProductCheckoutSession,
-  createCourseCheckoutSession
+  createCourseCheckoutSession,
 } from "../controllers/checkoutController.js";
 import { preventAdminPurchase } from "../middleware/preventAdminPurchase.js";
 import { authRequired } from "../middleware/authMiddleware.js";
@@ -10,15 +10,19 @@ import { authRequired } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Product checkout — logged-in users only, admins blocked
-router.post("/products",
+router.post(
+  "/products",
   authRequired,
   preventAdminPurchase,
-  createProductCheckoutSession);
+  createProductCheckoutSession,
+);
 
 // Course checkout (✅ Must be logged in)
-router.post("/courses",
+router.post(
+  "/courses",
   authRequired,
   preventAdminPurchase,
-  createCourseCheckoutSession);
+  createCourseCheckoutSession,
+);
 
 export default router;

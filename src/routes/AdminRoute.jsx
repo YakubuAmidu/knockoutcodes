@@ -34,33 +34,28 @@ export default function AdminRoute() {
   }
 
   if (!isAuthenticated) {
-  return (
-    <Navigate
-      to="/login"
-      replace
-      state={{ from: getReturnTo(location) }}
-    />
-  );
-}
+    return (
+      <Navigate to="/login" replace state={{ from: getReturnTo(location) }} />
+    );
+  }
 
-if (
-  user?.isDeleted === true ||
-  user?.isActive === false ||
-  user?.accountStatus !== "active"
-) {
-  return (
-    <Navigate
-      to="/account-access-notice"
-      replace
-      state={{
-        accountStatus: user?.accountStatus || "restricted",
-        message:
-          user?.statusReason ||
-          "Your account access has been restricted.",
-      }}
-    />
-  );
-}
+  if (
+    user?.isDeleted === true ||
+    user?.isActive === false ||
+    user?.accountStatus !== "active"
+  ) {
+    return (
+      <Navigate
+        to="/account-access-notice"
+        replace
+        state={{
+          accountStatus: user?.accountStatus || "restricted",
+          message:
+            user?.statusReason || "Your account access has been restricted.",
+        }}
+      />
+    );
+  }
 
   if (!isAdmin) {
     return <Navigate to="/user-profile" replace />;

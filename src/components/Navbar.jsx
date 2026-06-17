@@ -121,7 +121,9 @@ export default function Navbar() {
 
               {isAuthenticated ? (
                 <>
-                  <DrawerLink to={dashboardHref}>📊 {dashboardLabel}</DrawerLink>
+                  <DrawerLink to={dashboardHref}>
+                    📊 {dashboardLabel}
+                  </DrawerLink>
                   <DrawerLink to={profileHref}>👤 {profileLabel}</DrawerLink>
 
                   <DrawerLogoutButton type="button" onClick={handleLogout}>
@@ -135,7 +137,9 @@ export default function Navbar() {
 
             <DrawerFooter>
               <FooterLine />
-              <FooterText>Built for fighters, creators, and winners.</FooterText>
+              <FooterText>
+                Built for fighters, creators, and winners.
+              </FooterText>
             </DrawerFooter>
           </Drawer>
         </>
@@ -201,13 +205,12 @@ const LogoBadge = styled.span`
   border-radius: 16px;
   font-size: 1.25rem;
 
-  background:
-    radial-gradient(
-      circle at 30% 0%,
-      ${({ theme }) => theme.colors.lightBrown},
-      ${({ theme }) => theme.colors.brown} 52%,
-      ${({ theme }) => theme.colors.darkBrown}
-    );
+  background: radial-gradient(
+    circle at 30% 0%,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.brown} 52%,
+    ${({ theme }) => theme.colors.darkBrown}
+  );
 
   border: 1px solid rgba(214, 182, 159, 0.42);
   box-shadow:
@@ -408,14 +411,13 @@ const Drawer = styled.aside`
   z-index: 9999;
   overflow: hidden;
 
-  background:
-    linear-gradient(
-      145deg,
-      rgba(0, 0, 0, 0.98) 0%,
-      ${({ theme }) => theme.colors.darkBrown} 38%,
-      ${({ theme }) => theme.colors.brown} 78%,
-      rgba(0, 0, 0, 0.98) 100%
-    );
+  background: linear-gradient(
+    145deg,
+    rgba(0, 0, 0, 0.98) 0%,
+    ${({ theme }) => theme.colors.darkBrown} 38%,
+    ${({ theme }) => theme.colors.brown} 78%,
+    rgba(0, 0, 0, 0.98) 100%
+  );
 
   border-left: 1px solid rgba(214, 182, 159, 0.3);
   box-shadow:

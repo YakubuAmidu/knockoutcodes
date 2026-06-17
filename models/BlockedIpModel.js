@@ -47,7 +47,7 @@ const blockedIpSchema = new mongoose.Schema(
       index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 blockedIpSchema.index({ ip: 1, isActive: 1 });

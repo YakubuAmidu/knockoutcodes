@@ -6,7 +6,7 @@ const safeString = (value, fallback = "") =>
 
 export default function newsletterReducer(
   state = newsletterInitialState,
-  action = {}
+  action = {},
 ) {
   const { type, payload = {} } = action;
 

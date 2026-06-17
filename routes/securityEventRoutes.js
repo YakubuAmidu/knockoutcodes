@@ -24,7 +24,7 @@ router.delete(
   csrfRequired,
   authRequired,
   adminOnly,
-  deleteOldSecurityEvents
+  deleteOldSecurityEvents,
 );
 
 router.patch(
@@ -33,7 +33,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  updateSecurityEventReview
+  updateSecurityEventReview,
 );
 
 router.patch(
@@ -42,7 +42,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  deactivateUserFromSecurityEvent
+  deactivateUserFromSecurityEvent,
 );
 
 router.patch(
@@ -51,7 +51,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  blockIpFromSecurityEvent
+  blockIpFromSecurityEvent,
 );
 
 router.patch(
@@ -60,7 +60,7 @@ router.patch(
   csrfRequired,
   authRequired,
   adminOnly,
-  unblockIpFromSecurityEvent
+  unblockIpFromSecurityEvent,
 );
 
 router.delete(
@@ -69,7 +69,7 @@ router.delete(
   csrfRequired,
   authRequired,
   adminOnly,
-  deleteSecurityEvent
+  deleteSecurityEvent,
 );
 
 export default router;

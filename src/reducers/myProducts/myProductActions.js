@@ -14,7 +14,9 @@ function safeArray(value) {
 }
 
 function normalizeStatus(value, fallback = "pending") {
-  return String(value || fallback).toLowerCase().trim();
+  return String(value || fallback)
+    .toLowerCase()
+    .trim();
 }
 
 function getProductId(item) {
@@ -46,7 +48,13 @@ function getImages(product, item) {
 }
 
 function getTitle(product, item) {
-  return product?.title || product?.name || item?.title || item?.name || "Purchased Product";
+  return (
+    product?.title ||
+    product?.name ||
+    item?.title ||
+    item?.name ||
+    "Purchased Product"
+  );
 }
 
 function getDescription(product, item) {
@@ -74,7 +82,7 @@ function getRating(product) {
       product?.avgRating ??
       product?.rating ??
       product?.ratingsAverage ??
-      0
+      0,
   );
 }
 
@@ -85,7 +93,7 @@ function getReviewCount(product) {
       product?.reviewsCount ??
       product?.totalReviews ??
       product?.numReviews ??
-      0
+      0,
   );
 }
 
@@ -128,7 +136,9 @@ async function buildPurchasedProducts(orders) {
         typeof item?.product === "object" && item.product ? item.product : {};
 
       const quantity = Number(item?.quantity || 1);
-      const unitPrice = Number(item?.unitPrice || item?.price || productFromOrder?.price || 0);
+      const unitPrice = Number(
+        item?.unitPrice || item?.price || productFromOrder?.price || 0,
+      );
       const currency = item?.currency || order?.currency || "USD";
       const totalPaid = quantity * unitPrice;
 
@@ -140,7 +150,8 @@ async function buildPurchasedProducts(orders) {
         existing.orderCount += 1;
         existing.orderIds.push(order?._id);
         existing.latestPurchasedAt =
-          new Date(order?.createdAt || 0) > new Date(existing.latestPurchasedAt || 0)
+          new Date(order?.createdAt || 0) >
+          new Date(existing.latestPurchasedAt || 0)
             ? order?.createdAt
             : existing.latestPurchasedAt;
       } else {
@@ -163,7 +174,8 @@ async function buildPurchasedProducts(orders) {
           status: order?.status || "processing",
           rating: getRating(productFromOrder),
           reviewCount: getReviewCount(productFromOrder),
-          stock: productFromOrder?.stock ?? productFromOrder?.countInStock ?? "—",
+          stock:
+            productFromOrder?.stock ?? productFromOrder?.countInStock ?? "—",
           sku: productFromOrder?.sku || item?.sku || "—",
         });
       }
@@ -190,11 +202,12 @@ async function buildPurchasedProducts(orders) {
         stock: fullProduct?.stock ?? fullProduct?.countInStock ?? entry.stock,
         sku: fullProduct?.sku || entry.sku,
       };
-    })
+    }),
   );
 
   return hydrated.sort(
-    (a, b) => new Date(b.latestPurchasedAt || 0) - new Date(a.latestPurchasedAt || 0)
+    (a, b) =>
+      new Date(b.latestPurchasedAt || 0) - new Date(a.latestPurchasedAt || 0),
   );
 }
 
@@ -219,12 +232,12 @@ export const fetchMyProducts = () => async (dispatch) => {
 
     const totalQuantity = products.reduce(
       (sum, item) => sum + Number(item.quantity || 0),
-      0
+      0,
     );
 
     const totalSpent = products.reduce(
       (sum, item) => sum + Number(item.totalSpent || 0),
-      0
+      0,
     );
 
     dispatch({

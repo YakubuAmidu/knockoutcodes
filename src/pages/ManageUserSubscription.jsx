@@ -89,10 +89,18 @@ export default function ManageUserSubscription() {
         !search ||
         item.userLabel.toLowerCase().includes(search) ||
         item.membershipLabel.toLowerCase().includes(search) ||
-        String(item.membershipId || "").toLowerCase().includes(search) ||
-        String(item.accessLevel || "").toLowerCase().includes(search) ||
-        String(item.stripeCustomerId || "").toLowerCase().includes(search) ||
-        String(item.stripeSubscriptionId || "").toLowerCase().includes(search);
+        String(item.membershipId || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(item.accessLevel || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(item.stripeCustomerId || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(item.stripeSubscriptionId || "")
+          .toLowerCase()
+          .includes(search);
 
       const matchesStatus =
         statusFilter === "all" || item.status === statusFilter;
@@ -108,12 +116,12 @@ export default function ManageUserSubscription() {
     () => ({
       total: subscriptions.length,
       active: subscriptions.filter((s) =>
-        ["active", "trialing"].includes(s.status)
+        ["active", "trialing"].includes(s.status),
       ).length,
       canceled: subscriptions.filter((s) => s.status === "canceled").length,
       canceling: subscriptions.filter((s) => s.cancelAtPeriodEnd).length,
     }),
-    [subscriptions]
+    [subscriptions],
   );
 
   async function fetchSubscriptions() {
@@ -129,7 +137,7 @@ export default function ManageUserSubscription() {
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Failed to load subscriptions. Admin manage route may be missing."
+          "Failed to load subscriptions. Admin manage route may be missing.",
       );
     } finally {
       setLoading(false);
@@ -230,7 +238,7 @@ export default function ManageUserSubscription() {
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Failed to save subscription. Check backend validation."
+          "Failed to save subscription. Check backend validation.",
       );
     } finally {
       setSaving(false);
@@ -250,7 +258,9 @@ export default function ManageUserSubscription() {
       setMessage("Subscription deleted successfully.");
       await fetchSubscriptions();
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to delete subscription.");
+      setError(
+        err?.response?.data?.message || "Failed to delete subscription.",
+      );
     } finally {
       setDeletingId("");
     }
@@ -275,10 +285,22 @@ export default function ManageUserSubscription() {
         </Hero>
 
         <StatsGrid>
-          <StatCard><strong>{stats.total}</strong><span>Total</span></StatCard>
-          <StatCard><strong>{stats.active}</strong><span>Active</span></StatCard>
-          <StatCard><strong>{stats.canceled}</strong><span>Canceled</span></StatCard>
-          <StatCard><strong>{stats.canceling}</strong><span>Ending Soon</span></StatCard>
+          <StatCard>
+            <strong>{stats.total}</strong>
+            <span>Total</span>
+          </StatCard>
+          <StatCard>
+            <strong>{stats.active}</strong>
+            <span>Active</span>
+          </StatCard>
+          <StatCard>
+            <strong>{stats.canceled}</strong>
+            <span>Canceled</span>
+          </StatCard>
+          <StatCard>
+            <strong>{stats.canceling}</strong>
+            <span>Ending Soon</span>
+          </StatCard>
         </StatsGrid>
 
         {(message || error) && (
@@ -287,82 +309,150 @@ export default function ManageUserSubscription() {
 
         <Panel>
           <PanelHeader>
-            <h2>{isEditing ? "Edit Subscription" : "Create Manual Subscription"}</h2>
-            <p>Use this carefully. Stripe-created subscriptions should match Stripe records.</p>
+            <h2>
+              {isEditing ? "Edit Subscription" : "Create Manual Subscription"}
+            </h2>
+            <p>
+              Use this carefully. Stripe-created subscriptions should match
+              Stripe records.
+            </p>
           </PanelHeader>
 
           <Form onSubmit={handleSubmit}>
             <Field>
               <label>User ID</label>
-              <input name="user" value={form.user} onChange={handleChange} disabled={isEditing} required={!isEditing} />
+              <input
+                name="user"
+                value={form.user}
+                onChange={handleChange}
+                disabled={isEditing}
+                required={!isEditing}
+              />
             </Field>
 
             <Field>
               <label>Membership ObjectId</label>
-              <input name="membership" value={form.membership} onChange={handleChange} disabled={isEditing} required={!isEditing} />
+              <input
+                name="membership"
+                value={form.membership}
+                onChange={handleChange}
+                disabled={isEditing}
+                required={!isEditing}
+              />
             </Field>
 
             <Field>
               <label>Membership Level</label>
-              <select name="membershipId" value={form.membershipId} onChange={handleChange}>
-                {levels.map((x) => <option key={x}>{x}</option>)}
+              <select
+                name="membershipId"
+                value={form.membershipId}
+                onChange={handleChange}
+              >
+                {levels.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Access Level</label>
-              <select name="accessLevel" value={form.accessLevel} onChange={handleChange}>
-                {levels.map((x) => <option key={x}>{x}</option>)}
+              <select
+                name="accessLevel"
+                value={form.accessLevel}
+                onChange={handleChange}
+              >
+                {levels.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Billing Period</label>
-              <select name="billingPeriod" value={form.billingPeriod} onChange={handleChange}>
-                {billingPeriods.map((x) => <option key={x}>{x}</option>)}
+              <select
+                name="billingPeriod"
+                value={form.billingPeriod}
+                onChange={handleChange}
+              >
+                {billingPeriods.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Status</label>
               <select name="status" value={form.status} onChange={handleChange}>
-                {statuses.map((x) => <option key={x}>{x}</option>)}
+                {statuses.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
               </select>
             </Field>
 
             <Field>
               <label>Stripe Customer ID</label>
-              <input name="stripeCustomerId" value={form.stripeCustomerId} onChange={handleChange} />
+              <input
+                name="stripeCustomerId"
+                value={form.stripeCustomerId}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Stripe Subscription ID</label>
-              <input name="stripeSubscriptionId" value={form.stripeSubscriptionId} onChange={handleChange} />
+              <input
+                name="stripeSubscriptionId"
+                value={form.stripeSubscriptionId}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Stripe Price ID</label>
-              <input name="stripePriceId" value={form.stripePriceId} onChange={handleChange} />
+              <input
+                name="stripePriceId"
+                value={form.stripePriceId}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Period Start</label>
-              <input name="currentPeriodStart" type="date" value={form.currentPeriodStart} onChange={handleChange} />
+              <input
+                name="currentPeriodStart"
+                type="date"
+                value={form.currentPeriodStart}
+                onChange={handleChange}
+              />
             </Field>
 
             <Field>
               <label>Period End</label>
-              <input name="currentPeriodEnd" type="date" value={form.currentPeriodEnd} onChange={handleChange} />
+              <input
+                name="currentPeriodEnd"
+                type="date"
+                value={form.currentPeriodEnd}
+                onChange={handleChange}
+              />
             </Field>
 
             <CheckField>
-              <input name="cancelAtPeriodEnd" type="checkbox" checked={form.cancelAtPeriodEnd} onChange={handleChange} />
+              <input
+                name="cancelAtPeriodEnd"
+                type="checkbox"
+                checked={form.cancelAtPeriodEnd}
+                onChange={handleChange}
+              />
               <span>Cancel at period end</span>
             </CheckField>
 
             <Actions>
               <PrimaryButton disabled={saving}>
-                {saving ? "Saving..." : isEditing ? "Update Subscription" : "Create Subscription"}
+                {saving
+                  ? "Saving..."
+                  : isEditing
+                    ? "Update Subscription"
+                    : "Create Subscription"}
               </PrimaryButton>
 
               {isEditing && (
@@ -376,16 +466,30 @@ export default function ManageUserSubscription() {
 
         <Panel>
           <Toolbar>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search user, level, Stripe ID..." />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search user, level, Stripe ID..."
+            />
 
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
               <option value="all">All Statuses</option>
-              {statuses.map((x) => <option key={x}>{x}</option>)}
+              {statuses.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
             </select>
 
-            <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)}>
+            <select
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+            >
               <option value="all">All Levels</option>
-              {levels.map((x) => <option key={x}>{x}</option>)}
+              {levels.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
             </select>
           </Toolbar>
 
@@ -415,14 +519,21 @@ export default function ManageUserSubscription() {
                       <td>{item.userLabel}</td>
                       <td>{item.membershipLabel}</td>
                       <td>{item.accessLevel}</td>
-                      <td><Badge $status={item.status}>{item.status}</Badge></td>
+                      <td>
+                        <Badge $status={item.status}>{item.status}</Badge>
+                      </td>
                       <td>{item.billingPeriod}</td>
                       <td>{formatDate(item.currentPeriodEnd)}</td>
                       <td>{item.cancelAtPeriodEnd ? "Yes" : "No"}</td>
                       <td>
                         <RowActions>
-                          <SmallButton onClick={() => startEdit(item)}>Edit</SmallButton>
-                          <DangerButton onClick={() => handleDelete(item._id)} disabled={deletingId === item._id}>
+                          <SmallButton onClick={() => startEdit(item)}>
+                            Edit
+                          </SmallButton>
+                          <DangerButton
+                            onClick={() => handleDelete(item._id)}
+                            disabled={deletingId === item._id}
+                          >
                             {deletingId === item._id ? "Deleting..." : "Delete"}
                           </DangerButton>
                         </RowActions>
@@ -463,8 +574,12 @@ const Hero = styled.section`
   align-items: center;
   padding: 34px;
   border-radius: ${({ theme }) => theme.radius.xl};
-  background: linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
-  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 
   @media (max-width: 760px) {
@@ -488,7 +603,7 @@ const Title = styled.h1`
 `;
 
 const HeroText = styled.p`
-  color: rgba(255,255,255,0.78);
+  color: rgba(255, 255, 255, 0.78);
   max-width: 720px;
   margin-top: 14px;
 `;
@@ -523,8 +638,8 @@ const StatCard = styled.div`
 `;
 
 const Panel = styled.section`
-  background: rgba(255,255,255,0.075);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 26px;
   margin-top: 24px;
@@ -542,7 +657,7 @@ const PanelHeader = styled.div`
 
   p {
     margin: 8px 0 0;
-    color: rgba(255,255,255,0.68);
+    color: rgba(255, 255, 255, 0.68);
   }
 `;
 
@@ -568,10 +683,10 @@ const Field = styled.div`
   input,
   select {
     width: 100%;
-    border: 1px solid rgba(255,255,255,0.14);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: ${({ theme }) => theme.radius.md};
     padding: 14px 15px;
-    background: rgba(0,0,0,0.34);
+    background: rgba(0, 0, 0, 0.34);
     color: ${({ theme }) => theme.colors.white};
     outline: none;
   }
@@ -604,10 +719,10 @@ const Toolbar = styled.div`
 
   input,
   select {
-    border: 1px solid rgba(255,255,255,0.14);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: ${({ theme }) => theme.radius.md};
     padding: 14px 15px;
-    background: rgba(0,0,0,0.34);
+    background: rgba(0, 0, 0, 0.34);
     color: ${({ theme }) => theme.colors.white};
     outline: none;
   }
@@ -645,9 +760,9 @@ const RefreshButton = styled(PrimaryButton)`
 `;
 
 const GhostButton = styled(ButtonBase)`
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: ${({ theme }) => theme.colors.white};
-  border: 1px solid rgba(255,255,255,0.16);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 `;
 
 const SmallButton = styled(GhostButton)`
@@ -672,8 +787,9 @@ const Alert = styled.div`
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ $error }) =>
     $error ? "rgba(255,80,80,0.14)" : "rgba(120,255,180,0.12)"};
-  border: 1px solid ${({ $error }) =>
-    $error ? "rgba(255,80,80,0.32)" : "rgba(120,255,180,0.28)"};
+  border: 1px solid
+    ${({ $error }) =>
+      $error ? "rgba(255,80,80,0.32)" : "rgba(120,255,180,0.28)"};
 `;
 
 const TableWrap = styled.div`
@@ -689,7 +805,7 @@ const TableWrap = styled.div`
   td {
     text-align: left;
     padding: 16px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.09);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
   }
 
   th {
@@ -700,7 +816,7 @@ const TableWrap = styled.div`
   }
 
   td {
-    color: rgba(255,255,255,0.84);
+    color: rgba(255, 255, 255, 0.84);
   }
 `;
 
@@ -714,8 +830,8 @@ const Badge = styled.span`
     ["active", "trialing"].includes($status)
       ? "rgba(120,255,180,0.15)"
       : $status === "canceled"
-      ? "rgba(255,80,80,0.14)"
-      : "rgba(255,180,90,0.16)"};
+        ? "rgba(255,80,80,0.14)"
+        : "rgba(255,180,90,0.16)"};
 `;
 
 const RowActions = styled.div`
@@ -724,5 +840,5 @@ const RowActions = styled.div`
 `;
 
 const Muted = styled.p`
-  color: rgba(255,255,255,0.68);
+  color: rgba(255, 255, 255, 0.68);
 `;

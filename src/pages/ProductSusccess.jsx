@@ -20,70 +20,72 @@ export default function ProductSuccess() {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-  let cancelled = false;
-  const controller = new AbortController();
+    let cancelled = false;
+    const controller = new AbortController();
 
-  async function verifyOrder() {
-    const sessionId = params.get("session_id");
+    async function verifyOrder() {
+      const sessionId = params.get("session_id");
 
-    if (!sessionId) {
-      setStatus("error");
-      setMessage("Missing checkout session. Please contact support.");
-      return;
-    }
+      if (!sessionId) {
+        setStatus("error");
+        setMessage("Missing checkout session. Please contact support.");
+        return;
+      }
 
-    try {
-      for (let attempt = 1; attempt <= 14; attempt += 1) {
-        if (cancelled) return;
+      try {
+        for (let attempt = 1; attempt <= 14; attempt += 1) {
+          if (cancelled) return;
 
-        const data = await confirmProductCheckoutSession(sessionId, {
-          signal: controller.signal,
-        });
+          const data = await confirmProductCheckoutSession(sessionId, {
+            signal: controller.signal,
+          });
 
-        if (data?.success && data?.paid && data?.orderReady) {
-          dispatch({ type: CART_ACTIONS.CLEAR });
+          if (data?.success && data?.paid && data?.orderReady) {
+            dispatch({ type: CART_ACTIONS.CLEAR });
 
-          setOrder(data.order);
-          setStatus("success");
-          setMessage("Order confirmed. Your purchase is officially locked in.");
+            setOrder(data.order);
+            setStatus("success");
+            setMessage(
+              "Order confirmed. Your purchase is officially locked in.",
+            );
 
-          return;
+            return;
+          }
+
+          setMessage(
+            data?.message ||
+              `Payment received. Preparing your order… (${attempt}/14)`,
+          );
+
+          await sleep(1100);
         }
 
+        if (!cancelled) {
+          setStatus("processing");
+          setMessage(
+            "Payment is confirmed, but your order is still processing. Check My Orders shortly.",
+          );
+        }
+      } catch (err) {
+        if (err?.name === "CanceledError" || err?.name === "AbortError") return;
+
+        console.error("ProductSuccess verification error:", err);
+        setStatus("error");
         setMessage(
-          data?.message ||
-            `Payment received. Preparing your order… (${attempt}/14)`
-        );
-
-        await sleep(1100);
-      }
-
-      if (!cancelled) {
-        setStatus("processing");
-        setMessage(
-          "Payment is confirmed, but your order is still processing. Check My Orders shortly."
+          err?.response?.data?.message ||
+            err?.message ||
+            "We could not verify your order right now.",
         );
       }
-    } catch (err) {
-      if (err?.name === "CanceledError" || err?.name === "AbortError") return;
-
-      console.error("ProductSuccess verification error:", err);
-      setStatus("error");
-      setMessage(
-        err?.response?.data?.message ||
-          err?.message ||
-          "We could not verify your order right now."
-      );
     }
-  }
 
-  verifyOrder();
+    verifyOrder();
 
-  return () => {
-    cancelled = true;
-    controller.abort();
-  };
-}, [params, dispatch]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [params, dispatch]);
 
   const isLoading = status === "checking";
   const isSuccess = status === "success";
@@ -110,18 +112,18 @@ export default function ProductSuccess() {
             {isSuccess
               ? "Payment hit. Order locked."
               : isError
-              ? "Order needs attention."
-              : "Hold tight. We’re securing your order."}
+                ? "Order needs attention."
+                : "Hold tight. We’re securing your order."}
           </Title>
 
           <Subtitle>
             {isSuccess
               ? "Your product purchase has been verified, protected, and recorded inside your account."
               : isProcessing
-              ? "Stripe confirmed your payment. The system is still finishing the order record."
-              : isError
-              ? "Something blocked the final confirmation. Your payment may still be safe, but this needs a quick check."
-              : "First we verify Stripe. Then we confirm MongoDB. Then we clear your cart only after your order is truly saved."}
+                ? "Stripe confirmed your payment. The system is still finishing the order record."
+                : isError
+                  ? "Something blocked the final confirmation. Your payment may still be safe, but this needs a quick check."
+                  : "First we verify Stripe. Then we confirm MongoDB. Then we clear your cart only after your order is truly saved."}
           </Subtitle>
 
           <StatusCard>
@@ -135,20 +137,20 @@ export default function ProductSuccess() {
               {isSuccess
                 ? "Verified"
                 : isError
-                ? "Action Needed"
-                : isProcessing
-                ? "Processing"
-                : "Secure Verification"}
+                  ? "Action Needed"
+                  : isProcessing
+                    ? "Processing"
+                    : "Secure Verification"}
             </StatusEyebrow>
 
             <StatusTitle>
               {isSuccess
                 ? "Your order is complete."
                 : isError
-                ? "Verification did not complete."
-                : isProcessing
-                ? "Order is still processing."
-                : "Checking your payment now."}
+                  ? "Verification did not complete."
+                  : isProcessing
+                    ? "Order is still processing."
+                    : "Checking your payment now."}
             </StatusTitle>
 
             <StatusMessage>{message}</StatusMessage>
@@ -161,7 +163,9 @@ export default function ProductSuccess() {
             ) : null}
 
             <ActionRow>
-              <PrimaryButton to="/dashboard/my-orders">View My Orders</PrimaryButton>
+              <PrimaryButton to="/dashboard/my-orders">
+                View My Orders
+              </PrimaryButton>
               <GhostButton to="/products">Continue Shopping</GhostButton>
             </ActionRow>
 
@@ -181,19 +185,25 @@ export default function ProductSuccess() {
           <TrustCard>
             <TrustNumber>01</TrustNumber>
             <TrustTitle>Stripe Verified</TrustTitle>
-            <TrustText>We confirm the checkout session is paid before showing success.</TrustText>
+            <TrustText>
+              We confirm the checkout session is paid before showing success.
+            </TrustText>
           </TrustCard>
 
           <TrustCard>
             <TrustNumber>02</TrustNumber>
             <TrustTitle>Order Protected</TrustTitle>
-            <TrustText>Your order is checked against your logged-in account.</TrustText>
+            <TrustText>
+              Your order is checked against your logged-in account.
+            </TrustText>
           </TrustCard>
 
           <TrustCard>
             <TrustNumber>03</TrustNumber>
             <TrustTitle>Cart Cleared Safely</TrustTitle>
-            <TrustText>The cart clears only after MongoDB confirms the order exists.</TrustText>
+            <TrustText>
+              The cart clears only after MongoDB confirms the order exists.
+            </TrustText>
           </TrustCard>
         </TrustGrid>
       </Shell>
@@ -223,9 +233,17 @@ const Page = styled.main`
   padding: 104px 18px 86px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 10%, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(
+      circle at 18% 10%,
+      rgba(214, 182, 159, 0.2),
+      transparent 38%
+    ),
     radial-gradient(circle at 80% 18%, rgba(90, 56, 37, 0.34), transparent 42%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, ${({ theme }) => theme.colors.black} 82%);
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      ${({ theme }) => theme.colors.black} 82%
+    );
 `;
 
 const GlowOne = styled.div`
@@ -314,7 +332,11 @@ const StatusCard = styled.div`
   padding: 24px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.035)
+    ),
     rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 249, 242, 0.13);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -335,7 +357,12 @@ const TopLine = styled.div`
     display: block;
     width: 45%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, ${({ theme }) => theme.colors.lightBrown}, transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      ${({ theme }) => theme.colors.lightBrown},
+      transparent
+    );
     animation: ${shimmer} 1.5s ease-in-out infinite;
   }
 `;
@@ -351,8 +378,8 @@ const StatusIconWrap = styled.div`
     $status === "success"
       ? "rgba(214, 182, 159, 0.22)"
       : $status === "error"
-      ? "rgba(255, 255, 255, 0.08)"
-      : "rgba(0, 0, 0, 0.35)"};
+        ? "rgba(255, 255, 255, 0.08)"
+        : "rgba(0, 0, 0, 0.35)"};
   border: 1px solid rgba(214, 182, 159, 0.28);
   color: ${({ theme }) => theme.colors.lightBrown};
   font-size: 34px;
@@ -432,7 +459,11 @@ const PrimaryButton = styled(Link)`
   min-height: 46px;
   padding: 0 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
   text-decoration: none;
   font-weight: 950;

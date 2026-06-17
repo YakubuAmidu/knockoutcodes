@@ -13,7 +13,9 @@ function isValidId(id) {
 }
 
 function cleanString(value, max = 300) {
-  return String(value || "").trim().slice(0, max);
+  return String(value || "")
+    .trim()
+    .slice(0, max);
 }
 
 function getRequesterId(req) {
@@ -25,12 +27,14 @@ function isSelfAction(req, targetUserId) {
 }
 
 function normalizeAccountStatus(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isAdminRole(user) {
   return ["admin", "superadmin", "owner"].includes(
-    String(user?.role || "").toLowerCase()
+    String(user?.role || "").toLowerCase(),
   );
 }
 
@@ -95,9 +99,15 @@ function removeLocalAvatarIfManaged(avatarPath) {
   // eslint-disable-next-line no-undef
   const avatarRoot = path.resolve(process.cwd(), "uploads", "avatar");
   // eslint-disable-next-line no-undef
-  const oldAbsPath = path.resolve(process.cwd(), avatarPath.replace(/^\/+/, ""));
+  const oldAbsPath = path.resolve(
+    process.cwd(),
+    avatarPath.replace(/^\/+/, ""),
+  );
 
-  if (oldAbsPath.startsWith(avatarRoot + path.sep) && fs.existsSync(oldAbsPath)) {
+  if (
+    oldAbsPath.startsWith(avatarRoot + path.sep) &&
+    fs.existsSync(oldAbsPath)
+  ) {
     try {
       fs.unlinkSync(oldAbsPath);
     } catch {
@@ -113,7 +123,7 @@ export async function getUsers(req, res) {
 
     const users = await User.find(filter)
       .select(
-        "_id name email role isActive accountStatus statusReason statusChangedAt statusChangedBy adminNotes isDeleted deletedAt deletedBy avatar createdAt updatedAt lastLoginAt loginCount lastLoginIp isEmailVerified"
+        "_id name email role isActive accountStatus statusReason statusChangedAt statusChangedBy adminNotes isDeleted deletedAt deletedBy avatar createdAt updatedAt lastLoginAt loginCount lastLoginIp isEmailVerified",
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -140,7 +150,7 @@ export async function getUser(req, res) {
     }
 
     const user = await User.findById(req.params.id).select(
-      "_id name email role isActive accountStatus statusReason statusChangedAt statusChangedBy adminNotes isDeleted deletedAt deletedBy avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt lastLoginAt loginCount lastLoginIp lastLoginUserAgent isEmailVerified"
+      "_id name email role isActive accountStatus statusReason statusChangedAt statusChangedBy adminNotes isDeleted deletedAt deletedBy avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt lastLoginAt loginCount lastLoginIp lastLoginUserAgent isEmailVerified",
     );
 
     if (!user) {
@@ -169,7 +179,7 @@ export async function updateUser(req, res) {
     }
 
     const user = await User.findById(req.params.id).select(
-      "+password +passwordHistory +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "+password +passwordHistory +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt",
     );
 
     if (!user || user.isDeleted === true) {
@@ -256,7 +266,9 @@ export async function updateUser(req, res) {
         });
       }
 
-      if (await isReusedPassword(password, user.password, user.passwordHistory)) {
+      if (
+        await isReusedPassword(password, user.password, user.passwordHistory)
+      ) {
         return res.status(400).json({
           success: false,
           message: "New password must be different from previous passwords.",
@@ -278,14 +290,20 @@ export async function updateUser(req, res) {
 
     if (body.avatar !== undefined) user.avatar = cleanString(body.avatar, 500);
     if (body.phone !== undefined) user.phone = cleanString(body.phone, 30);
-    if (body.location !== undefined) user.location = cleanString(body.location, 120);
-    if (body.website !== undefined) user.website = cleanString(body.website, 300);
-    if (body.instagram !== undefined) user.instagram = cleanString(body.instagram, 120);
+    if (body.location !== undefined)
+      user.location = cleanString(body.location, 120);
+    if (body.website !== undefined)
+      user.website = cleanString(body.website, 300);
+    if (body.instagram !== undefined)
+      user.instagram = cleanString(body.instagram, 120);
     if (body.tiktok !== undefined) user.tiktok = cleanString(body.tiktok, 120);
-    if (body.youtube !== undefined) user.youtube = cleanString(body.youtube, 300);
-    if (body.xhandle !== undefined) user.xhandle = cleanString(body.xhandle, 120);
+    if (body.youtube !== undefined)
+      user.youtube = cleanString(body.youtube, 300);
+    if (body.xhandle !== undefined)
+      user.xhandle = cleanString(body.xhandle, 120);
     if (body.bio !== undefined) user.bio = cleanString(body.bio, 1000);
-    if (body.headline !== undefined) user.headline = cleanString(body.headline, 200);
+    if (body.headline !== undefined)
+      user.headline = cleanString(body.headline, 200);
     if (body.notifications !== undefined) {
       user.notifications = Boolean(body.notifications);
     }
@@ -323,7 +341,8 @@ export async function updateUserStatus(req, res) {
     if (isSelfAction(req, targetUserId)) {
       return res.status(400).json({
         success: false,
-        message: "Admin cannot change their own account status from this route.",
+        message:
+          "Admin cannot change their own account status from this route.",
       });
     }
 
@@ -346,7 +365,7 @@ export async function updateUserStatus(req, res) {
     }
 
     const user = await User.findById(targetUserId).select(
-      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt",
     );
 
     if (!user || user.isDeleted === true) {
@@ -427,7 +446,8 @@ export async function deleteUser(req, res) {
     if (isAdminRole(user)) {
       return res.status(403).json({
         success: false,
-        message: "Admin accounts cannot be permanently deleted from this route.",
+        message:
+          "Admin accounts cannot be permanently deleted from this route.",
       });
     }
 
@@ -458,7 +478,7 @@ export async function getMe(req, res) {
     }
 
     const user = await User.findById(id).select(
-      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted isEmailVerified"
+      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted isEmailVerified",
     );
 
     if (!user || user.isActive === false || user.isDeleted === true) {
@@ -489,7 +509,7 @@ export async function updateMe(req, res) {
     }
 
     const user = await User.findById(id).select(
-      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt",
     );
 
     if (!user || user.isActive === false || user.isDeleted === true) {
@@ -534,14 +554,20 @@ export async function updateMe(req, res) {
     }
 
     if (body.phone !== undefined) user.phone = cleanString(body.phone, 30);
-    if (body.location !== undefined) user.location = cleanString(body.location, 120);
-    if (body.website !== undefined) user.website = cleanString(body.website, 300);
-    if (body.instagram !== undefined) user.instagram = cleanString(body.instagram, 120);
+    if (body.location !== undefined)
+      user.location = cleanString(body.location, 120);
+    if (body.website !== undefined)
+      user.website = cleanString(body.website, 300);
+    if (body.instagram !== undefined)
+      user.instagram = cleanString(body.instagram, 120);
     if (body.tiktok !== undefined) user.tiktok = cleanString(body.tiktok, 120);
-    if (body.youtube !== undefined) user.youtube = cleanString(body.youtube, 300);
-    if (body.xhandle !== undefined) user.xhandle = cleanString(body.xhandle, 120);
+    if (body.youtube !== undefined)
+      user.youtube = cleanString(body.youtube, 300);
+    if (body.xhandle !== undefined)
+      user.xhandle = cleanString(body.xhandle, 120);
     if (body.bio !== undefined) user.bio = cleanString(body.bio, 1000);
-    if (body.headline !== undefined) user.headline = cleanString(body.headline, 200);
+    if (body.headline !== undefined)
+      user.headline = cleanString(body.headline, 200);
     if (body.notifications !== undefined) {
       user.notifications = Boolean(body.notifications);
     }
@@ -577,7 +603,7 @@ export async function updateMyAvatar(req, res) {
     }
 
     const user = await User.findById(id).select(
-      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted"
+      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted",
     );
 
     if (!user || user.isActive === false || user.isDeleted === true) {
@@ -630,7 +656,7 @@ export async function changeMyPassword(req, res) {
     }
 
     const user = await User.findById(id).select(
-      "+password +passwordHistory +failedLoginAttempts +lockUntil +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +tokenVersion"
+      "+password +passwordHistory +failedLoginAttempts +lockUntil +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +tokenVersion",
     );
 
     if (!user || user.isActive === false || user.isDeleted === true) {
@@ -649,7 +675,9 @@ export async function changeMyPassword(req, res) {
       });
     }
 
-    if (await isReusedPassword(newPassword, user.password, user.passwordHistory)) {
+    if (
+      await isReusedPassword(newPassword, user.password, user.passwordHistory)
+    ) {
       return res.status(400).json({
         success: false,
         message: "New password must be different from previous passwords.",
@@ -701,7 +729,7 @@ export async function forceLogoutUser(req, res) {
     }
 
     const user = await User.findById(targetUserId).select(
-      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt",
     );
 
     if (!user || user.isDeleted === true) {
@@ -758,7 +786,7 @@ export async function softDeleteUser(req, res) {
     }
 
     const user = await User.findById(targetUserId).select(
-      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt",
     );
 
     if (!user || user.isDeleted === true) {
@@ -833,7 +861,7 @@ export async function restoreUser(req, res) {
     }
 
     const user = await User.findById(targetUserId).select(
-      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt"
+      "+tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt",
     );
 
     if (!user) {

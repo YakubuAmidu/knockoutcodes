@@ -1,10 +1,7 @@
 import { EMAIL_SEGMENT_ACTIONS } from "./emailSegmentActionTypes";
 import { emailSegmentInitialState } from "./emailSegmentInitialState";
 
-export function emailSegmentReducer(
-  state = emailSegmentInitialState,
-  action
-) {
+export function emailSegmentReducer(state = emailSegmentInitialState, action) {
   switch (action.type) {
     case EMAIL_SEGMENT_ACTIONS.LIST_REQUEST:
       return {
@@ -46,21 +43,21 @@ export function emailSegmentReducer(
       };
 
     case EMAIL_SEGMENT_ACTIONS.CREATE_SUCCESS:
-  return {
-    ...state,
-    creating: false,
-    segments: action.payload
-      ? [action.payload, ...state.segments]
-      : state.segments,
-    successMessage: "Segment created successfully",
-  };
+      return {
+        ...state,
+        creating: false,
+        segments: action.payload
+          ? [action.payload, ...state.segments]
+          : state.segments,
+        successMessage: "Segment created successfully",
+      };
 
     case EMAIL_SEGMENT_ACTIONS.UPDATE_SUCCESS:
       return {
         ...state,
         updating: false,
         segments: state.segments.map((segment) =>
-          segment._id === action.payload._id ? action.payload : segment
+          segment._id === action.payload._id ? action.payload : segment,
         ),
         selectedSegment:
           state.selectedSegment?._id === action.payload._id
@@ -74,7 +71,7 @@ export function emailSegmentReducer(
         ...state,
         deleting: false,
         segments: state.segments.filter(
-          (segment) => segment._id !== action.payload
+          (segment) => segment._id !== action.payload,
         ),
         successMessage: "Segment deleted successfully",
       };

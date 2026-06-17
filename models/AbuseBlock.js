@@ -8,7 +8,7 @@ const SourceSchema = new mongoose.Schema(
     userAgent: { type: String, default: null },
     ip: { type: String, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export const BOXING_COACHING_TYPES = [
@@ -26,7 +26,8 @@ const CoachingSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", required: false
+      ref: "User",
+      required: false,
     },
 
     fullName: { type: String, required: true, trim: true, maxlength: 80 },
@@ -74,7 +75,7 @@ const CoachingSchema = new mongoose.Schema(
       default: "pending",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 CoachingSchema.index({ createdAt: -1 });

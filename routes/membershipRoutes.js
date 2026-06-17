@@ -25,7 +25,7 @@ router.get(
   "/:id/lessons",
   authRequired,
   subscriptionRequired,
-  getMembershipLessons
+  getMembershipLessons,
 );
 
 router

@@ -25,13 +25,19 @@ function sleep(ms) {
 }
 
 function getKind(params) {
-  const kind = String(params.get("kind") || "").toLowerCase().trim();
+  const kind = String(params.get("kind") || "")
+    .toLowerCase()
+    .trim();
 
   if (kind === "cart" || kind === "product" || kind === "products") {
     return "cart";
   }
 
-  if (kind === "course" || kind === "single-course" || kind === "one-time-course") {
+  if (
+    kind === "course" ||
+    kind === "single-course" ||
+    kind === "one-time-course"
+  ) {
     return "course";
   }
 
@@ -61,7 +67,9 @@ export default function SubscriptionSuccess() {
     }
 
     if (!sessionId) {
-      navigate("/subscription/failed?reason=missing_session", { replace: true });
+      navigate("/subscription/failed?reason=missing_session", {
+        replace: true,
+      });
       return undefined;
     }
 
@@ -81,9 +89,9 @@ export default function SubscriptionSuccess() {
       const timer = setTimeout(() => {
         navigate(
           `/enrollment?courseId=${encodeURIComponent(courseId)}&session_id=${encodeURIComponent(
-            sessionId
+            sessionId,
           )}`,
-          { replace: true }
+          { replace: true },
         );
       }, 900);
 
@@ -98,7 +106,7 @@ export default function SubscriptionSuccess() {
           if (cancelled) return;
 
           const { data } = await axiosInstance.get(
-            `/subscriptions/confirm?session_id=${encodeURIComponent(sessionId)}`
+            `/subscriptions/confirm?session_id=${encodeURIComponent(sessionId)}`,
           );
 
           const paid = Boolean(data?.paid);
@@ -118,7 +126,9 @@ export default function SubscriptionSuccess() {
           }
 
           setHeadline("Processing");
-          setMsg(`Checkout received. Waiting for membership confirmation… (${attempt}/16)`);
+          setMsg(
+            `Checkout received. Waiting for membership confirmation… (${attempt}/16)`,
+          );
 
           await sleep(1100);
         }
@@ -150,8 +160,8 @@ export default function SubscriptionSuccess() {
               {kind === "cart"
                 ? "KnockoutCodes • Shop"
                 : kind === "course"
-                ? "KnockoutCodes • Course Access"
-                : "KnockoutCodes • Elite Circle"}
+                  ? "KnockoutCodes • Course Access"
+                  : "KnockoutCodes • Elite Circle"}
             </Badge>
           </BadgeRow>
 
@@ -161,8 +171,8 @@ export default function SubscriptionSuccess() {
             {kind === "cart"
               ? "Your checkout completed successfully. We’re routing you back to the shop."
               : kind === "course"
-              ? "Your course purchase completed successfully. We’re unlocking your access now."
-              : "Your membership checkout completed successfully. We’re verifying your access now."}
+                ? "Your course purchase completed successfully. We’re unlocking your access now."
+                : "Your membership checkout completed successfully. We’re verifying your access now."}
           </Subtitle>
 
           <Divider />
@@ -178,7 +188,10 @@ export default function SubscriptionSuccess() {
             </StatusRow>
           </StatusBox>
 
-          <Tip>If this takes a few seconds, Stripe is finishing the payment confirmation.</Tip>
+          <Tip>
+            If this takes a few seconds, Stripe is finishing the payment
+            confirmation.
+          </Tip>
         </Inner>
       </Card>
     </Page>
@@ -191,15 +204,28 @@ const Page = styled.main`
   place-items: center;
   padding: 96px 16px 64px;
   color: ${({ theme }) => theme.colors.white};
-  background: radial-gradient(circle at 18% 10%, rgba(214, 182, 159, 0.18), transparent 55%),
-    radial-gradient(circle at 80% 90%, rgba(61, 38, 26, 0.55), ${({ theme }) => theme.colors.black} 70%);
+  background:
+    radial-gradient(
+      circle at 18% 10%,
+      rgba(214, 182, 159, 0.18),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 90%,
+      rgba(61, 38, 26, 0.55),
+      ${({ theme }) => theme.colors.black} 70%
+    );
 `;
 
 const Card = styled.section`
   width: 100%;
   max-width: 640px;
   border-radius: ${({ theme }) => theme.radius.xl};
-  background: linear-gradient(160deg, rgba(61, 38, 26, 0.78), rgba(47, 27, 18, 0.92));
+  background: linear-gradient(
+    160deg,
+    rgba(61, 38, 26, 0.78),
+    rgba(47, 27, 18, 0.92)
+  );
   border: 1px solid rgba(255, 249, 242, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   overflow: hidden;
@@ -208,7 +234,11 @@ const Card = styled.section`
 
 const TopBar = styled.div`
   height: 6px;
-  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
 `;
 
 const Inner = styled.div`
@@ -252,7 +282,11 @@ const Title = styled.h1`
   text-align: center;
   font-size: clamp(2rem, 2.6vw, 2.4rem);
   font-weight: 900;
-  background: linear-gradient(120deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -270,7 +304,12 @@ const Subtitle = styled.p`
 const Divider = styled.div`
   margin: 18px 0 16px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(214, 182, 159, 0.35), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(214, 182, 159, 0.35),
+    transparent
+  );
 `;
 
 const StatusBox = styled.div`
@@ -285,7 +324,12 @@ const StatusBox = styled.div`
 const StatusShimmer = styled.div`
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 249, 242, 0.12), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 249, 242, 0.12),
+    transparent
+  );
   transform: translateX(-60%);
   animation: ${shimmer} 1.35s ease-in-out infinite;
   pointer-events: none;

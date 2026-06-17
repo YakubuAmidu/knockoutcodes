@@ -7,9 +7,9 @@ import slowDown from "express-slow-down";
  * NOTE: v2 removed header options, so DO NOT pass standardHeaders/legacyHeaders here.
  */
 export const slowApi = slowDown({
-  windowMs: 60 * 1000,  // 1 minute
-  delayAfter: 60,       // allow 60 requests/min before slowing
-  delayMs: () => 200,   // add 200ms per request after threshold
+  windowMs: 60 * 1000, // 1 minute
+  delayAfter: 60, // allow 60 requests/min before slowing
+  delayMs: () => 200, // add 200ms per request after threshold
 });
 
 /**

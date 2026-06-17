@@ -44,8 +44,16 @@ const Page = styled.main`
   overflow-x: hidden;
   padding: 34px 20px 44px;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 42%),
-    radial-gradient(circle at bottom right, rgba(90, 56, 37, 0.34), ${({ theme }) => theme.colors.black} 58%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(90, 56, 37, 0.34),
+      ${({ theme }) => theme.colors.black} 58%
+    );
   color: ${({ theme }) => theme.colors.white};
 
   @media (max-width: 520px) {
@@ -68,8 +76,12 @@ const Header = styled.header`
   min-width: 0;
   padding: 26px;
   border-radius: ${({ theme }) => theme.radius.xl};
-  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.7));
-  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(0, 0, 0, 0.7)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   display: flex;
   flex-wrap: wrap;
@@ -106,7 +118,12 @@ const Title = styled.h1`
   line-height: 0.95;
   text-transform: uppercase;
   letter-spacing: -0.04em;
-  background: linear-gradient(120deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.white}, ${({ theme }) => theme.colors.lightBrown});
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.white},
+    ${({ theme }) => theme.colors.lightBrown}
+  );
   -webkit-background-clip: text;
   color: transparent;
   overflow-wrap: anywhere;
@@ -115,7 +132,7 @@ const Title = styled.h1`
 const SubTitle = styled.p`
   margin-top: 12px;
   max-width: 680px;
-  color: rgba(255,249,242,0.78);
+  color: rgba(255, 249, 242, 0.78);
   line-height: 1.65;
   overflow-wrap: anywhere;
 `;
@@ -131,8 +148,8 @@ const BadgeRow = styled.div`
 const StatChip = styled.div`
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -157,9 +174,14 @@ const Panel = styled.section`
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  background: linear-gradient(145deg, ${({ theme }) => theme.colors.cocoa}, ${({ theme }) => theme.colors.darkBrown}, #050303);
+  background: linear-gradient(
+    145deg,
+    ${({ theme }) => theme.colors.cocoa},
+    ${({ theme }) => theme.colors.darkBrown},
+    #050303
+  );
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: ${({ theme }) => theme.shadow.soft};
   padding: 18px;
 
@@ -196,7 +218,7 @@ const PanelTitle = styled.h2`
 const PanelHint = styled.p`
   margin-top: 6px;
   font-size: 12px;
-  color: rgba(255,249,242,0.65);
+  color: rgba(255, 249, 242, 0.65);
   overflow-wrap: anywhere;
 `;
 
@@ -214,8 +236,8 @@ const Input = styled.input`
   width: 100%;
   padding: 11px 13px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.45);
   color: ${({ theme }) => theme.colors.white};
   outline: none;
 
@@ -230,8 +252,8 @@ const Select = styled.select`
   max-width: 100%;
   padding: 11px 13px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.5);
   color: ${({ theme }) => theme.colors.white};
   outline: none;
 `;
@@ -245,20 +267,22 @@ const TableWrap = styled.div`
   min-width: 0;
   overflow: hidden;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(0,0,0,0.42);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.42);
 `;
 
 const TableHead = styled.div`
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(120px, 1.15fr) minmax(80px, 0.7fr) minmax(90px, 0.75fr) minmax(105px, 0.65fr);
+  grid-template-columns:
+    minmax(130px, 1fr) minmax(120px, 1.15fr) minmax(80px, 0.7fr)
+    minmax(90px, 0.75fr) minmax(105px, 0.65fr);
   gap: 10px;
   padding: 12px 14px;
-  background: rgba(214,182,159,0.12);
+  background: rgba(214, 182, 159, 0.12);
   font-size: 11px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(255,249,242,0.76);
+  color: rgba(255, 249, 242, 0.76);
 
   > div {
     min-width: 0;
@@ -285,16 +309,19 @@ const Row = styled.button`
   min-width: 0;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(120px, 1.15fr) minmax(80px, 0.7fr) minmax(90px, 0.75fr) minmax(105px, 0.65fr);
+  grid-template-columns:
+    minmax(130px, 1fr) minmax(120px, 1.15fr) minmax(80px, 0.7fr)
+    minmax(90px, 0.75fr) minmax(105px, 0.65fr);
   gap: 10px;
   padding: 13px 14px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: ${({ $selected }) => ($selected ? "rgba(214,182,159,0.16)" : "transparent")};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: ${({ $selected }) =>
+    $selected ? "rgba(214,182,159,0.16)" : "transparent"};
   transition: 0.18s ease;
 
   &:hover {
-    background: rgba(214,182,159,0.12);
+    background: rgba(214, 182, 159, 0.12);
     transform: translateY(-1px);
   }
 
@@ -339,7 +366,7 @@ const TableMono = styled(Mono)`
 `;
 
 const Muted = styled.span`
-  color: rgba(255,249,242,0.62);
+  color: rgba(255, 249, 242, 0.62);
   font-size: 12px;
   overflow-wrap: anywhere;
 `;
@@ -357,10 +384,10 @@ const Pill = styled.span`
       $tone === "success"
         ? "rgba(127,255,163,0.7)"
         : $tone === "danger"
-        ? "rgba(255,120,120,0.75)"
-        : $tone === "warn"
-        ? "rgba(255,214,102,0.75)"
-        : "rgba(255,255,255,0.3)"};
+          ? "rgba(255,120,120,0.75)"
+          : $tone === "warn"
+            ? "rgba(255,214,102,0.75)"
+            : "rgba(255,255,255,0.3)"};
 `;
 
 const DetailGrid = styled.div`
@@ -381,7 +408,7 @@ const DetailCard = styled.div`
   padding: 11px 12px;
   border-radius: ${({ theme }) => theme.radius.md};
   background: rgba(0, 0, 0, 0.24);
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 `;
 
 const DetailFull = styled(DetailCard)`
@@ -392,7 +419,7 @@ const Label = styled.div`
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255,249,242,0.54);
+  color: rgba(255, 249, 242, 0.54);
   margin-bottom: 5px;
   overflow-wrap: anywhere;
 `;
@@ -414,8 +441,8 @@ const Textarea = styled.textarea`
   box-sizing: border-box;
   padding: 12px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.45);
   color: ${({ theme }) => theme.colors.white};
   outline: none;
   overflow-wrap: anywhere;
@@ -428,8 +455,8 @@ const ItemsBox = styled.div`
   padding: 12px;
   box-sizing: border-box;
   border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(0,0,0,0.42);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 `;
 
@@ -439,7 +466,7 @@ const ItemRow = styled.div`
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   padding: 8px 0;
-  border-bottom: 1px dashed rgba(255,255,255,0.1);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
 
   > div {
     min-width: 0;
@@ -485,10 +512,10 @@ const Button = styled.button`
     $variant === "primary"
       ? `linear-gradient(135deg, ${theme.colors.lightBrown}, ${theme.colors.brown})`
       : $variant === "danger"
-      ? "linear-gradient(135deg, #ff5252, #8f1111)"
-      : $variant === "success"
-      ? "linear-gradient(135deg, #2ecc71, #145a32)"
-      : "rgba(0,0,0,0.62)"};
+        ? "linear-gradient(135deg, #ff5252, #8f1111)"
+        : $variant === "success"
+          ? "linear-gradient(135deg, #2ecc71, #145a32)"
+          : "rgba(0,0,0,0.62)"};
   box-shadow: ${({ theme }) => theme.shadow.soft};
   opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
   pointer-events: ${({ disabled }) => (disabled ? "none" : "auto")};
@@ -506,7 +533,7 @@ const Button = styled.button`
 const Empty = styled.div`
   padding: 26px;
   text-align: center;
-  color: rgba(255,249,242,0.66);
+  color: rgba(255, 249, 242, 0.66);
   overflow-wrap: anywhere;
 `;
 
@@ -519,8 +546,13 @@ const ErrorText = styled.div`
 
 const Skeleton = styled.div`
   height: 48px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02), rgba(255,255,255,0.06));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.06)
+  );
 `;
 
 // =======================
@@ -530,7 +562,10 @@ const Skeleton = styled.div`
 const getOrderId = (order) => order?._id || order?.id || "";
 
 const getCustomerName = (order) =>
-  order?.user?.name || order?.customerName || order?.userName || "Unknown customer";
+  order?.user?.name ||
+  order?.customerName ||
+  order?.userName ||
+  "Unknown customer";
 
 const getCustomerEmail = (order) => order?.user?.email || order?.email || "—";
 
@@ -550,8 +585,10 @@ const formatDate = (value) => {
 const getStatusTone = (status) => {
   const s = String(status || "").toLowerCase();
 
-  if (["paid", "completed", "fulfilled", "delivered"].includes(s)) return "success";
-  if (["new", "pending", "processing", "on_hold", "shipped"].includes(s)) return "warn";
+  if (["paid", "completed", "fulfilled", "delivered"].includes(s))
+    return "success";
+  if (["new", "pending", "processing", "on_hold", "shipped"].includes(s))
+    return "warn";
   if (["cancelled", "refunded", "failed"].includes(s)) return "danger";
 
   return "neutral";
@@ -607,7 +644,8 @@ const ManageOrders = () => {
 
       toast(`Loaded ${list.length} orders.`, "success");
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || "Failed to load orders.";
+      const msg =
+        err?.response?.data?.message || err.message || "Failed to load orders.";
       dispatch(fetchManageOrdersFailure(msg));
       toast(msg, "error");
     }
@@ -619,7 +657,9 @@ const ManageOrders = () => {
   }, []);
 
   const filteredOrders = useMemo(() => {
-    const q = String(search || "").toLowerCase().trim();
+    const q = String(search || "")
+      .toLowerCase()
+      .trim();
 
     return orders.filter((order) => {
       const id = getOrderId(order).toLowerCase();
@@ -640,7 +680,10 @@ const ManageOrders = () => {
 
   const stats = useMemo(() => {
     const total = orders.length;
-    const revenue = orders.reduce((sum, order) => sum + Number(order?.total || 0), 0);
+    const revenue = orders.reduce(
+      (sum, order) => sum + Number(order?.total || 0),
+      0,
+    );
     const paid = orders.filter((o) => o.paymentStatus === "paid").length;
     const unseen = orders.filter((o) => !o.isSeenByAdmin).length;
 
@@ -681,41 +724,42 @@ const ManageOrders = () => {
       dispatch(setSelectedManageOrder(updated));
       toast("Order saved successfully.", "success");
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || "Failed to save order.";
+      const msg =
+        err?.response?.data?.message || err.message || "Failed to save order.";
       dispatch(updateManageOrderFailure(msg));
       toast(msg, "error");
     }
   };
 
   const saveTracking = async () => {
-  if (!editOrder) return;
+    if (!editOrder) return;
 
-  try {
-    dispatch(updateManageOrderStart());
+    try {
+      dispatch(updateManageOrderStart());
 
-    const res = await updateAdminOrderTracking(getOrderId(editOrder), {
-      carrier: editOrder?.shipping?.carrier || "",
-      trackingNumber: editOrder?.shipping?.trackingNumber || "",
-      trackingUrl: editOrder?.shipping?.trackingUrl || "",
-    });
+      const res = await updateAdminOrderTracking(getOrderId(editOrder), {
+        carrier: editOrder?.shipping?.carrier || "",
+        trackingNumber: editOrder?.shipping?.trackingNumber || "",
+        trackingUrl: editOrder?.shipping?.trackingUrl || "",
+      });
 
-    const updated = getReturnedOrder(res);
+      const updated = getReturnedOrder(res);
 
-    dispatch(updateManageOrderSuccess(updated));
-    dispatch(setSelectedManageOrder(updated));
-    dispatch(setEditManageOrder(updated));
+      dispatch(updateManageOrderSuccess(updated));
+      dispatch(setSelectedManageOrder(updated));
+      dispatch(setEditManageOrder(updated));
 
-    toast("Tracking updated successfully.", "success");
-  } catch (err) {
-    const msg =
-      err?.response?.data?.message ||
-      err.message ||
-      "Failed to update tracking.";
+      toast("Tracking updated successfully.", "success");
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to update tracking.";
 
-    dispatch(updateManageOrderFailure(msg));
-    toast(msg, "error");
-  }
-};
+      dispatch(updateManageOrderFailure(msg));
+      toast(msg, "error");
+    }
+  };
 
   const quickAction = async (type) => {
     if (!selectedOrder) return;
@@ -740,7 +784,10 @@ const ManageOrders = () => {
 
       toast(`Order ${type} action completed.`, "success");
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || `Failed to ${type} order.`;
+      const msg =
+        err?.response?.data?.message ||
+        err.message ||
+        `Failed to ${type} order.`;
       dispatch(updateManageOrderFailure(msg));
       toast(msg, "error");
     }
@@ -749,7 +796,9 @@ const ManageOrders = () => {
   const removeOrder = async () => {
     if (!selectedOrder) return;
 
-    const ok = window.confirm("Delete this order permanently? This cannot be undone.");
+    const ok = window.confirm(
+      "Delete this order permanently? This cannot be undone.",
+    );
     if (!ok) return;
 
     const id = getOrderId(selectedOrder);
@@ -762,7 +811,10 @@ const ManageOrders = () => {
       dispatch(deleteManageOrderSuccess(id));
       toast("Order deleted successfully.", "success");
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || "Failed to delete order.";
+      const msg =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to delete order.";
       dispatch(deleteManageOrderFailure(msg));
       toast(msg, "error");
     }
@@ -777,8 +829,9 @@ const ManageOrders = () => {
               <Hook>FIRST 2 SECONDS: CONTROL EVERY PAID ORDER</Hook>
               <Title>Order Command Center</Title>
               <SubTitle>
-                A premium admin workflow for tracking orders, updating fulfillment,
-                managing refunds, protecting Stripe records, and keeping the database clean.
+                A premium admin workflow for tracking orders, updating
+                fulfillment, managing refunds, protecting Stripe records, and
+                keeping the database clean.
               </SubTitle>
             </div>
 
@@ -795,7 +848,9 @@ const ManageOrders = () => {
               <PanelTop>
                 <div>
                   <PanelTitle>Orders Timeline</PanelTitle>
-                  <PanelHint>Search, filter, select, and manage every order cleanly.</PanelHint>
+                  <PanelHint>
+                    Search, filter, select, and manage every order cleanly.
+                  </PanelHint>
                 </div>
 
                 <Button type="button" onClick={loadOrders}>
@@ -807,12 +862,16 @@ const ManageOrders = () => {
                 <Input
                   placeholder="Search order ID, customer, email..."
                   value={search}
-                  onChange={(e) => dispatch(setManageOrderSearch(e.target.value))}
+                  onChange={(e) =>
+                    dispatch(setManageOrderSearch(e.target.value))
+                  }
                 />
 
                 <FilterSelect
                   value={filter}
-                  onChange={(e) => dispatch(setManageOrderFilter(e.target.value))}
+                  onChange={(e) =>
+                    dispatch(setManageOrderFilter(e.target.value))
+                  }
                 >
                   <option value="all">All Orders</option>
                   <option value="new">New</option>
@@ -865,7 +924,9 @@ const ManageOrders = () => {
                           onClick={() => selectOrder(order)}
                         >
                           <Cell>
-                            {!order.isSeenByAdmin && <Pill $tone="warn">New</Pill>}
+                            {!order.isSeenByAdmin && (
+                              <Pill $tone="warn">New</Pill>
+                            )}
                             <TableMono>{id}</TableMono>
                           </Cell>
 
@@ -873,7 +934,9 @@ const ManageOrders = () => {
                             <TableMono>{getCustomerName(order)}</TableMono>
                           </Cell>
 
-                          <Cell>{formatMoney(order.total, order.currency)}</Cell>
+                          <Cell>
+                            {formatMoney(order.total, order.currency)}
+                          </Cell>
 
                           <Cell>
                             <Pill $tone={getStatusTone(order.status)}>
@@ -897,7 +960,9 @@ const ManageOrders = () => {
               <PanelTop>
                 <div>
                   <PanelTitle>Order Detail</PanelTitle>
-                  <PanelHint>Edit status, payment state, notes, and fulfillment actions.</PanelHint>
+                  <PanelHint>
+                    Edit status, payment state, notes, and fulfillment actions.
+                  </PanelHint>
                 </div>
 
                 {selectedOrder && (
@@ -937,7 +1002,9 @@ const ManageOrders = () => {
 
                     <DetailCard>
                       <Label>Total</Label>
-                      <Value>{formatMoney(editOrder.total, editOrder.currency)}</Value>
+                      <Value>
+                        {formatMoney(editOrder.total, editOrder.currency)}
+                      </Value>
                     </DetailCard>
 
                     <DetailCard>
@@ -945,7 +1012,9 @@ const ManageOrders = () => {
                       <Select
                         value={editOrder.status || "new"}
                         onChange={(e) =>
-                          dispatch(updateManageOrderField("status", e.target.value))
+                          dispatch(
+                            updateManageOrderField("status", e.target.value),
+                          )
                         }
                       >
                         <option value="new">New</option>
@@ -965,7 +1034,12 @@ const ManageOrders = () => {
                       <Select
                         value={editOrder.paymentStatus || "pending"}
                         onChange={(e) =>
-                          dispatch(updateManageOrderField("paymentStatus", e.target.value))
+                          dispatch(
+                            updateManageOrderField(
+                              "paymentStatus",
+                              e.target.value,
+                            ),
+                          )
                         }
                       >
                         <option value="pending">Pending</option>
@@ -1003,14 +1077,16 @@ const ManageOrders = () => {
                   <ItemsBox>
                     <Label>Line Items</Label>
 
-                    {Array.isArray(editOrder.items) && editOrder.items.length > 0 ? (
+                    {Array.isArray(editOrder.items) &&
+                    editOrder.items.length > 0 ? (
                       editOrder.items.map((item, index) => (
                         <ItemRow key={`${getOrderId(editOrder)}-${index}`}>
                           <div>
                             <strong>{item.title || "Item"}</strong>
                             <br />
                             <Muted>
-                              {item.productType || "item"} • {item.productModel || "model"}
+                              {item.productType || "item"} •{" "}
+                              {item.productModel || "model"}
                             </Muted>
                           </div>
 
@@ -1030,105 +1106,111 @@ const ManageOrders = () => {
                   <ItemsBox>
                     <Label>Shipping & Tracking</Label>
                     <DetailGrid>
-  <DetailCard>
-    <Label>Full Name</Label>
-    <Value>{editOrder?.shippingAddress?.fullName || "—"}</Value>
-  </DetailCard>
+                      <DetailCard>
+                        <Label>Full Name</Label>
+                        <Value>
+                          {editOrder?.shippingAddress?.fullName || "—"}
+                        </Value>
+                      </DetailCard>
 
-  <DetailCard>
-    <Label>Email</Label>
-    <Value>{editOrder?.shippingAddress?.email || "—"}</Value>
-  </DetailCard>
+                      <DetailCard>
+                        <Label>Email</Label>
+                        <Value>
+                          {editOrder?.shippingAddress?.email || "—"}
+                        </Value>
+                      </DetailCard>
 
-  <DetailCard>
-    <Label>Phone</Label>
-    <Value>{editOrder?.shippingAddress?.phone || "—"}</Value>
-  </DetailCard>
+                      <DetailCard>
+                        <Label>Phone</Label>
+                        <Value>
+                          {editOrder?.shippingAddress?.phone || "—"}
+                        </Value>
+                      </DetailCard>
 
-  <DetailFull>
-    <Label>Address</Label>
-    <Value>
-      {[
-        editOrder?.shippingAddress?.line1,
-        editOrder?.shippingAddress?.line2,
-        editOrder?.shippingAddress?.city,
-        editOrder?.shippingAddress?.state,
-        editOrder?.shippingAddress?.postalCode,
-        editOrder?.shippingAddress?.country,
-      ]
-        .filter(Boolean)
-        .join(", ") || "—"}
-    </Value>
-  </DetailFull>
-</DetailGrid>
+                      <DetailFull>
+                        <Label>Address</Label>
+                        <Value>
+                          {[
+                            editOrder?.shippingAddress?.line1,
+                            editOrder?.shippingAddress?.line2,
+                            editOrder?.shippingAddress?.city,
+                            editOrder?.shippingAddress?.state,
+                            editOrder?.shippingAddress?.postalCode,
+                            editOrder?.shippingAddress?.country,
+                          ]
+                            .filter(Boolean)
+                            .join(", ") || "—"}
+                        </Value>
+                      </DetailFull>
+                    </DetailGrid>
 
-  <DetailGrid>
-    <DetailCard>
-      <Label>Carrier</Label>
-      <Select
-        value={editOrder?.shipping?.carrier || ""}
-        onChange={(e) =>
-          dispatch(
-            updateManageOrderField("shipping", {
-              ...(editOrder.shipping || {}),
-              carrier: e.target.value,
-            })
-          )
-        }
-      >
-        <option value="">Select Carrier</option>
-        <option value="usps">USPS</option>
-        <option value="ups">UPS</option>
-        <option value="fedex">FedEx</option>
-        <option value="dhl">DHL</option>
-        <option value="other">Other</option>
-      </Select>
-    </DetailCard>
+                    <DetailGrid>
+                      <DetailCard>
+                        <Label>Carrier</Label>
+                        <Select
+                          value={editOrder?.shipping?.carrier || ""}
+                          onChange={(e) =>
+                            dispatch(
+                              updateManageOrderField("shipping", {
+                                ...(editOrder.shipping || {}),
+                                carrier: e.target.value,
+                              }),
+                            )
+                          }
+                        >
+                          <option value="">Select Carrier</option>
+                          <option value="usps">USPS</option>
+                          <option value="ups">UPS</option>
+                          <option value="fedex">FedEx</option>
+                          <option value="dhl">DHL</option>
+                          <option value="other">Other</option>
+                        </Select>
+                      </DetailCard>
 
-    <DetailCard>
-      <Label>Tracking Number</Label>
-      <Input
-        value={editOrder?.shipping?.trackingNumber || ""}
-        placeholder="Enter tracking number..."
-        onChange={(e) =>
-          dispatch(
-            updateManageOrderField("shipping", {
-              ...(editOrder.shipping || {}),
-              trackingNumber: e.target.value,
-            })
-          )
-        }
-      />
-    </DetailCard>
+                      <DetailCard>
+                        <Label>Tracking Number</Label>
+                        <Input
+                          value={editOrder?.shipping?.trackingNumber || ""}
+                          placeholder="Enter tracking number..."
+                          onChange={(e) =>
+                            dispatch(
+                              updateManageOrderField("shipping", {
+                                ...(editOrder.shipping || {}),
+                                trackingNumber: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </DetailCard>
 
-    <DetailFull>
-      <Label>Tracking URL</Label>
-      <Input
-        value={editOrder?.shipping?.trackingUrl || ""}
-        placeholder="https://carrier.com/track/..."
-        onChange={(e) =>
-          dispatch(
-            updateManageOrderField("shipping", {
-              ...(editOrder.shipping || {}),
-              trackingUrl: e.target.value,
-            })
-          )
-        }
-      />
-    </DetailFull>
-  </DetailGrid>
+                      <DetailFull>
+                        <Label>Tracking URL</Label>
+                        <Input
+                          value={editOrder?.shipping?.trackingUrl || ""}
+                          placeholder="https://carrier.com/track/..."
+                          onChange={(e) =>
+                            dispatch(
+                              updateManageOrderField("shipping", {
+                                ...(editOrder.shipping || {}),
+                                trackingUrl: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </DetailFull>
+                    </DetailGrid>
 
-  <ButtonRow>
-    <Button
-      type="button"
-      $variant="primary"
-      disabled={updating}
-      onClick={saveTracking}
-    >
-      {updating ? "Saving..." : "Save Tracking"}
-    </Button>
-  </ButtonRow>
-</ItemsBox>
+                    <ButtonRow>
+                      <Button
+                        type="button"
+                        $variant="primary"
+                        disabled={updating}
+                        onClick={saveTracking}
+                      >
+                        {updating ? "Saving..." : "Save Tracking"}
+                      </Button>
+                    </ButtonRow>
+                  </ItemsBox>
 
                   <ItemsBox>
                     <Label>Admin Note</Label>

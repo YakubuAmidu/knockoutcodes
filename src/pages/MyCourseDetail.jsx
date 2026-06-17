@@ -54,10 +54,10 @@ const MyCoursesDetail = () => {
         const list = Array.isArray(data?.enrollments)
           ? data.enrollments
           : Array.isArray(data?.data)
-          ? data.data
-          : Array.isArray(data)
-          ? data
-          : [];
+            ? data.data
+            : Array.isArray(data)
+              ? data
+              : [];
 
         const found = list.find((item) => {
           const course = item?.course;
@@ -81,7 +81,7 @@ const MyCoursesDetail = () => {
         setError(
           err?.response?.data?.message ||
             err?.message ||
-            "Could not load your course details."
+            "Could not load your course details.",
         );
       } finally {
         if (mounted) setLoading(false);
@@ -124,14 +124,14 @@ const MyCoursesDetail = () => {
         setLessonsError("");
 
         const { data } = await axiosInstance.get(
-          `/lessons/by-course/${encodeURIComponent(courseDbId)}`
+          `/lessons/by-course/${encodeURIComponent(courseDbId)}`,
         );
 
         const list = Array.isArray(data?.lessons)
           ? data.lessons
           : Array.isArray(data?.data)
-          ? data.data
-          : [];
+            ? data.data
+            : [];
 
         if (mounted) setLessons(list);
       } catch (err) {
@@ -141,7 +141,7 @@ const MyCoursesDetail = () => {
         setLessonsError(
           err?.response?.data?.message ||
             err?.message ||
-            "Could not load lessons for this course."
+            "Could not load lessons for this course.",
         );
       } finally {
         if (mounted) setLessonsLoading(false);
@@ -181,7 +181,7 @@ const MyCoursesDetail = () => {
   const totalLessonMinutes = useMemo(() => {
     const fromLessons = lessons.reduce(
       (sum, lesson) => sum + (Number(lesson?.durationInMinutes) || 0),
-      0
+      0,
     );
 
     return fromLessons || Number(course?.durationInMinutes) || 0;
@@ -192,7 +192,7 @@ const MyCoursesDetail = () => {
     const fullStars = Math.max(0, Math.min(5, Math.round(rating)));
 
     return Array.from({ length: 5 }, (_, index) =>
-      index + 1 <= fullStars ? "★" : "☆"
+      index + 1 <= fullStars ? "★" : "☆",
     ).join("");
   };
 
@@ -227,7 +227,9 @@ const MyCoursesDetail = () => {
   };
 
   const normalizeText = (value) =>
-    String(value || "Not available").replaceAll("-", " ").replaceAll("_", " ");
+    String(value || "Not available")
+      .replaceAll("-", " ")
+      .replaceAll("_", " ");
 
   const image =
     course?.thumbnail ||
@@ -239,8 +241,8 @@ const MyCoursesDetail = () => {
   const pricePaid = Number.isFinite(Number(enrollment?.pricePaid))
     ? formatMoney(enrollment.pricePaid, enrollment.currency || "USD")
     : course?.isFree
-    ? "Free"
-    : "Paid";
+      ? "Free"
+      : "Paid";
 
   const statusLabel = useMemo(() => {
     switch (enrollment?.status) {
@@ -258,7 +260,7 @@ const MyCoursesDetail = () => {
   }, [enrollment?.status]);
 
   const accessIsActive = ["active", "completed"].includes(
-    String(enrollment?.status || "")
+    String(enrollment?.status || ""),
   );
 
   const handleContinue = () => {
@@ -293,7 +295,8 @@ const MyCoursesDetail = () => {
     if (!accessIsActive) {
       toast?.push?.({
         title: "Access Not Active",
-        description: "Your course access must be active before watching lessons.",
+        description:
+          "Your course access must be active before watching lessons.",
         variant: "danger",
       });
       return;
@@ -315,7 +318,9 @@ const MyCoursesDetail = () => {
           <StateCard>
             <Spinner />
             <StateTitle>Loading course details...</StateTitle>
-            <StateText>Preparing your full purchase and access summary.</StateText>
+            <StateText>
+              Preparing your full purchase and access summary.
+            </StateText>
           </StateCard>
         </Inner>
       </PageWrap>
@@ -329,11 +334,15 @@ const MyCoursesDetail = () => {
           <StateCard>
             <StateTitle>Course details not found</StateTitle>
             <StateText>
-              {error || "This course could not be found in your purchased list."}
+              {error ||
+                "This course could not be found in your purchased list."}
             </StateText>
 
             <ButtonRow>
-              <OutlineButton type="button" onClick={() => navigate("/my-courses")}>
+              <OutlineButton
+                type="button"
+                onClick={() => navigate("/my-courses")}
+              >
                 Back To My Courses
               </OutlineButton>
 
@@ -385,8 +394,12 @@ const MyCoursesDetail = () => {
             <RatingBox>
               <Stars>{renderStars(ratingAverage)}</Stars>
               <RatingText>
-                {ratingAverage > 0 ? `${ratingAverage.toFixed(1)}/5` : "New Course"}
-                {ratingCount > 0 ? ` • ${ratingCount} reviews` : " • No reviews yet"}
+                {ratingAverage > 0
+                  ? `${ratingAverage.toFixed(1)}/5`
+                  : "New Course"}
+                {ratingCount > 0
+                  ? ` • ${ratingCount} reviews`
+                  : " • No reviews yet"}
                 {` • ${studentsCount} enrolled`}
               </RatingText>
             </RatingBox>
@@ -417,12 +430,16 @@ const MyCoursesDetail = () => {
             ) : (
               <FallbackMedia>
                 <FallbackBadge>KnockoutCodes</FallbackBadge>
-                <FallbackTitle>{course?.title || "Course Access"}</FallbackTitle>
+                <FallbackTitle>
+                  {course?.title || "Course Access"}
+                </FallbackTitle>
               </FallbackMedia>
             )}
 
             <MediaShade />
-            <StatusBadge $status={enrollment?.status}>{statusLabel}</StatusBadge>
+            <StatusBadge $status={enrollment?.status}>
+              {statusLabel}
+            </StatusBadge>
           </HeroMedia>
         </Hero>
 
@@ -433,7 +450,9 @@ const MyCoursesDetail = () => {
           </StatusPill>
 
           <StatusPill>
-            <strong>{normalizeText(enrollment?.paymentPlan || "one-time")}</strong>
+            <strong>
+              {normalizeText(enrollment?.paymentPlan || "one-time")}
+            </strong>
             <span>Payment Plan</span>
           </StatusPill>
 
@@ -488,8 +507,8 @@ const MyCoursesDetail = () => {
                 {progress >= 100
                   ? "You completed this course. You can still return anytime to review the lessons."
                   : progress > 0
-                  ? "You already started this course. Continue from your current watching stage."
-                  : "Your course is unlocked and ready. Start from lesson one."}
+                    ? "You already started this course. Continue from your current watching stage."
+                    : "Your course is unlocked and ready. Start from lesson one."}
               </AccessNote>
             </InfoCard>
 
@@ -511,8 +530,11 @@ const MyCoursesDetail = () => {
                     const lessonProgress = isCompleted
                       ? 100
                       : isCurrent
-                      ? Math.max(8, Math.round(progress % (100 / lessonCount || 1)))
-                      : 0;
+                        ? Math.max(
+                            8,
+                            Math.round(progress % (100 / lessonCount || 1)),
+                          )
+                        : 0;
 
                     return (
                       <LessonCard
@@ -525,7 +547,9 @@ const MyCoursesDetail = () => {
 
                         <LessonContent>
                           <LessonTopRow>
-                            <LessonTitle>{lesson?.title || "Untitled Lesson"}</LessonTitle>
+                            <LessonTitle>
+                              {lesson?.title || "Untitled Lesson"}
+                            </LessonTitle>
 
                             <LessonBadges>
                               {isCompleted ? (
@@ -545,7 +569,9 @@ const MyCoursesDetail = () => {
                           </LessonTopRow>
 
                           {lesson?.description ? (
-                            <LessonDescription>{lesson.description}</LessonDescription>
+                            <LessonDescription>
+                              {lesson.description}
+                            </LessonDescription>
                           ) : null}
 
                           <MiniProgressHeader>
@@ -570,10 +596,10 @@ const MyCoursesDetail = () => {
                           {isCompleted
                             ? "Review"
                             : isCurrent
-                            ? "Continue"
-                            : isLocked
-                            ? "Locked"
-                            : "Start"}
+                              ? "Continue"
+                              : isLocked
+                                ? "Locked"
+                                : "Start"}
                         </LessonButton>
                       </LessonCard>
                     );
@@ -599,7 +625,9 @@ const MyCoursesDetail = () => {
 
                 <DetailItem>
                   <DetailLabel>Instructor</DetailLabel>
-                  <DetailValue>{course?.instructor || "KnockoutCodes Coach"}</DetailValue>
+                  <DetailValue>
+                    {course?.instructor || "KnockoutCodes Coach"}
+                  </DetailValue>
                 </DetailItem>
 
                 <DetailItem>
@@ -629,7 +657,9 @@ const MyCoursesDetail = () => {
 
                 <DetailItem>
                   <DetailLabel>Enrollment ID</DetailLabel>
-                  <DetailValue>{enrollment?._id || "Not available"}</DetailValue>
+                  <DetailValue>
+                    {enrollment?._id || "Not available"}
+                  </DetailValue>
                 </DetailItem>
               </DetailGrid>
             </InfoCard>
@@ -639,7 +669,9 @@ const MyCoursesDetail = () => {
               <SectionTitle>Why You Can Watch This Course</SectionTitle>
 
               <FeatureList>
-                <li>Your purchase or subscription was verified by the backend.</li>
+                <li>
+                  Your purchase or subscription was verified by the backend.
+                </li>
                 <li>Your enrollment is connected to your user account.</li>
                 <li>The Course Player should only open for verified access.</li>
                 <li>Your progress is tracked under this enrollment record.</li>
@@ -662,8 +694,8 @@ const MyCoursesDetail = () => {
                 />
               ) : (
                 <AccessNote>
-                  Course ID is missing or access is inactive, so reviews cannot be
-                  submitted for this course yet.
+                  Course ID is missing or access is inactive, so reviews cannot
+                  be submitted for this course yet.
                 </AccessNote>
               )}
             </InfoCard>
@@ -678,19 +710,33 @@ const MyCoursesDetail = () => {
 
               <SummaryList>
                 <li>Status: {statusLabel}</li>
-                <li>Plan: {normalizeText(enrollment?.paymentPlan || "one-time")}</li>
+                <li>
+                  Plan: {normalizeText(enrollment?.paymentPlan || "one-time")}
+                </li>
                 <li>Currency: {enrollment?.currency || "USD"}</li>
                 <li>Progress: {Math.round(progress)}%</li>
-                <li>Watching Stage: {currentLessonIndex >= 0 ? `Lesson ${currentLessonIndex + 1}` : "Not Started"}</li>
+                <li>
+                  Watching Stage:{" "}
+                  {currentLessonIndex >= 0
+                    ? `Lesson ${currentLessonIndex + 1}`
+                    : "Not Started"}
+                </li>
                 <li>Lessons: {lessonCount || "Not available"}</li>
-                <li>Training Time: {formatMinutesToHours(totalLessonMinutes)}</li>
-                <li>Rating: {ratingAverage > 0 ? ratingAverage.toFixed(1) : "New"}</li>
+                <li>
+                  Training Time: {formatMinutesToHours(totalLessonMinutes)}
+                </li>
+                <li>
+                  Rating: {ratingAverage > 0 ? ratingAverage.toFixed(1) : "New"}
+                </li>
                 <li>Reviews: {ratingCount}</li>
                 <li>Students Enrolled: {studentsCount}</li>
                 <li>Purchased: {formatDate(enrollment?.createdAt)}</li>
                 <li>Started: {formatDate(enrollment?.startedAt)}</li>
                 <li>Last Accessed: {formatDate(enrollment?.lastAccessedAt)}</li>
-                <li>Stripe Session: {enrollment?.stripeSessionId || "Not available"}</li>
+                <li>
+                  Stripe Session:{" "}
+                  {enrollment?.stripeSessionId || "Not available"}
+                </li>
               </SummaryList>
 
               <PrimaryButton type="button" onClick={handleContinue}>
@@ -722,9 +768,17 @@ const spin = keyframes`
 const PageWrap = styled.section`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 14%, rgba(90, 56, 37, 0.42), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   color: ${({ theme }) => theme.colors.white};
   display: flex;
   justify-content: center;
@@ -788,7 +842,11 @@ const HeroContent = styled.div`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.82), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -918,7 +976,11 @@ const MediaShade = styled.div`
   inset: 0;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.62)),
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.12), transparent 38%);
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.12),
+      transparent 38%
+    );
 `;
 
 const StatusBadge = styled.span`
@@ -1241,7 +1303,8 @@ const MiniProgressTrack = styled.div`
 `;
 
 const MiniProgressFill = styled.div`
-  width: ${({ $value }) => `${Math.min(Math.max(Number($value) || 0, 0), 100)}%`};
+  width: ${({ $value }) =>
+    `${Math.min(Math.max(Number($value) || 0, 0), 100)}%`};
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(

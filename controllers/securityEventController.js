@@ -13,7 +13,10 @@ const VALID_REVIEW_STATUSES = [
 ];
 
 const cleanText = (value = "", max = 500) =>
-  String(value || "").replace(/[<>]/g, "").trim().slice(0, max);
+  String(value || "")
+    .replace(/[<>]/g, "")
+    .trim()
+    .slice(0, max);
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -65,7 +68,9 @@ export async function updateSecurityEventReview(req, res) {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
-    return res.status(400).json({ success: false, message: "Invalid event id." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event id." });
   }
 
   const reviewStatus = cleanText(req.body.reviewStatus, 40);
@@ -86,11 +91,13 @@ export async function updateSecurityEventReview(req, res) {
       reviewedBy: req.user?._id || null,
       reviewedAt: new Date(),
     },
-    { new: true }
+    { new: true },
   );
 
   if (!event) {
-    return res.status(404).json({ success: false, message: "Event not found." });
+    return res
+      .status(404)
+      .json({ success: false, message: "Event not found." });
   }
 
   res.status(200).json({
@@ -104,13 +111,17 @@ export async function deleteSecurityEvent(req, res) {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
-    return res.status(400).json({ success: false, message: "Invalid event id." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event id." });
   }
 
   const event = await SecurityEvent.findByIdAndDelete(id);
 
   if (!event) {
-    return res.status(404).json({ success: false, message: "Event not found." });
+    return res
+      .status(404)
+      .json({ success: false, message: "Event not found." });
   }
 
   res.status(200).json({
@@ -123,13 +134,17 @@ export async function deactivateUserFromSecurityEvent(req, res) {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
-    return res.status(400).json({ success: false, message: "Invalid event id." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event id." });
   }
 
   const event = await SecurityEvent.findById(id);
 
   if (!event) {
-    return res.status(404).json({ success: false, message: "Event not found." });
+    return res
+      .status(404)
+      .json({ success: false, message: "Event not found." });
   }
 
   if (!event.user) {
@@ -142,7 +157,7 @@ export async function deactivateUserFromSecurityEvent(req, res) {
   const user = await User.findByIdAndUpdate(
     event.user,
     { isActive: false },
-    { new: true }
+    { new: true },
   ).select("name email role isActive");
 
   await SecurityEvent.findByIdAndUpdate(id, {
@@ -166,13 +181,17 @@ export async function blockIpFromSecurityEvent(req, res) {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
-    return res.status(400).json({ success: false, message: "Invalid event id." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event id." });
   }
 
   const event = await SecurityEvent.findById(id);
 
   if (!event) {
-    return res.status(404).json({ success: false, message: "Event not found." });
+    return res
+      .status(404)
+      .json({ success: false, message: "Event not found." });
   }
 
   if (!event.ip) {
@@ -196,7 +215,7 @@ export async function blockIpFromSecurityEvent(req, res) {
       unblockedAt: null,
       isActive: true,
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true },
   );
 
   await SecurityEvent.findByIdAndUpdate(id, {
@@ -220,13 +239,17 @@ export async function unblockIpFromSecurityEvent(req, res) {
   const { id } = req.params;
 
   if (!isValidObjectId(id)) {
-    return res.status(400).json({ success: false, message: "Invalid event id." });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event id." });
   }
 
   const event = await SecurityEvent.findById(id);
 
   if (!event) {
-    return res.status(404).json({ success: false, message: "Event not found." });
+    return res
+      .status(404)
+      .json({ success: false, message: "Event not found." });
   }
 
   if (!event.ip) {
@@ -243,7 +266,7 @@ export async function unblockIpFromSecurityEvent(req, res) {
       unblockedBy: req.user?._id || null,
       unblockedAt: new Date(),
     },
-    { new: true }
+    { new: true },
   );
 
   await SecurityEvent.findByIdAndUpdate(id, {
@@ -263,7 +286,10 @@ export async function unblockIpFromSecurityEvent(req, res) {
 }
 
 export async function deleteOldSecurityEvents(req, res) {
-  const days = Math.min(Math.max(Number(req.body.days || req.query.days) || 90, 30), 365);
+  const days = Math.min(
+    Math.max(Number(req.body.days || req.query.days) || 90, 30),
+    365,
+  );
 
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 

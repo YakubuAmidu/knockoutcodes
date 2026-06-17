@@ -31,7 +31,10 @@ const POW_SECRET =
   (process.env.NODE_ENV === "production" ? "" : "pow-secret-dev-only");
 
 // Basic email normalize
-const normalizeEmail = (e) => String(e || "").trim().toLowerCase();
+const normalizeEmail = (e) =>
+  String(e || "")
+    .trim()
+    .toLowerCase();
 
 // Convert difficulty bits to hex prefix length (approx)
 function meetsDifficulty(hex, difficultyBits) {
@@ -87,7 +90,7 @@ export async function contactAbuseGuard(req, res, next) {
     }
 
     return next();
-  // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line no-unused-vars
   } catch (err) {
     // fail open
     return next();
@@ -109,7 +112,7 @@ async function upsertBlock(key, reason, expiresAt) {
   await AbuseBlock.findOneAndUpdate(
     { key },
     { $set: { reason, expiresAt }, $inc: { hits: 1 } },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 }
 
@@ -191,7 +194,7 @@ export async function verifyContactPow(req, res, next) {
     }
 
     return next();
-  // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line no-unused-vars
   } catch (err) {
     return res.status(400).json({
       success: false,
@@ -199,5 +202,3 @@ export async function verifyContactPow(req, res, next) {
     });
   }
 }
-
-

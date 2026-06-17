@@ -132,7 +132,7 @@ export const createCourseCheckout =
 
       const message = getErrorMessage(
         error,
-        "Unable to start checkout. Try again."
+        "Unable to start checkout. Try again.",
       );
 
       dispatch({

@@ -50,7 +50,9 @@ function safeArray(value) {
 }
 
 function normalizeStatus(value, fallback = "pending") {
-  return String(value || fallback).toLowerCase().trim();
+  return String(value || fallback)
+    .toLowerCase()
+    .trim();
 }
 
 function shortText(value, max = 48) {
@@ -62,9 +64,9 @@ function shortText(value, max = 48) {
 function hasTracking(order) {
   return Boolean(
     order?.shipping?.trackingNumber ||
-      order?.shipping?.trackingUrl ||
-      order?.shipping?.carrier ||
-      order?.shipping?.shippedAt
+    order?.shipping?.trackingUrl ||
+    order?.shipping?.carrier ||
+    order?.shipping?.shippedAt,
   );
 }
 
@@ -92,90 +94,97 @@ export default function MyOrders() {
 
   const dispatch = useDispatch();
 
-  const authUser = useSelector((state) => state.auth?.user || state.auth?.currentUser);
+  const authUser = useSelector(
+    (state) => state.auth?.user || state.auth?.currentUser,
+  );
 
-const {
-  orders = [],
-  loading,
-  error,
-  page,
-  pages,
-  total,
-  refreshKey,
-} = useSelector((state) => state.myOrders || {});
+  const {
+    orders = [],
+    loading,
+    error,
+    page,
+    pages,
+    total,
+    refreshKey,
+  } = useSelector((state) => state.myOrders || {});
 
   const paidCount = useMemo(
-    () => orders.filter((order) => normalizeStatus(order?.paymentStatus) === "paid").length,
-    [orders]
+    () =>
+      orders.filter((order) => normalizeStatus(order?.paymentStatus) === "paid")
+        .length,
+    [orders],
   );
 
   const processingCount = useMemo(
-    () => orders.filter((order) => normalizeStatus(order?.status, "new") === "processing").length,
-    [orders]
+    () =>
+      orders.filter(
+        (order) => normalizeStatus(order?.status, "new") === "processing",
+      ).length,
+    [orders],
   );
 
   const totalSpent = useMemo(
     () => orders.reduce((sum, order) => sum + Number(order?.total || 0), 0),
-    [orders]
+    [orders],
   );
 
   useEffect(() => {
-  const controller = new AbortController();
+    const controller = new AbortController();
 
-  dispatch(fetchMyOrders({ page, signal: controller.signal })).then((res) => {
-    if (!res?.ok && !res?.cancelled && res?.message) {
-      push?.({
-        title: "Orders error",
-        description: res.message,
-        variant: "error",
-      });
-    }
-  });
+    dispatch(fetchMyOrders({ page, signal: controller.signal })).then((res) => {
+      if (!res?.ok && !res?.cancelled && res?.message) {
+        push?.({
+          title: "Orders error",
+          description: res.message,
+          variant: "error",
+        });
+      }
+    });
 
-  return () => {
-    controller.abort();
-  };
+    return () => {
+      controller.abort();
+    };
   }, [dispatch, page, refreshKey, push]);
-  
+
   useEffect(() => {
-  const userId = authUser?._id || authUser?.id;
+    const userId = authUser?._id || authUser?.id;
 
-  if (!userId) return;
+    if (!userId) return;
 
-  connectUserSocket(userId);
+    connectUserSocket(userId);
 
-  const handleOrderUpdate = ({ action }) => {
-    if (
-      action === "updated" ||
-      action === "fulfilled" ||
-      action === "cancelled" ||
-      action === "refunded" ||
-      action === "tracking-updated" ||
-      action === "deleted"
-    ) {
-      dispatch(refreshMyOrders());
-    }
-  };
+    const handleOrderUpdate = ({ action }) => {
+      if (
+        action === "updated" ||
+        action === "fulfilled" ||
+        action === "cancelled" ||
+        action === "refunded" ||
+        action === "tracking-updated" ||
+        action === "deleted"
+      ) {
+        dispatch(refreshMyOrders());
+      }
+    };
 
-  socket.on("user:order-updated", handleOrderUpdate);
+    socket.on("user:order-updated", handleOrderUpdate);
 
-  return () => {
-    socket.off("user:order-updated", handleOrderUpdate);
-  };
-}, [authUser?._id, authUser?.id, dispatch]);
+    return () => {
+      socket.off("user:order-updated", handleOrderUpdate);
+    };
+  }, [authUser?._id, authUser?.id, dispatch]);
 
-function refreshOrders() {
-  dispatch(refreshMyOrders());
-}
+  function refreshOrders() {
+    dispatch(refreshMyOrders());
+  }
 
-function handlePrev() {
-  dispatch(setMyOrdersPage(Math.max(1, page - 1)));
-}
+  function handlePrev() {
+    dispatch(setMyOrdersPage(Math.max(1, page - 1)));
+  }
 
-function handleNext() {
-  dispatch(setMyOrdersPage(Math.min(pages, page + 1)));
-}
-  
+  function handleNext() {
+    dispatch(setMyOrdersPage(Math.min(pages, page + 1)));
+  }
+
   return (
     <Page>
       <GlowOne />
@@ -195,16 +204,21 @@ function handleNext() {
             </Badge>
 
             <Title>
-              Your purchases. <span>Clear, protected, and easy to understand.</span>
+              Your purchases.{" "}
+              <span>Clear, protected, and easy to understand.</span>
             </Title>
 
             <Subtitle>
-              View every product order connected to your account, including payment status,
-              order status, items purchased, quantity, total paid, shipping details, reviews, and order date.
+              View every product order connected to your account, including
+              payment status, order status, items purchased, quantity, total
+              paid, shipping details, reviews, and order date.
             </Subtitle>
 
             <HeroActions>
-              <PrimaryButton type="button" onClick={() => navigate("/products")}>
+              <PrimaryButton
+                type="button"
+                onClick={() => navigate("/products")}
+              >
                 Shop More Products
               </PrimaryButton>
 
@@ -247,19 +261,25 @@ function handleNext() {
           <StatCard>
             <StatLabel>Payment</StatLabel>
             <StatValue>Verified</StatValue>
-            <StatText>Paid orders are confirmed through Stripe before appearing here.</StatText>
+            <StatText>
+              Paid orders are confirmed through Stripe before appearing here.
+            </StatText>
           </StatCard>
 
           <StatCard>
             <StatLabel>Access</StatLabel>
             <StatValue>Private</StatValue>
-            <StatText>This page only loads orders that belong to your user account.</StatText>
+            <StatText>
+              This page only loads orders that belong to your user account.
+            </StatText>
           </StatCard>
 
           <StatCard>
             <StatLabel>Tracking</StatLabel>
             <StatValue>Clear</StatValue>
-            <StatText>Each card shows item details, status, total, and transaction info.</StatText>
+            <StatText>
+              Each card shows item details, status, total, and transaction info.
+            </StatText>
           </StatCard>
         </StatsGrid>
 
@@ -268,12 +288,17 @@ function handleNext() {
             <div>
               <PanelTitle>My Products & Orders</PanelTitle>
               <PanelSub>
-                Page {page} of {pages} • {total} total order{total === 1 ? "" : "s"}
+                Page {page} of {pages} • {total} total order
+                {total === 1 ? "" : "s"}
               </PanelSub>
             </div>
 
             <PanelActions>
-              <SmallButton type="button" onClick={refreshOrders} disabled={loading}>
+              <SmallButton
+                type="button"
+                onClick={refreshOrders}
+                disabled={loading}
+              >
                 {loading ? "Refreshing…" : "Refresh"}
               </SmallButton>
             </PanelActions>
@@ -283,7 +308,10 @@ function handleNext() {
             <StateBox>
               <Spinner />
               <StateTitle>Loading your private orders…</StateTitle>
-              <StateText>Checking your account and pulling your latest confirmed purchases.</StateText>
+              <StateText>
+                Checking your account and pulling your latest confirmed
+                purchases.
+              </StateText>
             </StateBox>
           ) : error ? (
             <StateBox>
@@ -301,10 +329,14 @@ function handleNext() {
               <StateIcon>⌁</StateIcon>
               <StateTitle>No orders yet.</StateTitle>
               <StateText>
-                When you buy KnockoutCodes products, your verified orders will appear here.
+                When you buy KnockoutCodes products, your verified orders will
+                appear here.
               </StateText>
               <StateActions>
-                <PrimaryButton type="button" onClick={() => navigate("/products")}>
+                <PrimaryButton
+                  type="button"
+                  onClick={() => navigate("/products")}
+                >
                   Shop Products
                 </PrimaryButton>
               </StateActions>
@@ -316,12 +348,14 @@ function handleNext() {
                 const orderStatus = normalizeStatus(order?.status, "new");
                 const itemList = safeArray(order?.items);
                 const orderId = String(order?._id || "");
-                const shortId = orderId ? orderId.slice(-8).toUpperCase() : "ORDER";
+                const shortId = orderId
+                  ? orderId.slice(-8).toUpperCase()
+                  : "ORDER";
                 const currency = order?.currency || "USD";
                 const firstItem = itemList[0] || {};
                 const totalQty = itemList.reduce(
                   (sum, item) => sum + Number(item?.quantity || 0),
-                  0
+                  0,
                 );
 
                 return (
@@ -331,24 +365,33 @@ function handleNext() {
                     <OrderTop>
                       <OrderIdentity>
                         <OrderBadge>Order #{shortId}</OrderBadge>
-                        <OrderDate>{formatDateTime(order?.createdAt)}</OrderDate>
+                        <OrderDate>
+                          {formatDateTime(order?.createdAt)}
+                        </OrderDate>
                       </OrderIdentity>
 
                       <OrderStatusRow>
-                        <PaymentBadge data-status={paymentStatus}>{paymentStatus}</PaymentBadge>
-                        <StatusBadge data-status={orderStatus}>{orderStatus}</StatusBadge>
+                        <PaymentBadge data-status={paymentStatus}>
+                          {paymentStatus}
+                        </PaymentBadge>
+                        <StatusBadge data-status={orderStatus}>
+                          {orderStatus}
+                        </StatusBadge>
                       </OrderStatusRow>
                     </OrderTop>
 
                     <ProductBlock>
                       <Label>Product</Label>
-                      <ProductTitle title={firstItem?.title || "Purchased item"}>
+                      <ProductTitle
+                        title={firstItem?.title || "Purchased item"}
+                      >
                         {shortText(firstItem?.title || "Purchased item", 58)}
                       </ProductTitle>
 
                       {itemList.length > 1 ? (
                         <ExtraItems>
-                          + {itemList.length - 1} more item{itemList.length - 1 === 1 ? "" : "s"}
+                          + {itemList.length - 1} more item
+                          {itemList.length - 1 === 1 ? "" : "s"}
                         </ExtraItems>
                       ) : null}
                     </ProductBlock>
@@ -362,18 +405,25 @@ function handleNext() {
                       <DetailBox>
                         <DetailLabel>Unit Price</DetailLabel>
                         <DetailValue>
-                          {formatCurrency(firstItem?.unitPrice, firstItem?.currency || currency)}
+                          {formatCurrency(
+                            firstItem?.unitPrice,
+                            firstItem?.currency || currency,
+                          )}
                         </DetailValue>
                       </DetailBox>
 
                       <DetailBox>
                         <DetailLabel>Subtotal</DetailLabel>
-                        <DetailValue>{formatCurrency(order?.subtotal, currency)}</DetailValue>
+                        <DetailValue>
+                          {formatCurrency(order?.subtotal, currency)}
+                        </DetailValue>
                       </DetailBox>
 
                       <DetailBox>
                         <DetailLabel>Total Paid</DetailLabel>
-                        <DetailValue>{formatCurrency(order?.total, currency)}</DetailValue>
+                        <DetailValue>
+                          {formatCurrency(order?.total, currency)}
+                        </DetailValue>
                       </DetailBox>
 
                       <DetailBox>
@@ -383,7 +433,9 @@ function handleNext() {
 
                       <DetailBox>
                         <DetailLabel>Method</DetailLabel>
-                        <DetailValue>{order?.paymentMethod || "stripe"}</DetailValue>
+                        <DetailValue>
+                          {order?.paymentMethod || "stripe"}
+                        </DetailValue>
                       </DetailBox>
                     </DetailsGrid>
 
@@ -394,22 +446,30 @@ function handleNext() {
                         <TrackingGrid>
                           <DetailBox>
                             <DetailLabel>Carrier</DetailLabel>
-                            <DetailValue>{order?.shipping?.carrier || "—"}</DetailValue>
+                            <DetailValue>
+                              {order?.shipping?.carrier || "—"}
+                            </DetailValue>
                           </DetailBox>
 
                           <DetailBox>
                             <DetailLabel>Tracking Number</DetailLabel>
-                            <DetailValue>{order?.shipping?.trackingNumber || "—"}</DetailValue>
+                            <DetailValue>
+                              {order?.shipping?.trackingNumber || "—"}
+                            </DetailValue>
                           </DetailBox>
 
                           <DetailBox>
                             <DetailLabel>Shipped At</DetailLabel>
-                            <DetailValue>{formatDateTime(order?.shipping?.shippedAt)}</DetailValue>
+                            <DetailValue>
+                              {formatDateTime(order?.shipping?.shippedAt)}
+                            </DetailValue>
                           </DetailBox>
 
                           <DetailBox>
                             <DetailLabel>Status</DetailLabel>
-                            <DetailValue>{order?.status || "processing"}</DetailValue>
+                            <DetailValue>
+                              {order?.status || "processing"}
+                            </DetailValue>
                           </DetailBox>
                         </TrackingGrid>
 
@@ -439,22 +499,30 @@ function handleNext() {
                         <TrackingGrid>
                           <DetailBox>
                             <DetailLabel>Name</DetailLabel>
-                            <DetailValue>{order.shippingAddress.fullName || "—"}</DetailValue>
+                            <DetailValue>
+                              {order.shippingAddress.fullName || "—"}
+                            </DetailValue>
                           </DetailBox>
 
                           <DetailBox>
                             <DetailLabel>Email</DetailLabel>
-                            <DetailValue>{order.shippingAddress.email || "—"}</DetailValue>
+                            <DetailValue>
+                              {order.shippingAddress.email || "—"}
+                            </DetailValue>
                           </DetailBox>
 
                           <DetailBox>
                             <DetailLabel>Phone</DetailLabel>
-                            <DetailValue>{order.shippingAddress.phone || "—"}</DetailValue>
+                            <DetailValue>
+                              {order.shippingAddress.phone || "—"}
+                            </DetailValue>
                           </DetailBox>
 
                           <DetailBox>
                             <DetailLabel>Country</DetailLabel>
-                            <DetailValue>{order.shippingAddress.country || "—"}</DetailValue>
+                            <DetailValue>
+                              {order.shippingAddress.country || "—"}
+                            </DetailValue>
                           </DetailBox>
                         </TrackingGrid>
 
@@ -489,7 +557,11 @@ function handleNext() {
 
                                 <small>
                                   Qty {item?.quantity || 1} •{" "}
-                                  {formatCurrency(item?.unitPrice, item?.currency || currency)} each
+                                  {formatCurrency(
+                                    item?.unitPrice,
+                                    item?.currency || currency,
+                                  )}{" "}
+                                  each
                                 </small>
 
                                 {canReview ? (
@@ -497,12 +569,15 @@ function handleNext() {
                                     <ReviewForm
                                       type="product"
                                       productId={productId}
-                                      productTitle={item?.title || "this product"}
+                                      productTitle={
+                                        item?.title || "this product"
+                                      }
                                       onSuccess={refreshOrders}
                                     />
 
                                     <ReviewNote>
-                                      Verified purchase review. Only paid customers can submit.
+                                      Verified purchase review. Only paid
+                                      customers can submit.
                                     </ReviewNote>
                                   </ReviewSlot>
                                 ) : null}
@@ -510,8 +585,9 @@ function handleNext() {
 
                               <ItemTotal>
                                 {formatCurrency(
-                                  Number(item?.unitPrice || 0) * Number(item?.quantity || 1),
-                                  item?.currency || currency
+                                  Number(item?.unitPrice || 0) *
+                                    Number(item?.quantity || 1),
+                                  item?.currency || currency,
                                 )}
                               </ItemTotal>
                             </ItemLine>
@@ -535,7 +611,9 @@ function handleNext() {
 
                       <InfoRow>
                         <InfoLabel>Updated</InfoLabel>
-                        <InfoValue>{formatDateTime(order?.updatedAt)}</InfoValue>
+                        <InfoValue>
+                          {formatDateTime(order?.updatedAt)}
+                        </InfoValue>
                       </InfoRow>
                     </OrderInfoGrid>
 
@@ -561,7 +639,11 @@ function handleNext() {
               Page <strong>{page}</strong> of <strong>{pages}</strong>
             </PageInfo>
 
-            <PageButton type="button" disabled={page >= pages} onClick={handleNext}>
+            <PageButton
+              type="button"
+              disabled={page >= pages}
+              onClick={handleNext}
+            >
               Next →
             </PageButton>
           </PaginationRow>
@@ -587,7 +669,11 @@ const Page = styled.main`
   padding: 96px 18px 76px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 14% 8%, rgba(214, 182, 159, 0.2), transparent 38%),
+    radial-gradient(
+      circle at 14% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 38%
+    ),
     radial-gradient(circle at 86% 16%, rgba(90, 56, 37, 0.32), transparent 42%),
     linear-gradient(
       180deg,
@@ -641,7 +727,11 @@ const HeroText = styled.div`
   padding: 24px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.035)
+    ),
     rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -880,7 +970,11 @@ const OrdersPanel = styled.section`
   padding: 18px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.065),
+      rgba(255, 255, 255, 0.025)
+    ),
     rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(255, 249, 242, 0.11);
   box-shadow: ${({ theme }) => theme.shadow.glow};
@@ -944,7 +1038,11 @@ const OrderCard = styled.article`
     box-shadow 0.25s ease;
   border-radius: ${({ theme }) => theme.radius.xl};
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.055),
+      rgba(255, 255, 255, 0.02)
+    ),
     rgba(0, 0, 0, 0.31);
   border: 1px solid rgba(255, 249, 242, 0.1);
   min-height: 520px;
@@ -962,7 +1060,11 @@ const CardTopBar = styled.div`
   position: absolute;
   inset: 0 0 auto;
   height: 4px;
-  background: linear-gradient(90deg, ${({ theme }) => theme.colors.lightBrown}, transparent);
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    transparent
+  );
 `;
 
 const OrderTop = styled.div`

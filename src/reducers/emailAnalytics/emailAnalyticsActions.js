@@ -27,7 +27,7 @@ export const fetchEmailAnalytics =
 
       const response = await axiosInstance.get(
         ADMIN_EMAIL_ANALYTICS_OVERVIEW_URL,
-        { params }
+        { params },
       );
 
       const body = unwrapBody(response);
@@ -52,12 +52,12 @@ export const fetchEmailAnalytics =
           totalCampaigns: overview.totalCampaigns || 0,
           totalSent: recentCampaigns.reduce(
             (sum, item) => sum + Number(item.totalSent || 0),
-            0
+            0,
           ),
           totalFailed: overview.failed || 0,
           totalRecipients: recentCampaigns.reduce(
             (sum, item) => sum + Number(item.totalRecipients || 0),
-            0
+            0,
           ),
         },
         engagement: {
@@ -101,56 +101,56 @@ export const fetchEmailCampaignAnalyticsById =
       }
 
       const response = await axiosInstance.get(
-        `${ADMIN_EMAIL_ANALYTICS_DETAIL_URL}/${campaignId}`
+        `${ADMIN_EMAIL_ANALYTICS_DETAIL_URL}/${campaignId}`,
       );
 
       const body = unwrapBody(response);
-const raw = body?.data || body || {};
+      const raw = body?.data || body || {};
 
-const campaign =
-  raw?.campaign ||
-  raw?.campaignAnalytics?.campaign ||
-  raw?.data?.campaign ||
-  null;
+      const campaign =
+        raw?.campaign ||
+        raw?.campaignAnalytics?.campaign ||
+        raw?.data?.campaign ||
+        null;
 
-const totals =
-  raw?.totals ||
-  raw?.campaignAnalytics?.totals ||
-  raw?.data?.totals ||
-  {};
+      const totals =
+        raw?.totals ||
+        raw?.campaignAnalytics?.totals ||
+        raw?.data?.totals ||
+        {};
 
-const rates =
-  raw?.rates ||
-  raw?.engagement ||
-  raw?.campaignAnalytics?.rates ||
-  raw?.campaignAnalytics?.engagement ||
-  raw?.data?.rates ||
-  raw?.data?.engagement ||
-  {};
+      const rates =
+        raw?.rates ||
+        raw?.engagement ||
+        raw?.campaignAnalytics?.rates ||
+        raw?.campaignAnalytics?.engagement ||
+        raw?.data?.rates ||
+        raw?.data?.engagement ||
+        {};
 
-const recentEvents =
-  raw?.recentEvents ||
-  raw?.recentActivity ||
-  raw?.events ||
-  raw?.logs ||
-  raw?.data?.recentEvents ||
-  raw?.data?.recentActivity ||
-  [];
+      const recentEvents =
+        raw?.recentEvents ||
+        raw?.recentActivity ||
+        raw?.events ||
+        raw?.logs ||
+        raw?.data?.recentEvents ||
+        raw?.data?.recentActivity ||
+        [];
 
-const detail = {
-  campaign,
-  totals,
-  rates,
-  engagement: rates,
-  recentEvents: Array.isArray(recentEvents) ? recentEvents : [],
-};
+      const detail = {
+        campaign,
+        totals,
+        rates,
+        engagement: rates,
+        recentEvents: Array.isArray(recentEvents) ? recentEvents : [],
+      };
 
-dispatch({
-  type: EMAIL_ANALYTICS_ACTIONS.CAMPAIGN_FETCH_SUCCESS,
-  payload: detail,
-});
+      dispatch({
+        type: EMAIL_ANALYTICS_ACTIONS.CAMPAIGN_FETCH_SUCCESS,
+        payload: detail,
+      });
 
-return detail;
+      return detail;
     } catch (error) {
       dispatch({
         type: EMAIL_ANALYTICS_ACTIONS.CAMPAIGN_FETCH_FAIL,

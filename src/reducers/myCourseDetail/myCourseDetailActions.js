@@ -32,7 +32,7 @@ export const fetchMyCourseDetail = (courseId) => async (dispatch) => {
     const enrollment = enrollments.find(
       (item) =>
         String(item?.course?._id) === String(courseId) ||
-        String(item?.course) === String(courseId)
+        String(item?.course) === String(courseId),
     );
 
     if (!enrollment) {
@@ -63,7 +63,7 @@ export const fetchMyCourseDetail = (courseId) => async (dispatch) => {
   } catch (error) {
     const message = getErrorMessage(
       error,
-      "Failed to load your course details."
+      "Failed to load your course details.",
     );
 
     dispatch({

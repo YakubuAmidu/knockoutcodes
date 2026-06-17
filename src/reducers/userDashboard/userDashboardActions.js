@@ -25,5 +25,6 @@ export const markNotificationRead = (notificationId) => ({
   payload: notificationId,
 });
 
-export const clearDashboardError = () => ({ type: T.USER_DASHBOARD_CLEAR_ERROR });
-
+export const clearDashboardError = () => ({
+  type: T.USER_DASHBOARD_CLEAR_ERROR,
+});

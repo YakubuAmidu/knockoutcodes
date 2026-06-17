@@ -39,7 +39,9 @@ const Button = styled.button`
   background: ${({ theme }) =>
     theme.gradients?.brand || "linear-gradient(120deg, #C71585, #ff5bb1)"};
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
-  transition: transform 0.14s ease-out, box-shadow 0.14s ease-out,
+  transition:
+    transform 0.14s ease-out,
+    box-shadow 0.14s ease-out,
     opacity 0.12s ease-out;
 
   &:hover {
@@ -205,7 +207,9 @@ const Input = styled.input`
   font-size: 13px;
   outline: none;
   width: 100%;
-  transition: border-color 0.14s ease-out, background 0.14s ease-out;
+  transition:
+    border-color 0.14s ease-out,
+    background 0.14s ease-out;
 
   &:focus {
     border-color: rgba(255, 255, 255, 0.38);
@@ -223,7 +227,9 @@ const TextArea = styled.textarea`
   outline: none;
   min-height: 70px;
   resize: vertical;
-  transition: border-color 0.14s ease-out, background 0.14s ease-out;
+  transition:
+    border-color 0.14s ease-out,
+    background 0.14s ease-out;
 
   &:focus {
     border-color: rgba(255, 255, 255, 0.38);
@@ -257,7 +263,9 @@ const GhostButton = styled.button`
   color: #ffffff;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.16s ease-out, color 0.16s ease-out,
+  transition:
+    background 0.16s ease-out,
+    color 0.16s ease-out,
     border-color 0.16s ease-out;
 
   &:hover {
@@ -432,7 +440,7 @@ const ManagePlans = () => {
 
     // simple confirmation
     const ok = window.confirm(
-      "Are you sure you want to delete this plan? This cannot be undone."
+      "Are you sure you want to delete this plan? This cannot be undone.",
     );
     if (!ok) return;
 
@@ -465,9 +473,9 @@ const ManagePlans = () => {
         <div>
           <Title>Manage Membership Plans</Title>
           <SubTitle>
-            Connect your Stripe prices to KnockoutCodes membership tiers.
-            Create or edit plans and keep <strong>name / slug / price</strong>{" "}
-            in sync with Stripe.
+            Connect your Stripe prices to KnockoutCodes membership tiers. Create
+            or edit plans and keep <strong>name / slug / price</strong> in sync
+            with Stripe.
           </SubTitle>
         </div>
         <Button type="button" onClick={resetForm}>
@@ -480,8 +488,8 @@ const ManagePlans = () => {
         <Card>
           <CardTitle>Existing Plans</CardTitle>
           <CardSub>
-            Click a row to edit. <strong>Slug</strong> is what the frontend
-            uses (e.g. <Muted>basic</Muted>, <Muted>standard</Muted>,{" "}
+            Click a row to edit. <strong>Slug</strong> is what the frontend uses
+            (e.g. <Muted>basic</Muted>, <Muted>standard</Muted>,{" "}
             <Muted>premium</Muted>).
           </CardSub>
 
@@ -538,13 +546,11 @@ const ManagePlans = () => {
 
         {/* Form */}
         <Card>
-          <CardTitle>
-            {selectedId ? "Edit Plan" : "Create Plan"}
-          </CardTitle>
+          <CardTitle>{selectedId ? "Edit Plan" : "Create Plan"}</CardTitle>
           <CardSub>
-            Grab the <strong>price ID</strong> from your Stripe dashboard
-            (e.g. <Muted>price_123abc</Muted>) and paste it here. Price should
-            match Stripe to avoid confusion.
+            Grab the <strong>price ID</strong> from your Stripe dashboard (e.g.{" "}
+            <Muted>price_123abc</Muted>) and paste it here. Price should match
+            Stripe to avoid confusion.
           </CardSub>
 
           <Form onSubmit={handleSubmit}>
@@ -613,9 +619,7 @@ const ManagePlans = () => {
                 id="stripePriceId"
                 type="text"
                 value={form.stripePriceId}
-                onChange={(e) =>
-                  handleChange("stripePriceId", e.target.value)
-                }
+                onChange={(e) => handleChange("stripePriceId", e.target.value)}
                 placeholder="price_123abcXYZ"
               />
             </Field>
@@ -628,9 +632,7 @@ const ManagePlans = () => {
               <TextArea
                 id="description"
                 value={form.description}
-                onChange={(e) =>
-                  handleChange("description", e.target.value)
-                }
+                onChange={(e) => handleChange("description", e.target.value)}
                 placeholder="Unlock all boxing courses, live Q&A, and more."
               />
             </Field>
@@ -660,8 +662,8 @@ const ManagePlans = () => {
                     ? "Saving…"
                     : "Creating…"
                   : selectedId
-                  ? "Save changes"
-                  : "Create plan"}
+                    ? "Save changes"
+                    : "Create plan"}
               </Button>
 
               {selectedId && (

@@ -43,7 +43,9 @@ function getErrorMessage(error, fallback) {
 }
 
 function pickTicket(body) {
-  return body?.item || body?.ticket || body?.contact || body?.data || body || null;
+  return (
+    body?.item || body?.ticket || body?.contact || body?.data || body || null
+  );
 }
 
 function pickItems(body) {
@@ -183,7 +185,7 @@ export const sendMyReply = (id, message) => async (dispatch) => {
           ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
           ...authHeaders(),
         },
-      }
+      },
     );
 
     const ticket = pickTicket(res?.data);

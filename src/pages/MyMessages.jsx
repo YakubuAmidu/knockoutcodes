@@ -1,14 +1,18 @@
 // src/pages/MyMessages.jsx
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/Toast";
 
-import {
-  socket,
-} from "../../utils/socket";
+import { socket } from "../../utils/socket";
 
 import {
   loadMyTickets,
@@ -26,8 +30,16 @@ const Page = styled.main`
   min-height: 100vh;
   padding: 100px 18px 60px;
   background:
-    radial-gradient(900px 420px at 18% 0%, rgba(214, 182, 159, 0.2), transparent 62%),
-    radial-gradient(850px 480px at 92% 90%, rgba(61, 38, 26, 0.62), transparent 64%),
+    radial-gradient(
+      900px 420px at 18% 0%,
+      rgba(214, 182, 159, 0.2),
+      transparent 62%
+    ),
+    radial-gradient(
+      850px 480px at 92% 90%,
+      rgba(61, 38, 26, 0.62),
+      transparent 64%
+    ),
     linear-gradient(135deg, #000 0%, #080604 48%, #000 100%);
   color: ${({ theme }) => theme?.colors?.ivory || "#FFF9F2"};
 `;
@@ -225,8 +237,8 @@ const Item = styled.button`
     $active
       ? "rgba(214, 182, 159, 0.16)"
       : $new
-      ? "rgba(214, 182, 159, 0.08)"
-      : "transparent"};
+        ? "rgba(214, 182, 159, 0.08)"
+        : "transparent"};
   color: #fff9f2;
   padding: 15px 14px;
   border-bottom: 1px solid rgba(255, 249, 242, 0.08);
@@ -445,7 +457,7 @@ export default function MyMessages() {
       s.auth?.currentUser ||
       s.user?.user ||
       s.user?.currentUser ||
-      null
+      null,
   );
 
   const pushToast = useCallback(
@@ -458,15 +470,15 @@ export default function MyMessages() {
           (payload.type === "success"
             ? "Success"
             : payload.type === "error"
-            ? "Error"
-            : payload.type === "warning"
-            ? "Warning"
-            : "Notice"),
+              ? "Error"
+              : payload.type === "warning"
+                ? "Warning"
+                : "Notice"),
         description: payload.message || payload.description || "",
         variant: payload.variant || payload.type || "info",
       });
     },
-    [toast]
+    [toast],
   );
 
   const safeItems = useMemo(() => (Array.isArray(items) ? items : []), [items]);
@@ -501,7 +513,7 @@ export default function MyMessages() {
 
   const unreadCount = useMemo(
     () => safeItems.filter((t) => isNewForUser(t)).length,
-    [safeItems]
+    [safeItems],
   );
 
   useEffect(() => {
@@ -525,92 +537,88 @@ export default function MyMessages() {
   const DEBUG_SOCKET = import.meta.env.DEV;
 
   useEffect(() => {
-  const userId = authUser?._id || authUser?.id;
+    const userId = authUser?._id || authUser?.id;
 
-  if (!socket) return;
+    if (!socket) return;
 
-  const joinUserRooms = () => {
-    if (!userId) return;
+    const joinUserRooms = () => {
+      if (!userId) return;
 
-    socket.emit("join:user", userId);
-    socket.emit("user:join", { userId });
-    socket.emit("messages:join", { userId });
-    socket.emit("ticket:join-user", { userId });
+      socket.emit("join:user", userId);
+      socket.emit("user:join", { userId });
+      socket.emit("messages:join", { userId });
+      socket.emit("ticket:join-user", { userId });
 
-   if (DEBUG_SOCKET) {
-  console.log("✅ MyMessages socket joined:", userId);
-}
-  };
+      if (DEBUG_SOCKET) {
+        console.log("✅ MyMessages socket joined:", userId);
+      }
+    };
 
-  joinUserRooms();
+    joinUserRooms();
 
-  socket.on("connect", joinUserRooms);
+    socket.on("connect", joinUserRooms);
 
-  const refreshInbox = async (payload = {}) => {
-    if (DEBUG_SOCKET) {
-  console.log("🔥 MyMessages real-time event received:", payload);
-}
+    const refreshInbox = async (payload = {}) => {
+      if (DEBUG_SOCKET) {
+        console.log("🔥 MyMessages real-time event received:", payload);
+      }
 
-    const ticketId =
-      payload?.ticketId ||
-      payload?._id ||
-      payload?.id ||
-      payload?.message?.ticketId ||
-      payload?.data?.ticketId;
+      const ticketId =
+        payload?.ticketId ||
+        payload?._id ||
+        payload?.id ||
+        payload?.message?.ticketId ||
+        payload?.data?.ticketId;
 
-    await dispatch(loadMyTickets());
+      await dispatch(loadMyTickets());
 
-    if (
-      selectedId &&
-      ticketId &&
-      String(ticketId) === String(selectedId)
-    ) {
-      await dispatch(openTicket(selectedId));
-    }
+      if (selectedId && ticketId && String(ticketId) === String(selectedId)) {
+        await dispatch(openTicket(selectedId));
+      }
 
-    if (
-      payload?.lastSender === "admin" ||
-      payload?.sender === "admin" ||
-      payload?.message?.sender === "admin"
-    ) {
-      pushToast({
-        type: "info",
-        message: "New admin reply received.",
-      });
-    }
-  };
+      if (
+        payload?.lastSender === "admin" ||
+        payload?.sender === "admin" ||
+        payload?.message?.sender === "admin"
+      ) {
+        pushToast({
+          type: "info",
+          message: "New admin reply received.",
+        });
+      }
+    };
 
-  const events = [
-    "ticket:new",
-    "ticket:updated",
-    "ticket:reply",
-    "ticket:closed",
-    "message:new",
-    "messages:updated",
-    "myMessages:updated",
-    "support:reply",
-    "contact:reply",
-    "contact:updated",
+    const events = [
+      "ticket:new",
+      "ticket:updated",
+      "ticket:reply",
+      "ticket:closed",
+      "message:new",
+      "messages:updated",
+      "myMessages:updated",
+      "support:reply",
+      "contact:reply",
+      "contact:updated",
 
-    // add these stronger names too
-    "user:ticket-updated",
-    "user:ticket-reply",
-    "user:message-received",
-    "admin:reply-sent",
-  ];
-
-  events.forEach((eventName) => {
-    socket.on(eventName, refreshInbox);
-  });
-
-  return () => {
-    socket.off("connect", joinUserRooms);
+      // add these stronger names too
+      "user:ticket-updated",
+      "user:ticket-reply",
+      "user:message-received",
+      "admin:reply-sent",
+    ];
 
     events.forEach((eventName) => {
-      socket.off(eventName, refreshInbox);
+      socket.on(eventName, refreshInbox);
     });
-  };
-}, [dispatch, selectedId, authUser, pushToast, DEBUG_SOCKET]);
+
+    return () => {
+      socket.off("connect", joinUserRooms);
+
+      events.forEach((eventName) => {
+        socket.off(eventName, refreshInbox);
+      });
+    };
+  }, [dispatch, selectedId, authUser, pushToast, DEBUG_SOCKET]);
 
   const handleOpen = async (id) => {
     if (!id) return;
@@ -669,7 +677,10 @@ export default function MyMessages() {
   if (needsLogin) {
     return (
       <Page>
-        <LoginWall initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <LoginWall
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <Eyebrow>Private Support Access</Eyebrow>
           <HeroTitle>Login required to view your messages.</HeroTitle>
           <HeroText>
@@ -718,7 +729,10 @@ export default function MyMessages() {
 
             <Actions>
               <Btn onClick={() => nav("/contact")}>New Ticket</Btn>
-              <Btn onClick={() => dispatch(loadMyTickets())} disabled={loadingList}>
+              <Btn
+                onClick={() => dispatch(loadMyTickets())}
+                disabled={loadingList}
+              >
                 Refresh
               </Btn>
             </Actions>
@@ -780,12 +794,14 @@ export default function MyMessages() {
                       {closed
                         ? "Closed by admin"
                         : hasNew
-                        ? "Admin replied"
-                        : t.replied
-                        ? "Admin responded"
-                        : "Waiting for admin"}
+                          ? "Admin replied"
+                          : t.replied
+                            ? "Admin responded"
+                            : "Waiting for admin"}
                     </span>
-                    <span>{fmtTime(t.lastMessageAt || t.updatedAt || t.createdAt)}</span>
+                    <span>
+                      {fmtTime(t.lastMessageAt || t.updatedAt || t.createdAt)}
+                    </span>
                   </ItemMeta>
                 </Item>
               );
@@ -801,10 +817,12 @@ export default function MyMessages() {
                 {loadingThread
                   ? "Opening thread…"
                   : active
-                  ? `Last update: ${fmtTime(
-                      active.lastMessageAt || active.updatedAt || active.createdAt
-                    )}`
-                  : "Select a thread to view messages"}
+                    ? `Last update: ${fmtTime(
+                        active.lastMessageAt ||
+                          active.updatedAt ||
+                          active.createdAt,
+                      )}`
+                    : "Select a thread to view messages"}
               </Sub>
             </div>
 
@@ -828,7 +846,9 @@ export default function MyMessages() {
           </Head>
 
           {!active ? (
-            <Empty>Pick a thread on the left to view the full conversation.</Empty>
+            <Empty>
+              Pick a thread on the left to view the full conversation.
+            </Empty>
           ) : (
             <>
               <Thread>
@@ -865,12 +885,14 @@ export default function MyMessages() {
               <Composer>
                 <Input
                   value={draft}
-                  onChange={(e) => dispatch(updateMyMessageDraft(e.target.value))}
-                 placeholder={
-  isClosed
-    ? "This conversation is finished. Messaging is disabled."
-    : "Write your reply..."
-}
+                  onChange={(e) =>
+                    dispatch(updateMyMessageDraft(e.target.value))
+                  }
+                  placeholder={
+                    isClosed
+                      ? "This conversation is finished. Messaging is disabled."
+                      : "Write your reply..."
+                  }
                   disabled={isClosed || loadingThread || sending || !selectedId}
                 />
 
@@ -884,14 +906,19 @@ export default function MyMessages() {
                     !selectedId ||
                     !String(draft || "").trim()
                   }
-                  title={isClosed ? "Closed threads cannot be replied to." : "Send message"}
+                  title={
+                    isClosed
+                      ? "Closed threads cannot be replied to."
+                      : "Send message"
+                  }
                 >
                   {isClosed ? "Closed" : sending ? "Sending..." : "Send"}
                 </Btn>
 
                 {isClosed ? (
                   <DisabledHint>
-                    Admin closed this thread. You can read the history, but replies are disabled.
+                    Admin closed this thread. You can read the history, but
+                    replies are disabled.
                   </DisabledHint>
                 ) : null}
               </Composer>
@@ -902,4 +929,3 @@ export default function MyMessages() {
     </Page>
   );
 }
-

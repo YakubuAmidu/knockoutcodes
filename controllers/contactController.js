@@ -8,7 +8,9 @@ import { emitToUser, getIO } from "../config/socket.js";
  * Helper: sanitize for safe content
  */
 function safe(s, max = 5000) {
-  return String(s || "").trim().slice(0, max);
+  return String(s || "")
+    .trim()
+    .slice(0, max);
 }
 
 function publicUrl() {
@@ -39,7 +41,7 @@ function emitContactRealtime(contact, action = "updated") {
       });
     }
   } catch {
-      // Ignore contact realtime emit failure.
+    // Ignore contact realtime emit failure.
   }
 }
 
@@ -81,7 +83,9 @@ function meetsDifficulty(hex, difficultyBits) {
 }
 
 function normalizeEmail(e) {
-  return String(e || "").trim().toLowerCase();
+  return String(e || "")
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -113,7 +117,8 @@ export const getPowChallenge = async (req, res) => {
 };
 
 function verifyPow({ pow, email }) {
-  if (!pow || typeof pow !== "object") return { ok: false, reason: "Missing pow." };
+  if (!pow || typeof pow !== "object")
+    return { ok: false, reason: "Missing pow." };
 
   const nonce = safe(pow.nonce, 200);
   const sig = safe(pow.sig, 200);
@@ -124,15 +129,22 @@ function verifyPow({ pow, email }) {
   const answer = Number(pow.answer);
 
   if (!nonce || !sig) return { ok: false, reason: "Invalid pow payload." };
-  if (!Number.isFinite(ts) || !Number.isFinite(difficulty) || !Number.isFinite(ttlMs))
+  if (
+    !Number.isFinite(ts) ||
+    !Number.isFinite(difficulty) ||
+    !Number.isFinite(ttlMs)
+  )
     return { ok: false, reason: "Invalid pow metadata." };
-  if (!Number.isFinite(answer) || answer < 0) return { ok: false, reason: "Invalid pow answer." };
+  if (!Number.isFinite(answer) || answer < 0)
+    return { ok: false, reason: "Invalid pow answer." };
 
-  if (Date.now() - ts > ttlMs) return { ok: false, reason: "Challenge expired." };
+  if (Date.now() - ts > ttlMs)
+    return { ok: false, reason: "Challenge expired." };
 
   const payload = `${nonce}.${ts}.${difficulty}.${ttlMs}`;
   const expectedSig = hmacSig(payload);
-  if (expectedSig !== sig) return { ok: false, reason: "Bad challenge signature." };
+  if (expectedSig !== sig)
+    return { ok: false, reason: "Bad challenge signature." };
 
   // eslint-disable-next-line no-undef
   const minBits = Number(process.env.POW_MIN_BITS || 12);
@@ -145,7 +157,8 @@ function verifyPow({ pow, email }) {
   if (!e) return { ok: false, reason: "Missing email for pow." };
 
   const digest = sha256Hex(`${nonce}.${e}.${answer}`);
-  if (!meetsDifficulty(digest, difficulty)) return { ok: false, reason: "Pow does not meet difficulty." };
+  if (!meetsDifficulty(digest, difficulty))
+    return { ok: false, reason: "Pow does not meet difficulty." };
 
   return { ok: true };
 }
@@ -158,11 +171,14 @@ export const createContact = async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) {
-      return res.status(401).json({ success: false, message: "Login required." });
+      return res
+        .status(401)
+        .json({ success: false, message: "Login required." });
     }
 
     const name = safe(req.user?.name, 60) || safe(req.body?.name, 60);
-    const email = normalizeEmail(req.user?.email) || normalizeEmail(req.body?.email);
+    const email =
+      normalizeEmail(req.user?.email) || normalizeEmail(req.body?.email);
     const phone = safe(req.user?.phone, 20) || safe(req.body?.phone, 20);
 
     const subject = safe(req.body?.subject, 300);
@@ -271,11 +287,14 @@ export const createContact = async (req, res) => {
 export const getMyContacts = async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: "Login required." });
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Login required." });
 
     const docs = await Contact.find({ user: userId })
       .select(
-        "_id subject status replied isSeen createdAt updatedAt lastSender lastMessageAt userLastSeenAt"
+        "_id subject status replied isSeen createdAt updatedAt lastSender lastMessageAt userLastSeenAt",
       )
       .sort({ updatedAt: -1 });
 
@@ -284,7 +303,9 @@ export const getMyContacts = async (req, res) => {
       items: docs,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err?.message || "Server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: err?.message || "Server error" });
   }
 };
 
@@ -295,12 +316,18 @@ export const getMyContacts = async (req, res) => {
 export const getMyContact = async (req, res) => {
   try {
     const userId = req.user?._id;
-    if (!userId) return res.status(401).json({ success: false, message: "Login required." });
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Login required." });
 
     const { id } = req.params;
 
     const doc = await Contact.findOne({ _id: id, user: userId });
-    if (!doc) return res.status(404).json({ success: false, message: "Thread not found." });
+    if (!doc)
+      return res
+        .status(404)
+        .json({ success: false, message: "Thread not found." });
 
     // ✅ IMPORTANT FIX:
     // User opening a ticket should NOT flip admin's isSeen flag.
@@ -315,7 +342,9 @@ export const getMyContact = async (req, res) => {
       item: doc,
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err?.message || "Server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: err?.message || "Server error" });
   }
 };
 
@@ -360,18 +389,9 @@ export const sendMyReply = async (req, res) => {
     // ✅ PROFESSIONAL TICKET PROTECTION
     // Once a ticket is resolved/completed/closed,
     // users cannot continue replying.
-    const lockedStatuses = [
-      "resolved",
-      "complete",
-      "completed",
-      "closed",
-    ];
+    const lockedStatuses = ["resolved", "complete", "completed", "closed"];
 
-    if (
-      lockedStatuses.includes(
-        String(contact.status || "").toLowerCase()
-      )
-    ) {
+    if (lockedStatuses.includes(String(contact.status || "").toLowerCase())) {
       return res.status(403).json({
         success: false,
         message:
@@ -381,9 +401,7 @@ export const sendMyReply = async (req, res) => {
 
     const now = new Date();
 
-    contact.messages = Array.isArray(contact.messages)
-      ? contact.messages
-      : [];
+    contact.messages = Array.isArray(contact.messages) ? contact.messages : [];
 
     contact.messages.push({
       sender: "user",
@@ -440,7 +458,7 @@ export const getAllContacts = async (req, res) => {
     const docs = await Contact.find()
       .sort({ createdAt: -1 })
       .select(
-        "_id user name email subject phone status isSeen replied replyNote messages createdAt updatedAt lastSender lastMessageAt adminLastSeenAt"
+        "_id user name email subject phone status isSeen replied replyNote messages createdAt updatedAt lastSender lastMessageAt adminLastSeenAt",
       );
 
     return res.status(200).json({
@@ -475,7 +493,9 @@ export const updateContact = async (req, res) => {
       patch.adminLastSeenAt = new Date();
     }
 
-    Object.keys(patch).forEach((k) => patch[k] === undefined && delete patch[k]);
+    Object.keys(patch).forEach(
+      (k) => patch[k] === undefined && delete patch[k],
+    );
 
     const updated = await Contact.findByIdAndUpdate(id, patch, {
       new: true,
@@ -483,7 +503,9 @@ export const updateContact = async (req, res) => {
     });
 
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Contact not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Contact not found" });
     }
 
     emitContactRealtime(updated, "updated");
@@ -511,7 +533,9 @@ export const deleteContact = async (req, res) => {
 
     const deleted = await Contact.findByIdAndDelete(id);
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Contact not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Contact not found" });
     }
 
     emitContactRealtime(deleted, "deleted");
@@ -532,18 +556,23 @@ export const deleteContact = async (req, res) => {
 export const markAllSeen = async (req, res) => {
   try {
     const now = new Date();
-    await Contact.updateMany({}, { $set: { isSeen: true, adminLastSeenAt: now } });
+    await Contact.updateMany(
+      {},
+      { $set: { isSeen: true, adminLastSeenAt: now } },
+    );
 
     try {
-  const io = getIO?.();
-  io?.emit("admin:contacts-refresh", {
-    action: "mark-all-seen",
-  });
-} catch {
-  // ignore socket errors
+      const io = getIO?.();
+      io?.emit("admin:contacts-refresh", {
+        action: "mark-all-seen",
+      });
+    } catch {
+      // ignore socket errors
     }
-    
-    return res.status(200).json({ success: true, message: "All contacts marked seen" });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "All contacts marked seen" });
   } catch (err) {
     return res.status(500).json({
       success: false,
@@ -562,12 +591,16 @@ export const sendAdminReply = async (req, res) => {
     const replyText = safe(req.body?.message, 5000);
 
     if (!replyText) {
-      return res.status(400).json({ success: false, message: "Reply message is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Reply message is required." });
     }
 
     const contact = await Contact.findById(id);
     if (!contact) {
-      return res.status(404).json({ success: false, message: "Contact not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Contact not found" });
     }
 
     const now = new Date();
@@ -589,36 +622,36 @@ export const sendAdminReply = async (req, res) => {
     emitContactRealtime(contact, "admin-replied");
 
     // ✅ Real-time update for user's MyMessages.jsx
-const io = req.app.get("io");
+    const io = req.app.get("io");
 
-const userId =
-  contact.user?._id?.toString?.() ||
-  contact.user?.toString?.() ||
-  contact.userId?._id?.toString?.() ||
-  contact.userId?.toString?.();
+    const userId =
+      contact.user?._id?.toString?.() ||
+      contact.user?.toString?.() ||
+      contact.userId?._id?.toString?.() ||
+      contact.userId?.toString?.();
 
-if (io && userId) {
-  io.to(`user:${userId}`).emit("myMessages:updated", {
-    ticketId: contact._id,
-    contactId: contact._id,
-    sender: "admin",
-    lastSender: "admin",
-    action: "admin-replied",
-    message: "Admin replied",
-    updatedAt: contact.updatedAt,
-    lastMessageAt: contact.lastMessageAt,
-  });
+    if (io && userId) {
+      io.to(`user:${userId}`).emit("myMessages:updated", {
+        ticketId: contact._id,
+        contactId: contact._id,
+        sender: "admin",
+        lastSender: "admin",
+        action: "admin-replied",
+        message: "Admin replied",
+        updatedAt: contact.updatedAt,
+        lastMessageAt: contact.lastMessageAt,
+      });
 
-  io.to(`user:${userId}`).emit("user:ticket-reply", {
-    ticketId: contact._id,
-    contactId: contact._id,
-    sender: "admin",
-    lastSender: "admin",
-    action: "admin-replied",
-    updatedAt: contact.updatedAt,
-    lastMessageAt: contact.lastMessageAt,
-  });
-}
+      io.to(`user:${userId}`).emit("user:ticket-reply", {
+        ticketId: contact._id,
+        contactId: contact._id,
+        sender: "admin",
+        lastSender: "admin",
+        action: "admin-replied",
+        updatedAt: contact.updatedAt,
+        lastMessageAt: contact.lastMessageAt,
+      });
+    }
 
     // Email (safe)
     try {

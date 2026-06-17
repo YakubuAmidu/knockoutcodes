@@ -3,7 +3,7 @@ import { emailSubscriberInitialState } from "./emailSubscriberInitialState";
 
 export function emailSubscriberReducer(
   state = emailSubscriberInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     case EMAIL_SUBSCRIBER_ACTIONS.LIST_REQUEST:
@@ -95,7 +95,7 @@ export function emailSubscriberReducer(
         ...state,
         updating: false,
         subscribers: state.subscribers.map((subscriber) =>
-          subscriber._id === action.payload._id ? action.payload : subscriber
+          subscriber._id === action.payload._id ? action.payload : subscriber,
         ),
         selectedSubscriber:
           state.selectedSubscriber?._id === action.payload._id
@@ -125,7 +125,7 @@ export function emailSubscriberReducer(
         ...state,
         deleting: false,
         subscribers: state.subscribers.filter(
-          (subscriber) => subscriber._id !== action.payload
+          (subscriber) => subscriber._id !== action.payload,
         ),
         selectedSubscriber:
           state.selectedSubscriber?._id === action.payload
@@ -157,7 +157,7 @@ export function emailSubscriberReducer(
         bulkLoading: false,
         subscribers: state.subscribers.map((subscriber) => {
           const updated = action.payload.subscribers.find(
-            (item) => item._id === subscriber._id
+            (item) => item._id === subscriber._id,
           );
 
           return updated || subscriber;
@@ -172,7 +172,7 @@ export function emailSubscriberReducer(
         ...state,
         bulkLoading: false,
         subscribers: state.subscribers.filter(
-          (subscriber) => !action.payload.ids.includes(subscriber._id)
+          (subscriber) => !action.payload.ids.includes(subscriber._id),
         ),
         selectedSubscriber:
           state.selectedSubscriber &&

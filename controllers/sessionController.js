@@ -31,34 +31,34 @@ function parseUA(userAgent = "") {
   const browser = /Edg\/\d+/i.test(ua)
     ? "Edge"
     : /Chrome\/\d+/i.test(ua) && !/Edg\/\d+/i.test(ua)
-    ? "Chrome"
-    : /Firefox\/\d+/i.test(ua)
-    ? "Firefox"
-    : /Safari\/\d+/i.test(ua) && !/Chrome\/\d+/i.test(ua)
-    ? "Safari"
-    : "Unknown";
+      ? "Chrome"
+      : /Firefox\/\d+/i.test(ua)
+        ? "Firefox"
+        : /Safari\/\d+/i.test(ua) && !/Chrome\/\d+/i.test(ua)
+          ? "Safari"
+          : "Unknown";
 
   const os = /Windows NT/i.test(ua)
     ? "Windows"
     : /Mac OS X/i.test(ua)
-    ? "macOS"
-    : /Android/i.test(ua)
-    ? "Android"
-    : /iPhone|iPad|iPod/i.test(ua)
-    ? "iOS"
-    : "Unknown";
+      ? "macOS"
+      : /Android/i.test(ua)
+        ? "Android"
+        : /iPhone|iPad|iPod/i.test(ua)
+          ? "iOS"
+          : "Unknown";
 
   const deviceName = /iPhone/i.test(ua)
     ? "iPhone"
     : /iPad/i.test(ua)
-    ? "iPad"
-    : /Android/i.test(ua)
-    ? "Android Device"
-    : /Macintosh/i.test(ua)
-    ? "Mac"
-    : /Windows NT/i.test(ua)
-    ? "Windows PC"
-    : "Device";
+      ? "iPad"
+      : /Android/i.test(ua)
+        ? "Android Device"
+        : /Macintosh/i.test(ua)
+          ? "Mac"
+          : /Windows NT/i.test(ua)
+            ? "Windows PC"
+            : "Device";
 
   return { browser, os, deviceName };
 }
@@ -108,7 +108,7 @@ function getIp(req) {
       req.ip ||
       req.connection?.remoteAddress ||
       "",
-    80
+    80,
   );
 }
 
@@ -188,7 +188,7 @@ export async function listSessions(req, res) {
       .lean();
 
     const sessions = active.map((session) =>
-      toClientSession(session, currentSessionId)
+      toClientSession(session, currentSessionId),
     );
 
     return res.status(200).json({
@@ -243,7 +243,7 @@ export async function upsertCurrentSession(req, res) {
           createdAt: new Date(),
         },
       },
-      { new: true, upsert: true, runValidators: true }
+      { new: true, upsert: true, runValidators: true },
     ).select("+sessionKeyHash");
 
     return res.status(200).json({
@@ -265,7 +265,9 @@ export async function revokeSessionById(req, res) {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: "Invalid session id." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid session id." });
     }
 
     const currentJti = getCurrentJti(req);
@@ -278,13 +280,16 @@ export async function revokeSessionById(req, res) {
     }).select("+sessionKeyHash");
 
     if (!session) {
-      return res.status(404).json({ success: false, message: "Session not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Session not found." });
     }
 
     if (session.sessionKeyHash === currentHash) {
       return res.status(400).json({
         success: false,
-        message: "You cannot revoke your current session here. Use logout instead.",
+        message:
+          "You cannot revoke your current session here. Use logout instead.",
       });
     }
 
@@ -335,7 +340,7 @@ export async function revokeOtherSessions(req, res) {
           lastActiveAt: new Date(),
         },
       },
-      { runValidators: true }
+      { runValidators: true },
     );
 
     return res.status(200).json({
@@ -437,7 +442,9 @@ export async function updateSessionTrustAdmin(req, res) {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: "Invalid session id." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid session id." });
     }
 
     if (typeof req.body?.isTrusted !== "boolean") {
@@ -450,11 +457,13 @@ export async function updateSessionTrustAdmin(req, res) {
     const updated = await Session.findByIdAndUpdate(
       id,
       { $set: { isTrusted: req.body.isTrusted } },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).populate("user", "name email role isActive");
 
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Session not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Session not found." });
     }
 
     return res.status(200).json({
@@ -477,13 +486,17 @@ export async function revokeSessionAdmin(req, res) {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: "Invalid session id." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid session id." });
     }
 
     const session = await Session.findById(id);
 
     if (!session) {
-      return res.status(404).json({ success: false, message: "Session not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Session not found." });
     }
 
     if (session.revokedAt) {
@@ -499,7 +512,7 @@ export async function revokeSessionAdmin(req, res) {
 
     const populated = await Session.findById(id).populate(
       "user",
-      "name email role isActive"
+      "name email role isActive",
     );
 
     return res.status(200).json({

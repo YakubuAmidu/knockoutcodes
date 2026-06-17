@@ -102,7 +102,7 @@ const ManageCourses = () => {
 
   const safeCourses = useMemo(
     () => (Array.isArray(courses) ? courses : []),
-    [courses]
+    [courses],
   );
 
   const [formData, setFormData] = useState(initialFormState);
@@ -137,28 +137,37 @@ const ManageCourses = () => {
 
   const publishedCount = useMemo(
     () => safeCourses.filter((course) => course?.isPublished).length,
-    [safeCourses]
+    [safeCourses],
   );
 
   const draftCount = useMemo(
     () => safeCourses.filter((course) => !course?.isPublished).length,
-    [safeCourses]
+    [safeCourses],
   );
 
   const featuredCount = useMemo(
     () => safeCourses.filter((course) => course?.isFeatured).length,
-    [safeCourses]
+    [safeCourses],
   );
 
   const filteredCourses = useMemo(() => {
-    const term = String(search || "").toLowerCase().trim().slice(0, 120);
+    const term = String(search || "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 120);
 
     return safeCourses.filter((course) => {
       const matchesSearch =
         !term ||
-        String(course?.title || "").toLowerCase().includes(term) ||
-        String(course?.category || "").toLowerCase().includes(term) ||
-        String(course?.level || "").toLowerCase().includes(term) ||
+        String(course?.title || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(course?.category || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(course?.level || "")
+          .toLowerCase()
+          .includes(term) ||
         String(course?.requiredMembershipLevel || "")
           .toLowerCase()
           .includes(term);
@@ -333,8 +342,9 @@ const ManageCourses = () => {
     const duplicateTitle = safeCourses.some(
       (course) =>
         course?._id !== formData._id &&
-        String(course?.title || "").trim().toLowerCase() ===
-          title.toLowerCase()
+        String(course?.title || "")
+          .trim()
+          .toLowerCase() === title.toLowerCase(),
     );
 
     if (duplicateTitle) {
@@ -345,17 +355,13 @@ const ManageCourses = () => {
       return;
     }
 
-    if (
-  salePrice !== null &&
-  !formData.isFree &&
-  price <= salePrice
-) {
-  setToast({
-    type: "error",
-    message: "Regular price must be greater than sale price.",
-  });
-  return;
-    };
+    if (salePrice !== null && !formData.isFree && price <= salePrice) {
+      setToast({
+        type: "error",
+        message: "Regular price must be greater than sale price.",
+      });
+      return;
+    }
 
     try {
       const payload = buildCoursePayload(formData);
@@ -382,7 +388,7 @@ const ManageCourses = () => {
     }
 
     const ok = window.confirm(
-      `Delete "${course.title}"?\n\nThis will permanently remove the course and may affect enrolled students.`
+      `Delete "${course.title}"?\n\nThis will permanently remove the course and may affect enrolled students.`,
     );
 
     if (!ok) return;
@@ -434,7 +440,9 @@ const ManageCourses = () => {
 
         <HeroPanel>
           <PanelLabel>First 2 Seconds Hook</PanelLabel>
-          <PanelTitle>Make every course feel premium before the sale.</PanelTitle>
+          <PanelTitle>
+            Make every course feel premium before the sale.
+          </PanelTitle>
           <PanelList>
             <li>Strong title</li>
             <li>Clear transformation</li>
@@ -533,7 +541,11 @@ const ManageCourses = () => {
 
             <Field>
               <Label>Course Level</Label>
-              <Select name="level" value={formData.level} onChange={handleChange}>
+              <Select
+                name="level"
+                value={formData.level}
+                onChange={handleChange}
+              >
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advance">Advance</option>
@@ -733,8 +745,8 @@ const ManageCourses = () => {
                 {saving
                   ? "Saving..."
                   : isEditing
-                  ? "Save Changes"
-                  : "Create Course"}
+                    ? "Save Changes"
+                    : "Create Course"}
               </PrimaryButton>
             </FormActions>
           </Form>
@@ -825,18 +837,23 @@ const ManageCourses = () => {
                         {course?.isFree
                           ? "Free"
                           : `$${Number(
-                              course?.salePrice || course?.price || 0
+                              course?.salePrice || course?.price || 0,
                             ).toFixed(2)}`}
                       </span>
                       <span>{course?.studentsCount || 0} students</span>
                       <span>
                         Membership: {course?.requiredMembershipLevel || "none"}
                       </span>
-                      <span>Access: {course?.requiredMembershipLevel || "none"}</span>
+                      <span>
+                        Access: {course?.requiredMembershipLevel || "none"}
+                      </span>
                     </CourseMeta>
 
                     <CardActions>
-                      <GhostButton type="button" onClick={() => handleEdit(course)}>
+                      <GhostButton
+                        type="button"
+                        onClick={() => handleEdit(course)}
+                      >
                         Edit
                       </GhostButton>
 
@@ -876,9 +893,17 @@ const Page = styled.main`
   padding: 28px 18px 60px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 10% 5%, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(
+      circle at 10% 5%,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
     radial-gradient(circle at 90% 10%, rgba(90, 56, 37, 0.35), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Toast = styled.div`
@@ -927,7 +952,11 @@ const HeroLeft = styled.div`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.84), rgba(0, 0, 0, 0.64)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -978,7 +1007,11 @@ const HeroPanel = styled.aside`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 22px;
   background:
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.16), transparent 34%),
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.16),
+      transparent 34%
+    ),
     rgba(0, 0, 0, 0.38);
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.soft};

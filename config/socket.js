@@ -23,7 +23,8 @@ export const getIO = () => {
 const normalizeUserId = (payload) => {
   if (!payload) return null;
   if (typeof payload === "string") return payload.trim() || null;
-  if (typeof payload === "object") return payload.userId || payload.id || payload._id || null;
+  if (typeof payload === "object")
+    return payload.userId || payload.id || payload._id || null;
   return null;
 };
 

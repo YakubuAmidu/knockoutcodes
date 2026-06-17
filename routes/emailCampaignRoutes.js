@@ -85,7 +85,7 @@ router.post(
   "/unsubscribe",
   emailCampaignWriteLimiter,
   requireJsonContent,
-  unsubscribeEmail
+  unsubscribeEmail,
 );
 
 /* -------------------------------------------------------------------------- */
@@ -97,14 +97,14 @@ router.use(authRequired, adminOnly);
 router.get(
   "/analytics/overview",
   emailCampaignReadLimiter,
-  getEmailCampaignAnalytics
+  getEmailCampaignAnalytics,
 );
 
 router.get(
   "/analytics/:id",
   emailCampaignReadLimiter,
   validateObjectId("id"),
-  getEmailCampaignAnalyticsById
+  getEmailCampaignAnalyticsById,
 );
 
 router
@@ -115,7 +115,7 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    createEmailCampaign
+    createEmailCampaign,
   );
 
 router.put(
@@ -125,7 +125,7 @@ router.put(
   requireJsonContent,
   ...adminRequestHardening,
   requireCsrf,
-  scheduleEmailCampaign
+  scheduleEmailCampaign,
 );
 
 router.put(
@@ -134,7 +134,7 @@ router.put(
   validateObjectId("id"),
   ...adminRequestHardening,
   requireCsrf,
-  pauseEmailCampaign
+  pauseEmailCampaign,
 );
 
 router.post(
@@ -143,7 +143,7 @@ router.post(
   validateObjectId("id"),
   ...adminRequestHardening,
   requireCsrf,
-  sendEmailCampaignNow
+  sendEmailCampaignNow,
 );
 
 router.post(
@@ -152,7 +152,7 @@ router.post(
   validateObjectId("id"),
   ...adminRequestHardening,
   requireCsrf,
-  retryFailedCampaign
+  retryFailedCampaign,
 );
 
 router
@@ -164,14 +164,14 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    updateEmailCampaign
+    updateEmailCampaign,
   )
   .delete(
     emailCampaignWriteLimiter,
     validateObjectId("id"),
     ...adminDeleteHardening,
     requireCsrf,
-    deleteEmailCampaign
+    deleteEmailCampaign,
   );
 
 export default router;

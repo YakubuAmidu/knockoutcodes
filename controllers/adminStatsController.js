@@ -61,11 +61,11 @@ const mergeMonthlyRevenue = ({
 }) =>
   lastSixMonths.map((m) => {
     const orderFound = orderRevenueByMonthAgg.find(
-      (x) => x?._id?.year === m.year && x?._id?.month === m.month
+      (x) => x?._id?.year === m.year && x?._id?.month === m.month,
     );
 
     const enrollmentFound = enrollmentRevenueByMonthAgg.find(
-      (x) => x?._id?.year === m.year && x?._id?.month === m.month
+      (x) => x?._id?.year === m.year && x?._id?.month === m.month,
     );
 
     return {
@@ -80,7 +80,7 @@ const mergeMonthlyRevenue = ({
 const mergeMonthlyUsers = ({ lastSixMonths, newUsersByMonthAgg }) =>
   lastSixMonths.map((m) => {
     const found = newUsersByMonthAgg.find(
-      (x) => x?._id?.year === m.year && x?._id?.month === m.month
+      (x) => x?._id?.year === m.year && x?._id?.month === m.month,
     );
 
     return {
@@ -96,7 +96,7 @@ export const getAdminStats = async (_req, res) => {
     const startOfToday = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate()
+      now.getDate(),
     );
 
     const sevenDaysAgo = new Date(now);
@@ -104,11 +104,7 @@ export const getAdminStats = async (_req, res) => {
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const startOfLastMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      1
-    );
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     const endOfLastMonth = new Date(
       now.getFullYear(),
@@ -117,7 +113,7 @@ export const getAdminStats = async (_req, res) => {
       23,
       59,
       59,
-      999
+      999,
     );
 
     const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -368,8 +364,8 @@ export const getAdminStats = async (_req, res) => {
       revenueLastMonth > 0
         ? ((monthRevenue - revenueLastMonth) / revenueLastMonth) * 100
         : monthRevenue > 0
-        ? 100
-        : 0;
+          ? 100
+          : 0;
 
     const [
       orderRevenueByMonthAgg,
@@ -675,9 +671,9 @@ export const getAdminStats = async (_req, res) => {
     });
   } catch {
     return res.status(500).json({
-  success: false,
-  message: "Failed to fetch admin stats",
-});
+      success: false,
+      message: "Failed to fetch admin stats",
+    });
   }
 };
 

@@ -31,19 +31,14 @@ const router = express.Router();
 /* =========================
    PUBLIC BLOGS
 ========================= */
-router.get(
-  "/",
-  allowMethods(["GET"]),
-  publicShield,
-  getBlogs
-);
+router.get("/", allowMethods(["GET"]), publicShield, getBlogs);
 
 router.get(
   "/:idOrSlug",
   allowMethods(["GET"]),
   publicShield,
   validateIdOrSlugParam,
-  getBlog
+  getBlog,
 );
 
 /* =========================
@@ -55,7 +50,7 @@ router.patch(
   writeShield,
   authRequired,
   validateIdOrSlugParam,
-  likeBlog
+  likeBlog,
 );
 
 router.patch(
@@ -64,7 +59,7 @@ router.patch(
   writeShield,
   authRequired,
   validateIdOrSlugParam,
-  unlikeBlog
+  unlikeBlog,
 );
 
 /* =========================
@@ -77,7 +72,7 @@ router.post(
   authRequired,
   adminOnly,
   validateBlogBody,
-  createBlog
+  createBlog,
 );
 
 router.put(
@@ -89,7 +84,7 @@ router.put(
   validateBlogIdParam,
   pickAllowedBlogUpdateFields,
   validateBlogBody,
-  updateBlog
+  updateBlog,
 );
 
 router.delete(
@@ -98,7 +93,7 @@ router.delete(
   writeShield,
   authRequired,
   adminOnly,
-  deleteAllBlogs
+  deleteAllBlogs,
 );
 
 router.delete(
@@ -108,7 +103,7 @@ router.delete(
   authRequired,
   adminOnly,
   validateIdOrSlugParam,
-  deleteBlog
+  deleteBlog,
 );
 
 export default router;

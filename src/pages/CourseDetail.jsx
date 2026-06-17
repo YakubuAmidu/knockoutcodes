@@ -39,7 +39,9 @@ function safeMoney(n) {
 }
 
 function normalizeLevel(value) {
-  const level = String(value || "").trim().toLowerCase();
+  const level = String(value || "")
+    .trim()
+    .toLowerCase();
   if (level === "advanced") return "advance";
   return level;
 }
@@ -62,10 +64,14 @@ function toArray(value) {
 
 function pickLocalCourseImage(course) {
   const key = String(
-    course?.slug || course?.title || course?._id || ""
+    course?.slug || course?.title || course?._id || "",
   ).toLowerCase();
 
-    if (key.includes("free") || key.includes("7-day") || key.includes("fight-camp-challenge")) {
+  if (
+    key.includes("free") ||
+    key.includes("7-day") ||
+    key.includes("fight-camp-challenge")
+  ) {
     return beginnerImg;
   }
 
@@ -80,7 +86,7 @@ function pickLocalCourseImage(course) {
 
 function getCourseHook(course) {
   const text = String(
-    `${course?.slug || ""} ${course?.title || ""} ${course?.level || ""}`
+    `${course?.slug || ""} ${course?.title || ""} ${course?.level || ""}`,
   ).toLowerCase();
 
   if (course?.isFree || text.includes("free") || text.includes("7-day")) {
@@ -193,13 +199,13 @@ function buildFallbackDetails(course) {
     whatYouLearn: toArray(course?.whatYouLearn).length
       ? course.whatYouLearn
       : toArray(course?.whatYouWillLearn).length
-      ? course.whatYouWillLearn
-      : [
-          "Stance, guard, balance, and clean movement.",
-          "Punch mechanics, combinations, and controlled execution.",
-          "Footwork, discipline, and training consistency.",
-          "How to follow a system instead of random workouts.",
-        ],
+        ? course.whatYouWillLearn
+        : [
+            "Stance, guard, balance, and clean movement.",
+            "Punch mechanics, combinations, and controlled execution.",
+            "Footwork, discipline, and training consistency.",
+            "How to follow a system instead of random workouts.",
+          ],
     whatYouGet: toArray(course?.whatYouGet).length
       ? course.whatYouGet
       : [
@@ -224,20 +230,23 @@ function buildFallbackDetails(course) {
         ],
     rules: toArray(course?.rules).length
       ? course.rules
-      : ["Respect the process.", "Train with discipline.", "Execute before excuses."],
+      : [
+          "Respect the process.",
+          "Train with discipline.",
+          "Execute before excuses.",
+        ],
   };
 }
 
 const COURSE_DETAIL = {
-    "free-7-day-fight-camp-challenge": {
+  "free-7-day-fight-camp-challenge": {
     _id: "free-7-day-fight-camp-challenge",
     slug: "free-7-day-fight-camp-challenge",
     eyebrow: "Free Fight Camp Challenge",
     badgeLeft: "Free Starter System",
     badgeRight: "7-Day Challenge",
     title: "FREE 7-DAY FIGHT CAMP CHALLENGE",
-    hook:
-      "Most people start boxing wrong. This free 7-day challenge fixes your foundation before bad habits take over.",
+    hook: "Most people start boxing wrong. This free 7-day challenge fixes your foundation before bad habits take over.",
     image: beginnerImg,
     level: "Free Starter",
     requiredMembershipLevel: "none",
@@ -387,7 +396,7 @@ const CourseDetail = () => {
 
   const searchParams = useMemo(
     () => new URLSearchParams(location.search),
-    [location.search]
+    [location.search],
   );
 
   const rawMembershipId =
@@ -446,10 +455,10 @@ const CourseDetail = () => {
   const details = useMemo(() => buildFallbackDetails(course || {}), [course]);
 
   const resolvedCourseId = freshCourse?._id || course?._id || courseId;
-const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
+  const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
   const showOwnedState = Boolean(isOwned || alreadyPurchased);
   const isAnyCheckoutLoading = Boolean(
-    checkoutLoading || membershipCheckoutLoading
+    checkoutLoading || membershipCheckoutLoading,
   );
 
   useEffect(() => {
@@ -478,14 +487,18 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
         setLessonError("");
 
         const { data } = await axiosInstance.get(
-  `/lessons/by-course/${encodeURIComponent(lessonCourseLookupId)}`
-);
+          `/lessons/by-course/${encodeURIComponent(lessonCourseLookupId)}`,
+        );
 
         const incomingLessons = data?.lessons || data?.data || [];
         const incomingPreview =
           data?.previewLesson ||
-          incomingLessons.find((lesson) => lesson?.isPreview && lesson?.videoUrl) ||
-          incomingLessons.find((lesson) => lesson?.canPlay && lesson?.videoUrl) ||
+          incomingLessons.find(
+            (lesson) => lesson?.isPreview && lesson?.videoUrl,
+          ) ||
+          incomingLessons.find(
+            (lesson) => lesson?.canPlay && lesson?.videoUrl,
+          ) ||
           null;
 
         if (mounted) {
@@ -505,7 +518,7 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
           setLessonError(
             error?.response?.data?.message ||
               error?.message ||
-              "Lessons could not be loaded."
+              "Lessons could not be loaded.",
           );
         }
       } finally {
@@ -533,17 +546,17 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
         setCheckingOwnership(true);
 
         const { data } = await axiosInstance.get(
-          `/enrollments/status/${encodeURIComponent(resolvedCourseId)}`
+          `/enrollments/status/${encodeURIComponent(resolvedCourseId)}`,
         );
 
         if (mounted) {
           setIsOwned(
             Boolean(
               data?.hasAccess ||
-                data?.isEnrolled ||
-                data?.access?.allowed ||
-                data?.data?.hasAccess
-            )
+              data?.isEnrolled ||
+              data?.access?.allowed ||
+              data?.data?.hasAccess,
+            ),
           );
         }
       } catch {
@@ -827,8 +840,7 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
   const studentsCount = Number(course?.studentsCount || 0);
 
   const isBestSeller =
-    Boolean(course.isFeatured) ||
-    (ratingAverage >= 4.7 && ratingCount >= 20);
+    Boolean(course.isFeatured) || (ratingAverage >= 4.7 && ratingCount >= 20);
 
   const canReview = Boolean(isAuthenticated && showOwnedState);
   const shouldLoginToReview = Boolean(!isAuthenticated);
@@ -864,7 +876,9 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
             <MetaGrid>
               {course.level ? <MetaPill>Level: {course.level}</MetaPill> : null}
               {course.coach ? <MetaPill>Coach: {course.coach}</MetaPill> : null}
-              {durationLabel ? <MetaPill>Training Time: {durationLabel}</MetaPill> : null}
+              {durationLabel ? (
+                <MetaPill>Training Time: {durationLabel}</MetaPill>
+              ) : null}
               {totalLessonCount > 0 ? (
                 <MetaPill>{totalLessonCount} Lessons</MetaPill>
               ) : null}
@@ -912,9 +926,13 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                   {hasSelectedMembership && !showOwnedState ? (
                     <SelectedBadge>Membership Selected</SelectedBadge>
                   ) : null}
-                  {isBestSeller ? <BestSellerBadge>Best Seller</BestSellerBadge> : null}
+                  {isBestSeller ? (
+                    <BestSellerBadge>Best Seller</BestSellerBadge>
+                  ) : null}
                   {course?.isFree ? <FreeBadge>Free</FreeBadge> : null}
-                  <Badge>{course.badgeRight || course.level || "Program"}</Badge>
+                  <Badge>
+                    {course.badgeRight || course.level || "Program"}
+                  </Badge>
                 </BadgeRightGroup>
               </BadgeRow>
             </ThumbWrap>
@@ -935,7 +953,9 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                     ) : (
                       <PreviewFrame
                         src={embedUrl}
-                        title={activePreview?.title || `${course.title} preview`}
+                        title={
+                          activePreview?.title || `${course.title} preview`
+                        }
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
                       />
@@ -944,8 +964,8 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                     <PreviewEmpty>
                       <strong>Preview coming soon</strong>
                       <span>
-                        Add a video URL to the first preview lesson so students can
-                        see the course before they buy.
+                        Add a video URL to the first preview lesson so students
+                        can see the course before they buy.
                       </span>
                     </PreviewEmpty>
                   )}
@@ -953,7 +973,9 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
 
                 <PreviewInfo>
                   <PreviewTag>
-                    {activePreview?.isPreview ? "Free Preview" : "Course Preview"}
+                    {activePreview?.isPreview
+                      ? "Free Preview"
+                      : "Course Preview"}
                   </PreviewTag>
                   <PreviewTitle>
                     {activePreview?.title || "First Lesson Preview"}
@@ -1061,8 +1083,8 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                               ? "Now Playing"
                               : "Play Preview"
                             : lesson?.isLocked
-                            ? "Locked"
-                            : "No Video"}
+                              ? "Locked"
+                              : "No Video"}
                         </LessonAction>
                       </LessonItem>
                     );
@@ -1083,7 +1105,9 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
               <LuxuryGrid>
                 {toArray(details.whyThisCourse).map((item, index) => (
                   <LuxuryPoint key={item}>
-                    <PointNumber>{String(index + 1).padStart(2, "0")}</PointNumber>
+                    <PointNumber>
+                      {String(index + 1).padStart(2, "0")}
+                    </PointNumber>
                     <PointText>{item}</PointText>
                   </LuxuryPoint>
                 ))}
@@ -1159,7 +1183,8 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                 <ReviewLockedBox>
                   <strong>Login required</strong>
                   <span>
-                    You need to login and own this course before leaving a review.
+                    You need to login and own this course before leaving a
+                    review.
                   </span>
                   <Ghost
                     type="button"
@@ -1176,8 +1201,8 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                 <ReviewLockedBox>
                   <strong>Verified students only</strong>
                   <span>
-                    Only students who purchased or unlocked this course can leave a
-                    review.
+                    Only students who purchased or unlocked this course can
+                    leave a review.
                   </span>
                 </ReviewLockedBox>
               ) : null}
@@ -1191,24 +1216,24 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                   {showOwnedState
                     ? "Your Access"
                     : hasSelectedMembership
-                    ? "Membership Checkout"
-                    : "Enrollment"}
+                      ? "Membership Checkout"
+                      : "Enrollment"}
                 </SmallLabel>
 
                 <EnrollTitle>
                   {showOwnedState
                     ? "Course already unlocked"
                     : hasSelectedMembership
-                    ? "Start recurring membership"
-                    : "Unlock the training room"}
+                      ? "Start recurring membership"
+                      : "Unlock the training room"}
                 </EnrollTitle>
 
                 <EnrollText>
                   {showOwnedState
                     ? "You already purchased this course. Continue training anytime from your protected course access."
                     : hasSelectedMembership
-                    ? "This course will be connected to your selected monthly or yearly membership before Stripe checkout."
-                    : "Get access, follow the lessons, and build the skill with discipline."}
+                      ? "This course will be connected to your selected monthly or yearly membership before Stripe checkout."
+                      : "Get access, follow the lessons, and build the skill with discipline."}
                 </EnrollText>
               </EnrollTop>
 
@@ -1225,7 +1250,9 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                 ) : (
                   <div>
                     <Price>${safeMoney(displayPrice) || "0.00"}</Price>
-                    {hasSale ? <OldPrice>${safeMoney(course.price)}</OldPrice> : null}
+                    {hasSale ? (
+                      <OldPrice>${safeMoney(course.price)}</OldPrice>
+                    ) : null}
                   </div>
                 )}
 
@@ -1233,29 +1260,31 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                   {showOwnedState
                     ? "Active Access"
                     : hasSelectedMembership
-                    ? "Stripe Subscription"
-                    : "Instant Access"}
+                      ? "Stripe Subscription"
+                      : "Instant Access"}
                 </InstantPill>
               </PriceBox>
 
               <CTA
                 type="button"
                 onClick={handleEnroll}
-                disabled={isAnyCheckoutLoading || authLoading || checkingOwnership}
+                disabled={
+                  isAnyCheckoutLoading || authLoading || checkingOwnership
+                }
               >
                 {authLoading || checkingOwnership
                   ? "Checking..."
                   : isAnyCheckoutLoading
-                  ? "Redirecting..."
-                  : showOwnedState
-                  ? "Watch Now"
-                  : course?.isFree
-                  ? "Start Free"
-                  : hasSelectedMembership
-                  ? `Start ${selectedBillingPeriod || "Monthly"} Membership`
-                  : course?.allowSinglePurchase === false
-                  ? `Join ${getRequiredMembershipLevel(course)} Membership`
-                  : "Buy Course Once"}
+                    ? "Redirecting..."
+                    : showOwnedState
+                      ? "Watch Now"
+                      : course?.isFree
+                        ? "Start Free"
+                        : hasSelectedMembership
+                          ? `Start ${selectedBillingPeriod || "Monthly"} Membership`
+                          : course?.allowSinglePurchase === false
+                            ? `Join ${getRequiredMembershipLevel(course)} Membership`
+                            : "Buy Course Once"}
               </CTA>
 
               {!showOwnedState && !course?.isFree && !hasSelectedMembership ? (
@@ -1281,8 +1310,8 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
               <Notice>
                 <NoticeTitle>First thing to remember</NoticeTitle>
                 <NoticeText>
-                  Do not rush the lessons. Repeat the basics until your body moves
-                  clean without thinking.
+                  Do not rush the lessons. Repeat the basics until your body
+                  moves clean without thinking.
                 </NoticeText>
               </Notice>
 
@@ -1319,10 +1348,10 @@ const lessonCourseLookupId = freshCourse?._id || course?._id || courseId;
                     {showOwnedState
                       ? "Owned"
                       : hasSelectedMembership
-                      ? "Membership"
-                      : course?.isFree
-                      ? "Free"
-                      : "Premium"}
+                        ? "Membership"
+                        : course?.isFree
+                          ? "Free"
+                          : "Premium"}
                   </strong>
                   <span>Access</span>
                 </MiniStat>
@@ -1349,9 +1378,17 @@ const fadeUp = keyframes`
 const PageWrap = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.2), transparent 34%),
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.2),
+      transparent 34%
+    ),
     radial-gradient(circle at 86% 10%, rgba(90, 56, 37, 0.42), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
   color: ${({ theme }) => theme.colors.white};
   display: flex;
   justify-content: center;
@@ -1417,7 +1454,11 @@ const HeroCopy = styled.article`
   padding: clamp(24px, 4vw, 42px);
   background:
     linear-gradient(145deg, rgba(61, 38, 26, 0.86), rgba(0, 0, 0, 0.66)),
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.16), transparent 36%);
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.16),
+      transparent 36%
+    );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -1520,7 +1561,11 @@ const ImageShade = styled.div`
   inset: 0;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.58)),
-    radial-gradient(circle at 25% 0%, rgba(214, 182, 159, 0.14), transparent 38%);
+    radial-gradient(
+      circle at 25% 0%,
+      rgba(214, 182, 159, 0.14),
+      transparent 38%
+    );
 `;
 
 const BadgeRow = styled.div`
@@ -1635,7 +1680,11 @@ const PreviewCard = styled.div`
   overflow: hidden;
   min-height: 320px;
   background:
-    radial-gradient(circle at center, rgba(214, 182, 159, 0.12), transparent 42%),
+    radial-gradient(
+      circle at center,
+      rgba(214, 182, 159, 0.12),
+      transparent 42%
+    ),
     rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(214, 182, 159, 0.18);
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -2014,7 +2063,11 @@ const EnrollCard = styled.div`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 18px;
   background:
-    radial-gradient(circle at 30% 0%, rgba(214, 182, 159, 0.14), transparent 34%),
+    radial-gradient(
+      circle at 30% 0%,
+      rgba(214, 182, 159, 0.14),
+      transparent 34%
+    ),
     linear-gradient(180deg, rgba(47, 27, 18, 0.94), rgba(0, 0, 0, 0.68));
   border: 1px solid rgba(214, 182, 159, 0.16);
   box-shadow: ${({ theme }) => theme.shadow.glow};

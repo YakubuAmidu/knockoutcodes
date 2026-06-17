@@ -8,7 +8,7 @@ const safeArray = (value) => (Array.isArray(value) ? value : []);
 
 export default function manageNewsletterReducer(
   state = manageNewsletterInitialState,
-  action = {}
+  action = {},
 ) {
   const { type, payload = {} } = action;
 
@@ -62,8 +62,8 @@ export default function manageNewsletterReducer(
         exists && updatedId
           ? state.newsletters.map((n) => (getId(n) === updatedId ? updated : n))
           : updatedId
-          ? [updated, ...state.newsletters]
-          : state.newsletters;
+            ? [updated, ...state.newsletters]
+            : state.newsletters;
 
       return {
         ...state,
@@ -71,11 +71,10 @@ export default function manageNewsletterReducer(
         error: "",
         newsletters: nextList,
         selectedId: updatedId || state.selectedId,
-        systemMessage:
-          payload.systemMessage || {
-            tone: "success",
-            text: "Subscriber updated successfully.",
-          },
+        systemMessage: payload.systemMessage || {
+          tone: "success",
+          text: "Subscriber updated successfully.",
+        },
       };
     }
 

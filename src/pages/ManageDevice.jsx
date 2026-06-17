@@ -9,11 +9,11 @@ export default function ManageDevices() {
   const toast = useToast();
 
   const pushToast = useCallback(
-  (payload) => {
-    toast?.push?.(payload);
-  },
-  [toast]
-);
+    (payload) => {
+      toast?.push?.(payload);
+    },
+    [toast],
+  );
 
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
@@ -28,13 +28,13 @@ export default function ManageDevices() {
       const { data } = await axiosInstance.get("/auth/sessions");
 
       const list = Array.isArray(data?.sessions)
-  ? data.sessions
-  : Array.isArray(data?.items)
-  ? data.items
-  : Array.isArray(data?.data)
-  ? data.data
+        ? data.sessions
+        : Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.data)
+            ? data.data
             : [];
-      
+
       setSessions(list);
       setCurrentSessionId(data?.currentSessionId || null);
 
@@ -45,7 +45,7 @@ export default function ManageDevices() {
           variant: "info",
         });
       }
-    // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
     } catch (e) {
       pushToast({
         title: "Error",
@@ -118,7 +118,9 @@ export default function ManageDevices() {
       setBusyId(sessionId);
       try {
         // ✅ Correct: delete ONE session by id
-        await axiosInstance.delete(`/auth/sessions/${encodeURIComponent(sessionId)}`);
+        await axiosInstance.delete(
+          `/auth/sessions/${encodeURIComponent(sessionId)}`,
+        );
 
         setSessions((curr) => curr.filter((s) => s?.id !== sessionId));
 
@@ -127,7 +129,7 @@ export default function ManageDevices() {
           description: "Device signed out ✅",
           variant: "success",
         });
-      // eslint-disable-next-line no-unused-vars
+        // eslint-disable-next-line no-unused-vars
       } catch (e) {
         pushToast({
           title: "Error",
@@ -138,7 +140,7 @@ export default function ManageDevices() {
         setBusyId("");
       }
     },
-    [currentSessionId, pushToast]
+    [currentSessionId, pushToast],
   );
 
   const revokeOthers = useCallback(async () => {
@@ -163,7 +165,7 @@ export default function ManageDevices() {
         description: "Signed out of all other devices ✅",
         variant: "success",
       });
-    // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
     } catch (e) {
       pushToast({
         title: "Error",
@@ -202,16 +204,20 @@ export default function ManageDevices() {
           <Badge>KO • SECURITY</Badge>
 
           <Title>
-  🔐 <span>SECURITY COMMAND</span> CENTER
-</Title>
+            🔐 <span>SECURITY COMMAND</span> CENTER
+          </Title>
 
           <Sub>
-  Control every active login like a serious platform. Review devices,
-  inspect session details, and remove anything you do not recognize.
-</Sub>
+            Control every active login like a serious platform. Review devices,
+            inspect session details, and remove anything you do not recognize.
+          </Sub>
 
           <TopActions>
-            <GhostBtn type="button" onClick={fetchSessions} disabled={loading || !!busyId}>
+            <GhostBtn
+              type="button"
+              onClick={fetchSessions}
+              disabled={loading || !!busyId}
+            >
               {loading ? "Refreshing..." : "Refresh"}
             </GhostBtn>
 
@@ -219,7 +225,11 @@ export default function ManageDevices() {
               type="button"
               onClick={askRevokeOthers}
               disabled={loading || !!busyId || !hasOthers}
-              title={!hasOthers ? "No other active sessions" : "Sign out other devices"}
+              title={
+                !hasOthers
+                  ? "No other active sessions"
+                  : "Sign out other devices"
+              }
             >
               {busyId === "ALL_OTHERS" ? (
                 <BtnRow>
@@ -253,8 +263,8 @@ export default function ManageDevices() {
             <Empty>
               <EmptyTitle>No devices found.</EmptyTitle>
               <EmptySub>
-                If this looks wrong, refresh. If still empty, make sure your backend returns
-                sessions and currentSessionId.
+                If this looks wrong, refresh. If still empty, make sure your
+                backend returns sessions and currentSessionId.
               </EmptySub>
             </Empty>
           ) : (
@@ -303,7 +313,9 @@ export default function ManageDevices() {
 
                             <MetaItem>
                               <MetaLabel>Last active:</MetaLabel>{" "}
-                              <MetaValue>{formatTime(s?.lastActiveAt)}</MetaValue>
+                              <MetaValue>
+                                {formatTime(s?.lastActiveAt)}
+                              </MetaValue>
                             </MetaItem>
 
                             {s?.approxLocation ? (
@@ -320,54 +332,55 @@ export default function ManageDevices() {
                       </Left>
 
                       <Right>
-  {/* 
+                        {/* 
     MORE INFO BUTTON
     Shows extra security details for this session.
     Big tech apps usually let users inspect browser, OS, IP, and last activity.
   */}
-  <RowBtn
-    type="button"
-    onClick={() =>
-      setConfirm({
-        type: "info",
-        session: s,
-      })
-    }
-  >
-    More Info
-  </RowBtn>
+                        <RowBtn
+                          type="button"
+                          onClick={() =>
+                            setConfirm({
+                              type: "info",
+                              session: s,
+                            })
+                          }
+                        >
+                          More Info
+                        </RowBtn>
 
-  {/* 
+                        {/* 
     SIGN OUT BUTTON
     Deletes/revokes this session from the backend.
     Disabled for the current device because current logout should use normal logout.
   */}
-  <RowBtn
-    type="button"
-    disabled={isCurrent || isRowBusy}
-    onClick={() => {
-      if (isCurrent) {
-        pushToast({
-          title: "Current device",
-          description: "You’re currently using this device. Use Logout to end it.",
-          variant: "info",
-        });
-        return;
-      }
+                        <RowBtn
+                          type="button"
+                          disabled={isCurrent || isRowBusy}
+                          onClick={() => {
+                            if (isCurrent) {
+                              pushToast({
+                                title: "Current device",
+                                description:
+                                  "You’re currently using this device. Use Logout to end it.",
+                                variant: "info",
+                              });
+                              return;
+                            }
 
-      askRevokeOne(s);
-    }}
-  >
-    {busyId === s?.id ? (
-      <BtnRow>
-        <BtnSpinner />
-        Signing out…
-      </BtnRow>
-    ) : (
-      "Sign Out"
-    )}
-  </RowBtn>
-</Right>
+                            askRevokeOne(s);
+                          }}
+                        >
+                          {busyId === s?.id ? (
+                            <BtnRow>
+                              <BtnSpinner />
+                              Signing out…
+                            </BtnRow>
+                          ) : (
+                            "Sign Out"
+                          )}
+                        </RowBtn>
+                      </Right>
                     </Row>
                   );
                 })}
@@ -377,7 +390,8 @@ export default function ManageDevices() {
         </Card>
 
         <FootNote>
-          Tip: If you see a device you don’t recognize, sign it out immediately and change your password.
+          Tip: If you see a device you don’t recognize, sign it out immediately
+          and change your password.
         </FootNote>
       </Inner>
 
@@ -401,65 +415,81 @@ export default function ManageDevices() {
               transition={{ duration: 0.16 }}
             >
               <ModalTitle>
-  {confirm.type === "info"
-    ? "Session Details"
-    : confirm.type === "others"
-    ? "Sign out of other devices?"
-    : "Sign out this device?"}
-</ModalTitle>
+                {confirm.type === "info"
+                  ? "Session Details"
+                  : confirm.type === "others"
+                    ? "Sign out of other devices?"
+                    : "Sign out this device?"}
+              </ModalTitle>
 
-<ModalDesc>
-  {confirm.type === "info" ? (
-    <SessionDetails>
-      <DetailLine>
-        <strong>Device:</strong> {confirm.session?.deviceName || "Unknown device"}
-      </DetailLine>
-      <DetailLine>
-        <strong>Browser:</strong> {confirm.session?.browser || "Unknown"}
-      </DetailLine>
-      <DetailLine>
-        <strong>Operating System:</strong> {confirm.session?.os || "Unknown"}
-      </DetailLine>
-      <DetailLine>
-        <strong>IP Address:</strong> {confirm.session?.ip || "Not available"}
-      </DetailLine>
-      <DetailLine>
-        <strong>Location:</strong>{" "}
-        {confirm.session?.approxLocation || confirm.session?.location || "Not available"}
-      </DetailLine>
-      <DetailLine>
-        <strong>Created:</strong> {formatTime(confirm.session?.createdAt)}
-      </DetailLine>
-      <DetailLine>
-        <strong>Last Active:</strong> {formatTime(confirm.session?.lastActiveAt)}
-      </DetailLine>
-      <DetailLine>
-        <strong>Status:</strong>{" "}
-        {confirm.session?.id === currentSessionId
-          ? "Current device"
-          : "Active signed-in device"}
-      </DetailLine>
-    </SessionDetails>
-  ) : confirm.type === "others" ? (
-    "This will sign your account out everywhere except the device you’re using now."
-  ) : (
-    `This will remove access for: ${
-      confirm.session?.deviceName || "Unknown device"
-    }.`
-  )}
-</ModalDesc>
+              <ModalDesc>
+                {confirm.type === "info" ? (
+                  <SessionDetails>
+                    <DetailLine>
+                      <strong>Device:</strong>{" "}
+                      {confirm.session?.deviceName || "Unknown device"}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>Browser:</strong>{" "}
+                      {confirm.session?.browser || "Unknown"}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>Operating System:</strong>{" "}
+                      {confirm.session?.os || "Unknown"}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>IP Address:</strong>{" "}
+                      {confirm.session?.ip || "Not available"}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>Location:</strong>{" "}
+                      {confirm.session?.approxLocation ||
+                        confirm.session?.location ||
+                        "Not available"}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>Created:</strong>{" "}
+                      {formatTime(confirm.session?.createdAt)}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>Last Active:</strong>{" "}
+                      {formatTime(confirm.session?.lastActiveAt)}
+                    </DetailLine>
+                    <DetailLine>
+                      <strong>Status:</strong>{" "}
+                      {confirm.session?.id === currentSessionId
+                        ? "Current device"
+                        : "Active signed-in device"}
+                    </DetailLine>
+                  </SessionDetails>
+                ) : confirm.type === "others" ? (
+                  "This will sign your account out everywhere except the device you’re using now."
+                ) : (
+                  `This will remove access for: ${
+                    confirm.session?.deviceName || "Unknown device"
+                  }.`
+                )}
+              </ModalDesc>
 
               <ModalActions>
-  <ModalGhost type="button" onClick={closeConfirm} whileTap={{ scale: 0.98 }}>
-    {confirm.type === "info" ? "Close" : "Cancel"}
-  </ModalGhost>
+                <ModalGhost
+                  type="button"
+                  onClick={closeConfirm}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {confirm.type === "info" ? "Close" : "Cancel"}
+                </ModalGhost>
 
-  {confirm.type !== "info" && (
-    <ModalDanger type="button" onClick={confirmAction} whileTap={{ scale: 0.98 }}>
-      Confirm Sign Out
-    </ModalDanger>
-  )}
-</ModalActions>
+                {confirm.type !== "info" && (
+                  <ModalDanger
+                    type="button"
+                    onClick={confirmAction}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Confirm Sign Out
+                  </ModalDanger>
+                )}
+              </ModalActions>
             </Modal>
           </ModalOverlay>
         ) : null}
@@ -479,9 +509,21 @@ const Page = styled.main`
   padding: 120px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214,182,159,0.20) 0%, rgba(0,0,0,0) 45%),
-    radial-gradient(circle at 82% 16%, rgba(90,56,37,0.30) 0%, rgba(0,0,0,0) 46%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(214, 182, 159, 0.2) 0%,
+      rgba(0, 0, 0, 0) 45%
+    ),
+    radial-gradient(
+      circle at 82% 16%,
+      rgba(90, 56, 37, 0.3) 0%,
+      rgba(0, 0, 0, 0) 46%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      #000 86%
+    );
 
   @media (max-width: 720px) {
     padding: 100px 14px 70px;
@@ -498,7 +540,7 @@ const Top = styled(motion.header)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 22px;
   backdrop-filter: blur(18px);
 `;
@@ -509,8 +551,8 @@ const Badge = styled.div`
   gap: 8px;
   padding: 10px 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-weight: 900;
   letter-spacing: 0.16em;
   font-size: 12px;
@@ -525,7 +567,7 @@ const Title = styled.h1`
 
   span {
     color: ${({ theme }) => theme.colors.lightBrown};
-    text-shadow: 0 14px 38px rgba(0,0,0,0.45);
+    text-shadow: 0 14px 38px rgba(0, 0, 0, 0.45);
   }
 `;
 
@@ -546,38 +588,60 @@ const TopActions = styled.div`
 const GhostBtn = styled.button`
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1000;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
 
-  &:hover { transform: translateY(-2px); background: rgba(0,0,0,0.55); }
+  &:hover {
+    transform: translateY(-2px);
+    background: rgba(0, 0, 0, 0.55);
+  }
 
-  &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 const DangerBtn = styled.button`
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: linear-gradient(90deg, rgba(90,56,37,0.95), rgba(47,27,18,0.95));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(
+    90deg,
+    rgba(90, 56, 37, 0.95),
+    rgba(47, 27, 18, 0.95)
+  );
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1100;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 
-  &:hover { transform: translateY(-2px); }
+  &:hover {
+    transform: translateY(-2px);
+  }
 
-  &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 const Card = styled(motion.section)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
   box-shadow: ${({ theme }) => theme.shadow.glow};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(18px);
   padding: 16px;
   margin-top: 16px;
@@ -614,8 +678,8 @@ const Row = styled(motion.div)`
   gap: 12px;
   padding: 14px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
@@ -643,8 +707,8 @@ const Icon = styled.div`
   width: 44px;
   height: 44px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
   display: grid;
   place-items: center;
@@ -671,7 +735,11 @@ const Name = styled.div`
 const Chip = styled.div`
   padding: 7px 10px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, rgba(214,182,159,0.95), rgba(255,249,242,0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(255, 249, 242, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 1100;
   font-size: 12px;
@@ -680,8 +748,8 @@ const Chip = styled.div`
 const ChipSoft = styled.div`
   padding: 7px 10px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.30);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.3);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1000;
   font-size: 12px;
@@ -719,21 +787,29 @@ const RowBtn = styled.button`
   width: 100%;
   padding: 12px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1100;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 
-  &:hover { transform: translateY(-2px); }
-  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  &:hover {
+    transform: translateY(-2px);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 const Empty = styled.div`
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
   padding: 18px;
   display: grid;
   gap: 8px;
@@ -768,19 +844,23 @@ const BtnSpinner = styled.span`
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  border: 2px solid rgba(255,255,255,0.20);
-  border-top-color: rgba(255,255,255,0.85);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.85);
   display: inline-block;
   animation: spin 0.8s linear infinite;
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 const ModalOverlay = styled(motion.div)`
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
   padding: 18px;
@@ -791,7 +871,7 @@ const Modal = styled(motion.div)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.hard};
   padding: 18px;
 `;
@@ -820,8 +900,8 @@ const ModalActions = styled.div`
 const ModalGhost = styled(motion.button)`
   padding: 11px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1100;
   cursor: pointer;
@@ -830,8 +910,12 @@ const ModalGhost = styled(motion.button)`
 const ModalDanger = styled(motion.button)`
   padding: 11px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: linear-gradient(90deg, rgba(90,56,37,0.95), rgba(47,27,18,0.95));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(
+    90deg,
+    rgba(90, 56, 37, 0.95),
+    rgba(47, 27, 18, 0.95)
+  );
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1100;
   cursor: pointer;
@@ -840,7 +924,7 @@ const ModalDanger = styled(motion.button)`
 const SkeletonRow = styled.div`
   height: 86px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.05),
@@ -851,8 +935,12 @@ const SkeletonRow = styled.div`
   animation: shimmer 1.15s ease-in-out infinite;
 
   @keyframes shimmer {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 220% 0%; }
+    0% {
+      background-position: 0% 0%;
+    }
+    100% {
+      background-position: 220% 0%;
+    }
   }
 `;
 

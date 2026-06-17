@@ -82,8 +82,8 @@ export default function ManageLesson() {
       const list = Array.isArray(data?.courses)
         ? data.courses
         : Array.isArray(data?.data)
-        ? data.data
-        : [];
+          ? data.data
+          : [];
 
       setCourses(list);
     } catch {
@@ -166,9 +166,7 @@ export default function ManageLesson() {
     setForm((prev) => ({
       ...prev,
       resources: prev.resources.map((resource, resourceIndex) =>
-        resourceIndex === index
-          ? { ...resource, [field]: value }
-          : resource
+        resourceIndex === index ? { ...resource, [field]: value } : resource,
       ),
     }));
   };
@@ -183,7 +181,9 @@ export default function ManageLesson() {
   const removeResource = (index) => {
     setForm((prev) => ({
       ...prev,
-      resources: prev.resources.filter((_, resourceIndex) => resourceIndex !== index),
+      resources: prev.resources.filter(
+        (_, resourceIndex) => resourceIndex !== index,
+      ),
     }));
   };
 
@@ -233,16 +233,22 @@ export default function ManageLesson() {
     }
 
     const invalidResource = form.resources.find(
-      (resource) => resource.url && !/^https?:\/\//i.test(resource.url.trim())
+      (resource) => resource.url && !/^https?:\/\//i.test(resource.url.trim()),
     );
 
     if (invalidResource) {
-      toast.showToast("Resource URLs must start with http:// or https://.", "error");
+      toast.showToast(
+        "Resource URLs must start with http:// or https://.",
+        "error",
+      );
       return false;
     }
 
     if (form.videoUrl && !/^https?:\/\//i.test(form.videoUrl.trim())) {
-      toast.showToast("Video URL must start with http:// or https://.", "error");
+      toast.showToast(
+        "Video URL must start with http:// or https://.",
+        "error",
+      );
       return false;
     }
 
@@ -287,7 +293,7 @@ export default function ManageLesson() {
 
   const handleDelete = async (lesson) => {
     const confirmDelete = window.confirm(
-      `Delete "${lesson.title}"? This will also remove its progress records.`
+      `Delete "${lesson.title}"? This will also remove its progress records.`,
     );
 
     if (!confirmDelete) return;
@@ -302,8 +308,8 @@ export default function ManageLesson() {
           <Eyebrow>KnockoutCodes Admin Lessons</Eyebrow>
           <Title>Manage Lessons Like a Champion</Title>
           <Text>
-            Create, organize, update, publish, preview, and protect every course lesson
-            from one premium command center.
+            Create, organize, update, publish, preview, and protect every course
+            lesson from one premium command center.
           </Text>
         </HeroContent>
 
@@ -337,7 +343,10 @@ export default function ManageLesson() {
           placeholder="Search lessons, courses, descriptions..."
         />
 
-        <Select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
+        <Select
+          value={courseFilter}
+          onChange={(e) => setCourseFilter(e.target.value)}
+        >
           <option value="all">All Courses</option>
           {courses.map((course) => (
             <option key={course._id} value={course._id}>
@@ -346,7 +355,10 @@ export default function ManageLesson() {
           ))}
         </Select>
 
-        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="all">All Status</option>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
@@ -362,7 +374,9 @@ export default function ManageLesson() {
         <FormCard onSubmit={handleSubmit}>
           <FormHeader>
             <div>
-              <SmallLabel>{editingLesson ? "Edit Lesson" : "Create Lesson"}</SmallLabel>
+              <SmallLabel>
+                {editingLesson ? "Edit Lesson" : "Create Lesson"}
+              </SmallLabel>
               <FormTitle>
                 {editingLesson ? "Upgrade this lesson" : "Add a new lesson"}
               </FormTitle>
@@ -509,7 +523,10 @@ export default function ManageLesson() {
                     placeholder="https://resource-link.com"
                   />
 
-                  <DangerButton type="button" onClick={() => removeResource(index)}>
+                  <DangerButton
+                    type="button"
+                    onClick={() => removeResource(index)}
+                  >
                     Remove
                   </DangerButton>
                 </ResourceGrid>
@@ -526,8 +543,8 @@ export default function ManageLesson() {
               {creating || updating
                 ? "Saving..."
                 : editingLesson
-                ? "Update Lesson"
-                : "Create Lesson"}
+                  ? "Update Lesson"
+                  : "Create Lesson"}
             </PrimaryButton>
           </SubmitRow>
         </FormCard>
@@ -562,7 +579,9 @@ export default function ManageLesson() {
                 <MetaRow>
                   <Meta>{lesson.durationInMinutes || 0} min</Meta>
                   <Meta>{lesson.isPreview ? "Preview" : "Premium"}</Meta>
-                  <Meta>{lesson.videoUrl ? "Video Added" : "No Video Yet"}</Meta>
+                  <Meta>
+                    {lesson.videoUrl ? "Video Added" : "No Video Yet"}
+                  </Meta>
                   <Meta>{lesson.resources?.length || 0} resources</Meta>
                 </MetaRow>
 
@@ -602,9 +621,17 @@ const Page = styled.main`
   padding: 96px 16px 60px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 10% 5%, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(
+      circle at 10% 5%,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
     radial-gradient(circle at 90% 12%, rgba(90, 56, 37, 0.38), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Hero = styled.section`
@@ -624,7 +651,11 @@ const Hero = styled.section`
 const HeroContent = styled.div`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 28px;
-  background: linear-gradient(145deg, rgba(61, 38, 26, 0.82), rgba(0, 0, 0, 0.58));
+  background: linear-gradient(
+    145deg,
+    rgba(61, 38, 26, 0.82),
+    rgba(0, 0, 0, 0.58)
+  );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -724,7 +755,11 @@ const PrimaryButton = styled.button`
   border-radius: ${({ theme }) => theme.radius.pill};
   padding: 0 18px;
   cursor: pointer;
-  background: linear-gradient(130deg, ${({ theme }) => theme.colors.lightBrown}, ${({ theme }) => theme.colors.ivory});
+  background: linear-gradient(
+    130deg,
+    ${({ theme }) => theme.colors.lightBrown},
+    ${({ theme }) => theme.colors.ivory}
+  );
   color: ${({ theme }) => theme.colors.black};
   font-size: 12px;
   font-weight: 950;
@@ -742,7 +777,11 @@ const FormCard = styled.form`
   margin: 0 auto 18px;
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 20px;
-  background: linear-gradient(180deg, rgba(47, 27, 18, 0.96), rgba(0, 0, 0, 0.68));
+  background: linear-gradient(
+    180deg,
+    rgba(47, 27, 18, 0.96),
+    rgba(0, 0, 0, 0.68)
+  );
   border: 1px solid rgba(255, 249, 242, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.soft};
   animation: ${fadeUp} 0.28s ease both;
@@ -933,10 +972,16 @@ const LessonGrid = styled.div`
 const LessonCard = styled.article`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 18px;
-  background: linear-gradient(180deg, rgba(47, 27, 18, 0.92), rgba(0, 0, 0, 0.66));
+  background: linear-gradient(
+    180deg,
+    rgba(47, 27, 18, 0.92),
+    rgba(0, 0, 0, 0.66)
+  );
   border: 1px solid rgba(255, 249, 242, 0.11);
   box-shadow: ${({ theme }) => theme.shadow.soft};
-  transition: transform 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease;
 
   &:hover {
     transform: translateY(-3px);

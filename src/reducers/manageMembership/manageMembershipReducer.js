@@ -3,7 +3,7 @@ import { manageMembershipsInitialState } from "./manageMembershipInitialState";
 
 export function manageMembershipsReducer(
   state = manageMembershipsInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     case MANAGE_MEMBERSHIPS_ACTIONS.FETCH_REQUEST:
@@ -42,28 +42,28 @@ export function manageMembershipsReducer(
       };
 
     case MANAGE_MEMBERSHIPS_ACTIONS.CREATE_SUCCESS: {
-  const memberships = [
-    action.payload,
-    ...state.memberships.filter(
-      (item) => item?._id !== action.payload?._id
-    ),
-  ];
+      const memberships = [
+        action.payload,
+        ...state.memberships.filter(
+          (item) => item?._id !== action.payload?._id,
+        ),
+      ];
 
-  return {
-    ...state,
-    saving: false,
-    memberships,
-    successMessage: "Membership created successfully.",
-    error: "",
-  };
-}
+      return {
+        ...state,
+        saving: false,
+        memberships,
+        successMessage: "Membership created successfully.",
+        error: "",
+      };
+    }
 
     case MANAGE_MEMBERSHIPS_ACTIONS.UPDATE_SUCCESS:
       return {
         ...state,
         saving: false,
         memberships: state.memberships.map((membership) =>
-          membership?._id === action.payload?._id ? action.payload : membership
+          membership?._id === action.payload?._id ? action.payload : membership,
         ),
         selectedMembership: action.payload,
         successMessage: "Membership updated successfully.",
@@ -91,7 +91,7 @@ export function manageMembershipsReducer(
         ...state,
         deleting: false,
         memberships: state.memberships.filter(
-          (membership) => membership?._id !== action.payload
+          (membership) => membership?._id !== action.payload,
         ),
         selectedMembership:
           state.selectedMembership?._id === action.payload
@@ -123,38 +123,42 @@ export function manageMembershipsReducer(
       };
 
     case MANAGE_MEMBERSHIPS_ACTIONS.SET_SEARCH:
-  return {
-    ...state,
-    search: String(action.payload || "").trimStart().slice(0, 120),
-  };
+      return {
+        ...state,
+        search: String(action.payload || "")
+          .trimStart()
+          .slice(0, 120),
+      };
 
     case MANAGE_MEMBERSHIPS_ACTIONS.SET_LEVEL_FILTER: {
-  const allowedLevels = [
-    "all",
-    "beginner",
-    "intermediate",
-    "advance",
-    "complete",
-  ];
+      const allowedLevels = [
+        "all",
+        "beginner",
+        "intermediate",
+        "advance",
+        "complete",
+      ];
 
-  const nextLevel = String(action.payload || "").toLowerCase().trim();
+      const nextLevel = String(action.payload || "")
+        .toLowerCase()
+        .trim();
 
-  return {
-    ...state,
-    levelFilter: allowedLevels.includes(nextLevel) ? nextLevel : "all",
-  };
-}
+      return {
+        ...state,
+        levelFilter: allowedLevels.includes(nextLevel) ? nextLevel : "all",
+      };
+    }
 
     case MANAGE_MEMBERSHIPS_ACTIONS.SET_STATUS_FILTER: {
-  const allowedStatuses = ["all", "published", "draft", "featured"];
+      const allowedStatuses = ["all", "published", "draft", "featured"];
 
-  return {
-    ...state,
-    statusFilter: allowedStatuses.includes(action.payload)
-      ? action.payload
-      : "all",
-  };
-}
+      return {
+        ...state,
+        statusFilter: allowedStatuses.includes(action.payload)
+          ? action.payload
+          : "all",
+      };
+    }
 
     case MANAGE_MEMBERSHIPS_ACTIONS.CLEAR_ERROR:
       return {

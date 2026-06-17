@@ -76,7 +76,7 @@ export function manageOrderReducer(state, action) {
         ...state,
         updating: false,
         orders: state.orders.map((order) =>
-          order._id === action.payload._id ? action.payload : order
+          order._id === action.payload._id ? action.payload : order,
         ),
         selectedOrder:
           state.selectedOrder?._id === action.payload._id
@@ -107,8 +107,11 @@ export function manageOrderReducer(state, action) {
         deleting: false,
         orders: state.orders.filter((order) => order._id !== action.payload),
         selectedOrder:
-          state.selectedOrder?._id === action.payload ? null : state.selectedOrder,
-        editOrder: state.editOrder?._id === action.payload ? null : state.editOrder,
+          state.selectedOrder?._id === action.payload
+            ? null
+            : state.selectedOrder,
+        editOrder:
+          state.editOrder?._id === action.payload ? null : state.editOrder,
         success: "Order deleted successfully.",
       };
 

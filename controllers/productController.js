@@ -39,7 +39,7 @@ const normalizeArray = (value, max = 30, lowercase = false) => {
           const text = cleanString(item);
           return lowercase ? text.toLowerCase() : text;
         })
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ].slice(0, max);
 };
@@ -47,7 +47,8 @@ const normalizeArray = (value, max = 30, lowercase = false) => {
 const sendDuplicateError = (res, error) => {
   if (error?.code !== 11000) return false;
 
-  const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || "field";
+  const field =
+    Object.keys(error.keyPattern || error.keyValue || {})[0] || "field";
 
   res.status(409).json({
     success: false,
@@ -78,10 +79,14 @@ function normalizeProductPayload(body = {}) {
   ]);
 
   if (allowed.title !== undefined) allowed.title = cleanString(allowed.title);
-  if (allowed.brand !== undefined) allowed.brand = cleanString(allowed.brand).toLowerCase();
-  if (allowed.shortDescription !== undefined) allowed.shortDescription = cleanString(allowed.shortDescription);
-  if (allowed.description !== undefined) allowed.description = cleanString(allowed.description);
-  if (allowed.category !== undefined) allowed.category = cleanString(allowed.category);
+  if (allowed.brand !== undefined)
+    allowed.brand = cleanString(allowed.brand).toLowerCase();
+  if (allowed.shortDescription !== undefined)
+    allowed.shortDescription = cleanString(allowed.shortDescription);
+  if (allowed.description !== undefined)
+    allowed.description = cleanString(allowed.description);
+  if (allowed.category !== undefined)
+    allowed.category = cleanString(allowed.category);
 
   if (allowed.sku !== undefined) {
     const sku = cleanString(allowed.sku).toUpperCase();
@@ -204,7 +209,9 @@ export const getProducts = asyncHandler(async (req, res) => {
   const limit = clampInt(req.query.limit, 1, 50, 8);
   const skip = (page - 1) * limit;
 
-  const safeSort = ALLOWED_SORTS.has(String(sort)) ? String(sort) : "-createdAt";
+  const safeSort = ALLOWED_SORTS.has(String(sort))
+    ? String(sort)
+    : "-createdAt";
 
   const filter = {
     isDeleted: { $ne: true },
@@ -318,7 +325,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     ).lean();
 
     if (!product) {
@@ -352,7 +359,7 @@ export const deleteProduct = asyncHandler(async (req, res) => {
         isActive: false,
       },
     },
-    { new: true }
+    { new: true },
   ).lean();
 
   if (!product) {

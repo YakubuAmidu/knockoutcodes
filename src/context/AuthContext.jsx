@@ -133,14 +133,10 @@ function saveAccountAccessNotice(data = {}) {
     localStorage,
     "accountAccessMessage",
     data.message ||
-      "Your account access has been restricted. Please contact support."
+      "Your account access has been restricted. Please contact support.",
   );
 
-  safeSet(
-    localStorage,
-    "accountStatus",
-    data.accountStatus || "restricted"
-  );
+  safeSet(localStorage, "accountStatus", data.accountStatus || "restricted");
 
   if (data.userId) {
     safeSet(localStorage, "accountAccessUserId", String(data.userId));
@@ -174,7 +170,11 @@ function persistUser(user, mode = "local") {
 function shouldRedirectToLogin() {
   const path = window.location.pathname;
   if (PUBLIC_AUTH_PATHS.has(path)) return false;
-  return path.startsWith("/admin") || path.startsWith("/user") || path.includes("dashboard");
+  return (
+    path.startsWith("/admin") ||
+    path.startsWith("/user") ||
+    path.includes("dashboard")
+  );
 }
 
 export function AuthProvider({ children }) {
@@ -199,34 +199,34 @@ export function AuthProvider({ children }) {
             type === "success"
               ? "Success"
               : type === "error"
-              ? "Error"
-              : type === "warning"
-              ? "Warning"
-              : "Notice",
+                ? "Error"
+                : type === "warning"
+                  ? "Warning"
+                  : "Notice",
           description: message,
           variant: type,
         });
       }
     },
-    [toast]
+    [toast],
   );
 
   const ensureCsrf = useCallback(async () => {
-  try {
-    return await getCsrfToken();
-  } catch {
-    return "";
-  }
-}, []);
+    try {
+      return await getCsrfToken();
+    } catch {
+      return "";
+    }
+  }, []);
 
   const clearAuthState = useCallback(() => {
-  setUser(null);
-  clearClientAuth();
+    setUser(null);
+    clearClientAuth();
 
-  dispatch({
-    type: AUTH_ACTIONS.AUTH_LOGOUT,
-  });
-}, [dispatch]);
+    dispatch({
+      type: AUTH_ACTIONS.AUTH_LOGOUT,
+    });
+  }, [dispatch]);
 
   const forceLogout = useCallback(
     (message = "") => {
@@ -249,7 +249,7 @@ export function AuthProvider({ children }) {
         loggingOutRef.current = false;
       }, 500);
     },
-    [clearAuthState, showToast]
+    [clearAuthState, showToast],
   );
 
   const bootstrapSession = useCallback(async () => {
@@ -269,12 +269,12 @@ export function AuthProvider({ children }) {
         const { data } = await axiosInstance.get("/auth/me");
         const user = extractUser(data);
 
-if (user?.isActive === false) {
-  forceLogout("Account inactive.");
-  return null;
-}
+        if (user?.isActive === false) {
+          forceLogout("Account inactive.");
+          return null;
+        }
 
-return user;
+        return user;
       } catch (error) {
         if (error?.response?.status !== 401) {
           return null;
@@ -291,38 +291,36 @@ return user;
         await refreshPromiseRef.current;
 
         const { data } = await axiosInstance.get("/auth/me");
-const refreshedUser = extractUser(data);
+        const refreshedUser = extractUser(data);
 
-if (refreshedUser?.isActive === false) {
-  forceLogout("Account inactive.");
-  return null;
-}
+        if (refreshedUser?.isActive === false) {
+          forceLogout("Account inactive.");
+          return null;
+        }
 
-return refreshedUser;
+        return refreshedUser;
       }
     } catch (error) {
-  const data = error?.response?.data;
+      const data = error?.response?.data;
 
-  if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
-    saveAccountAccessNotice(data);
+      if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+        saveAccountAccessNotice(data);
 
-    dispatch({
-      type: AUTH_ACTIONS.ACCOUNT_ACCESS_RESTRICTED,
-      payload: {
-        message: data.message,
-        accountStatus: data.accountStatus,
-      },
-    });
+        dispatch({
+          type: AUTH_ACTIONS.ACCOUNT_ACCESS_RESTRICTED,
+          payload: {
+            message: data.message,
+            accountStatus: data.accountStatus,
+          },
+        });
 
-    window.location.replace(
-      data.redirectTo || "/account-access-notice"
-    );
+        window.location.replace(data.redirectTo || "/account-access-notice");
 
-    return null;
-  }
+        return null;
+      }
 
-  return null;
-}
+      return null;
+    }
   }, [dispatch, ensureCsrf, forceLogout]);
 
   const refresh = useCallback(async () => {
@@ -331,22 +329,22 @@ return refreshedUser;
     if (!mountedRef.current) return null;
 
     if (!freshUser) {
-  clearAuthState();
-  return null;
-}
+      clearAuthState();
+      return null;
+    }
 
-if (freshUser.isActive === false) {
-  forceLogout("Account inactive.");
-  return null;
-}
+    if (freshUser.isActive === false) {
+      forceLogout("Account inactive.");
+      return null;
+    }
 
     setUser(freshUser);
     persistUser(freshUser, getPersistMode());
 
     dispatch({
-  type: AUTH_ACTIONS.AUTH_SUCCESS,
-  payload: freshUser,
-});
+      type: AUTH_ACTIONS.AUTH_SUCCESS,
+      payload: freshUser,
+    });
 
     return freshUser;
   }, [bootstrapSession, clearAuthState, dispatch, forceLogout]);
@@ -368,9 +366,9 @@ if (freshUser.isActive === false) {
           persistUser(freshUser, getPersistMode());
 
           dispatch({
-  type: AUTH_ACTIONS.AUTH_SUCCESS,
-  payload: freshUser,
-});
+            type: AUTH_ACTIONS.AUTH_SUCCESS,
+            payload: freshUser,
+          });
         } else {
           clearAuthState();
         }
@@ -406,94 +404,94 @@ if (freshUser.isActive === false) {
   }, [forceLogout]);
 
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+    const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
 
-  let inactivityTimer;
+    let inactivityTimer;
 
-  const resetTimer = () => {
-    clearTimeout(inactivityTimer);
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
 
-    inactivityTimer = setTimeout(() => {
-      forceLogout("You were logged out due to inactivity.");
-    }, INACTIVITY_LIMIT);
-  };
+      inactivityTimer = setTimeout(() => {
+        forceLogout("You were logged out due to inactivity.");
+      }, INACTIVITY_LIMIT);
+    };
 
-  const events = [
-    "mousemove",
-    "mousedown",
-    "keydown",
-    "scroll",
-    "touchstart",
-    "click",
-  ];
-
-  events.forEach((event) => {
-    window.addEventListener(event, resetTimer);
-  });
-
-  resetTimer();
-
-  return () => {
-    clearTimeout(inactivityTimer);
+    const events = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
 
     events.forEach((event) => {
-      window.removeEventListener(event, resetTimer);
+      window.addEventListener(event, resetTimer);
     });
-  };
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+
+      events.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
   }, [user, forceLogout]);
-  
- useEffect(() => {
-  if (!user?._id) return;
 
-  connectUserSocket(user._id);
+  useEffect(() => {
+    if (!user?._id) return;
 
-  const handleForceLogout = (data = {}) => {
-    forceLogout(
-      data.message || "Your account was logged out by an administrator."
-    );
-  };
+    connectUserSocket(user._id);
 
-  const handleAccessUpdated = (data = {}) => {
-    if (import.meta.env.DEV) {
-  console.log("ACCOUNT ACCESS UPDATED RECEIVED:", data);
-}
+    const handleForceLogout = (data = {}) => {
+      forceLogout(
+        data.message || "Your account was logged out by an administrator.",
+      );
+    };
 
-    const nextStatus = data.accountStatus || "restricted";
-    const nextMessage =
-      data.message ||
-      data.statusReason ||
-      "Your account access was updated by an administrator.";
+    const handleAccessUpdated = (data = {}) => {
+      if (import.meta.env.DEV) {
+        console.log("ACCOUNT ACCESS UPDATED RECEIVED:", data);
+      }
 
-    localStorage.setItem("accountStatus", nextStatus);
-    localStorage.setItem("accountAccessMessage", nextMessage);
+      const nextStatus = data.accountStatus || "restricted";
+      const nextMessage =
+        data.message ||
+        data.statusReason ||
+        "Your account access was updated by an administrator.";
 
-    const restricted =
-      data.isDeleted === true ||
-      data.isActive === false ||
-      nextStatus !== "active";
+      localStorage.setItem("accountStatus", nextStatus);
+      localStorage.setItem("accountAccessMessage", nextMessage);
 
-    if (restricted) {
-      window.location.replace("/account-access-notice");
-      return;
-    }
+      const restricted =
+        data.isDeleted === true ||
+        data.isActive === false ||
+        nextStatus !== "active";
 
-    localStorage.removeItem("accountStatus");
-    localStorage.removeItem("accountAccessMessage");
+      if (restricted) {
+        window.location.replace("/account-access-notice");
+        return;
+      }
 
-    window.location.replace("/user-dashboard");
-  };
+      localStorage.removeItem("accountStatus");
+      localStorage.removeItem("accountAccessMessage");
 
-  socket.on("auth:force-logout", handleForceLogout);
-  socket.on("account:access-updated", handleAccessUpdated);
+      window.location.replace("/user-dashboard");
+    };
 
-  return () => {
-    socket.off("auth:force-logout", handleForceLogout);
-    socket.off("account:access-updated", handleAccessUpdated);
-    disconnectUserSocket(user._id);
-  };
-}, [user?._id, forceLogout]);
+    socket.on("auth:force-logout", handleForceLogout);
+    socket.on("account:access-updated", handleAccessUpdated);
+
+    return () => {
+      socket.off("auth:force-logout", handleForceLogout);
+      socket.off("account:access-updated", handleAccessUpdated);
+      disconnectUserSocket(user._id);
+    };
+  }, [user?._id, forceLogout]);
 
   const login = useCallback(
     async (credentials, options = {}) => {
@@ -504,6 +502,10 @@ if (freshUser.isActive === false) {
         await ensureCsrf();
 
         const { data } = await axiosInstance.post("/auth/login", credentials);
+
+        if (data?.accessToken) {
+          localStorage.setItem("token", data.accessToken);
+        }
 
         let loggedInUser = extractUser(data);
 
@@ -528,12 +530,12 @@ if (freshUser.isActive === false) {
         }
 
         setUser(loggedInUser);
-persistUser(loggedInUser, mode);
+        persistUser(loggedInUser, mode);
 
-dispatch({
-  type: AUTH_ACTIONS.AUTH_SUCCESS,
-  payload: loggedInUser,
-});
+        dispatch({
+          type: AUTH_ACTIONS.AUTH_SUCCESS,
+          payload: loggedInUser,
+        });
 
         return {
           ok: true,
@@ -541,39 +543,37 @@ dispatch({
           role: loggedInUser.role || "user",
         };
       } catch (error) {
-  const data = error?.response?.data;
+        const data = error?.response?.data;
 
-  clearAuthState();
+        clearAuthState();
 
-  if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
-    dispatch({
-      type: AUTH_ACTIONS.AUTH_FAIL,
-      payload: data.message || "Account access restricted.",
-    });
+        if (data?.code === "ACCOUNT_ACCESS_RESTRICTED") {
+          dispatch({
+            type: AUTH_ACTIONS.AUTH_FAIL,
+            payload: data.message || "Account access restricted.",
+          });
 
-    redirectToAccountAccessNotice(data);
+          redirectToAccountAccessNotice(data);
 
-    return {
-      ok: false,
-      restricted: true,
-      error: data.message || "Account access restricted.",
-    };
-  }
+          return {
+            ok: false,
+            restricted: true,
+            error: data.message || "Account access restricted.",
+          };
+        }
 
-  return {
-    ok: false,
-    error:
-      data?.message ||
-      error?.message ||
-      "Invalid email or password.",
-  };
-}finally {
+        return {
+          ok: false,
+          error:
+            data?.message || error?.message || "Invalid email or password.",
+        };
+      } finally {
         if (mountedRef.current) {
           setInitializing(false);
         }
       }
     },
-    [bootstrapSession, clearAuthState, dispatch, ensureCsrf]
+    [bootstrapSession, clearAuthState, dispatch, ensureCsrf],
   );
 
   const register = useCallback(
@@ -609,7 +609,7 @@ dispatch({
         }
       }
     },
-    [clearAuthState, ensureCsrf]
+    [clearAuthState, ensureCsrf],
   );
 
   const logout = useCallback(
@@ -642,7 +642,7 @@ dispatch({
         }, 500);
       }
     },
-    [clearAuthState, ensureCsrf, showToast]
+    [clearAuthState, ensureCsrf, showToast],
   );
 
   const value = useMemo(
@@ -659,7 +659,7 @@ dispatch({
       refresh,
       setUser,
     }),
-    [user, initializing, login, register, logout, forceLogout, refresh]
+    [user, initializing, login, register, logout, forceLogout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

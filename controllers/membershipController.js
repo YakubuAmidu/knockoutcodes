@@ -257,7 +257,9 @@ async function findMembershipByIdOrSlug(id) {
 
   if (!item) {
     item = await Membership.findOne({
-      slug: String(id || "").trim().toLowerCase(),
+      slug: String(id || "")
+        .trim()
+        .toLowerCase(),
     }).lean();
   }
 
@@ -281,10 +283,7 @@ function validateStripePriceIds(data = {}) {
   ];
 
   for (const item of ids) {
-    if (
-      item.value &&
-      !String(item.value).trim().startsWith("price_")
-    ) {
+    if (item.value && !String(item.value).trim().startsWith("price_")) {
       return item.message;
     }
   }
@@ -312,9 +311,7 @@ export const createMembership = async (req, res) => {
 
     const created = await Membership.create(payload);
 
-    const [withStats] = await attachRealMembershipStats([
-      created.toObject(),
-    ]);
+    const [withStats] = await attachRealMembershipStats([created.toObject()]);
 
     return res.status(201).json({
       success: true,
@@ -361,8 +358,8 @@ export const getMemberships = async (req, res) => {
       req.query.sort === "top-rated"
         ? "-rating -enrolled"
         : req.query.sort === "enrolled"
-        ? "-enrolled"
-        : "sortOrder -createdAt";
+          ? "-enrolled"
+          : "sortOrder -createdAt";
 
     const page = clampInt(req.query.page, 1, 5000, 1);
     const limit = clampInt(req.query.limit, 1, 100, 100);
@@ -418,7 +415,7 @@ export const getMembership = async (req, res) => {
     if (
       !item.isPublished &&
       !["admin", "superadmin"].includes(
-        String(req.user?.role || "").toLowerCase()
+        String(req.user?.role || "").toLowerCase(),
       )
     ) {
       return res.status(404).json({
@@ -470,7 +467,7 @@ export const updateMembership = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     ).lean();
 
     if (!updated) {
@@ -505,28 +502,28 @@ export const deleteMembership = async (req, res) => {
     const query = mongoose.Types.ObjectId.isValid(id)
       ? { _id: id }
       : { membershipId: normalizeLevel(id) };
-    
+
     const existingMembership = await Membership.findOne(query);
 
-if (!existingMembership) {
-  return res.status(404).json({
-    success: false,
-    message: "Membership not found",
-  });
-}
+    if (!existingMembership) {
+      return res.status(404).json({
+        success: false,
+        message: "Membership not found",
+      });
+    }
 
-const activeSubscribers = await UserSubscription.countDocuments({
-  membershipId: existingMembership.membershipId,
-  status: { $in: ACTIVE_SUBSCRIPTION_STATUSES },
-});
+    const activeSubscribers = await UserSubscription.countDocuments({
+      membershipId: existingMembership.membershipId,
+      status: { $in: ACTIVE_SUBSCRIPTION_STATUSES },
+    });
 
-if (activeSubscribers > 0) {
-  return res.status(400).json({
-    success: false,
-    message:
-      "Cannot delete a membership that still has active subscribers.",
-  });
-}
+    if (activeSubscribers > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot delete a membership that still has active subscribers.",
+      });
+    }
 
     const deleted = await Membership.findOneAndDelete(query);
 
@@ -571,7 +568,7 @@ export const getMembershipLessons = async (req, res) => {
     }
 
     const courseIds = await getCourseIdsByMembershipLevel(
-      membership.accessLevel || membership.membershipId
+      membership.accessLevel || membership.membershipId,
     );
 
     return res.status(200).json({

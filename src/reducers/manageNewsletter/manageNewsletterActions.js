@@ -10,7 +10,9 @@ const validEmail = (value) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(String(value || "").trim());
 
 const cleanString = (value, max = 200) =>
-  typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
+  typeof value === "string"
+    ? value.trim().replace(/\s+/g, " ").slice(0, max)
+    : "";
 
 const normalizeNewsletterPayload = (payload = {}) => ({
   name: cleanString(payload.name, 80),
@@ -30,9 +32,7 @@ const failPayload = (error, systemMessage = null) => ({
 });
 
 const getErrorMessage = (err, fallback) =>
-  err?.response?.data?.message ||
-  err?.message ||
-  fallback;
+  err?.response?.data?.message || err?.message || fallback;
 
 const ensureCsrf = async () => {
   try {
@@ -44,49 +44,63 @@ const ensureCsrf = async () => {
   }
 };
 
-export const fetchAdminNewsletters = (opts = {}) => async (dispatch) => {
-  dispatch({ type: T.ADMIN_LIST_REQUEST });
+export const fetchAdminNewsletters =
+  (opts = {}) =>
+  async (dispatch) => {
+    dispatch({ type: T.ADMIN_LIST_REQUEST });
 
-  try {
-    const search =
-      typeof opts.search === "string" ? opts.search.trim().slice(0, 100) : "";
+    try {
+      const search =
+        typeof opts.search === "string" ? opts.search.trim().slice(0, 100) : "";
 
-    const status =
-      typeof opts.status === "string" && opts.status !== "all"
-        ? opts.status
-        : "";
+      const status =
+        typeof opts.status === "string" && opts.status !== "all"
+          ? opts.status
+          : "";
 
-    const page = Number(opts.page) || 1;
-    const limit = Number(opts.limit) || 100;
+      const page = Number(opts.page) || 1;
+      const limit = Number(opts.limit) || 100;
 
-    const res = await axiosInstance.get("/newsletters", {
-      timeout: REQUEST_TIMEOUT_MS,
-      params: {
-        ...(search ? { q: search } : {}),
-        ...(status ? { status } : {}),
-        page,
-        limit,
-      },
-    });
+      const res = await axiosInstance.get("/newsletters", {
+        timeout: REQUEST_TIMEOUT_MS,
+        params: {
+          ...(search ? { q: search } : {}),
+          ...(status ? { status } : {}),
+          page,
+          limit,
+        },
+      });
 
-    const payload = res?.data || {};
+      const payload = res?.data || {};
 
-    const list = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload.data)
-      ? payload.data
-      : [];
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.data)
+          ? payload.data
+          : [];
 
-    const selectedId =
-      opts.preferredId && list.some((n) => getId(n) === opts.preferredId)
-        ? opts.preferredId
-        : opts.fallbackToFirst && list[0]
-        ? getId(list[0])
-        : null;
+      const selectedId =
+        opts.preferredId && list.some((n) => getId(n) === opts.preferredId)
+          ? opts.preferredId
+          : opts.fallbackToFirst && list[0]
+            ? getId(list[0])
+            : null;
 
-    dispatch({
-      type: T.ADMIN_LIST_SUCCESS,
-      payload: {
+      dispatch({
+        type: T.ADMIN_LIST_SUCCESS,
+        payload: {
+          list,
+          selectedId,
+          total: payload.total,
+          active: payload.active,
+          inactive: payload.inactive,
+          page: payload.page,
+          pages: payload.pages,
+        },
+      });
+
+      return {
+        ok: true,
         list,
         selectedId,
         total: payload.total,
@@ -94,33 +108,21 @@ export const fetchAdminNewsletters = (opts = {}) => async (dispatch) => {
         inactive: payload.inactive,
         page: payload.page,
         pages: payload.pages,
-      },
-    });
+      };
+    } catch (err) {
+      const msg = getErrorMessage(
+        err,
+        "Unable to load newsletters. Please check your admin access.",
+      );
 
-    return {
-      ok: true,
-      list,
-      selectedId,
-      total: payload.total,
-      active: payload.active,
-      inactive: payload.inactive,
-      page: payload.page,
-      pages: payload.pages,
-    };
-  } catch (err) {
-    const msg = getErrorMessage(
-      err,
-      "Unable to load newsletters. Please check your admin access."
-    );
+      dispatch({
+        type: T.ADMIN_LIST_FAIL,
+        payload: failPayload(msg),
+      });
 
-    dispatch({
-      type: T.ADMIN_LIST_FAIL,
-      payload: failPayload(msg),
-    });
-
-    return { ok: false, list: [], selectedId: null, message: msg, err };
-  }
-};
+      return { ok: false, list: [], selectedId: null, message: msg, err };
+    }
+  };
 
 export const updateAdminNewsletter = (id, payload) => async (dispatch) => {
   dispatch({ type: T.ADMIN_UPDATE_REQUEST });
@@ -153,7 +155,7 @@ export const updateAdminNewsletter = (id, payload) => async (dispatch) => {
     const res = await axiosInstance.patch(
       `/newsletters/${encodeURIComponent(safeId)}`,
       cleanPayload,
-      { timeout: REQUEST_TIMEOUT_MS }
+      { timeout: REQUEST_TIMEOUT_MS },
     );
 
     const responsePayload = res?.data;
@@ -177,7 +179,7 @@ export const updateAdminNewsletter = (id, payload) => async (dispatch) => {
   } catch (err) {
     const msg = getErrorMessage(
       err,
-      "Update failed. Please try again or check your admin access."
+      "Update failed. Please try again or check your admin access.",
     );
 
     dispatch({

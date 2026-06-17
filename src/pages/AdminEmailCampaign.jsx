@@ -16,7 +16,8 @@ import {
   resetEmailCampaignSuccess,
 } from "../reducers/emailCampaign/emailCampaignActions";
 
-const EMAIL_REGEX = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/i;
+const EMAIL_REGEX =
+  /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/i;
 
 const INITIAL_FORM = {
   name: "",
@@ -42,7 +43,7 @@ function toLocalDateTimeInput(value) {
   if (Number.isNaN(date.getTime())) return "";
   const pad = (num) => String(num).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate()
+    date.getDate(),
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
@@ -52,7 +53,7 @@ function normalizeManualRecipients(value = "") {
       String(value)
         .split(",")
         .map((item) => item.trim().toLowerCase())
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
 }
@@ -99,7 +100,7 @@ export default function AdminEmailCampaign() {
 
   const safeCampaigns = useMemo(
     () => (Array.isArray(campaigns) ? campaigns : []),
-    [campaigns]
+    [campaigns],
   );
 
   const pushToast = useCallback(
@@ -107,59 +108,63 @@ export default function AdminEmailCampaign() {
       if (toast?.push) toast.push({ title, description, variant });
       else if (toast?.showToast) toast.showToast(description || title, variant);
     },
-    [toast]
+    [toast],
   );
 
   useEffect(() => {
-  const savedEmails = localStorage.getItem("selectedCampaignEmails");
-  if (!savedEmails) return;
-
-  try {
-    const parsedEmails = JSON.parse(savedEmails);
-
-    if (Array.isArray(parsedEmails) && parsedEmails.length > 0) {
-      const cleanEmails = [
-        ...new Set(
-          parsedEmails
-            .map((email) => String(email || "").trim().toLowerCase())
-            .filter(Boolean)
-        ),
-      ];
-
-      setFormData({
-        ...INITIAL_FORM,
-        audienceType: "manual",
-        manualRecipients: cleanEmails.join(", "),
-      });
-
-      pushToast({
-        title: "Subscribers Loaded",
-        description: `${cleanEmails.length} subscriber(s) added.`,
-        variant: "success",
-      });
-    }
-  } catch {
-    localStorage.removeItem("selectedCampaignEmails");
-  }
-  }, [pushToast]);
-  
-  useEffect(() => {
-  dispatch(fetchEmailCampaigns());
-}, [dispatch]);
-
-  useEffect(() => {
-  if (!selectedCampaign) {
     const savedEmails = localStorage.getItem("selectedCampaignEmails");
+    if (!savedEmails) return;
 
-    if (savedEmails) return;
+    try {
+      const parsedEmails = JSON.parse(savedEmails);
 
-    setFormData({ ...INITIAL_FORM });
-    return;
-  }
+      if (Array.isArray(parsedEmails) && parsedEmails.length > 0) {
+        const cleanEmails = [
+          ...new Set(
+            parsedEmails
+              .map((email) =>
+                String(email || "")
+                  .trim()
+                  .toLowerCase(),
+              )
+              .filter(Boolean),
+          ),
+        ];
 
-  localStorage.removeItem("selectedCampaignEmails");
+        setFormData({
+          ...INITIAL_FORM,
+          audienceType: "manual",
+          manualRecipients: cleanEmails.join(", "),
+        });
 
-  setFormData({
+        pushToast({
+          title: "Subscribers Loaded",
+          description: `${cleanEmails.length} subscriber(s) added.`,
+          variant: "success",
+        });
+      }
+    } catch {
+      localStorage.removeItem("selectedCampaignEmails");
+    }
+  }, [pushToast]);
+
+  useEffect(() => {
+    dispatch(fetchEmailCampaigns());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!selectedCampaign) {
+      const savedEmails = localStorage.getItem("selectedCampaignEmails");
+
+      if (savedEmails) return;
+
+      setFormData({ ...INITIAL_FORM });
+      return;
+    }
+
+    localStorage.removeItem("selectedCampaignEmails");
+
+    setFormData({
       name: selectedCampaign?.name || "",
       subject: selectedCampaign?.subject || "",
       previewText: selectedCampaign?.previewText || "",
@@ -188,7 +193,11 @@ export default function AdminEmailCampaign() {
 
   useEffect(() => {
     if (!successMessage) return;
-    pushToast({ title: "Success", description: successMessage, variant: "success" });
+    pushToast({
+      title: "Success",
+      description: successMessage,
+      variant: "success",
+    });
     dispatch(resetEmailCampaignSuccess());
   }, [successMessage, dispatch, pushToast]);
 
@@ -206,7 +215,7 @@ export default function AdminEmailCampaign() {
       ]
         .join(" ")
         .toLowerCase()
-        .includes(keyword)
+        .includes(keyword),
     );
   }, [safeCampaigns, search]);
 
@@ -220,10 +229,11 @@ export default function AdminEmailCampaign() {
     () => ({
       total: safeCampaigns.length,
       draft: safeCampaigns.filter((item) => item?.status === "draft").length,
-      scheduled: safeCampaigns.filter((item) => item?.status === "scheduled").length,
+      scheduled: safeCampaigns.filter((item) => item?.status === "scheduled")
+        .length,
       sent: safeCampaigns.filter((item) => item?.status === "sent").length,
     }),
-    [safeCampaigns]
+    [safeCampaigns],
   );
 
   function handleChange(e) {
@@ -237,7 +247,12 @@ export default function AdminEmailCampaign() {
   }
 
   function validatePayload(payload) {
-    if (!payload.name || !payload.subject || !payload.headline || !payload.body) {
+    if (
+      !payload.name ||
+      !payload.subject ||
+      !payload.headline ||
+      !payload.body
+    ) {
       return "Name, subject, headline, and body are required.";
     }
 
@@ -250,14 +265,18 @@ export default function AdminEmailCampaign() {
         return "Please add at least one manual recipient email.";
       }
 
-      const invalid = payload.manualRecipients.find((email) => !EMAIL_REGEX.test(email));
+      const invalid = payload.manualRecipients.find(
+        (email) => !EMAIL_REGEX.test(email),
+      );
       if (invalid) return `Invalid recipient email: ${invalid}`;
     }
 
     if (payload.scheduledFor) {
       const scheduledDate = new Date(payload.scheduledFor);
-      if (Number.isNaN(scheduledDate.getTime())) return "Invalid schedule date.";
-      if (scheduledDate <= new Date()) return "Schedule date must be in the future.";
+      if (Number.isNaN(scheduledDate.getTime()))
+        return "Invalid schedule date.";
+      if (scheduledDate <= new Date())
+        return "Schedule date must be in the future.";
     }
 
     return "";
@@ -283,14 +302,19 @@ export default function AdminEmailCampaign() {
       ctaUrl: formData.ctaUrl.trim(),
       signature: formData.signature.trim() || "Team KnockoutCodes",
       audienceType: formData.audienceType,
-      status: formData.scheduledFor && !formData.sendNow ? "scheduled" : "draft",
+      status:
+        formData.scheduledFor && !formData.sendNow ? "scheduled" : "draft",
       scheduledFor: formData.sendNow ? null : formData.scheduledFor || null,
       manualRecipients,
     };
 
     const validationError = validatePayload(payload);
     if (validationError) {
-      pushToast({ title: "Fix campaign", description: validationError, variant: "error" });
+      pushToast({
+        title: "Fix campaign",
+        description: validationError,
+        variant: "error",
+      });
       return;
     }
 
@@ -365,22 +389,36 @@ export default function AdminEmailCampaign() {
             HIT THE <span>INBOX</span> WITH PRECISION.
           </Title>
           <Sub>
-            Create premium campaigns, target the right audience, schedule launches,
-            and protect your list like a real brand asset.
+            Create premium campaigns, target the right audience, schedule
+            launches, and protect your list like a real brand asset.
           </Sub>
 
           <HeroRow>
-            <HeroStat><HeroStatValue>{totals.total}</HeroStatValue><HeroStatLabel>Total Campaigns</HeroStatLabel></HeroStat>
-            <HeroStat><HeroStatValue>{totals.draft}</HeroStatValue><HeroStatLabel>Drafts</HeroStatLabel></HeroStat>
-            <HeroStat><HeroStatValue>{totals.scheduled}</HeroStatValue><HeroStatLabel>Scheduled</HeroStatLabel></HeroStat>
-            <HeroStat><HeroStatValue>{totals.sent}</HeroStatValue><HeroStatLabel>Sent</HeroStatLabel></HeroStat>
+            <HeroStat>
+              <HeroStatValue>{totals.total}</HeroStatValue>
+              <HeroStatLabel>Total Campaigns</HeroStatLabel>
+            </HeroStat>
+            <HeroStat>
+              <HeroStatValue>{totals.draft}</HeroStatValue>
+              <HeroStatLabel>Drafts</HeroStatLabel>
+            </HeroStat>
+            <HeroStat>
+              <HeroStatValue>{totals.scheduled}</HeroStatValue>
+              <HeroStatLabel>Scheduled</HeroStatLabel>
+            </HeroStat>
+            <HeroStat>
+              <HeroStatValue>{totals.sent}</HeroStatValue>
+              <HeroStatLabel>Sent</HeroStatLabel>
+            </HeroStat>
           </HeroRow>
         </Hero>
 
         <Grid>
           <Left>
             <CardTop>
-              <CardTitle>{selectedCampaign ? "Edit Campaign" : "Create Campaign"}</CardTitle>
+              <CardTitle>
+                {selectedCampaign ? "Edit Campaign" : "Create Campaign"}
+              </CardTitle>
               <TopActions>
                 <SearchInput
                   placeholder="Search campaigns..."
@@ -395,35 +433,117 @@ export default function AdminEmailCampaign() {
 
             <Form onSubmit={handleSubmit}>
               <FieldGrid>
-                <Field><Label>Campaign Name</Label><Input name="name" value={formData.name} onChange={handleChange} maxLength={120} /></Field>
-                <Field><Label>Email Subject</Label><Input name="subject" value={formData.subject} onChange={handleChange} maxLength={200} /></Field>
+                <Field>
+                  <Label>Campaign Name</Label>
+                  <Input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    maxLength={120}
+                  />
+                </Field>
+                <Field>
+                  <Label>Email Subject</Label>
+                  <Input
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    maxLength={200}
+                  />
+                </Field>
               </FieldGrid>
 
               <FieldGrid>
-                <Field><Label>Preview Text</Label><Input name="previewText" value={formData.previewText} onChange={handleChange} maxLength={220} /></Field>
-                <Field><Label>Brand Name</Label><Input name="brandName" value={formData.brandName} onChange={handleChange} maxLength={80} /></Field>
+                <Field>
+                  <Label>Preview Text</Label>
+                  <Input
+                    name="previewText"
+                    value={formData.previewText}
+                    onChange={handleChange}
+                    maxLength={220}
+                  />
+                </Field>
+                <Field>
+                  <Label>Brand Name</Label>
+                  <Input
+                    name="brandName"
+                    value={formData.brandName}
+                    onChange={handleChange}
+                    maxLength={80}
+                  />
+                </Field>
               </FieldGrid>
 
               <FieldGrid>
-                <Field><Label>Headline</Label><Input name="headline" value={formData.headline} onChange={handleChange} maxLength={180} /></Field>
-                <Field><Label>Subheadline</Label><Input name="subheadline" value={formData.subheadline} onChange={handleChange} maxLength={300} /></Field>
+                <Field>
+                  <Label>Headline</Label>
+                  <Input
+                    name="headline"
+                    value={formData.headline}
+                    onChange={handleChange}
+                    maxLength={180}
+                  />
+                </Field>
+                <Field>
+                  <Label>Subheadline</Label>
+                  <Input
+                    name="subheadline"
+                    value={formData.subheadline}
+                    onChange={handleChange}
+                    maxLength={300}
+                  />
+                </Field>
               </FieldGrid>
 
               <Field>
                 <Label>Campaign Body</Label>
-                <TextArea name="body" value={formData.body} onChange={handleChange} maxLength={12000} />
+                <TextArea
+                  name="body"
+                  value={formData.body}
+                  onChange={handleChange}
+                  maxLength={12000}
+                />
               </Field>
 
               <FieldGrid>
-                <Field><Label>CTA Text</Label><Input name="ctaText" value={formData.ctaText} onChange={handleChange} maxLength={60} /></Field>
-                <Field><Label>CTA URL</Label><Input name="ctaUrl" value={formData.ctaUrl} onChange={handleChange} placeholder="https://..." maxLength={500} /></Field>
+                <Field>
+                  <Label>CTA Text</Label>
+                  <Input
+                    name="ctaText"
+                    value={formData.ctaText}
+                    onChange={handleChange}
+                    maxLength={60}
+                  />
+                </Field>
+                <Field>
+                  <Label>CTA URL</Label>
+                  <Input
+                    name="ctaUrl"
+                    value={formData.ctaUrl}
+                    onChange={handleChange}
+                    placeholder="https://..."
+                    maxLength={500}
+                  />
+                </Field>
               </FieldGrid>
 
               <FieldGrid>
-                <Field><Label>Signature</Label><Input name="signature" value={formData.signature} onChange={handleChange} maxLength={120} /></Field>
+                <Field>
+                  <Label>Signature</Label>
+                  <Input
+                    name="signature"
+                    value={formData.signature}
+                    onChange={handleChange}
+                    maxLength={120}
+                  />
+                </Field>
                 <Field>
                   <Label>Audience Type</Label>
-                  <Select name="audienceType" value={formData.audienceType} onChange={handleChange}>
+                  <Select
+                    name="audienceType"
+                    value={formData.audienceType}
+                    onChange={handleChange}
+                  >
                     <option value="all">all</option>
                     <option value="newsletter">newsletter</option>
                     <option value="customers">customers</option>
@@ -432,45 +552,50 @@ export default function AdminEmailCampaign() {
                 </Field>
               </FieldGrid>
 
-              {formData.manualRecipients && formData.audienceType !== "manual" && (
-                <AudienceWarning>
-                  Manual recipients are saved, but audience type is not manual.
-                </AudienceWarning>
-              )}
+              {formData.manualRecipients &&
+                formData.audienceType !== "manual" && (
+                  <AudienceWarning>
+                    Manual recipients are saved, but audience type is not
+                    manual.
+                  </AudienceWarning>
+                )}
 
               {formData.audienceType === "manual" && (
                 <Field>
-                  {normalizeManualRecipients(formData.manualRecipients).length > 0 && (
-  <SelectedRecipientsBox>
-    <h3>Selected Subscribers</h3>
+                  {normalizeManualRecipients(formData.manualRecipients).length >
+                    0 && (
+                    <SelectedRecipientsBox>
+                      <h3>Selected Subscribers</h3>
 
-    <p>
-      {
-        normalizeManualRecipients(formData.manualRecipients).length
-      } subscriber(s) loaded from Email Subscribers
-    </p>
+                      <p>
+                        {
+                          normalizeManualRecipients(formData.manualRecipients)
+                            .length
+                        }{" "}
+                        subscriber(s) loaded from Email Subscribers
+                      </p>
 
-    <RecipientChips>
-      {normalizeManualRecipients(formData.manualRecipients).map((email) => (
-        <RecipientChip key={email}>
-          {email}
-        </RecipientChip>
-      ))}
-    </RecipientChips>
+                      <RecipientChips>
+                        {normalizeManualRecipients(
+                          formData.manualRecipients,
+                        ).map((email) => (
+                          <RecipientChip key={email}>{email}</RecipientChip>
+                        ))}
+                      </RecipientChips>
 
-    <ClearRecipientsButton
-      type="button"
-      onClick={() =>
-        setFormData((prev) => ({
-          ...prev,
-          manualRecipients: "",
-        }))
-      }
-    >
-      Clear Recipients
-    </ClearRecipientsButton>
-  </SelectedRecipientsBox>
-)}
+                      <ClearRecipientsButton
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            manualRecipients: "",
+                          }))
+                        }
+                      >
+                        Clear Recipients
+                      </ClearRecipientsButton>
+                    </SelectedRecipientsBox>
+                  )}
                   <Label>Manual Recipients</Label>
                   <TextArea
                     name="manualRecipients"
@@ -480,7 +605,11 @@ export default function AdminEmailCampaign() {
                     style={{ minHeight: "120px" }}
                   />
                   <RecipientCount>
-                    {normalizeManualRecipients(formData.manualRecipients).length} recipient(s)
+                    {
+                      normalizeManualRecipients(formData.manualRecipients)
+                        .length
+                    }{" "}
+                    recipient(s)
                   </RecipientCount>
                 </Field>
               )}
@@ -504,7 +633,8 @@ export default function AdminEmailCampaign() {
                       setFormData((prev) => ({
                         ...prev,
                         sendNow: e.target.value === "true",
-                        scheduledFor: e.target.value === "true" ? "" : prev.scheduledFor,
+                        scheduledFor:
+                          e.target.value === "true" ? "" : prev.scheduledFor,
                       }))
                     }
                   >
@@ -526,8 +656,15 @@ export default function AdminEmailCampaign() {
               </Field>
 
               <ActionRow>
-                <PrimaryButton type="submit" disabled={creating || updating || sending}>
-                  {creating || updating || sending ? "Working..." : selectedCampaign ? "Update Campaign" : "Save Campaign"}
+                <PrimaryButton
+                  type="submit"
+                  disabled={creating || updating || sending}
+                >
+                  {creating || updating || sending
+                    ? "Working..."
+                    : selectedCampaign
+                      ? "Update Campaign"
+                      : "Save Campaign"}
                 </PrimaryButton>
 
                 <SecondaryButton type="button" onClick={handleResetForm}>
@@ -540,42 +677,79 @@ export default function AdminEmailCampaign() {
           <Right>
             <CardTop>
               <CardTitle>All Campaigns</CardTitle>
-              <MiniText>{loading ? "Loading..." : `${filteredCampaigns.length} result(s)`}</MiniText>
+              <MiniText>
+                {loading
+                  ? "Loading..."
+                  : `${filteredCampaigns.length} result(s)`}
+              </MiniText>
             </CardTop>
 
             {loading ? (
-              <EmptyState><EmptyTitle>Loading campaigns...</EmptyTitle></EmptyState>
+              <EmptyState>
+                <EmptyTitle>Loading campaigns...</EmptyTitle>
+              </EmptyState>
             ) : filteredCampaigns.length ? (
               <CampaignList>
                 {filteredCampaigns.map((campaign) => (
-                  <CampaignCard key={campaign?._id} $active={selectedCampaign?._id === campaign?._id}>
+                  <CampaignCard
+                    key={campaign?._id}
+                    $active={selectedCampaign?._id === campaign?._id}
+                  >
                     <CampaignHead>
                       <CampaignInfo>
-                        <CampaignTitle>{campaign?.name || "Untitled Campaign"}</CampaignTitle>
-                        <CampaignSubject>{campaign?.subject || "No subject"}</CampaignSubject>
+                        <CampaignTitle>
+                          {campaign?.name || "Untitled Campaign"}
+                        </CampaignTitle>
+                        <CampaignSubject>
+                          {campaign?.subject || "No subject"}
+                        </CampaignSubject>
                       </CampaignInfo>
-                      <StatusPill $status={campaign?.status}>{campaign?.status || "draft"}</StatusPill>
+                      <StatusPill $status={campaign?.status}>
+                        {campaign?.status || "draft"}
+                      </StatusPill>
                     </CampaignHead>
 
                     <CampaignMeta>
-                      <MetaPill>audience: {campaign?.audienceType || "newsletter"}</MetaPill>
-                      <MetaPill>{campaign?.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : "no date"}</MetaPill>
+                      <MetaPill>
+                        audience: {campaign?.audienceType || "newsletter"}
+                      </MetaPill>
+                      <MetaPill>
+                        {campaign?.createdAt
+                          ? new Date(campaign.createdAt).toLocaleDateString()
+                          : "no date"}
+                      </MetaPill>
                     </CampaignMeta>
 
-                    <PreviewText>{campaign?.previewText || "No preview text added."}</PreviewText>
-                    <CampaignBodyPreview>{campaign?.body || "No campaign content yet."}</CampaignBodyPreview>
+                    <PreviewText>
+                      {campaign?.previewText || "No preview text added."}
+                    </PreviewText>
+                    <CampaignBodyPreview>
+                      {campaign?.body || "No campaign content yet."}
+                    </CampaignBodyPreview>
 
                     <CampaignActions>
-                      <SmallButton type="button" onClick={() => dispatch(setSelectedEmailCampaign(campaign))}>
+                      <SmallButton
+                        type="button"
+                        onClick={() =>
+                          dispatch(setSelectedEmailCampaign(campaign))
+                        }
+                      >
                         Edit
                       </SmallButton>
 
                       <SmallButton
                         type="button"
                         onClick={() => handleSend(campaign)}
-                        disabled={sending || ["sent", "sending"].includes(campaign?.status)}
+                        disabled={
+                          sending ||
+                          ["sent", "sending"].includes(campaign?.status)
+                        }
                       >
-                        {campaign?.status === "sent" ? "Sent" : sending ? "Sending..." : "Send"}
+                        {campaign?.status === "sent"
+                          ? "Sent"
+                          : sending
+                            ? "Sending..."
+                            : "Send"}
                       </SmallButton>
 
                       <DangerButton
@@ -611,8 +785,16 @@ const Page = styled.main`
   padding: 96px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 16% 2%, rgba(214,182,159,0.18) 0%, rgba(0,0,0,0) 38%),
-    radial-gradient(circle at 86% 8%, rgba(90,56,37,0.30) 0%, rgba(0,0,0,0) 42%),
+    radial-gradient(
+      circle at 16% 2%,
+      rgba(214, 182, 159, 0.18) 0%,
+      rgba(0, 0, 0, 0) 38%
+    ),
+    radial-gradient(
+      circle at 86% 8%,
+      rgba(90, 56, 37, 0.3) 0%,
+      rgba(0, 0, 0, 0) 42%
+    ),
     linear-gradient(
       180deg,
       ${({ theme }) => theme.colors.darkBrown} 0%,
@@ -629,7 +811,7 @@ const Inner = styled.section`
 const Hero = styled(motion.section)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   backdrop-filter: blur(18px);
   padding: 26px;
@@ -640,8 +822,8 @@ const Badge = styled.div`
   align-items: center;
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.34);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.34);
   font-size: 12px;
   font-weight: 1000;
   letter-spacing: 0.15em;
@@ -656,7 +838,7 @@ const Title = styled.h1`
 
   span {
     color: ${({ theme }) => theme.colors.lightBrown};
-    text-shadow: 0 12px 36px rgba(0,0,0,0.38);
+    text-shadow: 0 12px 36px rgba(0, 0, 0, 0.38);
   }
 `;
 
@@ -685,8 +867,8 @@ const HeroRow = styled.div`
 
 const HeroStat = styled.div`
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: rgba(0,0,0,0.28);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 16px;
 `;
 
@@ -717,7 +899,7 @@ const Grid = styled.div`
 const Left = styled(motion.section)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   backdrop-filter: blur(18px);
   padding: 18px;
@@ -726,7 +908,7 @@ const Left = styled(motion.section)`
 const Right = styled(motion.aside)`
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   backdrop-filter: blur(18px);
   padding: 18px;
@@ -764,19 +946,19 @@ const SearchInput = styled.input`
   min-width: 240px;
   height: 46px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.30);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.3);
   color: ${({ theme }) => theme.colors.white};
   padding: 0 16px;
   outline: none;
 
   &::placeholder {
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
-    border-color: rgba(214,182,159,0.6);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.10);
+    border-color: rgba(214, 182, 159, 0.6);
+    box-shadow: 0 0 0 4px rgba(214, 182, 159, 0.1);
   }
 `;
 
@@ -809,19 +991,19 @@ const Label = styled.span`
 const Input = styled.input`
   height: 50px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
   color: ${({ theme }) => theme.colors.white};
   padding: 0 14px;
   outline: none;
 
   &::placeholder {
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
-    border-color: rgba(214,182,159,0.6);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.10);
+    border-color: rgba(214, 182, 159, 0.6);
+    box-shadow: 0 0 0 4px rgba(214, 182, 159, 0.1);
   }
 
   &:disabled {
@@ -833,15 +1015,15 @@ const Input = styled.input`
 const Select = styled.select`
   height: 50px;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
   color: ${({ theme }) => theme.colors.white};
   padding: 0 14px;
   outline: none;
 
   &:focus {
-    border-color: rgba(214,182,159,0.6);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.10);
+    border-color: rgba(214, 182, 159, 0.6);
+    box-shadow: 0 0 0 4px rgba(214, 182, 159, 0.1);
   }
 
   &:disabled {
@@ -853,20 +1035,20 @@ const Select = styled.select`
 const TextArea = styled.textarea`
   min-height: 220px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
   color: ${({ theme }) => theme.colors.white};
   padding: 14px;
   outline: none;
   resize: vertical;
 
   &::placeholder {
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
-    border-color: rgba(214,182,159,0.6);
-    box-shadow: 0 0 0 4px rgba(214,182,159,0.10);
+    border-color: rgba(214, 182, 159, 0.6);
+    box-shadow: 0 0 0 4px rgba(214, 182, 159, 0.1);
   }
 `;
 
@@ -880,12 +1062,18 @@ const PrimaryButton = styled.button`
   min-width: 200px;
   padding: 14px 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: linear-gradient(90deg, rgba(214,182,159,0.95), rgba(90,56,37,0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 1100;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
   box-shadow: ${({ theme }) => theme.shadow.soft};
 
   &:hover {
@@ -903,16 +1091,18 @@ const SecondaryButton = styled.button`
   min-width: 140px;
   padding: 14px 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.34);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.34);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1000;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
   }
 
   &:disabled {
@@ -926,16 +1116,18 @@ const GhostButton = styled.button`
   height: 46px;
   padding: 0 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.32);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.32);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1000;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
   }
 `;
 
@@ -985,7 +1177,7 @@ const StatusPill = styled.div`
   font-size: 12px;
   font-weight: 1000;
   text-transform: uppercase;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: ${({ theme }) => theme.colors.black};
   background: ${({ $status, theme }) => {
     if ($status === "sent") return theme.colors.lightBrown;
@@ -1004,8 +1196,8 @@ const CampaignMeta = styled.div`
 const MetaPill = styled.div`
   padding: 7px 10px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 12px;
   font-weight: 900;
   color: ${({ theme }) => theme.colors.ivory};
@@ -1040,16 +1232,18 @@ const CampaignActions = styled.div`
 const SmallButton = styled.button`
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.34);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.34);
   color: ${({ theme }) => theme.colors.ivory};
   font-weight: 1000;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
-    background: rgba(0,0,0,0.52);
+    background: rgba(0, 0, 0, 0.52);
   }
 
   &:disabled {
@@ -1062,12 +1256,14 @@ const SmallButton = styled.button`
 const DangerButton = styled.button`
   padding: 10px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(120, 20, 20, 0.24);
   color: #ffd8d8;
   font-weight: 1000;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
 
   &:hover {
     transform: translateY(-2px);
@@ -1083,8 +1279,8 @@ const DangerButton = styled.button`
 
 const EmptyState = styled.div`
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.24);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.24);
   padding: 20px;
 `;
 
@@ -1110,8 +1306,8 @@ const Spinner = styled.span`
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  border: 2px solid rgba(0,0,0,0.15);
-  border-top-color: rgba(0,0,0,0.65);
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-top-color: rgba(0, 0, 0, 0.65);
   display: inline-block;
   animation: spin 0.8s linear infinite;
 

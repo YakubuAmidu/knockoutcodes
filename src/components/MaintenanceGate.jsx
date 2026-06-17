@@ -59,10 +59,7 @@ const MaintenanceGate = ({ children }) => {
         setStatus(data);
       } catch (error) {
         if (import.meta.env.DEV) {
-          console.error(
-            "Maintenance status check failed:",
-            error?.message
-          );
+          console.error("Maintenance status check failed:", error?.message);
         }
 
         if (!alive) return;
@@ -90,9 +87,7 @@ const MaintenanceGate = ({ children }) => {
       <GateLoading>
         <div>
           <Spinner />
-          <LoadingTitle>
-            Checking KnockoutCodes system status...
-          </LoadingTitle>
+          <LoadingTitle>Checking KnockoutCodes system status...</LoadingTitle>
         </div>
       </GateLoading>
     );
@@ -101,11 +96,7 @@ const MaintenanceGate = ({ children }) => {
   const maintenanceMode = Boolean(status?.maintenanceMode);
   const allowAdminAccess = status?.allowAdminAccess !== false;
 
-  const adminCanPass =
-    maintenanceMode &&
-    allowAdminAccess &&
-    user &&
-    isAdmin;
+  const adminCanPass = maintenanceMode && allowAdminAccess && user && isAdmin;
 
   if (maintenanceMode && !adminCanPass) {
     return (
@@ -114,9 +105,7 @@ const MaintenanceGate = ({ children }) => {
           <GateLoading>
             <div>
               <Spinner />
-              <LoadingTitle>
-                Loading maintenance page...
-              </LoadingTitle>
+              <LoadingTitle>Loading maintenance page...</LoadingTitle>
             </div>
           </GateLoading>
         }

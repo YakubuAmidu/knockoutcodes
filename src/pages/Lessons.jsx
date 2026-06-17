@@ -40,7 +40,7 @@ const Badge = styled.span`
   padding: 7px 10px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -72,7 +72,7 @@ const Grid = styled.div`
 const Card = styled.section`
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.colors.glass};
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: ${({ theme }) => theme.shadow.glow};
   overflow: hidden;
 `;
@@ -106,17 +106,25 @@ const List = styled.ul`
 
 const LessonRow = styled.li`
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ $active }) => ($active ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.10)")};
-  background: ${({ $active }) => ($active ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.18)")};
+  border: 1px solid
+    ${({ $active }) =>
+      $active ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.10)"};
+  background: ${({ $active }) =>
+    $active ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.18)"};
   padding: 12px;
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.58 : 1)};
-  transition: transform 0.18s ease-out, border-color 0.18s ease-out, background 0.18s ease-out;
+  transition:
+    transform 0.18s ease-out,
+    border-color 0.18s ease-out,
+    background 0.18s ease-out;
 
   &:hover {
     transform: ${({ $disabled }) => ($disabled ? "none" : "translateY(-1px)")};
-    border-color: ${({ $disabled }) => ($disabled ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.22)")};
-    background: ${({ $disabled }) => ($disabled ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.07)")};
+    border-color: ${({ $disabled }) =>
+      $disabled ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.22)"};
+    background: ${({ $disabled }) =>
+      $disabled ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.07)"};
   }
 `;
 
@@ -133,7 +141,7 @@ const LessonName = styled.div`
 
 const LessonTime = styled.div`
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.70);
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
 `;
 
@@ -154,8 +162,8 @@ const TagRow = styled.div`
 const Tag = styled.span`
   padding: 5px 9px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.18);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -176,9 +184,15 @@ const CTA = styled.button`
   font-weight: 800;
   letter-spacing: 0.02em;
   color: ${({ theme }) => theme.colors.ivory};
-  background: linear-gradient(120deg, ${({ theme }) => theme.colors.brown}, ${({ theme }) => theme.colors.cocoa});
+  background: linear-gradient(
+    120deg,
+    ${({ theme }) => theme.colors.brown},
+    ${({ theme }) => theme.colors.cocoa}
+  );
   box-shadow: ${({ theme }) => theme.shadow.hard};
-  transition: transform 0.18s ease-out, opacity 0.18s ease-out;
+  transition:
+    transform 0.18s ease-out,
+    opacity 0.18s ease-out;
 
   &:hover {
     transform: translateY(-1px);
@@ -241,8 +255,10 @@ export default function Lessons() {
       }
     } catch (err) {
       toast.showToast(
-        err?.response?.data?.message || err?.message || "Failed to load lessons.",
-        "error"
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load lessons.",
+        "error",
       );
     } finally {
       setLoading(false);
@@ -258,7 +274,10 @@ export default function Lessons() {
 
     // If preview mode and user clicked non-preview (shouldn't be returned by backend, but safe)
     if (access?.mode === "preview" && !lesson.isPreview && !course?.isFree) {
-      toast.showToast("This lesson is locked. Unlock membership to watch.", "error");
+      toast.showToast(
+        "This lesson is locked. Unlock membership to watch.",
+        "error",
+      );
       return;
     }
 
@@ -286,7 +305,11 @@ export default function Lessons() {
         <Header>
           <KickerRow>
             <Badge>Lessons</Badge>
-            <Badge>{access?.mode === "unlocked" || course?.isFree ? "Unlocked" : "Preview"}</Badge>
+            <Badge>
+              {access?.mode === "unlocked" || course?.isFree
+                ? "Unlocked"
+                : "Preview"}
+            </Badge>
             <Badge>{countText}</Badge>
           </KickerRow>
 
@@ -296,8 +319,8 @@ export default function Lessons() {
             {course?.isFree
               ? "This is a free course. Enjoy full access to all published lessons."
               : access?.mode === "unlocked"
-              ? "You have access. Pick a lesson and continue learning."
-              : "Preview mode: you can watch preview lessons. Unlock membership to watch the full course."}
+                ? "You have access. Pick a lesson and continue learning."
+                : "Preview mode: you can watch preview lessons. Unlock membership to watch the full course."}
           </Sub>
         </Header>
 
@@ -310,10 +333,15 @@ export default function Lessons() {
 
             <List>
               {!loading && lessons.length === 0 ? (
-                <Note style={{ padding: 12 }}>No lessons have been added yet.</Note>
+                <Note style={{ padding: 12 }}>
+                  No lessons have been added yet.
+                </Note>
               ) : (
                 lessons.map((lesson) => {
-                  const disabled = !course?.isFree && access?.mode === "preview" && !lesson.isPreview;
+                  const disabled =
+                    !course?.isFree &&
+                    access?.mode === "preview" &&
+                    !lesson.isPreview;
                   return (
                     <LessonRow
                       key={lesson._id}
@@ -342,8 +370,14 @@ export default function Lessons() {
 
                       <TagRow>
                         {lesson.isPreview && <Tag>Preview</Tag>}
-                        {lesson.isPublished ? <Tag>Published</Tag> : <Tag>Draft</Tag>}
-                        {typeof lesson.order === "number" && <Tag>Lesson {lesson.order + 1}</Tag>}
+                        {lesson.isPublished ? (
+                          <Tag>Published</Tag>
+                        ) : (
+                          <Tag>Draft</Tag>
+                        )}
+                        {typeof lesson.order === "number" && (
+                          <Tag>Lesson {lesson.order + 1}</Tag>
+                        )}
                       </TagRow>
                     </LessonRow>
                   );
@@ -356,7 +390,11 @@ export default function Lessons() {
             <CardHead>
               <CardTitle>Access</CardTitle>
               <Meta>
-                {course?.isFree ? "Free" : access?.mode === "unlocked" ? "Active" : "Locked"}
+                {course?.isFree
+                  ? "Free"
+                  : access?.mode === "unlocked"
+                    ? "Active"
+                    : "Locked"}
               </Meta>
             </CardHead>
 
@@ -364,23 +402,29 @@ export default function Lessons() {
               {!course?.isFree && access?.mode !== "unlocked" ? (
                 <>
                   <Note>
-                    You’re currently in <b>Preview Mode</b>. Unlock membership to access the full lesson library and start watching inside the player.
+                    You’re currently in <b>Preview Mode</b>. Unlock membership
+                    to access the full lesson library and start watching inside
+                    the player.
                   </Note>
                   <CTA onClick={goMembership}>Unlock Membership</CTA>
                   <Tiny>
-                    After payment, you’ll be redirected to the course player automatically.
+                    After payment, you’ll be redirected to the course player
+                    automatically.
                   </Tiny>
                 </>
               ) : (
                 <>
                   <Note>
-                    You have full access. Open the course player to start watching and your progress will continue from your last lesson.
+                    You have full access. Open the course player to start
+                    watching and your progress will continue from your last
+                    lesson.
                   </Note>
                   <CTA onClick={() => navigate(`/course-player/${courseId}`)}>
                     Go to Course Player
                   </CTA>
                   <Tiny>
-                    Tip: preview lessons are marked clearly so users always understand what’s unlocked.
+                    Tip: preview lessons are marked clearly so users always
+                    understand what’s unlocked.
                   </Tiny>
                 </>
               )}

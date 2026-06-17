@@ -3,7 +3,7 @@ import { emailAnalyticsInitialState } from "./emailAnalyticsInitialState";
 
 export function emailAnalyticsReducer(
   state = emailAnalyticsInitialState,
-  action
+  action,
 ) {
   switch (action.type) {
     /* ======================================================
@@ -17,16 +17,16 @@ export function emailAnalyticsReducer(
       };
 
     case EMAIL_ANALYTICS_ACTIONS.FETCH_SUCCESS:
-  return {
-    ...state,
-    loading: false,
-    analytics: action.payload?.analytics || null,
-    total: action.payload?.total || 0,
-    page: action.payload?.page || 1,
-    pages: action.payload?.pages || 1,
-    chartData: action.payload?.chartData || [],
-    error: null,
-  };
+      return {
+        ...state,
+        loading: false,
+        analytics: action.payload?.analytics || null,
+        total: action.payload?.total || 0,
+        page: action.payload?.page || 1,
+        pages: action.payload?.pages || 1,
+        chartData: action.payload?.chartData || [],
+        error: null,
+      };
 
     case EMAIL_ANALYTICS_ACTIONS.FETCH_FAIL:
       return {

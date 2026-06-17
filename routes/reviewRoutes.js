@@ -26,7 +26,7 @@ router.post(
   authRequired,
   preventAdminPurchase,
   reviewCreateLimiter,
-  createReview
+  createReview,
 );
 
 router

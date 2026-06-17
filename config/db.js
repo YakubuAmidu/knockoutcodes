@@ -24,9 +24,9 @@ async function connectDB() {
   });
 
   // eslint-disable-next-line no-undef
- if (process.env.NODE_ENV !== "production") {
-  console.log("[DB] MongoDB connected");
-}
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[DB] MongoDB connected");
+  }
 }
 
 export default connectDB;

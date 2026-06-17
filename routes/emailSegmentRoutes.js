@@ -55,7 +55,7 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    createEmailSegment
+    createEmailSegment,
   );
 
 router
@@ -67,14 +67,14 @@ router
     requireJsonContent,
     ...adminRequestHardening,
     requireCsrf,
-    updateEmailSegment
+    updateEmailSegment,
   )
   .delete(
     emailSegmentWriteLimiter,
     validateObjectId("id"),
     ...adminDeleteHardening,
     requireCsrf,
-    deleteEmailSegment
+    deleteEmailSegment,
   );
 
 export default router;

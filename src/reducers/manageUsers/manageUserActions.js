@@ -106,35 +106,34 @@ export const updateManageUser = (userId, payload) => async (dispatch) => {
 /* =========================
    Update User Status
 ========================= */
-export const updateManageUserStatus =
-  (userId, payload) => async (dispatch) => {
-    dispatch({ type: types.MANAGE_USER_STATUS_START });
+export const updateManageUserStatus = (userId, payload) => async (dispatch) => {
+  dispatch({ type: types.MANAGE_USER_STATUS_START });
 
-    try {
-      const res = await axiosInstance.patch(`/users/${userId}/status`, payload);
-      const user = res.data?.data || null;
+  try {
+    const res = await axiosInstance.patch(`/users/${userId}/status`, payload);
+    const user = res.data?.data || null;
 
-      dispatch({
-        type: types.MANAGE_USER_STATUS_SUCCESS,
-        payload: user,
-      });
+    dispatch({
+      type: types.MANAGE_USER_STATUS_SUCCESS,
+      payload: user,
+    });
 
-      return {
-        ok: true,
-        user,
-        message: res.data?.message || "User status updated.",
-      };
-    } catch (error) {
-      const message = getErrorMessage(error, "Failed to update user status.");
+    return {
+      ok: true,
+      user,
+      message: res.data?.message || "User status updated.",
+    };
+  } catch (error) {
+    const message = getErrorMessage(error, "Failed to update user status.");
 
-      dispatch({
-        type: types.MANAGE_USER_STATUS_FAIL,
-        payload: message,
-      });
+    dispatch({
+      type: types.MANAGE_USER_STATUS_FAIL,
+      payload: message,
+    });
 
-      return { ok: false, message };
-    }
-  };
+    return { ok: false, message };
+  }
+};
 
 /* =========================
    Force Logout User
@@ -177,7 +176,7 @@ export const softDeleteManageUser =
     try {
       const res = await axiosInstance.patch(
         `/users/${userId}/soft-delete`,
-        payload
+        payload,
       );
 
       const user = res.data?.data || null;
@@ -215,7 +214,10 @@ export const restoreManageUser =
     dispatch({ type: types.MANAGE_USER_RESTORE_START });
 
     try {
-      const res = await axiosInstance.patch(`/users/${userId}/restore`, payload);
+      const res = await axiosInstance.patch(
+        `/users/${userId}/restore`,
+        payload,
+      );
       const user = res.data?.data || null;
 
       dispatch({

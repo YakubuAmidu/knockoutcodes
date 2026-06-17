@@ -2,7 +2,9 @@
 import { body } from "express-validator";
 
 function cleanSpaces(value) {
-  return String(value || "").trim().replace(/\s+/g, " ");
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export const registerValidator = [
@@ -16,7 +18,11 @@ export const registerValidator = [
     .withMessage("Name contains invalid characters"),
 
   body("email")
-    .customSanitizer((value) => String(value || "").trim().toLowerCase())
+    .customSanitizer((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    )
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()
@@ -40,7 +46,11 @@ export const registerValidator = [
 
 export const loginValidator = [
   body("email")
-    .customSanitizer((value) => String(value || "").trim().toLowerCase())
+    .customSanitizer((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    )
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()

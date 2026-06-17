@@ -24,15 +24,15 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <BrowserRouter>
           <AuthProvider>
             <ToastProvider placement="top-right" max={6} defaultDuration={4500}>
-     <I18nProvider>
-  <MaintenanceGate>
-    <App />
-  </MaintenanceGate>
-</I18nProvider>
+              <I18nProvider>
+                <MaintenanceGate>
+                  <App />
+                </MaintenanceGate>
+              </I18nProvider>
             </ToastProvider>
           </AuthProvider>
         </BrowserRouter>
       </ThemeProvider>
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

@@ -18,7 +18,7 @@ export default function ResetPassword() {
   const toast = useToast();
 
   const { loading, success, message, error } = useSelector(
-    (state) => state.resetPassword
+    (state) => state.resetPassword,
   );
 
   const [password, setPassword] = React.useState("");
@@ -192,8 +192,16 @@ const Wrap = styled.section`
   padding: 52px 24px;
 
   background:
-    radial-gradient(900px 500px at 8% 0%, rgba(214, 182, 159, 0.22), transparent 58%),
-    radial-gradient(720px 420px at 95% 8%, rgba(255, 249, 242, 0.12), transparent 62%),
+    radial-gradient(
+      900px 500px at 8% 0%,
+      rgba(214, 182, 159, 0.22),
+      transparent 58%
+    ),
+    radial-gradient(
+      720px 420px at 95% 8%,
+      rgba(255, 249, 242, 0.12),
+      transparent 62%
+    ),
     linear-gradient(
       145deg,
       ${({ theme }) => theme.colors.black} 0%,
@@ -243,7 +251,11 @@ const HeroPanel = styled.aside`
 
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.82)),
-    radial-gradient(circle at 20% 10%, rgba(214, 182, 159, 0.28), transparent 42%),
+    radial-gradient(
+      circle at 20% 10%,
+      rgba(214, 182, 159, 0.28),
+      transparent 42%
+    ),
     linear-gradient(135deg, rgba(90, 56, 37, 0.78), rgba(0, 0, 0, 0.92));
 
   border: 1px solid rgba(214, 182, 159, 0.2);
@@ -317,7 +329,11 @@ const Card = styled.div`
   padding: 14px;
   border-radius: ${({ theme }) => theme.radius.xl};
   border: 1px solid rgba(214, 182, 159, 0.18);
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.035)
+  );
   backdrop-filter: blur(18px);
   box-shadow: ${({ theme }) => theme.shadow.glow};
 `;
@@ -329,9 +345,13 @@ const Form = styled.form`
   padding: 30px;
   border-radius: calc(${({ theme }) => theme.radius.xl} - 8px);
   background:
-    radial-gradient(circle at 0% 0%, rgba(214, 182, 159, 0.16), transparent 34%),
-    linear-gradient(180deg, rgba(0,0,0,0.52), rgba(0,0,0,0.28));
-  border: 1px solid rgba(255,255,255,0.08);
+    radial-gradient(
+      circle at 0% 0%,
+      rgba(214, 182, 159, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.28));
+  border: 1px solid rgba(255, 255, 255, 0.08);
 
   @media (max-width: 520px) {
     padding: 22px;
@@ -400,8 +420,8 @@ const PasswordField = styled.div`
     width: 100%;
     height: 52px;
     border-radius: ${({ theme }) => theme.radius.md};
-    border: 1px solid rgba(255,255,255,0.13);
-    background: rgba(0,0,0,0.34);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: rgba(0, 0, 0, 0.34);
     color: ${({ theme }) => theme.colors.ivory};
     padding: 0 14px;
     outline: none;
@@ -425,7 +445,7 @@ const ToggleButton = styled.button`
   position: absolute;
   right: 10px;
   border: 1px solid rgba(214, 182, 159, 0.18);
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: ${({ theme }) => theme.colors.ivory};
   font-size: 0.68rem;
   font-weight: 900;
@@ -444,14 +464,13 @@ const ToggleButton = styled.button`
 const Button = styled.button`
   height: 54px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid rgba(255,255,255,0.16);
-  background:
-    radial-gradient(
-      120% 160% at 10% 0%,
-      ${({ theme }) => theme.colors.ivory},
-      ${({ theme }) => theme.colors.lightBrown} 42%,
-      ${({ theme }) => theme.colors.brown}
-    );
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: radial-gradient(
+    120% 160% at 10% 0%,
+    ${({ theme }) => theme.colors.ivory},
+    ${({ theme }) => theme.colors.lightBrown} 42%,
+    ${({ theme }) => theme.colors.brown}
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   letter-spacing: 0.12em;
@@ -483,7 +502,7 @@ const SuccessBox = styled.div`
   border-radius: ${({ theme }) => theme.radius.md};
 
   span {
-    color: rgba(255,255,255,0.76);
+    color: rgba(255, 255, 255, 0.76);
     line-height: 1.5;
   }
 `;
@@ -492,7 +511,7 @@ const Meta = styled.div`
   display: flex;
   gap: 10px;
   justify-content: center;
-  color: rgba(255,249,242,0.76);
+  color: rgba(255, 249, 242, 0.76);
 `;
 
 const StyledLink = styled(Link)`
@@ -510,5 +529,5 @@ const Hint = styled.p`
   text-align: center;
   font-size: 0.76rem;
   line-height: 1.6;
-  color: rgba(255,249,242,0.58);
+  color: rgba(255, 249, 242, 0.58);
 `;

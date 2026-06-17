@@ -127,7 +127,6 @@ export function campaignTemplate({
     previewText: safePreviewText,
     title: safeHeadline,
     content,
-    footerNote:
-      "Discipline creates champions. Precision creates legends.",
+    footerNote: "Discipline creates champions. Precision creates legends.",
   });
 }

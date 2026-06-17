@@ -53,8 +53,8 @@ const Maintenance = ({
         </InfoGrid>
 
         <Notice>
-          We are protecting your experience while we improve the system.
-          Please check back shortly.
+          We are protecting your experience while we improve the system. Please
+          check back shortly.
         </Notice>
       </Card>
     </Page>
@@ -88,11 +88,7 @@ const Page = styled.main`
       rgba(214, 182, 159, 0.2),
       transparent 34%
     ),
-    radial-gradient(
-      circle at 85% 20%,
-      rgba(90, 56, 37, 0.4),
-      transparent 40%
-    ),
+    radial-gradient(circle at 85% 20%, rgba(90, 56, 37, 0.4), transparent 40%),
     linear-gradient(
       180deg,
       ${({ theme }) => theme.colors.black},
@@ -110,16 +106,8 @@ const Card = styled.section`
   text-align: center;
 
   background:
-    linear-gradient(
-      145deg,
-      rgba(61, 38, 26, 0.86),
-      rgba(0, 0, 0, 0.7)
-    ),
-    radial-gradient(
-      circle at top,
-      rgba(214, 182, 159, 0.16),
-      transparent 38%
-    );
+    linear-gradient(145deg, rgba(61, 38, 26, 0.86), rgba(0, 0, 0, 0.7)),
+    radial-gradient(circle at top, rgba(214, 182, 159, 0.16), transparent 38%);
 
   border: 1px solid rgba(255, 249, 242, 0.13);
 

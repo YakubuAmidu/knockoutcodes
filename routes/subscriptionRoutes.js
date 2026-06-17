@@ -9,7 +9,6 @@ import {
   switchMembershipPlan,
   cancelMySubscription,
   stripeWebhook,
-
   getAllSubscriptionsAdmin,
   createSubscriptionAdmin,
   updateSubscriptionAdmin,
@@ -29,38 +28,18 @@ router.post(
   "/checkout",
   authRequired,
   preventAdminPurchase,
-  createCheckoutSession
+  createCheckoutSession,
 );
 
 router.get("/me", authRequired, getMySubscription);
 
-router.get(
-  "/admin/manage",
-  authRequired,
-  adminOnly,
-  getAllSubscriptionsAdmin
-);
+router.get("/admin/manage", authRequired, adminOnly, getAllSubscriptionsAdmin);
 
-router.post(
-  "/admin/manage",
-  authRequired,
-  adminOnly,
-  createSubscriptionAdmin
-);
+router.post("/admin/manage", authRequired, adminOnly, createSubscriptionAdmin);
 
-router.put(
-  "/:id",
-  authRequired,
-  adminOnly,
-  updateSubscriptionAdmin
-);
+router.put("/:id", authRequired, adminOnly, updateSubscriptionAdmin);
 
-router.delete(
-  "/:id",
-  authRequired,
-  adminOnly,
-  deleteSubscriptionAdmin
-);
+router.delete("/:id", authRequired, adminOnly, deleteSubscriptionAdmin);
 
 router.get("/confirm", authRequired, confirmCheckoutSession);
 
@@ -68,7 +47,7 @@ router.patch(
   "/switch",
   authRequired,
   preventAdminPurchase,
-  switchMembershipPlan
+  switchMembershipPlan,
 );
 
 router.patch("/cancel", authRequired, cancelMySubscription);

@@ -72,7 +72,9 @@ export const createManageLesson = (formData) => async (dispatch) => {
     const lesson = extractLesson(data);
 
     if (!lesson?._id) {
-      throw new Error("Lesson was created, but the server response was invalid.");
+      throw new Error(
+        "Lesson was created, but the server response was invalid.",
+      );
     }
 
     dispatch({
@@ -103,12 +105,17 @@ export const updateManageLesson = (lessonId, formData) => async (dispatch) => {
 
     const payload = normalizeLessonPayload(formData);
 
-    const { data } = await axiosInstance.put(`${BASE_URL}/${lessonId}`, payload);
+    const { data } = await axiosInstance.put(
+      `${BASE_URL}/${lessonId}`,
+      payload,
+    );
 
     const lesson = extractLesson(data);
 
     if (!lesson?._id) {
-      throw new Error("Lesson was updated, but the server response was invalid.");
+      throw new Error(
+        "Lesson was updated, but the server response was invalid.",
+      );
     }
 
     dispatch({

@@ -3,10 +3,10 @@ import mongoose from "mongoose";
 const webhookEventSchema = new mongoose.Schema(
   {
     eventId: {
-  type: String,
-  required: true,
-  unique: true,
-},
+      type: String,
+      required: true,
+      unique: true,
+    },
 
     eventType: {
       type: String,
@@ -15,7 +15,7 @@ const webhookEventSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const WebhookEvent =

@@ -146,11 +146,19 @@ export default function Preview({ data = defaultData }) {
           </Subtitle>
 
           <HeroActions>
-            <PrimaryCTA to="/fight-camp" whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
+            <PrimaryCTA
+              to="/fight-camp"
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.98 }}
+            >
               START YOUR FIGHT CAMP →
             </PrimaryCTA>
 
-            <GhostCTA to="/curriculum" whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
+            <GhostCTA
+              to="/curriculum"
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.98 }}
+            >
               SEE FULL CURRICULUM →
             </GhostCTA>
           </HeroActions>
@@ -245,7 +253,11 @@ const GlowOne = styled.div`
   height: 440px;
   top: -170px;
   right: -120px;
-  background: radial-gradient(circle, rgba(214, 182, 159, 0.32), transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgba(214, 182, 159, 0.32),
+    transparent 68%
+  );
   filter: blur(20px);
   pointer-events: none;
 `;
@@ -256,7 +268,11 @@ const GlowTwo = styled.div`
   height: 360px;
   bottom: -160px;
   left: -110px;
-  background: radial-gradient(circle, rgba(255, 249, 242, 0.12), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 249, 242, 0.12),
+    transparent 70%
+  );
   filter: blur(18px);
   pointer-events: none;
 `;

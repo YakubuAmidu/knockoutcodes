@@ -76,13 +76,14 @@ export default function Cart() {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.price || 0) * clampQty(item.qty, item.stock),
-      0
+      (sum, item) =>
+        sum + Number(item.price || 0) * clampQty(item.qty, item.stock),
+      0,
     );
 
     const itemCount = items.reduce(
       (sum, item) => sum + clampQty(item.qty, item.stock),
-      0
+      0,
     );
 
     return { subtotal, itemCount };
@@ -164,7 +165,7 @@ export default function Cart() {
     }));
 
     const hasBadItem = payloadItems.some(
-      (item) => !item.productId || item.qty < 1
+      (item) => !item.productId || item.qty < 1,
     );
 
     if (hasBadItem) {
@@ -273,8 +274,8 @@ export default function Cart() {
               <div>
                 <PanelTitle>Your Fight Gear</PanelTitle>
                 <PanelSub>
-                  {totals.itemCount} item{totals.itemCount === 1 ? "" : "s"} ready
-                  for checkout
+                  {totals.itemCount} item{totals.itemCount === 1 ? "" : "s"}{" "}
+                  ready for checkout
                 </PanelSub>
               </div>
 
@@ -285,7 +286,8 @@ export default function Cart() {
               <EmptyBox>
                 <EmptyTitle>Your cart is empty.</EmptyTitle>
                 <EmptyText>
-                  Choose premium KnockoutCodes gear and your cart will appear here.
+                  Choose premium KnockoutCodes gear and your cart will appear
+                  here.
                 </EmptyText>
                 <EmptyButton to="/products">Shop Products →</EmptyButton>
               </EmptyBox>
@@ -312,14 +314,22 @@ export default function Cart() {
                         <ItemName title={item.title}>{item.title}</ItemName>
 
                         <ItemMeta>
-                          <MiniPill>{item.size ? `Size: ${item.size}` : "No size"}</MiniPill>
-                          <MiniPill>{item.color ? `Color: ${item.color}` : "No color"}</MiniPill>
+                          <MiniPill>
+                            {item.size ? `Size: ${item.size}` : "No size"}
+                          </MiniPill>
+                          <MiniPill>
+                            {item.color ? `Color: ${item.color}` : "No color"}
+                          </MiniPill>
                           {stock !== null ? (
-                            <MiniPill>{outOfStock ? "Out of stock" : `Stock: ${stock}`}</MiniPill>
+                            <MiniPill>
+                              {outOfStock ? "Out of stock" : `Stock: ${stock}`}
+                            </MiniPill>
                           ) : null}
                         </ItemMeta>
 
-                        {item.description ? <MiniDesc>{item.description}</MiniDesc> : null}
+                        {item.description ? (
+                          <MiniDesc>{item.description}</MiniDesc>
+                        ) : null}
 
                         <MobilePrice>{formatMoney(lineTotal)}</MobilePrice>
 
@@ -426,8 +436,8 @@ export default function Cart() {
             <TrustBox>
               <TrustTitle>Checkout Protection</TrustTitle>
               <TrustText>
-                Your cart is only the estimate. The backend verifies every product,
-                quantity, stock, and Stripe price before payment.
+                Your cart is only the estimate. The backend verifies every
+                product, quantity, stock, and Stripe price before payment.
               </TrustText>
             </TrustBox>
           </SummaryPanel>
@@ -444,9 +454,21 @@ const Page = styled.main`
   padding: 96px 18px 90px;
   color: ${({ theme }) => theme.colors.white};
   background:
-    radial-gradient(circle at 18% 8%, rgba(214, 182, 159, 0.22) 0%, rgba(0, 0, 0, 0) 42%),
-    radial-gradient(circle at 82% 16%, rgba(90, 56, 37, 0.34) 0%, rgba(0, 0, 0, 0) 46%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.darkBrown} 0%, #000 86%);
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(214, 182, 159, 0.22) 0%,
+      rgba(0, 0, 0, 0) 42%
+    ),
+    radial-gradient(
+      circle at 82% 16%,
+      rgba(90, 56, 37, 0.34) 0%,
+      rgba(0, 0, 0, 0) 46%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.darkBrown} 0%,
+      #000 86%
+    );
 `;
 
 const Inner = styled.section`
@@ -541,7 +563,11 @@ const PrimaryLink = styled(Link)`
   display: inline-flex;
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   text-decoration: none;
   font-weight: 950;
@@ -642,7 +668,11 @@ const EmptyButton = styled(Link)`
   padding: 12px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
   text-decoration: none;
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
 `;
@@ -857,7 +887,11 @@ const CheckoutBtn = styled.button`
   padding: 13px 14px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: none;
-  background: linear-gradient(90deg, rgba(214, 182, 159, 0.95), rgba(90, 56, 37, 0.95));
+  background: linear-gradient(
+    90deg,
+    rgba(214, 182, 159, 0.95),
+    rgba(90, 56, 37, 0.95)
+  );
   color: ${({ theme }) => theme.colors.black};
   font-weight: 950;
   cursor: pointer;

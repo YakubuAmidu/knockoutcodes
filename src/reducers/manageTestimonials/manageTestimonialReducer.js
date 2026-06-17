@@ -44,7 +44,7 @@ export function manageTestimonialReducer(state, action) {
         ...state,
         actionLoading: false,
         testimonials: state.testimonials.map((item) =>
-          item._id === action.payload?._id ? action.payload : item
+          item._id === action.payload?._id ? action.payload : item,
         ),
         error: null,
       };
@@ -54,7 +54,7 @@ export function manageTestimonialReducer(state, action) {
         ...state,
         actionLoading: false,
         testimonials: state.testimonials.filter(
-          (item) => item._id !== action.payload
+          (item) => item._id !== action.payload,
         ),
         error: null,
       };

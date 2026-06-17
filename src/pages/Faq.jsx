@@ -54,9 +54,15 @@ const Hero = styled.header`
   }
 
   @keyframes hookShimmer {
-    0% { filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
-    20% { filter: drop-shadow(0 10px 30px rgba(0,0,0,0.25)); }
-    100% { filter: drop-shadow(0 16px 40px rgba(45, 18, 8, 0.35)); }
+    0% {
+      filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+    }
+    20% {
+      filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.25));
+    }
+    100% {
+      filter: drop-shadow(0 16px 40px rgba(45, 18, 8, 0.35));
+    }
   }
 `;
 
@@ -89,11 +95,14 @@ const QuickLinks = styled.nav`
     text-decoration: none;
     color: ${({ theme }) => theme.colors.black};
     background: ${({ theme }) => theme.colors.lightBrown};
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 10px 14px;
     border-radius: ${({ theme }) => theme.radius.pill};
     box-shadow: ${({ theme }) => theme.shadow.soft};
-    transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease;
+    transition:
+      transform 200ms ease,
+      box-shadow 200ms ease,
+      background 200ms ease;
 
     &:hover {
       transform: translateY(-2px);
@@ -109,7 +118,7 @@ const Section = styled.section`
 
 const SectionCard = styled.div`
   background: ${({ theme }) => theme.colors.brown};
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: ${({ theme }) => theme.shadow.glow};
   overflow: hidden;
@@ -122,7 +131,7 @@ const SectionHeader = styled.div`
     ${({ theme }) => theme.colors.cocoa},
     ${({ theme }) => theme.colors.brown}
   );
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -146,7 +155,7 @@ const QAList = styled.div`
 `;
 
 const QAItem = styled.div`
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 
   &:first-child {
     border-top: none;
@@ -183,8 +192,8 @@ const Answer = styled.div`
   max-height: ${({ $open }) => ($open ? "800px" : "0px")};
   overflow: hidden;
   transition: max-height 300ms ease;
-  background: rgba(0,0,0,0.15);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 
   > div {
     padding: ${({ $open }) => ($open ? "16px 20px 22px" : "0 20px")};
@@ -197,7 +206,8 @@ const Answer = styled.div`
     text-decoration: underline;
   }
 
-  ul, ol {
+  ul,
+  ol {
     margin: 8px 0 0 20px;
   }
 `;
@@ -384,7 +394,8 @@ export default function Faq() {
         <Hero>
           <h1>FAQ — QUICK ANSWERS. LUX FEEL. ZERO FUSS.</h1>
           <p>
-            The questions real people ask—answered clearly. Browse by category below, dive into details, and get back to building your momentum.
+            The questions real people ask—answered clearly. Browse by category
+            below, dive into details, and get back to building your momentum.
           </p>
         </Hero>
 
@@ -393,7 +404,9 @@ export default function Faq() {
           <ul>
             {sections.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} title={`Jump to ${s.title}`}>#{s.title}</a>
+                <a href={`#${s.id}`} title={`Jump to ${s.title}`}>
+                  #{s.title}
+                </a>
               </li>
             ))}
           </ul>
@@ -401,7 +414,11 @@ export default function Faq() {
 
         {/* Sections */}
         {sections.map((section) => (
-          <Section id={section.id} key={section.id} aria-labelledby={`${section.id}-title`}>
+          <Section
+            id={section.id}
+            key={section.id}
+            aria-labelledby={`${section.id}-title`}
+          >
             <SectionCard>
               <SectionHeader>
                 <h2 id={`${section.id}-title`}>{section.title}</h2>

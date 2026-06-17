@@ -101,7 +101,7 @@ const CoursePlayer = () => {
         variant: type,
       });
     },
-    [toast]
+    [toast],
   );
 
   const [course, setCourse] = useState(null);
@@ -119,7 +119,7 @@ const CoursePlayer = () => {
 
   const resumeKey = useMemo(
     () => (courseId ? `course_resume_${courseId}` : ""),
-    [courseId]
+    [courseId],
   );
 
   const lessonTimeKey = useMemo(
@@ -127,7 +127,7 @@ const CoursePlayer = () => {
       courseId && activeLesson?._id
         ? `course_time_${courseId}_${activeLesson._id}`
         : "",
-    [courseId, activeLesson?._id]
+    [courseId, activeLesson?._id],
   );
 
   const sortedLessons = useMemo(() => {
@@ -141,7 +141,7 @@ const CoursePlayer = () => {
   const activeIndex = useMemo(() => {
     if (!activeLesson?._id) return -1;
     return sortedLessons.findIndex(
-      (lesson) => String(lesson._id) === String(activeLesson._id)
+      (lesson) => String(lesson._id) === String(activeLesson._id),
     );
   }, [activeLesson, sortedLessons]);
 
@@ -170,13 +170,13 @@ const CoursePlayer = () => {
   const canView = Boolean(course?.isFree || accessAllowed);
 
   const hasCompletedCourse = Boolean(
-  sortedLessons.length > 0 &&
+    sortedLessons.length > 0 &&
     completedLessonsCount === sortedLessons.length &&
-    calculatedProgress >= 90
-);
+    calculatedProgress >= 90,
+  );
 
   const canReview = Boolean(canView && course?._id && hasCompletedCourse);
-  
+
   const canSaveProgress = Boolean(accessAllowed && activeLesson?._id);
 
   const loadCourse = useCallback(async () => {
@@ -190,7 +190,7 @@ const CoursePlayer = () => {
       }
 
       const res = await axiosInstance.get(
-        `/courses/player/${encodeURIComponent(courseId)}`
+        `/courses/player/${encodeURIComponent(courseId)}`,
       );
 
       const loadedCourse = res.data?.data || res.data?.course || null;
@@ -227,21 +227,21 @@ const CoursePlayer = () => {
       }
 
       const res = await axiosInstance.get(
-        `/lessons/by-course/${encodeURIComponent(courseId)}`
+        `/lessons/by-course/${encodeURIComponent(courseId)}`,
       );
 
       if (res.data?.success) {
         const list = Array.isArray(res.data?.lessons)
           ? res.data.lessons
           : Array.isArray(res.data?.data)
-          ? res.data.data
-          : [];
+            ? res.data.data
+            : [];
 
         const allowed = Boolean(
           res.data?.access?.allowed ||
-            res.data?.hasAccess ||
-            res.data?.isEnrolled ||
-            course?.isFree
+          res.data?.hasAccess ||
+          res.data?.isEnrolled ||
+          course?.isFree,
         );
 
         setAccessAllowed(allowed);
@@ -271,14 +271,14 @@ const CoursePlayer = () => {
 
         if (routeLessonId) {
           const fromRoute = sorted.find(
-            (lesson) => String(lesson._id) === String(routeLessonId)
+            (lesson) => String(lesson._id) === String(routeLessonId),
           );
           if (fromRoute) nextActive = fromRoute;
         } else if (resumeKey) {
           const savedId = localStorage.getItem(resumeKey);
           if (savedId) {
             const found = sorted.find(
-              (lesson) => String(lesson._id) === String(savedId)
+              (lesson) => String(lesson._id) === String(savedId),
             );
             if (found) nextActive = found;
           }
@@ -329,20 +329,26 @@ const CoursePlayer = () => {
     lastSavedSecondsRef.current = 0;
   }, [activeLesson?._id]);
 
-  const updateLocalLessonProgress = useCallback((watchedSeconds, durationSeconds) => {
-    if (!activeLesson?._id || !durationSeconds) return;
+  const updateLocalLessonProgress = useCallback(
+    (watchedSeconds, durationSeconds) => {
+      if (!activeLesson?._id || !durationSeconds) return;
 
-    const percent = clampNumber((watchedSeconds / durationSeconds) * 100);
+      const percent = clampNumber((watchedSeconds / durationSeconds) * 100);
 
-    setLessonProgressMap((prev) => ({
-      ...prev,
-      [activeLesson._id]: Math.max(clampNumber(prev[activeLesson._id] || 0), percent),
-    }));
+      setLessonProgressMap((prev) => ({
+        ...prev,
+        [activeLesson._id]: Math.max(
+          clampNumber(prev[activeLesson._id] || 0),
+          percent,
+        ),
+      }));
 
-    if (lessonTimeKey) {
-      localStorage.setItem(lessonTimeKey, String(Math.floor(watchedSeconds)));
-    }
-  }, [activeLesson?._id, lessonTimeKey]);
+      if (lessonTimeKey) {
+        localStorage.setItem(lessonTimeKey, String(Math.floor(watchedSeconds)));
+      }
+    },
+    [activeLesson?._id, lessonTimeKey],
+  );
 
   const sendLessonProgress = useCallback(
     async (videoElement, force = false) => {
@@ -358,7 +364,9 @@ const CoursePlayer = () => {
       updateLocalLessonProgress(watchedSeconds, durationSeconds);
 
       const now = Date.now();
-      const watchedDelta = Math.abs(watchedSeconds - lastSavedSecondsRef.current);
+      const watchedDelta = Math.abs(
+        watchedSeconds - lastSavedSecondsRef.current,
+      );
 
       if (
         !force &&
@@ -377,16 +385,16 @@ const CoursePlayer = () => {
           {
             watchedSeconds,
             durationSeconds,
-          }
+          },
         );
 
         if (data?.data?.attemptedSkip || data?.accepted === false) {
-  notify(
-    data?.message ||
-      "Please watch the lesson normally before it can be marked complete.",
-    "error"
-  );
-}
+          notify(
+            data?.message ||
+              "Please watch the lesson normally before it can be marked complete.",
+            "error",
+          );
+        }
 
         const nextCourseProgress =
           data?.data?.enrollmentProgressPercent ||
@@ -406,14 +414,20 @@ const CoursePlayer = () => {
             ? 100
             : Math.max(
                 clampNumber(prev[activeLesson._id] || 0),
-                clampNumber((watchedSeconds / durationSeconds) * 100)
+                clampNumber((watchedSeconds / durationSeconds) * 100),
               ),
         }));
       } catch (error) {
         console.error("Failed to update lesson progress:", error?.message);
       }
     },
-    [activeLesson?._id, canView, canSaveProgress, updateLocalLessonProgress, notify]
+    [
+      activeLesson?._id,
+      canView,
+      canSaveProgress,
+      updateLocalLessonProgress,
+      notify,
+    ],
   );
 
   const handleLoadedMetadata = useCallback(
@@ -432,7 +446,7 @@ const CoursePlayer = () => {
         video.currentTime = savedSeconds;
       }
     },
-    [lessonTimeKey]
+    [lessonTimeKey],
   );
 
   const handleLessonClick = (lesson) => {
@@ -512,7 +526,10 @@ const CoursePlayer = () => {
     }
 
     const embedUrl = getEmbedUrl(videoSrc);
-    const direct = isDirectVideo(videoSrc) || videoSrc.startsWith("/uploads/") || videoSrc.startsWith("/videos/");
+    const direct =
+      isDirectVideo(videoSrc) ||
+      videoSrc.startsWith("/uploads/") ||
+      videoSrc.startsWith("/videos/");
 
     if (!direct && embedUrl) {
       return (
@@ -535,7 +552,9 @@ const CoursePlayer = () => {
           controls
           controlsList="nodownload"
           onLoadedMetadata={handleLoadedMetadata}
-          onTimeUpdate={(event) => sendLessonProgress(event.currentTarget, false)}
+          onTimeUpdate={(event) =>
+            sendLessonProgress(event.currentTarget, false)
+          }
           onPause={(event) => sendLessonProgress(event.currentTarget, true)}
           onEnded={(event) => {
             sendLessonProgress(event.currentTarget, true);
@@ -594,18 +613,21 @@ const CoursePlayer = () => {
             {!accessChecked
               ? "Checking your access..."
               : canView
-              ? activeLesson
-                ? `Now playing: ${activeLesson.title}`
-                : "Select a lesson and continue your training."
-              : "This course is locked. Unlock access to continue."}
+                ? activeLesson
+                  ? `Now playing: ${activeLesson.title}`
+                  : "Select a lesson and continue your training."
+                : "This course is locked. Unlock access to continue."}
           </HeroText>
 
           <HeroBadges>
             {course.level ? <HeroBadge>{course.level}</HeroBadge> : null}
             {course.category ? <HeroBadge>{course.category}</HeroBadge> : null}
-            <HeroBadge>{course.isFree ? "Free Course" : "Premium Access"}</HeroBadge>
             <HeroBadge>
-              {sortedLessons.length} Lesson{sortedLessons.length === 1 ? "" : "s"}
+              {course.isFree ? "Free Course" : "Premium Access"}
+            </HeroBadge>
+            <HeroBadge>
+              {sortedLessons.length} Lesson
+              {sortedLessons.length === 1 ? "" : "s"}
             </HeroBadge>
           </HeroBadges>
         </HeroInfo>
@@ -621,7 +643,7 @@ const CoursePlayer = () => {
           <ProgressSmall>
             {activeIndex >= 0
               ? `Lesson ${activeIndex + 1} of ${sortedLessons.length} • ${Math.round(
-                  activeLessonProgress
+                  activeLessonProgress,
                 )}% watched`
               : "Choose a lesson to begin"}
           </ProgressSmall>
@@ -640,7 +662,11 @@ const CoursePlayer = () => {
               </NowPlaying>
 
               <PlayerPill>
-                {!accessChecked ? "Checking" : canView ? "Access Granted" : "Locked"}
+                {!accessChecked
+                  ? "Checking"
+                  : canView
+                    ? "Access Granted"
+                    : "Locked"}
               </PlayerPill>
             </PlayerTop>
 
@@ -712,7 +738,7 @@ const CoursePlayer = () => {
                   onClick={() =>
                     navigate(
                       `/memberships?courseId=${encodeURIComponent(courseId)}`,
-                      { replace: false }
+                      { replace: false },
                     )
                   }
                 >
@@ -726,16 +752,16 @@ const CoursePlayer = () => {
                 <ReviewEyebrow>Student Review</ReviewEyebrow>
                 <ReviewHeading>Tell the next student the truth.</ReviewHeading>
                 <ReviewText>
-                  Your feedback helps future students know if this course is worth
-                  their time, discipline, and money.
+                  Your feedback helps future students know if this course is
+                  worth their time, discipline, and money.
                 </ReviewText>
 
                 <ReviewForm
-  courseId={course._id}
-  courseTitle={course.title || "this course"}
-  canReview={canReview}
-  reviewGateMessage="Finish watching the free course to the end before leaving a verified review."
-/>
+                  courseId={course._id}
+                  courseTitle={course.title || "this course"}
+                  canReview={canReview}
+                  reviewGateMessage="Finish watching the free course to the end before leaving a verified review."
+                />
               </ReviewBox>
             ) : null}
           </PlayerCard>
@@ -753,10 +779,10 @@ const CoursePlayer = () => {
                 {!accessChecked
                   ? "Checking..."
                   : !course.isFree && !accessAllowed
-                  ? "Locked"
-                  : lessonsLoading
-                  ? "Loading..."
-                  : `${sortedLessons.length}`}
+                    ? "Locked"
+                    : lessonsLoading
+                      ? "Loading..."
+                      : `${sortedLessons.length}`}
               </SidebarCount>
             </SidebarHeader>
 
@@ -773,7 +799,9 @@ const CoursePlayer = () => {
               <LessonList>
                 {sortedLessons.map((lesson, index) => {
                   const active = activeLesson?._id === lesson._id;
-                  const progress = clampNumber(lessonProgressMap[lesson._id] || 0);
+                  const progress = clampNumber(
+                    lessonProgressMap[lesson._id] || 0,
+                  );
                   const complete = progress >= 90;
 
                   return (
@@ -798,10 +826,14 @@ const CoursePlayer = () => {
                         </MiniProgressTrack>
 
                         <LessonTagRow>
-                          {lesson.isPreview ? <LessonTag>Preview</LessonTag> : null}
+                          {lesson.isPreview ? (
+                            <LessonTag>Preview</LessonTag>
+                          ) : null}
                           {complete ? <LessonTag>Completed</LessonTag> : null}
                           {active ? <LessonTag>Playing</LessonTag> : null}
-                          {lesson?.isLocked ? <LessonTag>Locked</LessonTag> : null}
+                          {lesson?.isLocked ? (
+                            <LessonTag>Locked</LessonTag>
+                          ) : null}
                         </LessonTagRow>
                       </LessonContent>
                     </LessonItem>
@@ -848,9 +880,17 @@ const Page = styled.main`
   padding: 96px 16px 56px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 15% 8%, rgba(214, 182, 159, 0.18), transparent 34%),
+    radial-gradient(
+      circle at 15% 8%,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
     radial-gradient(circle at 88% 15%, rgba(90, 56, 37, 0.34), transparent 36%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Hero = styled.section`
@@ -1135,7 +1175,11 @@ const VideoFallback = styled.div`
   padding: 22px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.22), transparent 38%),
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(214, 182, 159, 0.22),
+      transparent 38%
+    ),
     rgba(0, 0, 0, 0.74);
 `;
 
@@ -1347,7 +1391,9 @@ const LessonItem = styled.li`
   border: 1px solid
     ${({ $active }) =>
       $active ? "rgba(214, 182, 159, 0.45)" : "rgba(255, 249, 242, 0.09)"};
-  transition: transform 0.16s ease, border-color 0.16s ease,
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
     background 0.16s ease;
 
   &:hover {
@@ -1517,7 +1563,11 @@ const ReviewBox = styled.section`
   border-radius: ${({ theme }) => theme.radius.xl};
   padding: 18px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(214, 182, 159, 0.14), transparent 34%),
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(214, 182, 159, 0.14),
+      transparent 34%
+    ),
     rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(214, 182, 159, 0.18);
 `;

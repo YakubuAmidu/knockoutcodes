@@ -39,13 +39,13 @@ export function startEmailCampaignScheduler() {
           } catch (error) {
             console.error(
               `[EMAIL CAMPAIGN SCHEDULER] Failed campaign ${campaign._id}:`,
-              error?.message || error
+              error?.message || error,
             );
 
             await EmailCampaign.findByIdAndUpdate(campaign._id, {
               status: "failed",
               lastError: String(
-                error?.message || "Scheduler failed to send campaign"
+                error?.message || "Scheduler failed to send campaign",
               ).slice(0, 500),
               processingLockedAt: null,
               processingLockId: "",
@@ -55,20 +55,20 @@ export function startEmailCampaignScheduler() {
       } catch (error) {
         console.error(
           "[EMAIL CAMPAIGN SCHEDULER] Tick failed:",
-          error?.message || error
+          error?.message || error,
         );
       }
     },
     {
       timezone: "UTC",
       noOverlap: true,
-    }
+    },
   );
 
   schedulerStarted = true;
   // eslint-disable-next-line no-undef
- if (process.env.NODE_ENV !== "production") {
-  console.log("[EMAIL CAMPAIGN SCHEDULER] Started");
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[EMAIL CAMPAIGN SCHEDULER] Started");
   }
 }
 
@@ -82,7 +82,7 @@ export function stopEmailCampaignScheduler() {
   // eslint-disable-next-line no-undef
   if (process.env.NODE_ENV !== "production") {
     console.log("[EMAIL CAMPAIGN SCHEDULER] Stopped");
-   }
+  }
 }
 
 export function getEmailCampaignSchedulerStatus() {

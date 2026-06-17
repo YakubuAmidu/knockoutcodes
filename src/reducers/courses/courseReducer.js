@@ -71,12 +71,12 @@ export const courseReducer = (state = courseInitialState, action) => {
       };
 
     case T.COURSE_CHECKOUT_SUCCESS:
-  return {
-    ...state,
-    checkoutLoading: false,
-    checkoutError: null,
-    checkoutUrl: action.payload,
-  };
+      return {
+        ...state,
+        checkoutLoading: false,
+        checkoutError: null,
+        checkoutUrl: action.payload,
+      };
 
     case T.COURSE_CHECKOUT_FAIL:
       return {
@@ -99,13 +99,13 @@ export const courseReducer = (state = courseInitialState, action) => {
       };
 
     case T.COURSE_FAIL:
-  return {
-    ...state,
-    loading: false,
-    checkoutLoading: false,
-    error: action.payload,
-    courses: [],
-  };
+      return {
+        ...state,
+        loading: false,
+        checkoutLoading: false,
+        error: action.payload,
+        courses: [],
+      };
 
     case T.COURSE_RESET:
       return {
