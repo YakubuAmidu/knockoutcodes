@@ -15,16 +15,30 @@ const PUBLIC_BYPASS_PATHS = [
   "/api/v1/health",
 ];
 
-const isBypassPath = (path = "") =>
-  PUBLIC_BYPASS_PATHS.some((allowedPath) => path.startsWith(allowedPath));
-
-const isAdminUser = (req) =>
-  req.user && ["admin", "superadmin"].includes(String(req.user.role));
+const CACHE_MS = 30000;
+const DB_TIMEOUT_MS = 2500;
 
 let cachedSettings = null;
 let cachedAt = 0;
 
-const CACHE_MS = 5000;
+const isBypassPath = (path = "") => {
+  const cleanPath = String(path).split("?")[0];
+  return PUBLIC_BYPASS_PATHS.some((allowedPath) =>
+    cleanPath.startsWith(allowedPath)
+  );
+};
+
+const isAdminUser = (req) =>
+  req.user && ["admin", "superadmin"].includes(String(req.user.role));
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Maintenance settings DB timeout")), ms)
+    ),
+  ]);
+}
 
 async function getSettings() {
   const now = Date.now();
@@ -33,17 +47,20 @@ async function getSettings() {
     return cachedSettings;
   }
 
-  let settings = await SystemSetting.findOne().lean();
+  const settings = await withTimeout(
+    SystemSetting.findOne().lean(),
+    DB_TIMEOUT_MS
+  );
 
-  if (!settings) {
-    settings = await SystemSetting.create({});
-    settings = settings.toObject();
-  }
+  cachedSettings =
+    settings || {
+      maintenanceMode: false,
+      allowAdminAccess: true,
+    };
 
-  cachedSettings = settings;
   cachedAt = now;
 
-  return settings;
+  return cachedSettings;
 }
 
 export const clearMaintenanceCache = () => {
@@ -85,7 +102,11 @@ export const maintenanceMiddleware = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error("maintenanceMiddleware error:", error);
+    // eslint-disable-next-line no-undef
+    if (process.env.NODE_ENV !== "production") {
+      console.error("maintenanceMiddleware error:", error.message);
+    }
+
     return next();
   }
 };
