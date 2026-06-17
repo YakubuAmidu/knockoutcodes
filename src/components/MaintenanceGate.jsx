@@ -22,12 +22,12 @@ async function getMaintenanceStatus() {
   if (!statusPromise) {
     statusPromise = axiosInstance
       .get("/system/status", {
-  timeout: 5000,
-  headers: {
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
-  },
-})
+        timeout: 5000,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      })
       .then((res) => {
         cachedStatus = res.data;
         cachedAt = Date.now();
@@ -55,16 +55,14 @@ const MaintenanceGate = ({ children }) => {
         const data = await getMaintenanceStatus();
 
         if (!alive) return;
-
         setStatus(data);
       } catch (error) {
         if (import.meta.env.DEV) {
-  console.error("Maintenance status check failed:", error?.message);
-}
+          console.error("Maintenance status check failed:", error?.message);
+        }
 
         if (!alive) return;
 
-        // Fail open so your app does not get trapped in maintenance check.
         setStatus({
           maintenanceMode: false,
           allowAdminAccess: true,
@@ -94,29 +92,28 @@ const MaintenanceGate = ({ children }) => {
 
   const maintenanceMode = Boolean(status?.maintenanceMode);
   const allowAdminAccess = status?.allowAdminAccess !== false;
-
   const adminCanPass = maintenanceMode && allowAdminAccess && user && isAdmin;
 
   if (maintenanceMode && !adminCanPass) {
-  return (
-    <Suspense
-      fallback={
-        <GateLoading>
-          <div>
-            <Spinner />
-            <LoadingTitle>Loading maintenance page...</LoadingTitle>
-          </div>
-        </GateLoading>
-      }
-    >
-      <Maintenance
-        title={status?.maintenanceTitle}
-        message={status?.maintenanceMessage}
-        updatedAt={status?.updatedAt}
-      />
-    </Suspense>
-  );
-}
+    return (
+      <Suspense
+        fallback={
+          <GateLoading>
+            <div>
+              <Spinner />
+              <LoadingTitle>Loading maintenance page...</LoadingTitle>
+            </div>
+          </GateLoading>
+        }
+      >
+        <Maintenance
+          title={status?.maintenanceTitle}
+          message={status?.maintenanceMessage}
+          updatedAt={status?.updatedAt}
+        />
+      </Suspense>
+    );
+  }
 
   return children;
 };
