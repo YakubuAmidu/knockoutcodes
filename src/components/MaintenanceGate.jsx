@@ -22,11 +22,12 @@ async function getMaintenanceStatus() {
   if (!statusPromise) {
     statusPromise = axiosInstance
       .get("/system/status", {
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      })
+  timeout: 5000,
+  headers: {
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+  },
+})
       .then((res) => {
         cachedStatus = res.data;
         cachedAt = Date.now();
@@ -41,7 +42,7 @@ async function getMaintenanceStatus() {
 }
 
 const MaintenanceGate = ({ children }) => {
-  const { user, isAdmin, initializing } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [checking, setChecking] = useState(true);
   const [status, setStatus] = useState(null);
@@ -57,7 +58,9 @@ const MaintenanceGate = ({ children }) => {
 
         setStatus(data);
       } catch (error) {
-        console.error("Maintenance status check failed:", error?.message);
+        if (import.meta.env.DEV) {
+  console.error("Maintenance status check failed:", error?.message);
+}
 
         if (!alive) return;
 
@@ -78,7 +81,7 @@ const MaintenanceGate = ({ children }) => {
     };
   }, []);
 
-  if (checking || initializing) {
+  if (checking) {
     return (
       <GateLoading>
         <div>
