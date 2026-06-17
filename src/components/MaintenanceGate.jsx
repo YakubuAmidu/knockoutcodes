@@ -55,10 +55,14 @@ const MaintenanceGate = ({ children }) => {
         const data = await getMaintenanceStatus();
 
         if (!alive) return;
+
         setStatus(data);
       } catch (error) {
         if (import.meta.env.DEV) {
-          console.error("Maintenance status check failed:", error?.message);
+          console.error(
+            "Maintenance status check failed:",
+            error?.message
+          );
         }
 
         if (!alive) return;
@@ -68,7 +72,9 @@ const MaintenanceGate = ({ children }) => {
           allowAdminAccess: true,
         });
       } finally {
-        if (alive) setChecking(false);
+        if (alive) {
+          setChecking(false);
+        }
       }
     }
 
@@ -84,7 +90,9 @@ const MaintenanceGate = ({ children }) => {
       <GateLoading>
         <div>
           <Spinner />
-          <LoadingTitle>Checking KnockoutCodes system status...</LoadingTitle>
+          <LoadingTitle>
+            Checking KnockoutCodes system status...
+          </LoadingTitle>
         </div>
       </GateLoading>
     );
@@ -92,7 +100,12 @@ const MaintenanceGate = ({ children }) => {
 
   const maintenanceMode = Boolean(status?.maintenanceMode);
   const allowAdminAccess = status?.allowAdminAccess !== false;
-  const adminCanPass = maintenanceMode && allowAdminAccess && user && isAdmin;
+
+  const adminCanPass =
+    maintenanceMode &&
+    allowAdminAccess &&
+    user &&
+    isAdmin;
 
   if (maintenanceMode && !adminCanPass) {
     return (
@@ -101,7 +114,9 @@ const MaintenanceGate = ({ children }) => {
           <GateLoading>
             <div>
               <Spinner />
-              <LoadingTitle>Loading maintenance page...</LoadingTitle>
+              <LoadingTitle>
+                Loading maintenance page...
+              </LoadingTitle>
             </div>
           </GateLoading>
         }
@@ -121,7 +136,9 @@ const MaintenanceGate = ({ children }) => {
 export default MaintenanceGate;
 
 const spin = keyframes`
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 `;
 
 const GateLoading = styled.main`
@@ -132,8 +149,16 @@ const GateLoading = styled.main`
   padding: 24px;
   color: ${({ theme }) => theme.colors.ivory};
   background:
-    radial-gradient(circle at 12% 8%, rgba(214, 182, 159, 0.18), transparent 34%),
-    linear-gradient(180deg, ${({ theme }) => theme.colors.black}, ${({ theme }) => theme.colors.darkBrown});
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(214, 182, 159, 0.18),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
 `;
 
 const Spinner = styled.div`
