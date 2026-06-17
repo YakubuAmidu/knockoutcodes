@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from "react-redux";
 import axiosInstance from "../../utils/axiosInstance";
 
 import { useToast } from "../components/Toast";
-import { getCsrfToken } from "../../utils/csrf";
 import { COACHING_ACTIONS } from "../reducers/coaching/coachingActionTypes";
 
 // const API_BASE_URL = (
@@ -435,15 +434,12 @@ export default function Coaching() {
         },
       };
 
-      const csrfToken = await getCsrfToken();
-
       const { data } = await axiosInstance.post(COACHING_ENDPOINT, payload, {
   headers: {
     Accept: "application/json",
     "X-Requested-With": "axios",
     "X-Form-TS": String(Date.now()),
     "X-Honey": "",
-    "X-CSRF-Token": csrfToken,
   },
   signal: controller.signal,
 });
