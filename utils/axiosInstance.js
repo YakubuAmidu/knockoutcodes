@@ -1,5 +1,6 @@
 // src/utils/axiosInstance.js
 import axios from "axios";
+import { getCsrfToken, clearCsrfToken } from "./csrf";
 
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -59,45 +60,8 @@ function getFingerprint() {
 
 const unsafeMethods = new Set(["post", "put", "patch", "delete"]);
 
-let csrfBootstrapPromise = null;
 let refreshPromise = null;
 let didBroadcastAuthFail = false;
-let csrfTokenMemory = "";
-
-async function ensureCsrfCookie() {
-  const existingCookieToken = getCookie("csrfToken");
-
-  if (existingCookieToken) {
-    csrfTokenMemory = existingCookieToken;
-    return existingCookieToken;
-  }
-
-  if (csrfTokenMemory) return csrfTokenMemory;
-
-  if (!csrfBootstrapPromise) {
-    csrfBootstrapPromise = axios
-      .get(`${baseURL}/auth/csrf`, {
-        withCredentials: true,
-        timeout: 10000,
-      })
-      .then((res) => {
-        const token =
-          res?.data?.csrfToken ||
-          res?.data?.token ||
-          res?.data?.data?.csrfToken ||
-          res?.data?.data?.token ||
-          "";
-
-        csrfTokenMemory = token || getCookie("csrfToken") || "";
-        return csrfTokenMemory;
-      })
-      .finally(() => {
-        csrfBootstrapPromise = null;
-      });
-  }
-
-  return csrfBootstrapPromise;
-}
 
 function normalizeUrl(url = "") {
   return String(url || "").toLowerCase();
@@ -200,7 +164,7 @@ axiosInstance.interceptors.request.use(
     config.headers["X-Client-Fingerprint"] = getFingerprint();
 
     if (isUnsafe) {
-      const csrfToken = await ensureCsrfCookie();
+      const csrfToken = await getCsrfToken();
 
       if (csrfToken) {
         config.headers["X-CSRF-Token"] = csrfToken;
@@ -246,7 +210,8 @@ axiosInstance.interceptors.response.use(
 
     if (isCsrfFailure && !originalConfig._csrfRetry) {
       try {
-        const csrfToken = await ensureCsrfCookie();
+        clearCsrfToken();
+const csrfToken = await getCsrfToken({ force: true });
 
         return axiosInstance.request({
           ...originalConfig,

@@ -1,26 +1,24 @@
 // /src/lib/apiClient.js
 import axios from "axios";
+import { getCsrfToken, clearCsrfToken } from "../../utils/csrf";
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL &&
     String(import.meta.env.VITE_API_BASE_URL).trim()) ||
   "https://knockoutcodes.onrender.com/api/v1";
 
-let csrfTokenCache = "";
-let csrfPromise = null;
+// function getCookie(name) {
+//   if (typeof document === "undefined") return "";
 
-function getCookie(name) {
-  if (typeof document === "undefined") return "";
+//   const value = `; ${document.cookie}`;
+//   const parts = value.split(`; ${name}=`);
 
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
+//   if (parts.length === 2) {
+//     return decodeURIComponent(parts.pop().split(";").shift());
+//   }
 
-  if (parts.length === 2) {
-    return decodeURIComponent(parts.pop().split(";").shift());
-  }
-
-  return "";
-}
+//   return "";
+// }
 
 function getStoredToken() {
   if (typeof window === "undefined") return "";
@@ -56,45 +54,6 @@ export const api = axios.create({
     Accept: "application/json",
   },
 });
-
-async function getCsrfToken({ force = false } = {}) {
-  const cookieToken = getCookie("csrfToken");
-
-  if (!force && cookieToken) {
-    csrfTokenCache = cookieToken;
-    return cookieToken;
-  }
-
-  if (!force && csrfTokenCache) {
-    return csrfTokenCache;
-  }
-
-  if (!csrfPromise) {
-    csrfPromise = api
-      .get("/auth/csrf", {
-        withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      })
-      .then((res) => {
-        const token =
-          res?.data?.csrfToken ||
-          res?.data?.token ||
-          getCookie("csrfToken") ||
-          "";
-
-        csrfTokenCache = token;
-        return token;
-      })
-      .finally(() => {
-        csrfPromise = null;
-      });
-  }
-
-  return csrfPromise;
-}
 
 api.interceptors.request.use(
   async (config) => {
@@ -136,8 +95,7 @@ api.interceptors.response.use(
 
     if (isCsrfError) {
       originalRequest._csrfRetried = true;
-      csrfTokenCache = "";
-
+      clearCsrfToken();
       const freshToken = await getCsrfToken({ force: true });
 
       originalRequest.headers = originalRequest.headers || {};

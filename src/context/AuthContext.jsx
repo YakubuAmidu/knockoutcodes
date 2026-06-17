@@ -15,6 +15,7 @@ import {
 } from "react";
 import axiosInstance from "../../utils/axiosInstance";
 import { useToast } from "../components/Toast";
+import { getCsrfToken } from "../../utils/csrf";
 
 import { useDispatch } from "react-redux";
 import { AUTH_ACTIONS } from "../reducers/auth/authActionTypes";
@@ -211,12 +212,12 @@ export function AuthProvider({ children }) {
   );
 
   const ensureCsrf = useCallback(async () => {
-    try {
-      await axiosInstance.get("/auth/csrf");
-    } catch {
-      // do not break app boot
-    }
-  }, []);
+  try {
+    return await getCsrfToken();
+  } catch {
+    return "";
+  }
+}, []);
 
   const clearAuthState = useCallback(() => {
   setUser(null);
