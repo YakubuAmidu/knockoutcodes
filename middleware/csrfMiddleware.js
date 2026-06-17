@@ -45,10 +45,7 @@ export function requireCsrf(req, res, next) {
   // eslint-disable-next-line no-undef
   if (String(process.env.CSRF_ENABLED || "true") !== "true") return next();
 
-  const openCsrfPaths = new Set([
-    "/api/v1/auth/csrf",
-    "/auth/csrf",
-  ]);
+  const openCsrfPaths = new Set(["/api/v1/auth/csrf", "/auth/csrf"]);
 
   if (openCsrfPaths.has(req.path) || openCsrfPaths.has(req.originalUrl)) {
     return next();
