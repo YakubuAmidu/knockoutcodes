@@ -6,6 +6,9 @@ const API_BASE_URL =
     String(import.meta.env.VITE_API_BASE_URL).trim()) ||
   "https://knockoutcodes.onrender.com/api/v1";
 
+let csrfTokenCache = "";
+let csrfPromise = null;
+
 function getCookie(name) {
   if (typeof document === "undefined") return "";
 
@@ -54,8 +57,47 @@ export const api = axios.create({
   },
 });
 
+async function getCsrfToken({ force = false } = {}) {
+  const cookieToken = getCookie("csrfToken");
+
+  if (!force && cookieToken) {
+    csrfTokenCache = cookieToken;
+    return cookieToken;
+  }
+
+  if (!force && csrfTokenCache) {
+    return csrfTokenCache;
+  }
+
+  if (!csrfPromise) {
+    csrfPromise = api
+      .get("/auth/csrf", {
+        withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      })
+      .then((res) => {
+        const token =
+          res?.data?.csrfToken ||
+          res?.data?.token ||
+          getCookie("csrfToken") ||
+          "";
+
+        csrfTokenCache = token;
+        return token;
+      })
+      .finally(() => {
+        csrfPromise = null;
+      });
+  }
+
+  return csrfPromise;
+}
+
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const method = String(config.method || "get").toUpperCase();
     const unsafeMethods = ["POST", "PUT", "PATCH", "DELETE"];
 
@@ -66,16 +108,47 @@ api.interceptors.request.use(
     }
 
     if (unsafeMethods.includes(method)) {
-      const csrfToken = getCookie("csrfToken");
+      const csrfToken = await getCsrfToken();
 
       if (csrfToken) {
         config.headers["X-CSRF-Token"] = csrfToken;
+        config.headers["x-csrf-token"] = csrfToken;
       }
     }
 
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const status = error?.response?.status;
+    const message = String(error?.response?.data?.message || "").toLowerCase();
+    const originalRequest = error?.config;
+
+    const isCsrfError =
+      status === 403 &&
+      message.includes("csrf") &&
+      originalRequest &&
+      !originalRequest._csrfRetried;
+
+    if (isCsrfError) {
+      originalRequest._csrfRetried = true;
+      csrfTokenCache = "";
+
+      const freshToken = await getCsrfToken({ force: true });
+
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers["X-CSRF-Token"] = freshToken;
+      originalRequest.headers["x-csrf-token"] = freshToken;
+
+      return api(originalRequest);
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export function setAuthToken(token) {
@@ -237,7 +310,7 @@ export async function cancelMyMembership() {
 export async function confirmProductCheckoutSession(sessionId, options = {}) {
   const safe = encodeURIComponent(String(sessionId || ""));
   const bust = Date.now();
-  const { signal } = options;
+  const { signal } = options || {};
 
   const { data } = await api.get(
     `/orders/confirm-product?session_id=${safe}&t=${bust}`,
