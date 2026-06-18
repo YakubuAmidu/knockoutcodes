@@ -56,13 +56,6 @@ async function safeJson(res) {
   }
 }
 
-function isLocalhost() {
-  return (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  );
-}
-
 /**
  * Read cookie value by name (CSRF cookie is httpOnly:false by design)
  */
@@ -185,13 +178,17 @@ async function apiFetch(path, options = {}) {
     }
   }
 
-  if (isLocalhost()) {
-    const token =
-      localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("authToken") ||
+    sessionStorage.getItem("token") ||
+    sessionStorage.getItem("accessToken") ||
+    sessionStorage.getItem("authToken") ||
+    "";
 
-    if (token && !headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   let result = await rawApiFetch(path, {
