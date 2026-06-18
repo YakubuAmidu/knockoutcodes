@@ -279,3 +279,13 @@ export const markAllContactsSeen = () => async (dispatch, getState) => {
     });
   }
 };
+
+export const realtimeUpsertContact = (contact) => ({
+  type: T.REALTIME_UPSERT,
+  payload: contact,
+});
+
+export const realtimeDeleteContact = (contactId) => ({
+  type: T.REALTIME_DELETE,
+  payload: contactId,
+});

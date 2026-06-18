@@ -38,6 +38,7 @@ function emitContactRealtime(contact, action = "updated") {
       io.emit("admin:contacts-refresh", {
         action,
         contactId: safeContact._id,
+        contact: safeContact,
       });
     }
   } catch {

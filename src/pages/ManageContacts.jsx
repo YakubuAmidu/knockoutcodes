@@ -16,6 +16,8 @@ import {
   markAllContactsSeen,
   sendAdminReply,
   updateReplyDraft,
+  realtimeUpsertContact,
+  realtimeDeleteContact,
 } from "../reducers/manageContact/manageContactActions";
 
 const STATUS = {
@@ -136,8 +138,17 @@ export default function ManageContacts() {
       socket.connect();
     }
 
-    const handleContactsRefresh = ({ action }) => {
-      dispatch(fetchManageContacts({ silent: true }));
+    const handleContactsRefresh = ({ action, contactId, contact }) => {
+      if (action === "deleted") {
+        dispatch(realtimeDeleteContact(contactId));
+        return;
+      }
+
+      if (contact?._id) {
+        dispatch(realtimeUpsertContact(contact));
+      } else {
+        dispatch(fetchManageContacts({ silent: true }));
+      }
 
       if (action === "created") {
         push({

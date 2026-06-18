@@ -413,6 +413,48 @@ export default function manageContactReducer(
         error: action.payload?.error || "Bulk update failed.",
       };
 
+    case T.REALTIME_UPSERT: {
+      const updated = safeCloneContact(action.payload);
+      if (!updated?._id) return normalizedState;
+
+      const nextContacts = upsertContact(normalizedState.contacts, updated);
+
+      const isSelected =
+        normalizedState.selectedId &&
+        String(normalizedState.selectedId) === String(updated._id);
+
+      return {
+        ...normalizedState,
+        contacts: nextContacts,
+        items: nextContacts,
+        form: isSelected ? buildFormFromContact(updated) : normalizedState.form,
+        lastFetchedAt: Date.now(),
+      };
+    }
+
+    case T.REALTIME_DELETE: {
+      const deletedId = action.payload;
+
+      const nextContacts = ensureArray(normalizedState.contacts).filter(
+        (c) => String(c?._id) !== String(deletedId),
+      );
+
+      const shouldClear =
+        String(normalizedState.selectedId) === String(deletedId);
+
+      return {
+        ...normalizedState,
+        contacts: nextContacts,
+        items: nextContacts,
+        selectedId: shouldClear ? null : normalizedState.selectedId,
+        form: shouldClear
+          ? manageContactInitialState.form
+          : normalizedState.form,
+        replyDraft: shouldClear ? "" : normalizedState.replyDraft,
+        lastFetchedAt: Date.now(),
+      };
+    }
+
     default:
       return normalizedState;
   }
