@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import process from "node:process";
+import { verifyMailTransport } from "./utils/mailer.js";
 
 import connectDB from "./config/db.js";
 import { startEmailCampaignScheduler } from "./services/emailCampaignScheduler.js";
@@ -35,6 +36,13 @@ async function startServer() {
     const { default: app } = await import("./app.js");
 
     await connectDB();
+
+    try {
+      await verifyMailTransport();
+      console.log("[MAIL] SMTP connection verified.");
+    } catch (mailError) {
+      console.error("[MAIL] SMTP verification failed:", mailError.message);
+    }
 
     server = http.createServer(app);
 

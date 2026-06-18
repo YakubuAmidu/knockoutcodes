@@ -1,5 +1,6 @@
 // controllers/authController.js
 import crypto from "crypto";
+import { sendMail } from "../utils/mailer.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/UserModel.js";
@@ -954,12 +955,44 @@ export async function forgotPassword(req, res) {
       return res.status(200).json({ success: true, message: genericMessage });
     }
 
-    const { hashedToken } = createPasswordResetToken();
+    const { rawToken, hashedToken } = createPasswordResetToken();
 
     user.passwordResetToken = hashedToken;
     user.passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000);
 
     await user.save({ validateBeforeSave: false });
+
+    const frontendUrl =
+      // eslint-disable-next-line no-undef
+      process.env.FRONTEND_URL ||
+      // eslint-disable-next-line no-undef
+      process.env.CLIENT_URL ||
+      "https://silver-pasca-64a87c.netlify.app";
+
+    const resetUrl = `${frontendUrl.replace(/\/$/, "")}/reset-password/${rawToken}`;
+
+    await sendMail({
+      to: user.email,
+      subject: "Reset your KnockoutCodes password",
+      text: `Reset your password using this link: ${resetUrl}
+
+This link expires in 15 minutes.
+
+If you did not request this, you can ignore this email.`,
+      html: `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;">
+      <h2>Reset your password</h2>
+      <p>Click the button below to reset your KnockoutCodes password.</p>
+      <p>
+        <a href="${resetUrl}" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:6px;">
+          Reset Password
+        </a>
+      </p>
+      <p>This link expires in 15 minutes.</p>
+      <p>If you did not request this, you can ignore this email.</p>
+    </div>
+  `,
+    });
 
     await logSecurityEvent(req, {
       user: user._id,
