@@ -1,6 +1,22 @@
 // middleware/avatarUploadMiddleware.js
 import multer from "multer";
-import { upload } from "../uploads/multer.js";
+
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+    files: 1,
+  },
+  fileFilter(_req, file, cb) {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(new Error("Only JPG, JPEG, PNG, and WEBP images are allowed."));
+    }
+
+    return cb(null, true);
+  },
+});
 
 export function handleAvatarUpload(req, res, next) {
   const middleware = upload.single("avatar");
@@ -13,13 +29,6 @@ export function handleAvatarUpload(req, res, next) {
         return res.status(400).json({
           success: false,
           message: "Image must be under 2MB.",
-        });
-      }
-
-      if (err.code === "LIMIT_UNEXPECTED_FILE") {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid upload field.",
         });
       }
 

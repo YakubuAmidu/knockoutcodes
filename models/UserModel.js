@@ -278,7 +278,14 @@ const userSchema = new mongoose.Schema(
     ],
 
     // Public profile fields
-    avatar: { type: String, trim: true, maxlength: 500, default: "" },
+    avatar: {
+      type: String,
+      default: "",
+    },
+    avatarContentType: {
+      type: String,
+      default: "",
+    },
     phone: { type: String, trim: true, maxlength: 30, default: "" },
     location: { type: String, trim: true, maxlength: 120, default: "" },
     website: { type: String, trim: true, maxlength: 300, default: "" },

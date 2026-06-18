@@ -50,6 +50,7 @@ function safeProfile(user) {
     role: user.role,
     isActive: user.isActive,
     avatar: user.avatar || "",
+    avatarContentType: user.avatarContentType || "",
     phone: user.phone || "",
     location: user.location || "",
     website: user.website || "",
@@ -100,6 +101,7 @@ function removeLocalAvatarIfManaged(avatarPath) {
   const avatarRoot = path.resolve(process.cwd(), "uploads", "avatar");
   // eslint-disable-next-line no-undef
   const oldAbsPath = path.resolve(
+    // eslint-disable-next-line no-undef
     process.cwd(),
     avatarPath.replace(/^\/+/, ""),
   );
@@ -478,7 +480,7 @@ export async function getMe(req, res) {
     }
 
     const user = await User.findById(id).select(
-      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted isEmailVerified",
+      "_id name email role isActive avatar avatarContentType phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted isEmailVerified",
     );
 
     if (!user || user.isActive === false || user.isDeleted === true) {
@@ -595,7 +597,7 @@ export async function updateMyAvatar(req, res) {
       });
     }
 
-    if (!req.file?.filename) {
+    if (!req.file?.buffer) {
       return res.status(400).json({
         success: false,
         message: "No image uploaded.",
@@ -603,7 +605,7 @@ export async function updateMyAvatar(req, res) {
     }
 
     const user = await User.findById(id).select(
-      "_id name email role isActive avatar phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted",
+      "_id name email role isActive avatar avatarContentType phone location website instagram tiktok youtube xhandle bio headline notifications createdAt updatedAt accountStatus statusReason isDeleted isEmailVerified",
     );
 
     if (!user || user.isActive === false || user.isDeleted === true) {
@@ -613,9 +615,10 @@ export async function updateMyAvatar(req, res) {
       });
     }
 
-    removeLocalAvatarIfManaged(user.avatar);
+    const base64 = req.file.buffer.toString("base64");
+    user.avatar = `data:${req.file.mimetype};base64,${base64}`;
+    user.avatarContentType = req.file.mimetype;
 
-    user.avatar = `/uploads/avatar/${req.file.filename}`;
     await user.save();
 
     return res.status(200).json({
