@@ -62,6 +62,12 @@ export function requireCsrf(req, res, next) {
     "/auth/reset-password",
   ]);
 
+  const authHeader = String(req.headers.authorization || "");
+
+  if (authHeader.startsWith("Bearer ")) {
+    return next();
+  }
+
   const cookieToken = req.cookies?.csrfToken;
   const headerToken =
     req.headers["x-csrf-token"] || req.headers["x-xsrf-token"];
