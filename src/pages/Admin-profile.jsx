@@ -724,6 +724,10 @@ export default function AdminProfile({ theme }) {
       return "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=512&auto=format&fit=crop";
     }
 
+    if (a.startsWith("data:image/")) {
+      return a;
+    }
+
     const API_URL =
       String(import.meta.env.VITE_API_BASE_URL || "").trim() ||
       "https://knockoutcodes.onrender.com/api/v1";
