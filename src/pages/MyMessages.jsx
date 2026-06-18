@@ -534,7 +534,6 @@ export default function MyMessages() {
   /* =========================
      Socket.IO Real-Time Updates
   ========================= */
-  const DEBUG_SOCKET = import.meta.env.DEV;
 
   useEffect(() => {
     const userId = authUser?._id || authUser?.id;
@@ -548,10 +547,6 @@ export default function MyMessages() {
       socket.emit("user:join", { userId });
       socket.emit("messages:join", { userId });
       socket.emit("ticket:join-user", { userId });
-
-      if (DEBUG_SOCKET) {
-        console.log("✅ MyMessages socket joined:", userId);
-      }
     };
 
     joinUserRooms();
@@ -559,10 +554,6 @@ export default function MyMessages() {
     socket.on("connect", joinUserRooms);
 
     const refreshInbox = async (payload = {}) => {
-      if (DEBUG_SOCKET) {
-        console.log("🔥 MyMessages real-time event received:", payload);
-      }
-
       const ticketId =
         payload?.ticketId ||
         payload?._id ||
@@ -618,7 +609,7 @@ export default function MyMessages() {
         socket.off(eventName, refreshInbox);
       });
     };
-  }, [dispatch, selectedId, authUser, pushToast, DEBUG_SOCKET]);
+  }, [dispatch, selectedId, authUser, pushToast]);
 
   const handleOpen = async (id) => {
     if (!id) return;

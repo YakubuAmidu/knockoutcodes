@@ -2,10 +2,15 @@
 
 import { io } from "socket.io-client";
 
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "https://knockoutcodes.onrender.com/api/v1";
+
 const SOCKET_URL =
   import.meta.env.VITE_API_ORIGIN ||
   import.meta.env.VITE_SERVER_URL ||
-  "https://knockoutcodes.onrender.com/api/v1";
+  API_BASE.replace(/\/api\/v1\/?$/, "");
 
 export const socket = io(SOCKET_URL, {
   autoConnect: false,
