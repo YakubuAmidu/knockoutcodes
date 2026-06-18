@@ -99,7 +99,6 @@ function removeLocalAvatarIfManaged(avatarPath) {
 
   // eslint-disable-next-line no-undef
   const avatarRoot = path.resolve(process.cwd(), "uploads", "avatar");
-  // eslint-disable-next-line no-undef
   const oldAbsPath = path.resolve(
     // eslint-disable-next-line no-undef
     process.cwd(),

@@ -164,6 +164,30 @@ function isLocked(user) {
   return !!(user.lockUntil && new Date(user.lockUntil).getTime() > Date.now());
 }
 
+function getLockMsRemaining(user) {
+  if (!user?.lockUntil) return 0;
+  return Math.max(new Date(user.lockUntil).getTime() - Date.now(), 0);
+}
+
+function getLockMinutesRemaining(user) {
+  return Math.max(1, Math.ceil(getLockMsRemaining(user) / 60000));
+}
+
+async function clearExpiredLoginLock(user) {
+  if (!user?.lockUntil) return false;
+
+  const lockTime = new Date(user.lockUntil).getTime();
+
+  if (Number.isNaN(lockTime) || lockTime <= Date.now()) {
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    await user.save({ validateBeforeSave: false });
+    return true;
+  }
+
+  return false;
+}
+
 function getClientIp(req) {
   return (
     req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
@@ -365,10 +389,19 @@ export async function login(req, res) {
       });
     }
 
+    await clearExpiredLoginLock(user);
+
     if (isLocked(user)) {
+      const minutesRemaining = getLockMinutesRemaining(user);
+
       return res.status(423).json({
         success: false,
-        message: "Account temporarily locked. Please try again later.",
+        code: "ACCOUNT_LOCKED",
+        message: `Account temporarily locked. Please try again in ${minutesRemaining} minute${
+          minutesRemaining === 1 ? "" : "s"
+        }.`,
+        lockUntil: user.lockUntil,
+        retryAfterSeconds: Math.ceil(getLockMsRemaining(user) / 1000),
       });
     }
 
@@ -397,11 +430,16 @@ export async function login(req, res) {
       });
 
       if (shouldLock) {
+        const minutesRemaining = getLockMinutesRemaining(user);
+
         return res.status(423).json({
           success: false,
-          message:
-            "Account temporarily locked because of too many failed login attempts. Please try again later.",
           code: "ACCOUNT_LOCKED",
+          message: `Account temporarily locked because of too many failed login attempts. Please try again in ${minutesRemaining} minute${
+            minutesRemaining === 1 ? "" : "s"
+          }.`,
+          lockUntil: user.lockUntil,
+          retryAfterSeconds: Math.ceil(getLockMsRemaining(user) / 1000),
         });
       }
 
