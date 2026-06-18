@@ -564,6 +564,10 @@ export function AuthProvider({ children }) {
 
         return {
           ok: false,
+          code: data?.code || "",
+          mfaRequired: !!data?.mfaRequired,
+          lockUntil: data?.lockUntil || null,
+          retryAfterSeconds: data?.retryAfterSeconds || 0,
           error:
             data?.message || error?.message || "Invalid email or password.",
         };

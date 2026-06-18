@@ -94,6 +94,8 @@ export default function Login() {
   });
 
   const [password, setPassword] = React.useState("");
+  const [mfaToken, setMfaToken] = React.useState("");
+  const [requiresMfa, setRequiresMfa] = React.useState(false);
   const [remember, setRemember] = React.useState(true);
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
@@ -176,7 +178,11 @@ export default function Login() {
       pushToast({ type: "info", message: "Signing you in…" });
 
       const result = await login(
-        { email: cleanEmail, password: cleanPassword },
+        {
+          email: cleanEmail,
+          password: cleanPassword,
+          mfaToken,
+        },
         { remember },
       );
 
@@ -197,6 +203,22 @@ export default function Login() {
             message: restrictedMessage,
             accountStatus: restrictedStatus,
           },
+        });
+
+        return;
+      }
+
+      //=========
+      if (result?.code === "MFA_REQUIRED") {
+        setRequiresMfa(true);
+
+        const msg = "Enter your authenticator app code.";
+
+        setError(msg);
+
+        pushToast({
+          type: "info",
+          message: msg,
         });
 
         return;
@@ -382,6 +404,21 @@ export default function Login() {
                 </ToggleButton>
               </div>
             </PasswordField>
+
+            {requiresMfa ? (
+              <Field>
+                <label htmlFor="login-mfa">Authenticator or Backup Code</label>
+
+                <input
+                  id="login-mfa"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="123456 or backup code"
+                  value={mfaToken}
+                  onChange={(e) => setMfaToken(e.target.value)}
+                />
+              </Field>
+            ) : null}
 
             <Row>
               <Check>
