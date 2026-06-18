@@ -656,31 +656,163 @@ export default function AdminProfile({ theme }) {
   }, [avatarPreview]);
 
   // ✅ UI: Stats / Activity (unchanged)
-  const stats = useMemo(
-    () => [
-      { label: "Users", value: "2,184" },
-      { label: "Courses", value: "14" },
-      { label: "Sales", value: "$38,920" },
-      { label: "Messages", value: "126" },
-    ],
-    [],
-  );
+  const [adminStats, setAdminStats] = useState(null);
+  const [adminStatsLoading, setAdminStatsLoading] = useState(false);
+  const [adminStatsError, setAdminStatsError] = useState("");
 
-  const activity = useMemo(
-    () => [
-      { text: "Updated pricing for 'KO Fundamentals'", when: "2h ago" },
-      { text: "Responded to 3 live chat messages", when: "5h ago" },
-      { text: "Added 'Body Shot Mastery' lesson", when: "Yesterday" },
-      { text: "New affiliate joined (ID: AFF-7721)", when: "2 days ago" },
-    ],
-    [],
-  );
+  function formatNumber(value) {
+    return new Intl.NumberFormat("en-US").format(Number(value || 0));
+  }
+
+  function formatMoney(value) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(Number(value || 0));
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchAdminStats() {
+      setAdminStatsLoading(true);
+      setAdminStatsError("");
+
+      try {
+        const { data: body } = await axiosInstance.get("/admin/stats", {
+          signal: controller.signal,
+        });
+
+        const payload = body?.data || body || {};
+        setAdminStats(payload);
+      } catch (err) {
+        if (err?.name === "AbortError" || err?.name === "CanceledError") return;
+
+        setAdminStatsError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load admin stats.",
+        );
+      } finally {
+        setAdminStatsLoading(false);
+      }
+    }
+
+    fetchAdminStats();
+
+    const interval = window.setInterval(fetchAdminStats, 30000);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const cards = adminStats?.cards || {};
+    const revenue = adminStats?.revenue || {};
+
+    return [
+      { label: "Users", value: formatNumber(cards.totalUsers) },
+      { label: "Courses", value: formatNumber(cards.totalCourses) },
+      { label: "Sales", value: formatMoney(revenue.totalRevenue) },
+      { label: "Messages", value: formatNumber(cards.totalContacts) },
+    ];
+  }, [adminStats]);
+
+  function formatTimeAgo(dateValue) {
+    if (!dateValue) return "Recently";
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "Recently";
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMinutes < 1) return "Just now";
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    return `${diffDays} days ago`;
+  }
+
+  const activity = useMemo(() => {
+    const recent = adminStats?.recent || {};
+    const items = [];
+
+    if (Array.isArray(recent.users)) {
+      recent.users.slice(0, 2).forEach((user) => {
+        items.push({
+          text: `New user joined: ${user?.name || user?.fullName || user?.email || "Unknown user"}`,
+          when: formatTimeAgo(user?.createdAt),
+        });
+      });
+    }
+
+    if (Array.isArray(recent.orders)) {
+      recent.orders.slice(0, 2).forEach((order) => {
+        items.push({
+          text: `New order ${order?.paymentStatus || order?.status || "received"} · ${formatMoney(order?.total)}`,
+          when: formatTimeAgo(order?.createdAt),
+        });
+      });
+    }
+
+    if (Array.isArray(recent.contacts)) {
+      recent.contacts.slice(0, 2).forEach((contact) => {
+        items.push({
+          text: `New message: ${contact?.subject || contact?.email || contact?.name || "Contact request"}`,
+          when: formatTimeAgo(contact?.createdAt),
+        });
+      });
+    }
+
+    if (Array.isArray(recent.bookings)) {
+      recent.bookings.slice(0, 1).forEach((booking) => {
+        items.push({
+          text: `New coaching booking: ${booking?.type || booking?.status || "Session request"}`,
+          when: formatTimeAgo(booking?.createdAt),
+        });
+      });
+    }
+
+    if (Array.isArray(recent.reviews)) {
+      recent.reviews.slice(0, 1).forEach((review) => {
+        items.push({
+          text: `New review: ${review?.rating || 0} star${Number(review?.rating || 0) === 1 ? "" : "s"}`,
+          when: formatTimeAgo(review?.createdAt),
+        });
+      });
+    }
+
+    return items
+      .sort((a, b) => {
+        const aTime = new Date(a?.createdAt || 0).getTime();
+        const bTime = new Date(b?.createdAt || 0).getTime();
+        return bTime - aTime;
+      })
+      .slice(0, 6);
+  }, [adminStats]);
 
   // ✅ Passwords keep local (no need to mix with your user slice)
   const [passwords, setPasswords] = useState({
     current: "",
     next: "",
     confirm: "",
+  });
+
+  const [twoFactor, setTwoFactor] = useState({
+    loading: false,
+    enabled: false,
+    setupOpen: false,
+    qrCodeDataUrl: "",
+    secret: "",
+    token: "",
+    password: "",
+    backupCodes: [],
   });
 
   // ✅ A profile object used ONLY for display where you previously had static data
@@ -942,7 +1074,152 @@ export default function AdminProfile({ theme }) {
     }
   }
 
-  // ----- SECURE LOGOUT -----
+  async function handleStartTwoFactorSetup() {
+    setTwoFactor((prev) => ({ ...prev, loading: true }));
+
+    try {
+      const csrf = await ensureCsrf();
+
+      const { data: body } = await axiosInstance.post(
+        "/users/me/2fa/setup",
+        {},
+        {
+          headers: {
+            "x-csrf-token": csrf,
+          },
+        },
+      );
+
+      const payload = body?.data || body || {};
+
+      setTwoFactor((prev) => ({
+        ...prev,
+        loading: false,
+        setupOpen: true,
+        qrCodeDataUrl: payload.qrCodeDataUrl || "",
+        secret: payload.secret || "",
+        token: "",
+        backupCodes: [],
+      }));
+
+      pushToast({
+        title: "2FA setup started",
+        description: "Scan the QR code with your authenticator app.",
+        variant: "success",
+      });
+    } catch (err) {
+      setTwoFactor((prev) => ({ ...prev, loading: false }));
+
+      pushToast({
+        title: "2FA setup failed",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Unable to start 2FA.",
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleVerifyTwoFactor() {
+    setTwoFactor((prev) => ({ ...prev, loading: true }));
+
+    try {
+      const csrf = await ensureCsrf();
+
+      const { data: body } = await axiosInstance.post(
+        "/users/me/2fa/verify",
+        {
+          token: twoFactor.token,
+        },
+        {
+          headers: {
+            "x-csrf-token": csrf,
+          },
+        },
+      );
+
+      const payload = body?.data || body || {};
+
+      setTwoFactor((prev) => ({
+        ...prev,
+        loading: false,
+        enabled: true,
+        setupOpen: true,
+        token: "",
+        backupCodes: Array.isArray(payload.backupCodes)
+          ? payload.backupCodes
+          : [],
+      }));
+
+      pushToast({
+        title: "2FA enabled",
+        description: "Your admin account now has authenticator protection.",
+        variant: "success",
+      });
+    } catch (err) {
+      setTwoFactor((prev) => ({ ...prev, loading: false }));
+
+      pushToast({
+        title: "2FA verification failed",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Invalid authenticator code.",
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleDisableTwoFactor() {
+    setTwoFactor((prev) => ({ ...prev, loading: true }));
+
+    try {
+      const csrf = await ensureCsrf();
+
+      await axiosInstance.post(
+        "/users/me/2fa/disable",
+        {
+          password: twoFactor.password,
+          token: twoFactor.token,
+        },
+        {
+          headers: {
+            "x-csrf-token": csrf,
+          },
+        },
+      );
+
+      setTwoFactor({
+        loading: false,
+        enabled: false,
+        setupOpen: false,
+        qrCodeDataUrl: "",
+        secret: "",
+        token: "",
+        password: "",
+        backupCodes: [],
+      });
+
+      pushToast({
+        title: "2FA disabled",
+        description: "Two-factor authentication has been turned off.",
+        variant: "success",
+      });
+    } catch (err) {
+      setTwoFactor((prev) => ({ ...prev, loading: false }));
+
+      pushToast({
+        title: "Disable 2FA failed",
+        description:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Unable to disable 2FA.",
+        variant: "error",
+      });
+    }
+  }
+
   // ----- SECURE LOGOUT -----
   async function handleLogout() {
     try {
@@ -1211,7 +1488,24 @@ export default function AdminProfile({ theme }) {
 
             {/* ===== Right: Stats & Activity ===== */}
             <Card>
-              <h3 style={{ margin: "4px 6px 10px" }}>Brand Pulse</h3>
+              <h3 style={{ margin: "4px 6px 10px" }}>
+                Brand Pulse{" "}
+                {adminStatsLoading ? (
+                  <span style={{ fontSize: 12, opacity: 0.65 }}>Updating…</span>
+                ) : null}
+              </h3>
+
+              {adminStatsError ? (
+                <div
+                  style={{
+                    margin: "0 6px 12px",
+                    color: "#ffb4b4",
+                    fontSize: 13,
+                  }}
+                >
+                  {adminStatsError}
+                </div>
+              ) : null}
               <StatGrid>
                 {stats.map((s, i) => (
                   <StatCard key={i}>
@@ -1225,12 +1519,23 @@ export default function AdminProfile({ theme }) {
 
               <h3 style={{ margin: "6px" }}>Recent Activity</h3>
               <List>
-                {activity.map((a, i) => (
-                  <li key={i}>
-                    <span>{a.text}</span>
-                    <span className="when">{a.when}</span>
+                {activity.length > 0 ? (
+                  activity.map((a, i) => (
+                    <li key={i}>
+                      <span>{a.text}</span>
+                      <span className="when">{a.when}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <span>
+                      {adminStatsLoading
+                        ? "Loading recent activity…"
+                        : "No recent activity yet."}
+                    </span>
+                    <span className="when">Live</span>
                   </li>
-                ))}
+                )}
               </List>
             </Card>
           </Grid>
@@ -1320,17 +1625,138 @@ export default function AdminProfile({ theme }) {
                   <Btn
                     type="button"
                     $variant="ghost"
-                    onClick={() =>
-                      pushToast({
-                        title: "2FA setup coming soon",
-                        description:
-                          "Once backend is wired, you can enable authenticator + SMS backup here.",
-                        variant: "info",
-                      })
+                    onClick={
+                      twoFactor.enabled
+                        ? () =>
+                            setTwoFactor((prev) => ({
+                              ...prev,
+                              setupOpen: !prev.setupOpen,
+                              token: "",
+                              password: "",
+                            }))
+                        : handleStartTwoFactorSetup
                     }
+                    disabled={twoFactor.loading}
                   >
-                    Manage 2FA
+                    {twoFactor.loading
+                      ? "Loading..."
+                      : twoFactor.enabled
+                        ? "Manage 2FA"
+                        : "Enable 2FA"}
                   </Btn>
+
+                  {twoFactor.setupOpen ? (
+                    <div style={{ width: "100%", marginTop: 14 }}>
+                      {twoFactor.qrCodeDataUrl && !twoFactor.enabled ? (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <img
+                            src={twoFactor.qrCodeDataUrl}
+                            alt="2FA QR Code"
+                            style={{
+                              width: 180,
+                              height: 180,
+                              borderRadius: 16,
+                              background: "#fff",
+                              padding: 10,
+                            }}
+                          />
+
+                          <Field>
+                            Authenticator Code
+                            <input
+                              value={twoFactor.token}
+                              onChange={(e) =>
+                                setTwoFactor((prev) => ({
+                                  ...prev,
+                                  token: e.target.value || "",
+                                }))
+                              }
+                              placeholder="Enter 6-digit code"
+                              inputMode="numeric"
+                            />
+                          </Field>
+
+                          <Btn
+                            type="button"
+                            onClick={handleVerifyTwoFactor}
+                            disabled={twoFactor.loading}
+                          >
+                            Verify & Enable 2FA
+                          </Btn>
+                        </div>
+                      ) : null}
+
+                      {twoFactor.enabled ? (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <Field>
+                            2FA Status
+                            <input
+                              readOnly
+                              value="Enabled · Authenticator App"
+                            />
+                          </Field>
+
+                          <Field>
+                            Current Password
+                            <input
+                              type="password"
+                              value={twoFactor.password}
+                              onChange={(e) =>
+                                setTwoFactor((prev) => ({
+                                  ...prev,
+                                  password: e.target.value || "",
+                                }))
+                              }
+                              placeholder="Enter password to disable"
+                              autoComplete="current-password"
+                            />
+                          </Field>
+
+                          <Field>
+                            Authenticator Code
+                            <input
+                              value={twoFactor.token}
+                              onChange={(e) =>
+                                setTwoFactor((prev) => ({
+                                  ...prev,
+                                  token: e.target.value || "",
+                                }))
+                              }
+                              placeholder="Enter 6-digit code"
+                              inputMode="numeric"
+                            />
+                          </Field>
+
+                          <Btn
+                            type="button"
+                            $variant="ghost"
+                            onClick={handleDisableTwoFactor}
+                            disabled={twoFactor.loading}
+                          >
+                            Disable 2FA
+                          </Btn>
+                        </div>
+                      ) : null}
+
+                      {twoFactor.backupCodes.length > 0 ? (
+                        <div style={{ marginTop: 14 }}>
+                          <h4 style={{ margin: "0 0 8px" }}>Backup Codes</h4>
+                          <p style={{ margin: "0 0 10px", opacity: 0.75 }}>
+                            Save these codes now. They will not be shown again.
+                          </p>
+
+                          <List>
+                            {twoFactor.backupCodes.map((code) => (
+                              <li key={code}>
+                                <span>{code}</span>
+                                <span className="when">Backup</span>
+                              </li>
+                            ))}
+                          </List>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </Actions>
               </form>
             </Card>
