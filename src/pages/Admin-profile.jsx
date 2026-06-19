@@ -1,13 +1,10 @@
-// AdminProfile.jsx
+// src/pages/AdminProfile.jsx
 import { useMemo, useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "../components/Toast.jsx"; // ✅ global toast
-
-// ✅ Redux hooks
+import { useToast } from "../components/Toast.jsx";
 import { useDispatch, useSelector } from "react-redux";
 
-// ✅ Your existing actions (DO NOT rewrite)
 import {
   userMeRequest,
   userMeSuccess,
@@ -20,25 +17,13 @@ import {
   setAvatarFile,
   clearAvatar,
 } from "../reducers/user/userActions.js";
+
 import axiosInstance from "../../utils/axiosInstance.js";
 
-/**
- * KnockoutCodes — Admin Profile (Redux + Persistence)
- * - Fetches real admin info from backend (/api/v1/users/me)
- * - Saves profile via PATCH /api/v1/users/me
- * - Uploads avatar via POST /api/v1/users/me/avatar
- * - Persists to localStorage so refresh keeps user + image
- */
-
 const ME_ENDPOINT = "/users/me";
-
-// ✅ Same avatar endpoint pattern as your UserProfile
 const AVATAR_ENDPOINT = "/users/me/avatar";
-
-// ✅ Cache key (same idea as UserProfile)
 const ME_CACHE_KEY = "kc_me";
 
-// ===== Brand Theme Fallback =====
 const FallbackTheme = {
   colors: {
     darkBrown: "#2F1B12",
@@ -59,7 +44,6 @@ const FallbackTheme = {
   layout: { max: "1200px", gutter: "92vw" },
 };
 
-// ===== Helpers =====
 const useBrand = (theme) =>
   useMemo(
     () => ({
@@ -94,18 +78,17 @@ function readCachedMe() {
   }
 }
 
-// ===== Keyframes =====
 const rise = keyframes`
   from { transform: translateY(12px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 `;
+
 const pulseGlow = keyframes`
   0%   { box-shadow: 0 0 0 0 rgba(214,182,159,0.45); }
   70%  { box-shadow: 0 0 0 14px rgba(214,182,159,0); }
   100% { box-shadow: 0 0 0 0 rgba(214,182,159,0); }
 `;
 
-// ===== Styled =====
 const Wrap = styled.div`
   --darkBrown: ${({ theme }) =>
     theme?.colors?.darkBrown || FallbackTheme.colors.darkBrown};
@@ -179,6 +162,7 @@ const Hook = styled.div`
     width: fit-content;
     animation: ${pulseGlow} 2.6s ease-out infinite;
   }
+
   h1 {
     margin: 0;
     font-size: clamp(28px, 5vw, 44px);
@@ -187,6 +171,7 @@ const Hook = styled.div`
     color: var(--ivory);
     text-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
   }
+
   p {
     margin: 0;
     color: rgba(255, 255, 255, 0.78);
@@ -198,6 +183,7 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: 22px;
+
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
@@ -219,6 +205,7 @@ const Card = styled.section`
     box-shadow 0.25s ease,
     border-color 0.25s ease;
   will-change: transform;
+
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
@@ -250,9 +237,11 @@ const ProfileTop = styled.div`
     border: 1px solid rgba(214, 182, 159, 0.28);
     transition: transform 0.25s ease;
   }
+
   .avatarWrap:hover {
     transform: rotate(-1deg) scale(1.01);
   }
+
   .avatar {
     width: 112px;
     height: 112px;
@@ -260,11 +249,13 @@ const ProfileTop = styled.div`
     object-fit: cover;
     border: 2px solid rgba(214, 182, 159, 0.55);
   }
+
   .meta h3 {
     margin: 0 0 6px;
     font-size: clamp(20px, 3.2vw, 28px);
     color: var(--ivory);
   }
+
   .meta .role {
     display: inline-block;
     font-size: 14px;
@@ -283,9 +274,11 @@ const ProfileTop = styled.div`
     .avatarWrap {
       margin: 0 auto;
     }
+
     .meta {
       text-align: center;
     }
+
     > div:last-child {
       justify-self: center;
     }
@@ -296,6 +289,7 @@ const Row = styled.div`
   display: grid;
   gap: 14px;
   margin-top: 16px;
+
   @media (min-width: 780px) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -323,16 +317,19 @@ const Field = styled.label`
       transform 0.06s ease;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   }
+
   input::placeholder,
   textarea::placeholder {
     color: rgba(255, 255, 255, 0.55);
   }
+
   input:focus,
   textarea:focus,
   select:focus {
     border-color: rgba(214, 182, 159, 0.52);
     box-shadow: 0 0 0 3px rgba(214, 182, 159, 0.18);
   }
+
   textarea {
     min-height: 110px;
     resize: vertical;
@@ -381,18 +378,26 @@ const Btn = styled.button`
     $variant === "ghost"
       ? "1px solid rgba(214,182,159,0.45)"
       : "1px solid rgba(214,182,159,0.8)"};
+
   &:hover {
     filter: brightness(1.06);
     box-shadow: var(--shadow-hard);
   }
+
   &:active {
     transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
   }
 `;
 
 const Split = styled.div`
   display: grid;
   gap: 22px;
+
   @media (min-width: 980px) {
     grid-template-columns: 1fr 1fr;
   }
@@ -402,6 +407,7 @@ const StatGrid = styled.div`
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, 1fr);
+
   @media (min-width: 620px) {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -422,17 +428,20 @@ const StatCard = styled.div`
     border-color 0.2s ease,
     box-shadow 0.2s ease;
   will-change: transform;
+
   &:hover {
     transform: translateY(-4px) scale(1.01);
     border-color: rgba(214, 182, 159, 0.28);
     box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
   }
+
   .label {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.68);
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
+
   .value {
     font-size: 24px;
     font-weight: 900;
@@ -446,6 +455,7 @@ const List = styled.ul`
   margin: 0;
   display: grid;
   gap: 10px;
+
   li {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -459,13 +469,16 @@ const List = styled.ul`
       border-color 0.2s ease,
       transform 0.2s ease;
   }
+
   li:hover {
     border-color: rgba(214, 182, 159, 0.28);
     transform: translateY(-2px);
   }
+
   .when {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
   }
 `;
 
@@ -474,9 +487,11 @@ const Toggle = styled.label`
   align-items: center;
   gap: 10px;
   cursor: pointer;
+
   input {
     display: none;
   }
+
   .track {
     width: 48px;
     height: 28px;
@@ -487,6 +502,7 @@ const Toggle = styled.label`
     position: relative;
     transition: background 0.2s ease;
   }
+
   .knob {
     position: absolute;
     top: 50%;
@@ -499,31 +515,49 @@ const Toggle = styled.label`
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
     transition: left 0.2s ease;
   }
+
   .label {
     color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
   }
 `;
 
-// ===== Component =====
 export default function AdminProfile({ theme }) {
   const brand = useBrand(theme);
-
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const toast = useToast();
 
-  // ✅ Keep File out of Redux to prevent RTK mutation errors
   const avatarFileRef = useRef(null);
-
-  // ✅ CSRF token cache (like UserProfile)
   const csrfRef = useRef(null);
+
+  const usersState = useSelector((state) => state.users);
+  const { me, loading, error, form, saving, saveError, avatarPreview } =
+    usersState || {};
+
+  const [adminStats, setAdminStats] = useState(null);
+  const [adminStatsLoading, setAdminStatsLoading] = useState(false);
+  const [adminStatsError, setAdminStatsError] = useState("");
+
+  const [passwords, setPasswords] = useState({
+    current: "",
+    next: "",
+    confirm: "",
+  });
+
+  function pushToast(payload) {
+    toast?.push?.(payload);
+  }
 
   function readCookie(name) {
     try {
       const parts = String(document.cookie || "")
         .split("; ")
         .map((p) => p.trim());
+
       const hit = parts.find((p) => p.startsWith(`${name}=`));
       if (!hit) return null;
+
       return decodeURIComponent(hit.split("=").slice(1).join("="));
     } catch {
       return null;
@@ -557,24 +591,9 @@ export default function AdminProfile({ theme }) {
     return token;
   }
 
-  // ✅ Use toast EXACTLY like Cart.jsx
-  const toast = useToast();
-  function pushToast(payload) {
-    toast?.push?.(payload);
-  }
-
-  // ✅ Redux
-  const dispatch = useDispatch();
-  const usersState = useSelector((state) => state.users);
-
-  const { me, loading, error, form, saving, saveError, avatarPreview } =
-    usersState || {};
-
-  // ----- SECURITY GUARD: verify via backend to prevent bounce -----
-
-  // ✅ 1) Hydrate from localStorage (fast reload + keeps avatar on refresh)
   useEffect(() => {
     const cached = readCachedMe();
+
     if (cached && !me) {
       dispatch(userMeSuccess(cached));
       dispatch(
@@ -598,12 +617,12 @@ export default function AdminProfile({ theme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ 2) Fetch real /me → put into Redux + localStorage
   useEffect(() => {
     const controller = new AbortController();
 
-    (async () => {
+    async function fetchMe() {
       dispatch(userMeRequest());
+
       try {
         const { data: body } = await axiosInstance.get(ME_ENDPOINT, {
           signal: controller.signal,
@@ -615,7 +634,6 @@ export default function AdminProfile({ theme }) {
         dispatch(userMeSuccess(user));
         persistMe(user);
 
-        // ✅ keep a clean form snapshot in Redux
         dispatch(
           resetUserForm({
             name: user?.name || "",
@@ -633,16 +651,24 @@ export default function AdminProfile({ theme }) {
             notifications: user?.notifications !== false,
           }),
         );
-      } catch (e) {
-        if (e?.name === "AbortError") return;
-        dispatch(userMeFail("Network error. Please try again."));
+      } catch (err) {
+        if (err?.name === "AbortError" || err?.name === "CanceledError") return;
+
+        dispatch(
+          userMeFail(
+            err?.response?.data?.message ||
+              err?.message ||
+              "Network error. Please try again.",
+          ),
+        );
       }
-    })();
+    }
+
+    fetchMe();
 
     return () => controller.abort();
   }, [dispatch]);
 
-  // ✅ Revoke blob preview when it changes (prevents memory leaks)
   useEffect(() => {
     return () => {
       if (avatarPreview && String(avatarPreview).startsWith("blob:")) {
@@ -654,11 +680,6 @@ export default function AdminProfile({ theme }) {
       }
     };
   }, [avatarPreview]);
-
-  // ✅ UI: Stats / Activity (unchanged)
-  const [adminStats, setAdminStats] = useState(null);
-  const [adminStatsLoading, setAdminStatsLoading] = useState(false);
-  const [adminStatsError, setAdminStatsError] = useState("");
 
   function formatNumber(value) {
     return new Intl.NumberFormat("en-US").format(Number(value || 0));
@@ -736,6 +757,7 @@ export default function AdminProfile({ theme }) {
     if (diffMinutes < 60) return `${diffMinutes}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays === 1) return "Yesterday";
+
     return `${diffDays} days ago`;
   }
 
@@ -746,8 +768,11 @@ export default function AdminProfile({ theme }) {
     if (Array.isArray(recent.users)) {
       recent.users.slice(0, 2).forEach((user) => {
         items.push({
-          text: `New user joined: ${user?.name || user?.fullName || user?.email || "Unknown user"}`,
+          text: `New user joined: ${
+            user?.name || user?.fullName || user?.email || "Unknown user"
+          }`,
           when: formatTimeAgo(user?.createdAt),
+          createdAt: user?.createdAt,
         });
       });
     }
@@ -755,8 +780,11 @@ export default function AdminProfile({ theme }) {
     if (Array.isArray(recent.orders)) {
       recent.orders.slice(0, 2).forEach((order) => {
         items.push({
-          text: `New order ${order?.paymentStatus || order?.status || "received"} · ${formatMoney(order?.total)}`,
+          text: `New order ${
+            order?.paymentStatus || order?.status || "received"
+          } · ${formatMoney(order?.total)}`,
           when: formatTimeAgo(order?.createdAt),
+          createdAt: order?.createdAt,
         });
       });
     }
@@ -764,8 +792,14 @@ export default function AdminProfile({ theme }) {
     if (Array.isArray(recent.contacts)) {
       recent.contacts.slice(0, 2).forEach((contact) => {
         items.push({
-          text: `New message: ${contact?.subject || contact?.email || contact?.name || "Contact request"}`,
+          text: `New message: ${
+            contact?.subject ||
+            contact?.email ||
+            contact?.name ||
+            "Contact request"
+          }`,
           when: formatTimeAgo(contact?.createdAt),
+          createdAt: contact?.createdAt,
         });
       });
     }
@@ -773,8 +807,11 @@ export default function AdminProfile({ theme }) {
     if (Array.isArray(recent.bookings)) {
       recent.bookings.slice(0, 1).forEach((booking) => {
         items.push({
-          text: `New coaching booking: ${booking?.type || booking?.status || "Session request"}`,
+          text: `New coaching booking: ${
+            booking?.type || booking?.status || "Session request"
+          }`,
           when: formatTimeAgo(booking?.createdAt),
+          createdAt: booking?.createdAt,
         });
       });
     }
@@ -782,8 +819,11 @@ export default function AdminProfile({ theme }) {
     if (Array.isArray(recent.reviews)) {
       recent.reviews.slice(0, 1).forEach((review) => {
         items.push({
-          text: `New review: ${review?.rating || 0} star${Number(review?.rating || 0) === 1 ? "" : "s"}`,
+          text: `New review: ${review?.rating || 0} star${
+            Number(review?.rating || 0) === 1 ? "" : "s"
+          }`,
           when: formatTimeAgo(review?.createdAt),
+          createdAt: review?.createdAt,
         });
       });
     }
@@ -797,30 +837,12 @@ export default function AdminProfile({ theme }) {
       .slice(0, 6);
   }, [adminStats]);
 
-  // ✅ Passwords keep local (no need to mix with your user slice)
-  const [passwords, setPasswords] = useState({
-    current: "",
-    next: "",
-    confirm: "",
-  });
-
-  const [twoFactor, setTwoFactor] = useState({
-    loading: false,
-    enabled: false,
-    setupOpen: false,
-    qrCodeDataUrl: "",
-    secret: "",
-    token: "",
-    password: "",
-    backupCodes: [],
-  });
-
-  // ✅ A profile object used ONLY for display where you previously had static data
   const profile = useMemo(() => {
     const roleLabel =
       (me?.role || "admin") === "admin"
         ? "Admin · KnockoutCodes"
         : me?.role || "Admin";
+
     return {
       name: form?.name ?? me?.name ?? "Admin",
       role: roleLabel,
@@ -846,7 +868,6 @@ export default function AdminProfile({ theme }) {
     };
   }, [me, form]);
 
-  // ✅ Preview URL priority: redux preview > backend image > fallback image
   const previewUrl = useMemo(() => {
     if (avatarPreview) return avatarPreview;
 
@@ -865,17 +886,17 @@ export default function AdminProfile({ theme }) {
       "https://knockoutcodes.onrender.com/api/v1";
 
     const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, "");
-
     const cleanAvatar = a.replace(/^http:\/\/localhost:5000/i, API_ORIGIN);
 
     const imageUrl = cleanAvatar.startsWith("http")
       ? cleanAvatar
-      : `${API_ORIGIN}${cleanAvatar.startsWith("/") ? cleanAvatar : `/${cleanAvatar}`}`;
+      : `${API_ORIGIN}${
+          cleanAvatar.startsWith("/") ? cleanAvatar : `/${cleanAvatar}`
+        }`;
 
     return `${imageUrl}?v=${me?.updatedAt || Date.now()}`;
   }, [avatarPreview, profile.avatarField, me?.updatedAt]);
 
-  // ✅ Update Redux form on input change
   function handleChange(e) {
     const { name, value } = e.target;
     dispatch(updateUserForm({ [name]: value || "" }));
@@ -885,13 +906,11 @@ export default function AdminProfile({ theme }) {
     dispatch(updateUserForm({ notifications: !(form?.notifications ?? true) }));
   }
 
-  // ✅ Avatar file select (redux stores file + preview)
   function handleAvatar(e) {
     const file = e.target.files?.[0];
 
     if (!file) return;
 
-    // ✅ Store the real file in a ref (NOT redux);
     avatarFileRef.current = file;
 
     const url = URL.createObjectURL(file);
@@ -899,7 +918,6 @@ export default function AdminProfile({ theme }) {
     dispatch(setAvatarFile({ file: null, preview: url }));
   }
 
-  // ✅ Upload avatar to DB if user selected a file
   async function uploadAvatarIfNeeded() {
     const fileToUpload = avatarFileRef.current || null;
     if (!fileToUpload) return null;
@@ -924,14 +942,12 @@ export default function AdminProfile({ theme }) {
       persistMe(updatedUser);
     }
 
-    // ✅ clear ref + redux preview
     avatarFileRef.current = null;
     dispatch(clearAvatar());
 
     return updatedUser;
   }
 
-  // ✅ Patch profile fields to DB
   async function patchProfile() {
     const payload = {
       name: form?.name ?? "",
@@ -983,11 +999,9 @@ export default function AdminProfile({ theme }) {
       );
     }
 
-    // ✅ IMPORTANT: return it so handleSave can use the latest value
     return updatedUser;
   }
 
-  // ----- SAVE PROFILE (Redux + DB + localStorage) -----
   async function handleSave(e) {
     e.preventDefault();
 
@@ -1011,8 +1025,14 @@ export default function AdminProfile({ theme }) {
         variant: "success",
       });
     } catch (err) {
-      const msg = err?.message || "Unable to update profile.";
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Unable to update profile.";
+
       dispatch(userSaveFail(msg));
+
       pushToast({
         title: "Update failed",
         description: msg,
@@ -1021,22 +1041,21 @@ export default function AdminProfile({ theme }) {
     }
   }
 
-  // ----- UPDATE PASSWORD (kept your original behavior) -----
   async function handlePasswordUpdate(e) {
     e.preventDefault();
 
-    // Basic client validation
-    if (passwords.next != passwords.confirm) {
+    if (passwords.next !== passwords.confirm) {
       pushToast({
-        title: "Password do not match",
-        description: "Confirm new password must match the new password",
+        title: "Passwords do not match",
+        description: "Confirm new password must match the new password.",
         variant: "error",
       });
       return;
     }
 
     try {
-      // IMPORTANT: use me/password (not /:id)
+      const csrf = await ensureCsrf();
+
       const res = await axiosInstance.patch(
         "/users/me/password",
         {
@@ -1045,14 +1064,16 @@ export default function AdminProfile({ theme }) {
           confirmPassword: passwords.confirm,
         },
         {
-          withCredentials: true,
+          headers: {
+            "x-csrf-token": csrf,
+          },
         },
       );
 
       pushToast({
         title: "Password updated successfully",
         description:
-          res.data.message || "Your admin password was updated successfully!",
+          res?.data?.message || "Your admin password was updated successfully.",
         variant: "success",
       });
 
@@ -1062,7 +1083,7 @@ export default function AdminProfile({ theme }) {
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
-        "Password update failed";
+        "Password update failed.";
 
       pushToast({
         title: "Password update failed",
@@ -1070,160 +1091,16 @@ export default function AdminProfile({ theme }) {
         variant: "error",
       });
 
-      console.error("Password update error", err);
+      if (import.meta.env.DEV) {
+        console.error("Password update error", err);
+      }
     }
   }
 
-  async function handleStartTwoFactorSetup() {
-    setTwoFactor((prev) => ({ ...prev, loading: true }));
-
-    try {
-      const csrf = await ensureCsrf();
-
-      const { data: body } = await axiosInstance.post(
-        "/users/me/2fa/setup",
-        {},
-        {
-          headers: {
-            "x-csrf-token": csrf,
-          },
-        },
-      );
-
-      const payload = body?.data || body || {};
-
-      setTwoFactor((prev) => ({
-        ...prev,
-        loading: false,
-        setupOpen: true,
-        qrCodeDataUrl: payload.qrCodeDataUrl || "",
-        secret: payload.secret || "",
-        token: "",
-        backupCodes: [],
-      }));
-
-      pushToast({
-        title: "2FA setup started",
-        description: "Scan the QR code with your authenticator app.",
-        variant: "success",
-      });
-    } catch (err) {
-      setTwoFactor((prev) => ({ ...prev, loading: false }));
-
-      pushToast({
-        title: "2FA setup failed",
-        description:
-          err?.response?.data?.message ||
-          err?.message ||
-          "Unable to start 2FA.",
-        variant: "error",
-      });
-    }
-  }
-
-  async function handleVerifyTwoFactor() {
-    setTwoFactor((prev) => ({ ...prev, loading: true }));
-
-    try {
-      const csrf = await ensureCsrf();
-
-      const { data: body } = await axiosInstance.post(
-        "/users/me/2fa/verify",
-        {
-          token: twoFactor.token,
-        },
-        {
-          headers: {
-            "x-csrf-token": csrf,
-          },
-        },
-      );
-
-      const payload = body?.data || body || {};
-
-      setTwoFactor((prev) => ({
-        ...prev,
-        loading: false,
-        enabled: true,
-        setupOpen: true,
-        token: "",
-        backupCodes: Array.isArray(payload.backupCodes)
-          ? payload.backupCodes
-          : [],
-      }));
-
-      pushToast({
-        title: "2FA enabled",
-        description: "Your admin account now has authenticator protection.",
-        variant: "success",
-      });
-    } catch (err) {
-      setTwoFactor((prev) => ({ ...prev, loading: false }));
-
-      pushToast({
-        title: "2FA verification failed",
-        description:
-          err?.response?.data?.message ||
-          err?.message ||
-          "Invalid authenticator code.",
-        variant: "error",
-      });
-    }
-  }
-
-  async function handleDisableTwoFactor() {
-    setTwoFactor((prev) => ({ ...prev, loading: true }));
-
-    try {
-      const csrf = await ensureCsrf();
-
-      await axiosInstance.post(
-        "/users/me/2fa/disable",
-        {
-          password: twoFactor.password,
-          token: twoFactor.token,
-        },
-        {
-          headers: {
-            "x-csrf-token": csrf,
-          },
-        },
-      );
-
-      setTwoFactor({
-        loading: false,
-        enabled: false,
-        setupOpen: false,
-        qrCodeDataUrl: "",
-        secret: "",
-        token: "",
-        password: "",
-        backupCodes: [],
-      });
-
-      pushToast({
-        title: "2FA disabled",
-        description: "Two-factor authentication has been turned off.",
-        variant: "success",
-      });
-    } catch (err) {
-      setTwoFactor((prev) => ({ ...prev, loading: false }));
-
-      pushToast({
-        title: "Disable 2FA failed",
-        description:
-          err?.response?.data?.message ||
-          err?.message ||
-          "Unable to disable 2FA.",
-        variant: "error",
-      });
-    }
-  }
-
-  // ----- SECURE LOGOUT -----
   async function handleLogout() {
     try {
       let csrf = null;
+
       try {
         csrf = await ensureCsrf();
       } catch {
@@ -1248,6 +1125,7 @@ export default function AdminProfile({ theme }) {
         sessionStorage.clear();
 
         const past = "Thu, 01 Jan 1970 00:00:00 GMT";
+
         document.cookie = `token=; expires=${past}; path=/;`;
         document.cookie = `refreshToken=; expires=${past}; path=/;`;
         document.cookie = `csrfToken=; expires=${past}; path=/;`;
@@ -1258,548 +1136,415 @@ export default function AdminProfile({ theme }) {
   }
 
   return (
-    <>
-      <Wrap theme={brand}>
-        <Inner>
-          <Hook>
-            <div className="badge">KnockoutCodes • Admin Profile</div>
-            <h1>{profile.headline}</h1>
-            <p>
-              Luxury admin control for a combat-sport brand: clean UI,
-              hard-hitting first impression, and everything you need to manage
-              users, content, and sales — fast.
-            </p>
-          </Hook>
+    <Wrap theme={brand}>
+      <Inner>
+        <Hook>
+          <div className="badge">KnockoutCodes • Admin Profile</div>
+          <h1>{profile.headline}</h1>
+          <p>
+            Luxury admin control for a combat-sport brand: clean UI,
+            hard-hitting first impression, and everything you need to manage
+            users, content, and sales — fast.
+          </p>
+        </Hook>
 
-          <Grid>
-            {/* ===== Left: Profile & Details ===== */}
-            <Card>
-              <ProfileTop>
-                <div className="avatarWrap">
-                  <img className="avatar" src={previewUrl} alt="Admin avatar" />
-                </div>
+        <Grid>
+          <Card>
+            <ProfileTop>
+              <div className="avatarWrap">
+                <img className="avatar" src={previewUrl} alt="Admin avatar" />
+              </div>
 
-                <div className="meta">
-                  <h3>{profile.name}</h3>
-                  <span className="role">{profile.role}</span>
-                  {loading ? (
-                    <div style={{ marginTop: 6, opacity: 0.75, fontSize: 12 }}>
-                      Loading…
-                    </div>
-                  ) : error ? (
-                    <div
-                      style={{
-                        marginTop: 6,
-                        opacity: 0.85,
-                        fontSize: 12,
-                        color: "#ffb4b4",
-                      }}
-                    >
-                      {error}
-                    </div>
-                  ) : null}
-                </div>
+              <div className="meta">
+                <h3>{profile.name}</h3>
+                <span className="role">{profile.role}</span>
 
-                <div>
-                  <input
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={handleAvatar}
-                  />
-                  <Btn as="label" htmlFor="avatar">
-                    Upload Avatar
-                  </Btn>
-                </div>
-              </ProfileTop>
-
-              <form onSubmit={handleSave}>
-                <Row>
-                  <Field>
-                    Name
-                    <input
-                      name="name"
-                      value={form?.name ?? ""}
-                      onChange={handleChange}
-                      placeholder="Full name"
-                      required
-                    />
-                  </Field>
-                  <Field>
-                    Email
-                    <input
-                      id="admin-email"
-                      type="email"
-                      name="email"
-                      value={form?.email ?? ""}
-                      onChange={handleChange}
-                      placeholder="Email address"
-                      required
-                      autoComplete="email"
-                    />
-                  </Field>
-                </Row>
-
-                <Row>
-                  <Field>
-                    Phone
-                    <input
-                      name="phone"
-                      value={form?.phone ?? ""}
-                      onChange={handleChange}
-                      placeholder="Phone"
-                    />
-                  </Field>
-                  <Field>
-                    Location
-                    <input
-                      name="location"
-                      value={form?.location ?? ""}
-                      onChange={handleChange}
-                      placeholder="City, Country"
-                    />
-                  </Field>
-                </Row>
-
-                <Row>
-                  <Field>
-                    Website
-                    <input
-                      name="website"
-                      value={form?.website ?? ""}
-                      onChange={handleChange}
-                      placeholder="https://knockoutcodes.com"
-                    />
-                  </Field>
-                  <Field>
-                    Instagram
-                    <input
-                      name="instagram"
-                      value={form?.instagram ?? ""}
-                      onChange={handleChange}
-                      placeholder="https://instagram.com/knockoutcodes"
-                    />
-                  </Field>
-                </Row>
-
-                <Row>
-                  <Field>
-                    TikTok
-                    <input
-                      name="tiktok"
-                      value={form?.tiktok ?? ""}
-                      onChange={handleChange}
-                      placeholder="https://tiktok.com/@knockoutcodes"
-                    />
-                  </Field>
-                  <Field>
-                    YouTube
-                    <input
-                      name="youtube"
-                      value={form?.youtube ?? ""}
-                      onChange={handleChange}
-                      placeholder="https://youtube.com/@knockoutcodes"
-                    />
-                  </Field>
-                </Row>
-
-                <Row>
-                  <Field>
-                    X (Twitter)
-                    <input
-                      name="xhandle"
-                      value={form?.xhandle ?? ""}
-                      onChange={handleChange}
-                      placeholder="https://x.com/knockoutcodes"
-                    />
-                  </Field>
-
-                  <Field>
-                    Short Bio
-                    <textarea
-                      name="bio"
-                      value={form?.bio ?? ""}
-                      onChange={handleChange}
-                      placeholder="Tell your story and brand promise…"
-                    />
-                  </Field>
-                </Row>
-
-                <Row>
-                  <Field>
-                    Headline
-                    <input
-                      name="headline"
-                      value={form?.headline ?? ""}
-                      onChange={handleChange}
-                      placeholder="Your profile headline…"
-                    />
-                  </Field>
-
-                  <Field>
-                    (Auto)
-                    <input
-                      readOnly
-                      value={
-                        saveError
-                          ? `Error: ${saveError}`
-                          : saving
-                            ? "Saving…"
-                            : "Ready"
-                      }
-                    />
-                  </Field>
-                </Row>
-
-                <Actions>
-                  <Toggle $on={!!(form?.notifications ?? true)}>
-                    <input
-                      type="checkbox"
-                      checked={!!(form?.notifications ?? true)}
-                      onChange={handleToggleNotifications}
-                    />
-                    <div className="track">
-                      <span className="knob" />
-                    </div>
-                    <span className="label">Email & push notifications</span>
-                  </Toggle>
-                </Actions>
-
-                <ButtonsRow>
-                  <Btn type="submit" disabled={saving}>
-                    {saving ? "Saving…" : "Save Profile"}
-                  </Btn>
-                  <Btn
-                    type="button"
-                    $variant="ghost"
-                    onClick={() =>
-                      window.scrollTo({ top: 0, behavior: "smooth" })
-                    }
+                {loading ? (
+                  <div style={{ marginTop: 6, opacity: 0.75, fontSize: 12 }}>
+                    Loading…
+                  </div>
+                ) : error ? (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      opacity: 0.85,
+                      fontSize: 12,
+                      color: "#ffb4b4",
+                    }}
                   >
-                    Back to Top
-                  </Btn>
-                  <Btn type="button" $variant="ghost" onClick={handleLogout}>
-                    Logout
-                  </Btn>
-                </ButtonsRow>
-              </form>
-            </Card>
-
-            {/* ===== Right: Stats & Activity ===== */}
-            <Card>
-              <h3 style={{ margin: "4px 6px 10px" }}>
-                Brand Pulse{" "}
-                {adminStatsLoading ? (
-                  <span style={{ fontSize: 12, opacity: 0.65 }}>Updating…</span>
+                    {error}
+                  </div>
                 ) : null}
-              </h3>
+              </div>
 
-              {adminStatsError ? (
-                <div
-                  style={{
-                    margin: "0 6px 12px",
-                    color: "#ffb4b4",
-                    fontSize: 13,
-                  }}
-                >
-                  {adminStatsError}
-                </div>
-              ) : null}
-              <StatGrid>
-                {stats.map((s, i) => (
-                  <StatCard key={i}>
-                    <div className="label">{s.label}</div>
-                    <div className="value">{s.value}</div>
-                  </StatCard>
-                ))}
-              </StatGrid>
-
-              <div style={{ height: 12 }} />
-
-              <h3 style={{ margin: "6px" }}>Recent Activity</h3>
-              <List>
-                {activity.length > 0 ? (
-                  activity.map((a, i) => (
-                    <li key={i}>
-                      <span>{a.text}</span>
-                      <span className="when">{a.when}</span>
-                    </li>
-                  ))
-                ) : (
-                  <li>
-                    <span>
-                      {adminStatsLoading
-                        ? "Loading recent activity…"
-                        : "No recent activity yet."}
-                    </span>
-                    <span className="when">Live</span>
-                  </li>
-                )}
-              </List>
-            </Card>
-          </Grid>
-
-          <div style={{ height: 22 }} />
-
-          <Split>
-            {/* ===== Security / Password ===== */}
-            <Card>
-              <h3 style={{ margin: "6px" }}>Security</h3>
-              <form onSubmit={handlePasswordUpdate}>
-                <Row>
-                  <Field>
-                    Current Password
-                    <input
-                      type="password"
-                      value={passwords.current}
-                      onChange={(e) =>
-                        setPasswords((p) => ({
-                          ...p,
-                          current: e.target.value || "",
-                        }))
-                      }
-                      required
-                      autoComplete="current-password"
-                    />
-                  </Field>
-                  <Field>
-                    New Password
-                    <input
-                      type="password"
-                      value={passwords.next}
-                      onChange={(e) =>
-                        setPasswords((p) => ({
-                          ...p,
-                          next: e.target.value || "",
-                        }))
-                      }
-                      required
-                      autoComplete="new-password"
-                    />
-                  </Field>
-                </Row>
-                <Row>
-                  <Field>
-                    Confirm New Password
-                    <input
-                      type="password"
-                      value={passwords.confirm}
-                      onChange={(e) =>
-                        setPasswords((p) => ({
-                          ...p,
-                          confirm: e.target.value || "",
-                        }))
-                      }
-                      required
-                      autoComplete="new-password"
-                    />
-                  </Field>
-                  <Field>
-                    Two-Factor (coming soon)
-                    <input readOnly value="Authenticator App · SMS Backup" />
-                  </Field>
-                </Row>
-                <Actions>
-                  <Btn type="submit">Update Password</Btn>
-
-                  {/* 
-    MANAGE SESSIONS / DEVICES BUTTON
-    Big-tech style security feature:
-    - Lets admin see all active logged-in devices
-    - Lets admin revoke old sessions
-    - Opens the existing ManageDevices page
-  */}
-                  <Btn
-                    type="button"
-                    $variant="ghost"
-                    onClick={() => navigate("/manage-devices")}
-                  >
-                    Manage Active Sessions
-                  </Btn>
-
-                  {/* 
-    FUTURE 2FA BUTTON
-    Keep this for later when authenticator/SMS security is ready
-  */}
-                  <Btn
-                    type="button"
-                    $variant="ghost"
-                    onClick={
-                      twoFactor.enabled
-                        ? () =>
-                            setTwoFactor((prev) => ({
-                              ...prev,
-                              setupOpen: !prev.setupOpen,
-                              token: "",
-                              password: "",
-                            }))
-                        : handleStartTwoFactorSetup
-                    }
-                    disabled={twoFactor.loading}
-                  >
-                    {twoFactor.loading
-                      ? "Loading..."
-                      : twoFactor.enabled
-                        ? "Manage 2FA"
-                        : "Enable 2FA"}
-                  </Btn>
-
-                  {twoFactor.setupOpen ? (
-                    <div style={{ width: "100%", marginTop: 14 }}>
-                      {twoFactor.qrCodeDataUrl && !twoFactor.enabled ? (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <img
-                            src={twoFactor.qrCodeDataUrl}
-                            alt="2FA QR Code"
-                            style={{
-                              width: 180,
-                              height: 180,
-                              borderRadius: 16,
-                              background: "#fff",
-                              padding: 10,
-                            }}
-                          />
-
-                          <Field>
-                            Authenticator Code
-                            <input
-                              value={twoFactor.token}
-                              onChange={(e) =>
-                                setTwoFactor((prev) => ({
-                                  ...prev,
-                                  token: e.target.value || "",
-                                }))
-                              }
-                              placeholder="Enter 6-digit code"
-                              inputMode="numeric"
-                            />
-                          </Field>
-
-                          <Btn
-                            type="button"
-                            onClick={handleVerifyTwoFactor}
-                            disabled={twoFactor.loading}
-                          >
-                            Verify & Enable 2FA
-                          </Btn>
-                        </div>
-                      ) : null}
-
-                      {twoFactor.enabled ? (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <Field>
-                            2FA Status
-                            <input
-                              readOnly
-                              value="Enabled · Authenticator App"
-                            />
-                          </Field>
-
-                          <Field>
-                            Current Password
-                            <input
-                              type="password"
-                              value={twoFactor.password}
-                              onChange={(e) =>
-                                setTwoFactor((prev) => ({
-                                  ...prev,
-                                  password: e.target.value || "",
-                                }))
-                              }
-                              placeholder="Enter password to disable"
-                              autoComplete="current-password"
-                            />
-                          </Field>
-
-                          <Field>
-                            Authenticator Code
-                            <input
-                              value={twoFactor.token}
-                              onChange={(e) =>
-                                setTwoFactor((prev) => ({
-                                  ...prev,
-                                  token: e.target.value || "",
-                                }))
-                              }
-                              placeholder="Enter 6-digit code"
-                              inputMode="numeric"
-                            />
-                          </Field>
-
-                          <Btn
-                            type="button"
-                            $variant="ghost"
-                            onClick={handleDisableTwoFactor}
-                            disabled={twoFactor.loading}
-                          >
-                            Disable 2FA
-                          </Btn>
-                        </div>
-                      ) : null}
-
-                      {twoFactor.backupCodes.length > 0 ? (
-                        <div style={{ marginTop: 14 }}>
-                          <h4 style={{ margin: "0 0 8px" }}>Backup Codes</h4>
-                          <p style={{ margin: "0 0 10px", opacity: 0.75 }}>
-                            Save these codes now. They will not be shown again.
-                          </p>
-
-                          <List>
-                            {twoFactor.backupCodes.map((code) => (
-                              <li key={code}>
-                                <span>{code}</span>
-                                <span className="when">Backup</span>
-                              </li>
-                            ))}
-                          </List>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </Actions>
-              </form>
-            </Card>
-
-            {/* ===== Quick Links / CTA ===== */}
-            <Card>
-              <h3 style={{ margin: "6px" }}>Quick Actions</h3>
-              <Row>
-                <Field>
-                  Courses Manager
-                  <input readOnly value="Create, edit, publish courses" />
-                </Field>
-                <Field>
-                  Messages Center
-                  <input readOnly value="Live chat + replies" />
-                </Field>
-              </Row>
-              <Row>
-                <Field>
-                  Sales Dashboard
-                  <input readOnly value="Revenue, refunds, payouts" />
-                </Field>
-                <Field>
-                  Users & Roles
-                  <input readOnly value="Admins, creators, students" />
-                </Field>
-              </Row>
-              <Actions>
-                <Btn type="button" onClick={() => navigate("/admin/courses")}>
-                  Open Courses
+              <div>
+                <input
+                  id="avatar"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleAvatar}
+                />
+                <Btn as="label" htmlFor="avatar">
+                  Upload Avatar
                 </Btn>
+              </div>
+            </ProfileTop>
+
+            <form onSubmit={handleSave}>
+              <Row>
+                <Field>
+                  Name
+                  <input
+                    name="name"
+                    value={form?.name ?? ""}
+                    onChange={handleChange}
+                    placeholder="Full name"
+                    required
+                  />
+                </Field>
+
+                <Field>
+                  Email
+                  <input
+                    id="admin-email"
+                    type="email"
+                    name="email"
+                    value={form?.email ?? ""}
+                    onChange={handleChange}
+                    placeholder="Email address"
+                    required
+                    autoComplete="email"
+                  />
+                </Field>
+              </Row>
+
+              <Row>
+                <Field>
+                  Phone
+                  <input
+                    name="phone"
+                    value={form?.phone ?? ""}
+                    onChange={handleChange}
+                    placeholder="Phone"
+                  />
+                </Field>
+
+                <Field>
+                  Location
+                  <input
+                    name="location"
+                    value={form?.location ?? ""}
+                    onChange={handleChange}
+                    placeholder="City, Country"
+                  />
+                </Field>
+              </Row>
+
+              <Row>
+                <Field>
+                  Website
+                  <input
+                    name="website"
+                    value={form?.website ?? ""}
+                    onChange={handleChange}
+                    placeholder="https://knockoutcodes.com"
+                  />
+                </Field>
+
+                <Field>
+                  Instagram
+                  <input
+                    name="instagram"
+                    value={form?.instagram ?? ""}
+                    onChange={handleChange}
+                    placeholder="https://instagram.com/knockoutcodes"
+                  />
+                </Field>
+              </Row>
+
+              <Row>
+                <Field>
+                  TikTok
+                  <input
+                    name="tiktok"
+                    value={form?.tiktok ?? ""}
+                    onChange={handleChange}
+                    placeholder="https://tiktok.com/@knockoutcodes"
+                  />
+                </Field>
+
+                <Field>
+                  YouTube
+                  <input
+                    name="youtube"
+                    value={form?.youtube ?? ""}
+                    onChange={handleChange}
+                    placeholder="https://youtube.com/@knockoutcodes"
+                  />
+                </Field>
+              </Row>
+
+              <Row>
+                <Field>
+                  X (Twitter)
+                  <input
+                    name="xhandle"
+                    value={form?.xhandle ?? ""}
+                    onChange={handleChange}
+                    placeholder="https://x.com/knockoutcodes"
+                  />
+                </Field>
+
+                <Field>
+                  Short Bio
+                  <textarea
+                    name="bio"
+                    value={form?.bio ?? ""}
+                    onChange={handleChange}
+                    placeholder="Tell your story and brand promise…"
+                  />
+                </Field>
+              </Row>
+
+              <Row>
+                <Field>
+                  Headline
+                  <input
+                    name="headline"
+                    value={form?.headline ?? ""}
+                    onChange={handleChange}
+                    placeholder="Your profile headline…"
+                  />
+                </Field>
+
+                <Field>
+                  Status
+                  <input
+                    readOnly
+                    value={
+                      saveError
+                        ? `Error: ${saveError}`
+                        : saving
+                          ? "Saving…"
+                          : "Ready"
+                    }
+                  />
+                </Field>
+              </Row>
+
+              <Actions>
+                <Toggle $on={!!(form?.notifications ?? true)}>
+                  <input
+                    type="checkbox"
+                    checked={!!(form?.notifications ?? true)}
+                    onChange={handleToggleNotifications}
+                  />
+                  <div className="track">
+                    <span className="knob" />
+                  </div>
+                  <span className="label">Email & push notifications</span>
+                </Toggle>
+              </Actions>
+
+              <ButtonsRow>
+                <Btn type="submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save Profile"}
+                </Btn>
+
                 <Btn
                   type="button"
                   $variant="ghost"
-                  onClick={() => navigate("/admin/contacts")}
+                  onClick={() =>
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                  }
                 >
-                  Open Messages
+                  Back to Top
+                </Btn>
+
+                <Btn type="button" $variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Btn>
+              </ButtonsRow>
+            </form>
+          </Card>
+
+          <Card>
+            <h3 style={{ margin: "4px 6px 10px" }}>
+              Brand Pulse{" "}
+              {adminStatsLoading ? (
+                <span style={{ fontSize: 12, opacity: 0.65 }}>Updating…</span>
+              ) : null}
+            </h3>
+
+            {adminStatsError ? (
+              <div
+                style={{
+                  margin: "0 6px 12px",
+                  color: "#ffb4b4",
+                  fontSize: 13,
+                }}
+              >
+                {adminStatsError}
+              </div>
+            ) : null}
+
+            <StatGrid>
+              {stats.map((s, i) => (
+                <StatCard key={`${s.label}-${i}`}>
+                  <div className="label">{s.label}</div>
+                  <div className="value">{s.value}</div>
+                </StatCard>
+              ))}
+            </StatGrid>
+
+            <div style={{ height: 12 }} />
+
+            <h3 style={{ margin: "6px" }}>Recent Activity</h3>
+
+            <List>
+              {activity.length > 0 ? (
+                activity.map((a, i) => (
+                  <li key={`${a.text}-${i}`}>
+                    <span>{a.text}</span>
+                    <span className="when">{a.when}</span>
+                  </li>
+                ))
+              ) : (
+                <li>
+                  <span>
+                    {adminStatsLoading
+                      ? "Loading recent activity…"
+                      : "No recent activity yet."}
+                  </span>
+                  <span className="when">Live</span>
+                </li>
+              )}
+            </List>
+          </Card>
+        </Grid>
+
+        <div style={{ height: 22 }} />
+
+        <Split>
+          <Card>
+            <h3 style={{ margin: "6px" }}>Security</h3>
+
+            <form onSubmit={handlePasswordUpdate}>
+              <Row>
+                <Field>
+                  Current Password
+                  <input
+                    type="password"
+                    value={passwords.current}
+                    onChange={(e) =>
+                      setPasswords((p) => ({
+                        ...p,
+                        current: e.target.value || "",
+                      }))
+                    }
+                    required
+                    autoComplete="current-password"
+                  />
+                </Field>
+
+                <Field>
+                  New Password
+                  <input
+                    type="password"
+                    value={passwords.next}
+                    onChange={(e) =>
+                      setPasswords((p) => ({
+                        ...p,
+                        next: e.target.value || "",
+                      }))
+                    }
+                    required
+                    autoComplete="new-password"
+                  />
+                </Field>
+              </Row>
+
+              <Row>
+                <Field>
+                  Confirm New Password
+                  <input
+                    type="password"
+                    value={passwords.confirm}
+                    onChange={(e) =>
+                      setPasswords((p) => ({
+                        ...p,
+                        confirm: e.target.value || "",
+                      }))
+                    }
+                    required
+                    autoComplete="new-password"
+                  />
+                </Field>
+
+                <Field>
+                  Active Sessions
+                  <input readOnly value="Review and revoke logged-in devices" />
+                </Field>
+              </Row>
+
+              <Actions>
+                <Btn type="submit">Update Password</Btn>
+
+                <Btn
+                  type="button"
+                  $variant="ghost"
+                  onClick={() => navigate("/manage-devices")}
+                >
+                  Manage Active Sessions
                 </Btn>
               </Actions>
-            </Card>
-          </Split>
-        </Inner>
-      </Wrap>
-    </>
+            </form>
+          </Card>
+
+          <Card>
+            <h3 style={{ margin: "6px" }}>Quick Actions</h3>
+
+            <Row>
+              <Field>
+                Courses Manager
+                <input readOnly value="Create, edit, publish courses" />
+              </Field>
+
+              <Field>
+                Messages Center
+                <input readOnly value="Live chat + replies" />
+              </Field>
+            </Row>
+
+            <Row>
+              <Field>
+                Sales Dashboard
+                <input readOnly value="Revenue, refunds, payouts" />
+              </Field>
+
+              <Field>
+                Users & Roles
+                <input readOnly value="Admins, creators, students" />
+              </Field>
+            </Row>
+
+            <Actions>
+              <Btn type="button" onClick={() => navigate("/admin/courses")}>
+                Open Courses
+              </Btn>
+
+              <Btn
+                type="button"
+                $variant="ghost"
+                onClick={() => navigate("/admin/contacts")}
+              >
+                Open Messages
+              </Btn>
+            </Actions>
+          </Card>
+        </Split>
+      </Inner>
+    </Wrap>
   );
 }

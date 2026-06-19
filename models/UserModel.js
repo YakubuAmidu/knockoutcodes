@@ -133,33 +133,6 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    // MFA
-    mfaEnabled: {
-      type: Boolean,
-      default: false,
-      select: false,
-    },
-
-    mfaSecret: {
-      type: String,
-      select: false,
-      default: "",
-    },
-
-    mfaBackupCodes: [
-      {
-        codeHash: {
-          type: String,
-          select: false,
-        },
-        usedAt: {
-          type: Date,
-          default: null,
-          select: false,
-        },
-      },
-    ],
-
     // Login security
     failedLoginAttempts: {
       type: Number,
@@ -388,9 +361,6 @@ userSchema.methods.toJSON = function toJSON() {
   delete obj.__v;
   delete obj.emailVerificationToken;
   delete obj.emailVerificationExpires;
-  delete obj.mfaEnabled;
-  delete obj.mfaSecret;
-  delete obj.mfaBackupCodes;
   delete obj.lastPasswordResetAt;
   delete obj.lastFailedLoginAt;
   delete obj.adminNotes;

@@ -2,7 +2,6 @@
 import crypto from "crypto";
 import { sendMail } from "../utils/mailer.js";
 import jwt from "jsonwebtoken";
-import speakeasy from "speakeasy";
 import bcrypt from "bcryptjs";
 import User from "../models/UserModel.js";
 import Session from "../models/SessionModel.js";
@@ -345,7 +344,7 @@ export async function login(req, res) {
     }
 
     const user = await User.findOne({ email }).select(
-      "+password +failedLoginAttempts +lockUntil +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +emailVerificationToken +emailVerificationExpires +mfaEnabled +mfaSecret +mfaBackupCodes",
+      "+password +failedLoginAttempts +lockUntil +tokenVersion +refreshTokenHash +refreshTokenId +refreshTokenExpiresAt +emailVerificationToken +emailVerificationExpires",
     );
 
     if (!user) {
@@ -448,54 +447,6 @@ export async function login(req, res) {
         success: false,
         message: "Invalid email or password.",
       });
-    }
-
-    if (user.mfaEnabled) {
-      const mfaToken = String(
-        req.body?.mfaToken || req.body?.twoFactorCode || req.body?.token || "",
-      )
-        .replace(/\s+/g, "")
-        .trim();
-
-      if (!mfaToken) {
-        return res.status(401).json({
-          success: false,
-          code: "MFA_REQUIRED",
-          message: "Enter your authenticator code to continue.",
-          mfaRequired: true,
-        });
-      }
-
-      let mfaOk = speakeasy.totp.verify({
-        secret: user.mfaSecret,
-        encoding: "base32",
-        token: mfaToken,
-        window: 1,
-      });
-
-      if (!mfaOk && Array.isArray(user.mfaBackupCodes)) {
-        for (const backup of user.mfaBackupCodes) {
-          if (backup?.usedAt || !backup?.codeHash) continue;
-
-          const backupOk = await bcrypt.compare(mfaToken, backup.codeHash);
-
-          if (backupOk) {
-            backup.usedAt = new Date();
-            mfaOk = true;
-            await user.save({ validateBeforeSave: false });
-            break;
-          }
-        }
-      }
-
-      if (!mfaOk) {
-        return res.status(401).json({
-          success: false,
-          code: "MFA_INVALID",
-          message: "Invalid authenticator or backup code.",
-          mfaRequired: true,
-        });
-      }
     }
 
     const refreshTokenId = crypto.randomUUID();

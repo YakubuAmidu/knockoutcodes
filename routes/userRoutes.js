@@ -12,10 +12,6 @@ import {
   forceLogoutUser,
   softDeleteUser,
   restoreUser,
-  getMyTwoFactorStatus,
-  setupMyTwoFactor,
-  verifyMyTwoFactor,
-  disableMyTwoFactor,
 } from "../controllers/userController.js";
 
 import { authRequired, adminOnly } from "../middleware/authMiddleware.js";
@@ -63,37 +59,6 @@ router.patch(
   csrfRequired,
   authRequired,
   changeMyPassword,
-);
-
-router.get(
-  "/me/2fa/status",
-  ...publicShield,
-  authRequired,
-  getMyTwoFactorStatus,
-);
-
-router.post(
-  "/me/2fa/setup",
-  ...writeShield,
-  csrfRequired,
-  authRequired,
-  setupMyTwoFactor,
-);
-
-router.post(
-  "/me/2fa/verify",
-  ...writeShield,
-  csrfRequired,
-  authRequired,
-  verifyMyTwoFactor,
-);
-
-router.post(
-  "/me/2fa/disable",
-  ...writeShield,
-  csrfRequired,
-  authRequired,
-  disableMyTwoFactor,
 );
 
 /* =========================
