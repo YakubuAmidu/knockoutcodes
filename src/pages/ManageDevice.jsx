@@ -5,6 +5,36 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../components/Toast";
 import axiosInstance from "../../utils/axiosInstance";
 
+function readCookie(name) {
+  try {
+    const parts = String(document.cookie || "")
+      .split("; ")
+      .map((p) => p.trim());
+
+    const hit = parts.find((p) => p.startsWith(`${name}=`));
+    if (!hit) return null;
+
+    return decodeURIComponent(hit.split("=").slice(1).join("="));
+  } catch {
+    return null;
+  }
+}
+
+async function ensureCsrf() {
+  const fromCookie = readCookie("csrfToken");
+  if (fromCookie) return fromCookie;
+
+  const { data } = await axiosInstance.get("/auth/csrf");
+
+  return (
+    data?.csrfToken ||
+    data?.token ||
+    data?.data?.csrfToken ||
+    data?.data?.token ||
+    readCookie("csrfToken")
+  );
+}
+
 export default function ManageDevices() {
   const toast = useToast();
 
@@ -118,8 +148,17 @@ export default function ManageDevices() {
       setBusyId(sessionId);
       try {
         // ✅ Correct: delete ONE session by id
+        const csrf = await ensureCsrf();
+
         await axiosInstance.delete(
           `/auth/sessions/${encodeURIComponent(sessionId)}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": csrf,
+            },
+            data: {},
+          },
         );
 
         setSessions((curr) => curr.filter((s) => s?.id !== sessionId));
@@ -156,7 +195,18 @@ export default function ManageDevices() {
     setBusyId("ALL_OTHERS");
     try {
       // ✅ Correct: POST revoke-others (NOT DELETE /sessions/others)
-      await axiosInstance.post("/auth/sessions/revoke-others");
+      const csrf = await ensureCsrf();
+
+      await axiosInstance.post(
+        "/auth/sessions/revoke-others",
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": csrf,
+          },
+        },
+      );
 
       setSessions((curr) => curr.filter((s) => s?.id === currentSessionId));
 
