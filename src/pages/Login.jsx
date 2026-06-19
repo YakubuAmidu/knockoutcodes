@@ -147,6 +147,20 @@ export default function Login() {
     initializing,
   ]);
 
+  const mfaInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (requiresMfa) {
+      setTimeout(() => {
+        mfaInputRef.current?.focus?.();
+        mfaInputRef.current?.scrollIntoView?.({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
+    }
+  }, [requiresMfa]);
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -211,6 +225,7 @@ export default function Login() {
       //=========
       if (result?.code === "MFA_REQUIRED") {
         setRequiresMfa(true);
+        setMfaToken("");
 
         const msg = "Enter your authenticator app code.";
 
@@ -220,6 +235,14 @@ export default function Login() {
           type: "info",
           message: msg,
         });
+
+        setTimeout(() => {
+          document.getElementById("login-mfa")?.focus();
+          document.getElementById("login-mfa")?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }, 150);
 
         return;
       }
@@ -410,6 +433,7 @@ export default function Login() {
                 <label htmlFor="login-mfa">Authenticator or Backup Code</label>
 
                 <input
+                  ref={mfaInputRef}
                   id="login-mfa"
                   type="text"
                   inputMode="numeric"
@@ -439,7 +463,11 @@ export default function Login() {
               disabled={!canSubmit}
               aria-disabled={!canSubmit}
             >
-              {isBusy ? "Signing you in…" : "Enter Dashboard"}
+              {isBusy
+                ? "Signing you in…"
+                : requiresMfa
+                  ? "Verify Code"
+                  : "Enter Dashboard"}
             </Button>
 
             <Meta>
