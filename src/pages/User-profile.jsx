@@ -554,6 +554,17 @@ export default function UserProfile() {
       me?.avatar || me?.avatarUrl || me?.profileImage || me?.image || "";
 
     if (avatarField) {
+      const value = String(avatarField).trim();
+
+      if (
+        value.startsWith("data:image/") ||
+        value.startsWith("blob:") ||
+        value.startsWith("http://") ||
+        value.startsWith("https://")
+      ) {
+        return value;
+      }
+
       const bust =
         avatarBust ||
         (me?.updatedAt ? new Date(me.updatedAt).getTime() : 0) ||
@@ -561,13 +572,7 @@ export default function UserProfile() {
 
       const qs = bust ? `?v=${encodeURIComponent(String(bust))}` : "";
 
-      if (String(avatarField).startsWith("http")) {
-        return `${avatarField}${qs}`;
-      }
-
-      const normalized = String(avatarField).startsWith("/")
-        ? avatarField
-        : `/${avatarField}`;
+      const normalized = value.startsWith("/") ? value : `/${value}`;
 
       return `${API_ORIGIN}${normalized}${qs}`;
     }
@@ -802,7 +807,8 @@ export default function UserProfile() {
       throw new Error(body?.message || "Avatar upload failed.");
     }
 
-    const updatedUser = body?.data || body || null;
+    const updatedUser =
+      body?.data?.user || body?.user || body?.data || body || null;
 
     // ✅ cleanup
     avatarFileRef.current = null;
