@@ -359,9 +359,9 @@ export async function revokeOtherSessions(req, res) {
 export async function listAllSessionsAdmin(req, res) {
   try {
     const page = Math.max(Number(req.query.page || 1), 1);
-    const limit = Math.min(Math.max(Number(req.query.limit || 10), 5), 25);
+    const limit = Math.min(Math.max(Number(req.query.limit || 25), 5), 100);
 
-    const status = clean(req.query.status || "active", 20);
+    const status = clean(req.query.status || "all", 20);
     const trusted = clean(req.query.trusted || "", 10);
     const email = clean(req.query.email || "", 80).toLowerCase();
 

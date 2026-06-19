@@ -35,7 +35,7 @@ export default function Session() {
   });
 
   const [page, setPage] = useState(1);
-  const [limit] = useState(20);
+  const [limit] = useState(100);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
 
@@ -47,9 +47,7 @@ export default function Session() {
       params.set("page", page);
       params.set("limit", limit);
 
-      if (filters.status && filters.status !== "all") {
-        params.set("status", filters.status);
-      }
+      params.set("status", filters.status || "all");
 
       if (filters.email.trim()) {
         params.set("email", filters.email.trim());
