@@ -1,5 +1,5 @@
 // src/pages/ManageLesson.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { useDispatch, useSelector } from "react-redux";
 import axiosInstance from "../../utils/axiosInstance";
@@ -55,25 +55,7 @@ export default function ManageLesson() {
   const [editingLesson, setEditingLesson] = useState(null);
   const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchManageLessons());
-    loadCourses();
-  }, [dispatch, loadCourses]);
-
-  useEffect(() => {
-    if (successMessage) {
-      toast.showToast(successMessage, "success");
-      dispatch(clearManageLessonMessages());
-    }
-
-    if (error) {
-      toast.showToast(error, "error");
-      dispatch(clearManageLessonMessages());
-    }
-  }, [successMessage, error, toast, dispatch]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const loadCourses = async () => {
+  const loadCourses = useCallback(async () => {
     try {
       setCoursesLoading(true);
 
@@ -91,7 +73,24 @@ export default function ManageLesson() {
     } finally {
       setCoursesLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    dispatch(fetchManageLessons());
+    loadCourses();
+  }, [dispatch, loadCourses]);
+
+  useEffect(() => {
+    if (successMessage) {
+      toast.showToast(successMessage, "success");
+      dispatch(clearManageLessonMessages());
+    }
+
+    if (error) {
+      toast.showToast(error, "error");
+      dispatch(clearManageLessonMessages());
+    }
+  }, [successMessage, error, toast, dispatch]);
 
   const filteredLessons = useMemo(() => {
     const value = search.toLowerCase().trim();

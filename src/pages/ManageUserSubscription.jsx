@@ -1,6 +1,7 @@
 // src/pages/admin/ManageUserSubscription.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import styled from "styled-components";
+import { useToast } from "../components/Toast";
 import apiClient from "../lib/apiClient";
 
 const EMPTY_FORM = {
@@ -79,6 +80,8 @@ export default function ManageUserSubscription() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const { showToast } = useToast();
+
   const isEditing = Boolean(editingId);
 
   const filteredSubscriptions = useMemo(() => {
@@ -124,29 +127,46 @@ export default function ManageUserSubscription() {
     [subscriptions],
   );
 
-  async function fetchSubscriptions() {
-    try {
-      setLoading(true);
-      setError("");
+  const fetchSubscriptions = useCallback(
+    async ({ notify = false } = {}) => {
+      try {
+        setLoading(true);
+        setError("");
 
-      const res = await apiClient.get("/subscriptions/admin/manage");
-      const list =
-        res.data?.data || res.data?.subscriptions || res.data?.items || [];
+        const res = await apiClient.get("/subscriptions/admin/manage");
 
-      setSubscriptions(Array.isArray(list) ? list.map(normalizeSub) : []);
-    } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          "Failed to load subscriptions. Admin manage route may be missing.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+        const list =
+          res.data?.data || res.data?.subscriptions || res.data?.items || [];
+
+        setSubscriptions(Array.isArray(list) ? list.map(normalizeSub) : []);
+
+        if (notify) {
+          showToast("Subscriptions refreshed successfully.", "success");
+        }
+      } catch (err) {
+        const errorMessage =
+          err?.response?.data?.message ||
+          "Failed to load subscriptions. Admin manage route may be missing.";
+
+        setError(errorMessage);
+
+        if (notify) {
+          showToast(errorMessage, "error");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [showToast],
+  );
 
   useEffect(() => {
     fetchSubscriptions();
-  }, []);
+  }, [fetchSubscriptions]);
+
+  function handleRefresh() {
+    fetchSubscriptions({ notify: true });
+  }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
@@ -227,19 +247,29 @@ export default function ManageUserSubscription() {
 
       if (isEditing) {
         await apiClient.put(`/subscriptions/${editingId}`, payload);
+
         setMessage("Subscription updated successfully.");
+
+        showToast("Subscription updated successfully.", "success");
       } else {
         await apiClient.post("/subscriptions/admin/manage", payload);
+
         setMessage("Subscription created successfully.");
+
+        showToast("Subscription created successfully.", "success");
       }
 
       resetForm();
       await fetchSubscriptions();
     } catch (err) {
-      setError(
+      const errorMessage =
         err?.response?.data?.message ||
-          "Failed to save subscription. Check backend validation.",
-      );
+        "Failed to save subscription. Check backend validation.";
+
+      setError(errorMessage);
+
+      showToast.error?.(errorMessage) ||
+        showToast.show?.(errorMessage, "error");
     } finally {
       setSaving(false);
     }
@@ -256,11 +286,16 @@ export default function ManageUserSubscription() {
       await apiClient.delete(`/subscriptions/${id}`);
 
       setMessage("Subscription deleted successfully.");
+
+      showToast("Subscription deleted successfully.", "success");
       await fetchSubscriptions();
     } catch (err) {
-      setError(
-        err?.response?.data?.message || "Failed to delete subscription.",
-      );
+      const errorMessage =
+        err?.response?.data?.message || "Failed to delete subscription.";
+
+      setError(errorMessage);
+
+      showToast(errorMessage, "error");
     } finally {
       setDeletingId("");
     }
@@ -279,7 +314,7 @@ export default function ManageUserSubscription() {
             </HeroText>
           </div>
 
-          <RefreshButton type="button" onClick={fetchSubscriptions}>
+          <RefreshButton type="button" onClick={handleRefresh}>
             Refresh
           </RefreshButton>
         </Hero>
@@ -553,11 +588,17 @@ export default function ManageUserSubscription() {
 const Page = styled.main`
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(214, 182, 159, 0.18), transparent 34rem),
-    linear-gradient(135deg,
-    ${({ theme }) => theme.colors.black}, 
-    ${({ theme }) => theme.darkBrown};
-  ${({ theme }) => theme.colors.white};
+    radial-gradient(
+      circle at top left,
+      rgba(214, 182, 159, 0.18),
+      transparent 34rem
+    ),
+    linear-gradient(
+      135deg,
+      ${({ theme }) => theme.colors.black},
+      ${({ theme }) => theme.colors.darkBrown}
+    );
+  color: ${({ theme }) => theme.colors.white};
   padding: 48px 0;
 `;
 
@@ -621,7 +662,7 @@ const StatsGrid = styled.section`
 
 const StatCard = styled.div`
   background: ${({ theme }) => theme.colors.ivory};
-  color: ${({ theme }) => theme.colors.darkBrown}
+  color: ${({ theme }) => theme.colors.darkBrown};
   border-radius: ${({ theme }) => theme.radius.lg};
   padding: 22px;
   box-shadow: ${({ theme }) => theme.shadow.soft};
@@ -632,7 +673,7 @@ const StatCard = styled.div`
   }
 
   span {
-    color: ${({ theme }) => theme.colors.brown}
+    color: ${({ theme }) => theme.colors.brown};
     font-weight: 800;
   }
 `;
@@ -738,7 +779,7 @@ const ButtonBase = styled.button`
   padding: 13px 18px;
   font-weight: 900;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: all 0.25s ease;
 
   &:disabled {
     opacity: 0.6;
@@ -746,7 +787,13 @@ const ButtonBase = styled.button`
   }
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    opacity: 0.9;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(2px) scale(0.98);
+    opacity: 0.8;
   }
 `;
 

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../Styles/theme";
+import { useToast } from "../components/Toast.jsx";
 import {
   socket,
   connectUserSocket,
@@ -15,9 +16,24 @@ const DEFAULT_MESSAGE =
 
 const UPDATED_MESSAGE = "Your account access was updated by an administrator.";
 
+function isRestoredAccount(data = {}, nextStatus = "") {
+  const normalizedStatus = String(nextStatus || "").toLowerCase();
+
+  return (
+    data.isDeleted !== true &&
+    data.user?.isDeleted !== true &&
+    data.isActive !== false &&
+    data.user?.isActive !== false &&
+    (normalizedStatus === "active" ||
+      data.isActive === true ||
+      data.user?.isActive === true)
+  );
+}
+
 export default function AccountAccessNotice() {
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [status, setStatus] = useState(() => {
     return (
@@ -35,16 +51,58 @@ export default function AccountAccessNotice() {
     );
   });
 
-  useEffect(() => {
-    const restrictedUserId = localStorage.getItem("accountAccessUserId");
+  const pushToast = useCallback(
+    (payload) => {
+      toast?.push?.(payload);
+    },
+    [toast],
+  );
 
-    if (!restrictedUserId) return;
+  const clearAccessNoticeAndRedirect = useCallback(
+    (nextMessage) => {
+      localStorage.removeItem("accountStatus");
+      localStorage.removeItem("accountAccessMessage");
+      localStorage.removeItem("accountAccessUserId");
 
-    connectUserSocket(restrictedUserId);
+      pushToast({
+        title: "Account restored",
+        description:
+          nextMessage ||
+          "Your account has been restored. Please log in again to continue.",
+        variant: "success",
+      });
 
-    const handleAccessUpdated = (data = {}) => {
-      const nextStatus = data.accountStatus || DEFAULT_STATUS;
-      const nextMessage = data.message || data.statusReason || UPDATED_MESSAGE;
+      navigate("/login", {
+        replace: true,
+        state: {
+          message:
+            nextMessage ||
+            "Your account has been restored. Please log in again to continue.",
+        },
+      });
+    },
+    [navigate, pushToast],
+  );
+
+  const handleAccessUpdated = useCallback(
+    (data = {}) => {
+      const nextStatus =
+        data.accountStatus ||
+        data.user?.accountStatus ||
+        data.status ||
+        (data.isActive === true || data.user?.isActive === true
+          ? "active"
+          : DEFAULT_STATUS);
+
+      const nextMessage =
+        data.message || data.statusReason || data.reason || UPDATED_MESSAGE;
+
+      const restored = isRestoredAccount(data, nextStatus);
+
+      if (restored) {
+        clearAccessNoticeAndRedirect(nextMessage);
+        return;
+      }
 
       setStatus(nextStatus);
       setMessage(nextMessage);
@@ -52,33 +110,44 @@ export default function AccountAccessNotice() {
       localStorage.setItem("accountStatus", nextStatus);
       localStorage.setItem("accountAccessMessage", nextMessage);
 
-      const restored =
-        data.isDeleted !== true &&
-        data.isActive !== false &&
-        nextStatus === "active";
+      pushToast({
+        title: "Account access updated",
+        description: nextMessage,
+        variant: isRestoredAccount(data, nextStatus) ? "success" : "warning",
+      });
+    },
+    [clearAccessNoticeAndRedirect, pushToast],
+  );
 
-      if (restored) {
-        localStorage.removeItem("accountStatus");
-        localStorage.removeItem("accountAccessMessage");
-        localStorage.removeItem("accountAccessUserId");
+  useEffect(() => {
+    const restrictedUserId = localStorage.getItem("accountAccessUserId");
 
-        navigate("/login", {
-          replace: true,
-          state: {
-            message:
-              "Your account has been restored. Please log in again to continue.",
-          },
-        });
-      }
+    if (!restrictedUserId) return undefined;
+
+    const joinSocketRoom = () => {
+      connectUserSocket(restrictedUserId);
     };
+
+    joinSocketRoom();
+
+    socket.on("connect", joinSocketRoom);
+    socket.on("reconnect", joinSocketRoom);
 
     socket.on("account:access-updated", handleAccessUpdated);
+    socket.on("accountAccessUpdated", handleAccessUpdated);
+    socket.on("user:account-updated", handleAccessUpdated);
 
     return () => {
+      socket.off("connect", joinSocketRoom);
+      socket.off("reconnect", joinSocketRoom);
+
       socket.off("account:access-updated", handleAccessUpdated);
+      socket.off("accountAccessUpdated", handleAccessUpdated);
+      socket.off("user:account-updated", handleAccessUpdated);
+
       disconnectUserSocket(restrictedUserId);
     };
-  }, [navigate]);
+  }, [handleAccessUpdated]);
 
   return (
     <Page>

@@ -181,6 +181,12 @@ export default function ManageUsers() {
       }),
     );
 
+    if (res?.ok && res?.user) {
+      setLocalSelected(res.user);
+      dispatch(setSelectedManageUser(res.user));
+      setStatusReason(res.user?.statusReason || "");
+    }
+
     showToast?.({
       type: res?.ok ? "success" : "error",
       message:
@@ -257,6 +263,12 @@ export default function ManageUsers() {
         statusReason: statusReason || "Account restored by admin.",
       }),
     );
+
+    if (res?.ok && res?.user) {
+      setLocalSelected(res.user);
+      dispatch(setSelectedManageUser(res.user));
+      setStatusReason(res.user?.statusReason || "");
+    }
 
     showToast?.({
       type: res?.ok ? "success" : "error",

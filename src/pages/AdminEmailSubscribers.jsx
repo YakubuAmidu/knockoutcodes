@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -112,6 +112,12 @@ function AdminEmailSubscribers() {
     }
   }, [error, success, successMessage, showToast, dispatch]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleClear = useCallback(() => {
+    dispatch(clearSelectedEmailSubscriber());
+    setFormData(DEFAULT_FORM);
+  });
+
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
@@ -209,12 +215,6 @@ function AdminEmailSubscribers() {
 
     await dispatch(getEmailSubscriberDetails(subscriber._id));
   };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps, no-undef
-  const handleClear = useCallback(() => {
-    dispatch(clearSelectedEmailSubscriber());
-    setFormData(DEFAULT_FORM);
-  });
 
   const handleUpdate = async () => {
     if (!selectedSubscriber?._id) {
