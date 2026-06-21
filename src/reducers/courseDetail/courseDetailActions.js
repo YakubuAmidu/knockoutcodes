@@ -49,8 +49,9 @@ export const startCourseCheckout = (courseId) => async (dispatch) => {
   try {
     dispatch({ type: COURSE_DETAIL_ACTIONS.COURSE_CHECKOUT_REQUEST });
 
-    const { data } = await axiosInstance.post("/checkout/course", {
+    const { data } = await axiosInstance.post("/checkout/courses", {
       courseId,
+      billingPlan: "one_time",
     });
 
     dispatch({

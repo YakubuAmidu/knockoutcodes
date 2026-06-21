@@ -6,6 +6,8 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   "https://knockoutcodes.onrender.com/api/v1";
 
+const CSRF_STORAGE_KEY = "kc_csrf_token";
+
 let csrfTokenMemory = "";
 let csrfPromise = null;
 
@@ -24,16 +26,41 @@ function getCookie(name) {
   }
 }
 
+function getStoredToken() {
+  try {
+    if (typeof window === "undefined") return "";
+    return window.sessionStorage.getItem(CSRF_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setStoredToken(token) {
+  try {
+    if (typeof window === "undefined" || !token) return;
+    window.sessionStorage.setItem(CSRF_STORAGE_KEY, token);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export async function getCsrfToken({ force = false } = {}) {
   const cookieToken = getCookie("csrfToken");
+  const storedToken = getStoredToken();
 
   if (!force && cookieToken) {
     csrfTokenMemory = cookieToken;
+    setStoredToken(cookieToken);
     return cookieToken;
   }
 
   if (!force && csrfTokenMemory) {
     return csrfTokenMemory;
+  }
+
+  if (!force && storedToken) {
+    csrfTokenMemory = storedToken;
+    return storedToken;
   }
 
   if (!csrfPromise) {
@@ -56,6 +83,8 @@ export async function getCsrfToken({ force = false } = {}) {
           "";
 
         csrfTokenMemory = token;
+        setStoredToken(token);
+
         return token;
       })
       .finally(() => {
@@ -68,6 +97,14 @@ export async function getCsrfToken({ force = false } = {}) {
 
 export function clearCsrfToken() {
   csrfTokenMemory = "";
+
+  try {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(CSRF_STORAGE_KEY);
+    }
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export default getCsrfToken;
