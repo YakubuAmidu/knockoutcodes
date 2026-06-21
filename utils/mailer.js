@@ -134,7 +134,10 @@ export function createTransport() {
     throw new Error("SMTP_PORT must be a valid number");
   }
 
-  const secure = port === 465;
+  const secure = parseBoolean(
+    optionalEnv("SMTP_SECURE", port === 465 ? "true" : "false"),
+    port === 465,
+  );
 
   transporterInstance = nodemailer.createTransport({
     host,
