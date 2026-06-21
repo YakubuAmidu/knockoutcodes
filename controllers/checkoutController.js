@@ -14,11 +14,6 @@ const asyncHandler = (fn) => async (req, res, next) => {
   }
 };
 
-// eslint-disable-next-line no-undef
-const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
-
-const stripe = new Stripe(STRIPE_KEY || "");
-
 function normalizeLevel(value) {
   const level = String(value || "")
     .trim()
@@ -55,13 +50,6 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     return res.status(401).json({
       success: false,
       message: "You must be logged in to checkout.",
-    });
-  }
-
-  if (!STRIPE_KEY) {
-    return res.status(500).json({
-      success: false,
-      message: "Payment service is not configured.",
     });
   }
 
@@ -226,13 +214,6 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
 export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
   // eslint-disable-next-line no-undef
   const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-
-  if (!STRIPE_KEY) {
-    return res.status(500).json({
-      success: false,
-      message: "Payment service is not configured.",
-    });
-  }
 
   const userId = req.user?._id || req.user?.id;
   const courseId = String(req.body?.courseId || "").trim();
