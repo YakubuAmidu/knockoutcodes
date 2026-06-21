@@ -339,13 +339,19 @@ export async function register(req, res) {
 
     try {
       await sendVerificationEmail(user, rawToken);
-    } catch {
+    } catch (error) {
+      console.error("REGISTER_ERROR:", error?.message);
+
       await User.findByIdAndDelete(user._id);
 
       return res.status(500).json({
         success: false,
+        code: "VERIFICATION_EMAIL_FAILED",
         message:
-          "Account could not be created because the verification email failed to send. Please try again.",
+          "Account could not be created because the verification email failed to send. Please check email server settings.",
+        error:
+          // eslint-disable-next-line no-undef
+          process.env.NODE_ENV === "production" ? undefined : error.message,
       });
     }
 
