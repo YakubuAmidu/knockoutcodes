@@ -104,6 +104,9 @@ const corsOptions = {
     "Authorization",
     "X-CSRF-Token",
     "X-Requested-With",
+    "X-Client-Fingerprint",
+    "Cache-Control",
+    "Pragma",
   ],
 };
 
