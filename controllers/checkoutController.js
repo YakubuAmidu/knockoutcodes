@@ -22,22 +22,27 @@ function normalizeLevel(value) {
   return level;
 }
 
-function toAbsoluteUrl(req, maybeUrl) {
+function toAbsoluteUrl(_req, maybeUrl) {
   const val = String(maybeUrl || "").trim();
-  if (!val) return null;
+  if (!val) return "";
 
-  if (/^https?:\/\//i.test(val)) return val;
+  if (/^https:\/\//i.test(val)) return val;
 
   const normalized = val.startsWith("/") ? val : `/${val}`;
-  // eslint-disable-next-line no-undef
-  const BACKEND_URL = process.env.BACKEND_URL?.trim();
 
-  if (BACKEND_URL && /^https?:\/\//i.test(BACKEND_URL)) {
-    return `${BACKEND_URL.replace(/\/$/, "")}${normalized}`;
+  const backendUrl = String(
+    // eslint-disable-next-line no-undef
+    process.env.BACKEND_URL ||
+      // eslint-disable-next-line no-undef
+      process.env.APP_BASE_URL ||
+      "https://knockoutcodes.onrender.com",
+  ).trim();
+
+  if (!/^https:\/\//i.test(backendUrl)) {
+    return "";
   }
 
-  const origin = `${req.protocol}://${req.get("host")}`;
-  return `${origin}${normalized}`;
+  return `${backendUrl.replace(/\/$/, "")}${normalized}`;
 }
 
 export const createProductCheckoutSession = asyncHandler(async (req, res) => {
@@ -384,10 +389,7 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
           unit_amount: unitAmount,
           product_data: {
             name: course.title,
-            images:
-              courseImageAbs && /^https?:\/\//i.test(courseImageAbs)
-                ? [courseImageAbs]
-                : undefined,
+            images: courseImageAbs ? [courseImageAbs] : undefined,
             metadata,
           },
         },
