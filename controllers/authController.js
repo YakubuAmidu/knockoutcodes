@@ -368,6 +368,8 @@ export async function register(req, res) {
       user: safeUser(user),
     });
   } catch (error) {
+    console.error("REGISTER_ERROR:", error?.message);
+
     if (error?.code === 11000) {
       return res.status(409).json({
         success: false,
