@@ -251,8 +251,16 @@ app.use((_req, _res, next) => {
   next(createError(404, "Route not found"));
 });
 
-app.use((err, _req, res) => {
-  const status = err.status || 500;
+app.use((err, req, res) => {
+  const origin = req.headers.origin;
+
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+  }
+
+  const status = err.status || err.statusCode || 500;
   const message = err.message || "Server error";
 
   if (!isProd) {
