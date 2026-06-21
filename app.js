@@ -105,13 +105,15 @@ const corsOptions = {
     "X-CSRF-Token",
     "X-Requested-With",
     "X-Client-Fingerprint",
+    "X-Request-Intent",
     "Cache-Control",
     "Pragma",
   ],
+  exposedHeaders: ["Set-Cookie"],
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
-// app.options("*", cors(corsOptions));
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
