@@ -183,6 +183,14 @@ app.get("/health", (_req, res) => {
     time: new Date().toISOString(),
   });
 });
+// ====== DELETE IT AFTER TESTING ==========
+app.get("/api/v1/debug-version", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    version: "checkout-cors-fix-2026-06-21-v1",
+    time: new Date().toISOString(),
+  });
+});
 
 app.use((req, res, next) => {
   const p = req.path || "";
