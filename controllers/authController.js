@@ -233,6 +233,45 @@ function sendAccountAccessBlocked(res, user) {
   });
 }
 
+function getFrontendUrl() {
+  return (
+    // eslint-disable-next-line no-undef
+    (
+      process.env.FRONTEND_URL ||
+      // eslint-disable-next-line no-undef
+      process.env.CLIENT_URL ||
+      "https://silver-pasca-64a87c.netlify.app"
+    ).replace(/\/$/, "")
+  );
+}
+
+async function sendVerificationEmail(user, rawToken) {
+  const verifyUrl = `${getFrontendUrl()}/verify-email/${rawToken}`;
+
+  await sendMail({
+    to: user.email,
+    subject: "Verify your KnockoutCodes email",
+    text: `Verify your email using this link: ${verifyUrl}
+
+This link expires in 24 hours.
+
+If you did not create this account, you can ignore this email.`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;">
+        <h2>Verify your email</h2>
+        <p>Click the button below to verify your KnockoutCodes account.</p>
+        <p>
+          <a href="${verifyUrl}" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:6px;">
+            Verify Email
+          </a>
+        </p>
+        <p>This link expires in 24 hours.</p>
+        <p>If you did not create this account, you can ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
 /**
  * POST /api/v1/auth/register
  */
@@ -288,7 +327,7 @@ export async function register(req, res) {
       });
     }
 
-    const { hashedToken } = createEmailVerificationToken();
+    const { rawToken, hashedToken } = createEmailVerificationToken();
 
     const user = await User.create({
       name,
@@ -300,6 +339,18 @@ export async function register(req, res) {
       emailVerificationToken: hashedToken,
       emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
+
+    try {
+      await sendVerificationEmail(user, rawToken);
+    } catch {
+      await User.findByIdAndDelete(user._id);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Account could not be created because the verification email failed to send. Please try again.",
+      });
+    }
 
     await logSecurityEvent(req, {
       user: user._id,
@@ -1238,12 +1289,14 @@ export async function resendVerificationEmail(req, res) {
       return res.status(200).json({ success: true, message: genericMessage });
     }
 
-    const { hashedToken } = createEmailVerificationToken();
+    const { rawToken, hashedToken } = createEmailVerificationToken();
 
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await user.save({ validateBeforeSave: false });
+
+    await sendVerificationEmail(user, rawToken);
 
     await logSecurityEvent(req, {
       user: user._id,
