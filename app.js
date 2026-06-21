@@ -114,6 +114,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(securityHeaders());
 app.use(suspiciousRequestMiddleware);
@@ -251,7 +252,7 @@ app.use((_req, _res, next) => {
   next(createError(404, "Route not found"));
 });
 
-app.use((err, req, res) => {
+app.use((err, req, res, _next) => {
   const origin = req.headers.origin;
 
   if (origin && isAllowedOrigin(origin)) {

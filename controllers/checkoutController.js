@@ -1,5 +1,5 @@
 // controllers/checkoutController.js
-import Stripe from "stripe";
+import { stripe } from "../config/stripe.js";
 import mongoose from "mongoose";
 import Product from "../models/ProductModel.js";
 import Course from "../models/CourseModel.js";
