@@ -235,14 +235,11 @@ function sendAccountAccessBlocked(res, user) {
 
 function getFrontendUrl() {
   return (
+    process.env.FRONTEND_URL ||
     // eslint-disable-next-line no-undef
-    (
-      process.env.FRONTEND_URL ||
-      // eslint-disable-next-line no-undef
-      process.env.CLIENT_URL ||
-      "https://silver-pasca-64a87c.netlify.app"
-    ).replace(/\/$/, "")
-  );
+    process.env.CLIENT_URL ||
+    "https://silver-pasca-64a87c.netlify.app"
+  ).replace(/\/$/, "");
 }
 
 async function sendVerificationEmail(user, rawToken) {
