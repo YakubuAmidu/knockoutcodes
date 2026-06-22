@@ -17,12 +17,46 @@ const normalizePlanSlug = (raw) => {
   const value = String(raw || "")
     .toLowerCase()
     .trim();
-  if (value === "advanced") return "advance";
-  if (value.includes("beginner")) return "beginner";
-  if (value.includes("intermediate")) return "intermediate";
-  if (value.includes("advance") || value.includes("advanced")) return "advance";
-  if (value.includes("complete") || value.includes("elite")) return "complete";
+
+  if (!value) return "";
+
+  if (value === "beginner" || value.includes("foundation")) {
+    return "foundations";
+  }
+
+  if (value === "intermediate" || value.includes("development")) {
+    return "development";
+  }
+
+  if (
+    value === "advance" ||
+    value === "advanced" ||
+    value.includes("performance")
+  ) {
+    return "performance";
+  }
+
+  if (
+    value === "complete" ||
+    value.includes("elite") ||
+    value.includes("fight-camp") ||
+    value.includes("fight camp")
+  ) {
+    return "elite-fight-camp";
+  }
+
   return value;
+};
+
+const getPlanLabel = (raw) => {
+  const level = normalizePlanSlug(raw);
+
+  if (level === "foundations") return "Foundations";
+  if (level === "development") return "Development";
+  if (level === "performance") return "Performance";
+  if (level === "elite-fight-camp") return "Elite Fight Camp";
+
+  return raw || "Membership";
 };
 
 const formatEnrolled = (value) => {
@@ -261,13 +295,13 @@ const Memberships = () => {
         short:
           membership?.short ||
           membership?.description ||
-          "Premium boxing education, course access, structure, and accountability built for serious students.",
+          "A premium boxing training membership built for disciplined students who want clear structure, serious skill development, and exact access to the level they are training for.",
         meta: Array.isArray(membership?.meta)
           ? membership.meta
           : [
-              "Protected course access",
-              "Monthly or yearly membership",
-              "Upgrade path for serious students",
+              "Exact level-specific course access",
+              "Monthly or yearly billing options",
+              "Structured premium boxing progression",
             ],
       };
     });
@@ -506,10 +540,11 @@ const Memberships = () => {
           <Eyebrow>KnockoutCodes Memberships</Eyebrow>
           <Title>Train Like You Belong Here.</Title>
           <Subtitle>
-            Choose the membership that unlocks your boxing course access,
-            structured learning path, progress protection, and premium training
-            experience. Built for students who want discipline, skill, and
-            serious improvement.
+            Choose the exact membership level you want to train at. Every plan
+            is its own lane with its own course access, structure, progression,
+            and premium student experience. No bloated bundles. No confusing
+            overlap. Just clean, serious boxing education built for real
+            improvement.
           </Subtitle>
 
           <HeroGrid>
@@ -530,10 +565,11 @@ const Memberships = () => {
             </HeroPoint>
 
             <HeroPoint>
-              <strong>Upgrade Path</strong>
+              <strong>Level-Specific Access</strong>
               <span>
-                Beginner, Intermediate, Advance, and Complete are separate
-                memberships. Choose the exact training level you want.
+                Foundations, Development, Performance, and Elite Fight Camp are
+                separate memberships. Each one unlocks its own exact training
+                level only.
               </span>
             </HeroPoint>
           </HeroGrid>
@@ -557,9 +593,11 @@ const Memberships = () => {
           </BillingBox>
 
           <StatusBar>
-            <StatusPill>Choose membership first</StatusPill>
-            <StatusPill>Select course second</StatusPill>
-            <StatusPill>Stripe secure checkout</StatusPill>
+            <StatusPill>Choose your exact training level</StatusPill>
+            <StatusPill>
+              Activate access through secure Stripe checkout
+            </StatusPill>
+            <StatusPill>Unlock the matching course library</StatusPill>
           </StatusBar>
 
           <InfoBar>
@@ -585,7 +623,8 @@ const Memberships = () => {
 
             {hasActiveSubscription ? (
               <StatusPill>
-                Active: {mySubscription?.membershipId} /{" "}
+                Active Membership: {getPlanLabel(mySubscription?.membershipId)}{" "}
+                /{" "}
                 {mySubscription?.billingPeriod ||
                   activeBillingPeriod ||
                   "billing"}
@@ -605,22 +644,22 @@ const Memberships = () => {
         <TrustStrip>
           <TrustItem>
             <strong>1</strong>
-            <span>Choose membership</span>
+            <span>Choose your level</span>
           </TrustItem>
 
           <TrustItem>
             <strong>2</strong>
-            <span>Select course</span>
+            <span>Pick monthly or yearly billing</span>
           </TrustItem>
 
           <TrustItem>
             <strong>3</strong>
-            <span>Pay through Stripe</span>
+            <span>Complete secure Stripe checkout</span>
           </TrustItem>
 
           <TrustItem>
             <strong>4</strong>
-            <span>Access training</span>
+            <span>Unlock the exact training library</span>
           </TrustItem>
         </TrustStrip>
 
@@ -752,9 +791,9 @@ const Memberships = () => {
                     {(plan.meta.length
                       ? plan.meta
                       : [
-                          "Protected course access",
-                          "Progress-based learning",
-                          "Premium student experience",
+                          "Exact level-specific course access",
+                          "Structured boxing progression",
+                          "Premium training experience",
                         ]
                     )
                       .slice(0, 5)
@@ -765,10 +804,10 @@ const Memberships = () => {
 
                   <SecurityNote>
                     {isCurrentPlan
-                      ? "You are already subscribed to this membership. Your access is active."
+                      ? "You are already subscribed to this membership and your access is active."
                       : hasActiveSubscription
-                        ? "Switching replaces your current active membership with this one through Stripe."
-                        : "Choose this membership, then complete secure Stripe checkout to activate access."}
+                        ? "Switching replaces your current active membership with this exact training level through Stripe."
+                        : "Choose this membership and complete secure Stripe checkout to activate the matching training library."}
                   </SecurityNote>
 
                   <Footer>
@@ -832,7 +871,7 @@ const Memberships = () => {
         {hasActiveSubscription ? (
           <InfoBar style={{ marginTop: "28px" }}>
             <StatusPill>
-              Active Membership: {mySubscription?.membershipId}
+              Current Membership: {getPlanLabel(mySubscription?.membershipId)}
             </StatusPill>
 
             {mySubscription?.cancelAtPeriodEnd ? (
