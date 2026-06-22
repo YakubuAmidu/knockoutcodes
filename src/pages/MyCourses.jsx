@@ -90,6 +90,66 @@ const MyCourses = () => {
       .replaceAll("_", " ")
       .trim();
 
+  const normalizePlanSlug = (raw) => {
+    const value = String(raw || "")
+      .toLowerCase()
+      .trim();
+
+    if (!value) return "";
+
+    if (value === "beginner" || value.includes("foundation")) {
+      return "foundations";
+    }
+
+    if (value === "intermediate" || value.includes("development")) {
+      return "development";
+    }
+
+    if (
+      value === "advance" ||
+      value === "advanced" ||
+      value.includes("performance")
+    ) {
+      return "performance";
+    }
+
+    if (
+      value === "complete" ||
+      value.includes("elite") ||
+      value.includes("fight-camp") ||
+      value.includes("fight camp")
+    ) {
+      return "elite-fight-camp";
+    }
+
+    return value;
+  };
+
+  const getLevelLabel = (raw) => {
+    const level = normalizePlanSlug(raw);
+
+    if (level === "foundations") return "Foundations";
+    if (level === "development") return "Development";
+    if (level === "performance") return "Performance";
+    if (level === "elite-fight-camp") return "Elite Fight Camp";
+
+    return normalizeText(raw || "Foundations");
+  };
+
+  const getPaymentPlanLabel = (raw) => {
+    const value = String(raw || "")
+      .trim()
+      .toLowerCase();
+
+    if (!value) return "One-Time Purchase";
+    if (value === "one_time" || value === "one-time")
+      return "One-Time Purchase";
+    if (value === "monthly") return "Monthly Membership";
+    if (value === "yearly" || value === "annual") return "Yearly Membership";
+
+    return normalizeText(raw);
+  };
+
   const getCourseImage = (course) =>
     course?.thumbnail ||
     course?.image ||
@@ -254,21 +314,21 @@ const MyCourses = () => {
             <Eyebrow>KnockoutCodes Student Room</Eyebrow>
             <Title>Your Purchased Courses, Progress, And Access</Title>
             <Subtitle>
-              Everything you have unlocked is organized here: your active course
-              access, membership-backed enrollments, payment status, progress,
-              last activity, instructor, course level, and the next action to
-              take.
+              Everything you have personally unlocked is organized here:
+              one-time course purchases, membership-backed course access,
+              progress, payment status, last activity, course level, and your
+              next training step. Clean access. Clear ownership. No confusion.
             </Subtitle>
           </HeroContent>
 
           <HeroPanel>
             <PanelLabel>Student Access</PanelLabel>
-            <PanelTitle>No confusion. Just your unlocked training.</PanelTitle>
+            <PanelTitle>Your personal course access, in one place.</PanelTitle>
             <PanelList>
-              <li>See every course unlocked on your account</li>{" "}
-              <li>Track progress and completion</li>
-              <li>Review payment and access details</li>
-              <li>Continue directly into Course Player</li>
+              <li>See every course unlocked through purchase or membership</li>
+              <li>Track progress, completion, and last activity</li>
+              <li>Review payment plan and protected access details</li>
+              <li>Continue directly into the course player</li>
             </PanelList>
           </HeroPanel>
         </Hero>
@@ -384,8 +444,8 @@ const MyCourses = () => {
               <div>
                 <SectionEyebrow>My Course Access</SectionEyebrow>
                 <SectionTitle>
-                  Every course unlocked on your account, with the full access
-                  story.
+                  Every course you have personally unlocked, with the full
+                  access story.
                 </SectionTitle>
               </div>
 
@@ -412,9 +472,22 @@ const MyCourses = () => {
                     ? "Free"
                     : "Paid";
 
-                const paymentPlan = normalizeText(
+                const paymentPlan = getPaymentPlanLabel(
                   enrollment.paymentPlan || "one-time",
                 );
+
+                const rawPaymentPlan = String(enrollment.paymentPlan || "")
+                  .trim()
+                  .toLowerCase();
+
+                const ownershipLabel =
+                  rawPaymentPlan === "monthly" ||
+                  rawPaymentPlan === "yearly" ||
+                  rawPaymentPlan === "annual"
+                    ? "Membership Access"
+                    : course.isFree
+                      ? "Free Access"
+                      : "Purchased";
 
                 const numericRating = Number(course.ratingAverage) || 0;
                 const numericRatingCount = Number(course.ratingCount) || 0;
@@ -451,7 +524,7 @@ const MyCourses = () => {
                         <Badge>{course.category || "Course"}</Badge>
 
                         <BadgeRightGroup>
-                          <OwnedBadge>Purchased</OwnedBadge>
+                          <OwnedBadge>{ownershipLabel}</OwnedBadge>
 
                           {isBestSeller ? (
                             <BestSellerBadge>Best Seller</BestSellerBadge>
@@ -485,13 +558,17 @@ const MyCourses = () => {
 
                       <MetaRow>
                         <MetaPill>
-                          Level: {course.level || "All Levels"}
+                          Level:{" "}
+                          {getLevelLabel(
+                            course.level || course.requiredMembershipLevel,
+                          )}
                         </MetaPill>
                         <MetaPill>
                           Instructor:{" "}
                           {course.instructor || "KnockoutCodes Coach"}
                         </MetaPill>
                         <MetaPill>Plan: {paymentPlan}</MetaPill>
+                        <MetaPill>Access: {ownershipLabel}</MetaPill>
                         <MetaPill>Paid: {pricePaid}</MetaPill>
                         <MetaPill>{enrolledCount} enrolled</MetaPill>
                       </MetaRow>
