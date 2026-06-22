@@ -665,6 +665,9 @@ const Memberships = () => {
               activeMembershipId === planMembershipId &&
               activeBillingPeriod === billingPeriod;
 
+            const isSwitching = switchingId === planMembershipId;
+            const isStarting = startingId === planMembershipId;
+
             const isCoveredByCurrentPlan =
               hasActiveSubscription &&
               isPlanLowerOrSame(activeMembershipId, planMembershipId);
@@ -674,9 +677,6 @@ const Memberships = () => {
               isStarting ||
               isCurrentPlan ||
               isCoveredByCurrentPlan;
-
-            const isSwitching = switchingId === planMembershipId;
-            const isStarting = startingId === planMembershipId;
 
             return (
               <Card
