@@ -2,10 +2,7 @@
 import { useEffect, useMemo, useCallback, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useAuth } from "../context/AuthContext";
-import {
-  createCourseCheckout,
-  resetCourseState,
-} from "../reducers/courses/courseActions";
+import { resetCourseState } from "../reducers/courses/courseActions";
 import styled, { keyframes } from "styled-components";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../components/Toast";
@@ -18,7 +15,12 @@ import intermediateImg from "../assets/knockoutcodes-intermediate-access-pass.pn
 import advanceImg from "../assets/knockoutcodes-advance-access-pass.png";
 import completeImg from "../assets/knockoutcodes-complete-access-pass.png";
 
-const VALID_MEMBERSHIPS = ["beginner", "intermediate", "advance", "complete"];
+const VALID_MEMBERSHIPS = [
+  "foundations",
+  "development",
+  "performance",
+  "elite-fight-camp",
+];
 
 function formatMinutesToHours(minutes) {
   const m = Number(minutes);
@@ -42,20 +44,39 @@ function normalizeLevel(value) {
   const level = String(value || "")
     .trim()
     .toLowerCase();
-  if (level === "advanced") return "advance";
+
+  if (["beginner", "foundation", "foundations"].includes(level)) {
+    return "foundations";
+  }
+
+  if (["intermediate", "development"].includes(level)) {
+    return "development";
+  }
+
+  if (["advanced", "advance", "performance"].includes(level)) {
+    return "performance";
+  }
+
+  if (["complete", "elite", "elite-fight-camp", "fight-camp"].includes(level)) {
+    return "elite-fight-camp";
+  }
+
   return level;
 }
 
 function getRequiredMembershipLevel(course) {
   if (course?.isFree) return "none";
 
-  const level = course?.requiredMembershipLevel || course?.level || "beginner";
+  const level =
+    course?.requiredMembershipLevel || course?.accessLevel || course?.level;
+
   const normalized = normalizeLevel(level);
 
-  if (!normalized || normalized === "none") return "none";
-  if (normalized === "all-levels") return "beginner";
+  if (!normalized || normalized === "none" || normalized === "all-levels") {
+    return "foundations";
+  }
 
-  return normalized;
+  return VALID_MEMBERSHIPS.includes(normalized) ? normalized : "foundations";
 }
 
 function toArray(value) {
@@ -717,12 +738,7 @@ const CourseDetail = () => {
       return;
     }
 
-    if (
-      authLoading ||
-      checkoutLoading ||
-      membershipCheckoutLoading ||
-      checkingOwnership
-    ) {
+    if (authLoading || membershipCheckoutLoading || checkingOwnership) {
       return;
     }
 
@@ -749,6 +765,8 @@ const CourseDetail = () => {
       navigate("/login", {
         state: {
           from: getCourseDetailReturnPath(),
+          courseId: resolvedCourseId,
+          requiredMembershipId: getRequiredMembershipLevel(course),
         },
       });
       return;
@@ -759,24 +777,16 @@ const CourseDetail = () => {
       return;
     }
 
-    if (course?.allowSinglePurchase === false) {
-      handleJoinMembership();
-      return;
-    }
-
-    dispatch(createCourseCheckout(resolvedCourseId, "one_time"));
+    handleJoinMembership();
   }, [
     resolvedCourseId,
     authLoading,
-    checkoutLoading,
     membershipCheckoutLoading,
     checkingOwnership,
     showOwnedState,
-    course?.isFree,
-    course?.allowSinglePurchase,
+    course,
     isAuthenticated,
     hasSelectedMembership,
-    dispatch,
     toast,
     navigate,
     getCourseDetailReturnPath,
@@ -1282,14 +1292,12 @@ const CourseDetail = () => {
                         ? "Start Free"
                         : hasSelectedMembership
                           ? `Start ${selectedBillingPeriod || "Monthly"} Membership`
-                          : course?.allowSinglePurchase === false
-                            ? `Join ${getRequiredMembershipLevel(course)} Membership`
-                            : "Buy Course Once"}
+                          : `Join ${getRequiredMembershipLevel(course)} Membership`}
               </CTA>
 
               {!showOwnedState && !course?.isFree && !hasSelectedMembership ? (
                 <Ghost type="button" onClick={handleJoinMembership}>
-                  Join {getRequiredMembershipLevel(course)} Membership
+                  View Membership Options
                 </Ghost>
               ) : null}
 
