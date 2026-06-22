@@ -130,6 +130,39 @@ export const createCourseCheckout =
         return { ok: false, alreadyPurchased: true, ...payload };
       }
 
+      if (error?.response?.status === 409 && data?.alreadyAccessible) {
+        const payload = {
+          courseId: data.courseId || courseId,
+          message:
+            data.message ||
+            "This course is already included in your active membership.",
+        };
+
+        dispatch({
+          type: types.COURSE_ALREADY_PURCHASED,
+          payload,
+        });
+
+        return { ok: false, alreadyAccessible: true, ...payload };
+      }
+
+      if (error?.response?.status === 403 && data?.membershipRequired) {
+        const message =
+          data.message || "This course is only available through membership.";
+
+        dispatch({
+          type: types.COURSE_CHECKOUT_FAIL,
+          payload: message,
+        });
+
+        return {
+          ok: false,
+          membershipRequired: true,
+          requiredMembershipLevel: data.requiredMembershipLevel || null,
+          message,
+        };
+      }
+
       const message = getErrorMessage(
         error,
         "Unable to start checkout. Try again.",

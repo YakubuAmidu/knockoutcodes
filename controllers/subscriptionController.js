@@ -7,6 +7,13 @@ import User from "../models/UserModel.js";
 import Course from "../models/CourseModel.js";
 import Order from "../models/OrderModel.js";
 import WebhookEvent from "../models/WebhookEventModel.js";
+import Enrollment from "../models/EnrollmentModel.js";
+import {
+  getCourseRequiredLevel,
+  isSubscriptionActive,
+  membershipCoversCourse,
+  normalizeAccessLevel,
+} from "../utils/accessRules.js";
 
 // eslint-disable-next-line no-undef
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -151,6 +158,64 @@ async function findCourseByIdOrSlug(courseId) {
   return Course.findOne({ slug: safeCourseId }).lean();
 }
 
+async function getMembershipValueCheck(userId, targetLevel) {
+  const safeTargetLevel = normalizeAccessLevel(targetLevel);
+
+  const courses = await Course.find({
+    isPublished: true,
+    isFree: { $ne: true },
+  })
+    .select("_id title level requiredMembershipLevel")
+    .lean();
+
+  const coveredByTarget = courses.filter((course) =>
+    membershipCoversCourse(safeTargetLevel, getCourseRequiredLevel(course)),
+  );
+
+  if (!coveredByTarget.length) {
+    return {
+      addsValue: false,
+      reason: "membership_unlocks_no_courses",
+      ownedCount: 0,
+      unlockedCount: 0,
+      newCourseCount: 0,
+    };
+  }
+
+  const courseIds = coveredByTarget.map((course) => course._id);
+
+  const ownedEnrollments = await Enrollment.find({
+    user: userId,
+    course: { $in: courseIds },
+    paymentStatus: "paid",
+    status: { $in: ["active", "completed"] },
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+  })
+    .select("course")
+    .lean();
+
+  const ownedCourseIds = new Set(
+    ownedEnrollments.map((item) => String(item.course)),
+  );
+
+  const newCourses = coveredByTarget.filter(
+    (course) => !ownedCourseIds.has(String(course._id)),
+  );
+
+  return {
+    addsValue: newCourses.length > 0,
+    reason: newCourses.length > 0 ? "adds_new_access" : "already_owns_all",
+    ownedCount: ownedCourseIds.size,
+    unlockedCount: coveredByTarget.length,
+    newCourseCount: newCourses.length,
+    newCourses: newCourses.map((course) => ({
+      _id: String(course._id),
+      title: course.title,
+      requiredMembershipLevel: getCourseRequiredLevel(course),
+    })),
+  };
+}
+
 async function saveWebhookEvent(event) {
   try {
     await WebhookEvent.create({
@@ -237,7 +302,7 @@ export const createCheckoutSession = async (req, res) => {
 
     if (
       existingSub &&
-      isActiveStatus(existingSub.status) &&
+      isSubscriptionActive(existingSub) &&
       existingSub.membershipId === safeMembershipId &&
       existingSub.billingPeriod === billingPeriod
     ) {
@@ -246,6 +311,38 @@ export const createCheckoutSession = async (req, res) => {
         alreadySubscribed: true,
         message: "You are already subscribed to this membership.",
         data: existingSub,
+      });
+    }
+
+    if (existingSub && isSubscriptionActive(existingSub)) {
+      const currentLevel = normalizeAccessLevel(
+        existingSub.accessLevel || existingSub.membershipId,
+      );
+
+      if (currentLevel === "complete") {
+        return res.status(409).json({
+          success: false,
+          alreadySubscribed: true,
+          alreadyAccessible: true,
+          message:
+            "You already have the Complete membership. It includes all available membership courses.",
+          data: existingSub,
+        });
+      }
+    }
+
+    const valueCheck = await getMembershipValueCheck(userId, safeMembershipId);
+
+    if (!valueCheck.addsValue) {
+      return res.status(409).json({
+        success: false,
+        noNewValue: true,
+        reason: valueCheck.reason,
+        message:
+          valueCheck.reason === "already_owns_all"
+            ? "You already own every course this membership would unlock. Choose a higher membership if you want more access."
+            : "This membership does not unlock any published paid courses yet.",
+        data: valueCheck,
       });
     }
 
@@ -944,6 +1041,35 @@ export const switchMembershipPlan = async (req, res) => {
         success: false,
         alreadySubscribed: true,
         message: "You are already subscribed to this membership plan.",
+      });
+    }
+
+    const currentLevel = normalizeAccessLevel(
+      currentSub.accessLevel || currentSub.membershipId,
+    );
+
+    if (currentLevel === "complete") {
+      return res.status(409).json({
+        success: false,
+        alreadySubscribed: true,
+        alreadyAccessible: true,
+        message:
+          "You already have the Complete membership. It includes all available membership courses.",
+      });
+    }
+
+    const valueCheck = await getMembershipValueCheck(userId, newMembershipId);
+
+    if (!valueCheck.addsValue) {
+      return res.status(409).json({
+        success: false,
+        noNewValue: true,
+        reason: valueCheck.reason,
+        message:
+          valueCheck.reason === "already_owns_all"
+            ? "You already own every course this membership would unlock. Choose a higher membership if you want more access."
+            : "This membership does not unlock any published paid courses yet.",
+        data: valueCheck,
       });
     }
 

@@ -185,6 +185,28 @@ async function postCheckout(path, payload) {
   return data;
 }
 
+function enhanceCheckoutError(error) {
+  const data = error?.response?.data;
+
+  if (error?.response?.status === 409 && data?.noNewValue) {
+    error.message =
+      data.message ||
+      "This membership does not add new access to your account.";
+  }
+
+  if (error?.response?.status === 409 && data?.alreadySubscribed) {
+    error.message =
+      data.message || "You are already subscribed to this membership.";
+  }
+
+  if (error?.response?.status === 409 && data?.alreadyAccessible) {
+    error.message =
+      data.message || "You already have access through your membership.";
+  }
+
+  return error;
+}
+
 export async function createProductCheckoutSession(items) {
   const safeItems = Array.isArray(items) ? items : [];
 
@@ -210,13 +232,17 @@ export async function getMembershipById(id) {
 }
 
 export async function createMembershipCheckoutSession(payload) {
-  const { data } = await api.post("/subscriptions/checkout", payload);
+  try {
+    const { data } = await api.post("/subscriptions/checkout", payload);
 
-  if (!data?.url) {
-    throw new Error("Checkout URL missing from server response.");
+    if (!data?.url) {
+      throw new Error("Checkout URL missing from server response.");
+    }
+
+    return data;
+  } catch (error) {
+    throw enhanceCheckoutError(error);
   }
-
-  return data;
 }
 
 export async function getMySubscription(options = {}) {
@@ -256,8 +282,12 @@ export async function confirmCheckoutSession(sessionId, options = {}) {
 }
 
 export async function switchMembershipPlan(payload) {
-  const { data } = await api.patch("/subscriptions/switch", payload);
-  return data?.data ?? data;
+  try {
+    const { data } = await api.patch("/subscriptions/switch", payload);
+    return data?.data ?? data;
+  } catch (error) {
+    throw enhanceCheckoutError(error);
+  }
 }
 
 export async function cancelMyMembership() {

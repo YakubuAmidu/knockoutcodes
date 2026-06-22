@@ -6,6 +6,12 @@ import Review from "../models/ReviewModel.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import WebhookEvent from "../models/WebhookEventModel.js";
 import UserSubscription from "../models/UserSubscriptionModel.js";
+import {
+  getCourseRequiredLevel,
+  isSubscriptionActive,
+  membershipCoversCourse,
+  normalizeAccessLevel,
+} from "../utils/accessRules.js";
 
 // eslint-disable-next-line no-undef
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -16,14 +22,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
  * For very large production scale, replace this with a WebhookEvent model in MongoDB.
  */
 const processedStripeEvents = new Set();
-
-function normalizeLevel(value) {
-  const level = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (level === "advanced") return "advance";
-  return level || "beginner";
-}
 
 function normalizePaymentPlan(value) {
   const plan = String(value || "one-time")
@@ -59,29 +57,6 @@ function calculateExpiresAt(paymentPlan) {
   }
 
   return null;
-}
-
-function isSubscriptionActive(sub) {
-  if (!sub) return false;
-  if (!["active", "trialing"].includes(sub.status)) return false;
-
-  if (
-    sub.currentPeriodEnd &&
-    new Date(sub.currentPeriodEnd).getTime() < Date.now()
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-function hasMembershipExactAccess(userLevel, requiredLevel) {
-  const cleanUserLevel = normalizeLevel(userLevel);
-  const cleanRequiredLevel = normalizeLevel(requiredLevel);
-
-  if (!cleanUserLevel || !cleanRequiredLevel) return false;
-
-  return cleanUserLevel === cleanRequiredLevel;
 }
 
 function isMembershipCheckout(session) {
@@ -254,14 +229,13 @@ export const getMyEnrollments = async (req, res) => {
     let membershipCourses = [];
 
     if (isSubscriptionActive(subscription)) {
-      const userLevel = normalizeLevel(
+      const userLevel = normalizeAccessLevel(
         subscription.accessLevel || subscription.membershipId,
       );
 
-      membershipCourses = await Course.find({
+      const allPublishedPaidCourses = await Course.find({
         isPublished: true,
         isFree: { $ne: true },
-        $or: [{ requiredMembershipLevel: userLevel }, { level: userLevel }],
       })
         .select(
           `
@@ -273,9 +247,14 @@ export const getMyEnrollments = async (req, res) => {
         )
         .lean();
 
-      membershipCourses = membershipCourses.filter(
-        (course) => !ownedCourseIds.has(String(course._id)),
-      );
+      membershipCourses = allPublishedPaidCourses.filter((course) => {
+        const requiredLevel = getCourseRequiredLevel(course);
+
+        return (
+          membershipCoversCourse(userLevel, requiredLevel) &&
+          !ownedCourseIds.has(String(course._id))
+        );
+      });
     }
 
     const virtualMembershipEnrollments = membershipCourses.map((course) => ({
@@ -384,15 +363,13 @@ export const getEnrollmentStatus = async (req, res) => {
     );
 
     if (isSubscriptionActive(subscription)) {
-      const requiredLevel = normalizeLevel(
-        course.requiredMembershipLevel || course.level || "beginner",
-      );
+      const requiredLevel = getCourseRequiredLevel(course);
 
-      const userLevel = normalizeLevel(
+      const userLevel = normalizeAccessLevel(
         subscription.accessLevel || subscription.membershipId,
       );
 
-      if (hasMembershipExactAccess(userLevel, requiredLevel)) {
+      if (membershipCoversCourse(userLevel, requiredLevel)) {
         return res.status(200).json({
           success: true,
           hasAccess: true,

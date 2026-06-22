@@ -5,6 +5,12 @@ import Product from "../models/ProductModel.js";
 import Course from "../models/CourseModel.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import UserSubscription from "../models/UserSubscriptionModel.js";
+import {
+  getCourseRequiredLevel,
+  isSubscriptionActive,
+  membershipCoversCourse,
+  normalizeAccessLevel,
+} from "../utils/accessRules.js";
 
 const asyncHandler = (fn) => async (req, res, next) => {
   try {
@@ -14,12 +20,20 @@ const asyncHandler = (fn) => async (req, res, next) => {
   }
 };
 
-function normalizeLevel(value) {
-  const level = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (level === "advanced") return "advance";
-  return level;
+function getFrontendUrl() {
+  const url = String(
+    // eslint-disable-next-line no-undef
+    process.env.FRONTEND_URL ||
+      // eslint-disable-next-line no-undef
+      process.env.CLIENT_URL ||
+      "https://silver-pasca-64a87c.netlify.app",
+  ).trim();
+
+  if (!/^https?:\/\//i.test(url)) {
+    return "https://silver-pasca-64a87c.netlify.app";
+  }
+
+  return url.replace(/\/$/, "");
 }
 
 function toAbsoluteUrl(_req, maybeUrl) {
@@ -38,17 +52,13 @@ function toAbsoluteUrl(_req, maybeUrl) {
       "https://knockoutcodes.onrender.com",
   ).trim();
 
-  if (!/^https:\/\//i.test(backendUrl)) {
-    return "";
-  }
+  if (!/^https:\/\//i.test(backendUrl)) return "";
 
   return `${backendUrl.replace(/\/$/, "")}${normalized}`;
 }
 
 export const createProductCheckoutSession = asyncHandler(async (req, res) => {
-  // eslint-disable-next-line no-undef
-  const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-
+  const FRONTEND_URL = getFrontendUrl();
   const userId = req.user?._id || req.user?.id;
 
   if (!userId) {
@@ -146,8 +156,6 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     mode: "payment",
     client_reference_id: String(userId),
     line_items,
-
-    // ✅ Collect customer shipping address for physical products
     shipping_address_collection: {
       allowed_countries: [
         "US",
@@ -182,23 +190,14 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
         "NG",
       ],
     },
-
-    // ✅ Collect phone number for delivery contact
-    phone_number_collection: {
-      enabled: true,
-    },
-
-    // ✅ Helps Stripe show shipping-related customer info
+    phone_number_collection: { enabled: true },
     billing_address_collection: "auto",
-
     success_url:
       `${FRONTEND_URL}/order/success` +
       `?session_id={CHECKOUT_SESSION_ID}` +
       `&kind=products`,
-
     cancel_url:
       `${FRONTEND_URL}/order/failed` + `?canceled=true` + `&kind=products`,
-
     metadata: {
       type: "products",
       kind: "products",
@@ -217,8 +216,7 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
 });
 
 export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
-  // eslint-disable-next-line no-undef
-  const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+  const FRONTEND_URL = getFrontendUrl();
 
   const userId = req.user?._id || req.user?.id;
   const courseId = String(req.body?.courseId || "").trim();
@@ -241,7 +239,7 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
   let course = null;
 
   const courseSelect =
-    "title price salePrice isFree isPublished thumbnail slug stripePriceId level requiredMembershipLevel";
+    "title price salePrice isFree isPublished thumbnail slug stripePriceId level requiredMembershipLevel allowSinglePurchase";
 
   if (mongoose.Types.ObjectId.isValid(courseId)) {
     course = await Course.findById(courseId).select(courseSelect).lean();
@@ -276,11 +274,22 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
     });
   }
 
+  if (course.allowSinglePurchase === false) {
+    return res.status(403).json({
+      success: false,
+      membershipRequired: true,
+      message: "This course is only available through membership.",
+      courseId: String(course._id),
+      requiredMembershipLevel: getCourseRequiredLevel(course),
+    });
+  }
+
   const existingEnrollment = await Enrollment.findOne({
     user: userId,
     course: course._id,
     paymentStatus: "paid",
     status: { $in: ["active", "completed"] },
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
   }).lean();
 
   if (existingEnrollment) {
@@ -295,24 +304,24 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
 
   const existingSubscription = await UserSubscription.findOne({
     user: userId,
-    status: { $in: ["active", "trialing"] },
   }).lean();
 
-  if (existingSubscription) {
-    const userLevel = normalizeLevel(
+  if (isSubscriptionActive(existingSubscription)) {
+    const userLevel = normalizeAccessLevel(
       existingSubscription.accessLevel || existingSubscription.membershipId,
     );
 
-    const requiredLevel = normalizeLevel(
-      course.requiredMembershipLevel || course.level || "beginner",
-    );
+    const requiredLevel = getCourseRequiredLevel(course);
 
-    if (userLevel && requiredLevel && userLevel === requiredLevel) {
+    if (membershipCoversCourse(userLevel, requiredLevel)) {
       return res.status(409).json({
         success: false,
         alreadyAccessible: true,
         message: "This course is already included in your active membership.",
         courseId: String(course._id),
+        accessType: "membership",
+        userMembershipLevel: userLevel,
+        requiredMembershipLevel: requiredLevel,
       });
     }
   }
