@@ -291,7 +291,7 @@ export async function switchMembershipPlan(payload) {
 }
 
 export async function cancelMyMembership() {
-  const { data } = await api.patch("/subscriptions/cancel");
+  const { data } = await api.patch("/subscriptions/cancel", {});
   return data?.data ?? data;
 }
 
