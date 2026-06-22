@@ -229,7 +229,11 @@ const Memberships = () => {
         rating: 0,
         enrolled: 0,
         reviewCount: 0,
-        meta: ["Weekly direction", "Course access", "Accountability"],
+        meta: [
+          "Exact level-specific access",
+          "Structured premium training",
+          "Serious student progression",
+        ],
       }));
     }
 
@@ -686,8 +690,9 @@ const Memberships = () => {
                   normalizePlanSlug(requiredMembershipFromState));
 
             const isCurrentPlan =
-              hasActiveSubscription &&
-              activeMembershipId === planMembershipId &&
+              hasActiveSubscription && activeMembershipId === planMembershipId;
+
+            const isCurrentBillingPeriod =
               activeBillingPeriod === billingPeriod;
 
             const isSwitching = switchingId === planMembershipId;
@@ -803,10 +808,12 @@ const Memberships = () => {
                   </FeatureList>
 
                   <SecurityNote>
-                    {isCurrentPlan
-                      ? "You are already subscribed to this membership and your access is active."
+                    {isCurrentPlan && isCurrentBillingPeriod
+                      ? "You are already subscribed to this membership and billing option. Your access is active."
                       : hasActiveSubscription
-                        ? "Switching replaces your current active membership with this exact training level through Stripe."
+                        ? isCurrentPlan
+                          ? "You already have this training level. Switching here will update only the billing option for this membership."
+                          : "Switching replaces your current active membership with this exact training level through Stripe."
                         : "Choose this membership and complete secure Stripe checkout to activate the matching training library."}
                   </SecurityNote>
 
@@ -828,24 +835,28 @@ const Memberships = () => {
                       Details
                     </OutlineButton>
 
-                    {isCurrentPlan ? (
-                      <PrimaryButton type="button" disabled>
-                        Current Plan
-                      </PrimaryButton>
-                    ) : hasActiveSubscription ? (
-                      <PrimaryButton
-                        type="button"
-                        disabled={plan.__skeleton || isSwitching}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          handleSwitchPlan(plan);
-                        }}
-                      >
-                        {isSwitching
-                          ? "Switching..."
-                          : `Switch to ${billingPeriod}`}
-                      </PrimaryButton>
+                    {hasActiveSubscription ? (
+                      isCurrentPlan && isCurrentBillingPeriod ? (
+                        <PrimaryButton type="button" disabled>
+                          Current Plan
+                        </PrimaryButton>
+                      ) : (
+                        <PrimaryButton
+                          type="button"
+                          disabled={plan.__skeleton || isSwitching}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleSwitchPlan(plan);
+                          }}
+                        >
+                          {isSwitching
+                            ? "Switching..."
+                            : isCurrentPlan
+                              ? `Switch to ${billingPeriod}`
+                              : `Move to ${billingPeriod}`}
+                        </PrimaryButton>
+                      )
                     ) : (
                       <PrimaryButton
                         type="button"
