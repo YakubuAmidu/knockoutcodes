@@ -8,6 +8,58 @@ import { useToast } from "../components/Toast";
 
 const PROGRESS_SAVE_INTERVAL_MS = 12000;
 
+function normalizeMembershipLevel(value = "") {
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (!clean) return "";
+
+  if (clean === "beginner" || clean.includes("foundation")) {
+    return "foundations";
+  }
+
+  if (clean === "intermediate" || clean.includes("development")) {
+    return "development";
+  }
+
+  if (
+    clean === "advance" ||
+    clean === "advanced" ||
+    clean.includes("performance")
+  ) {
+    return "performance";
+  }
+
+  if (
+    clean === "complete" ||
+    clean.includes("elite") ||
+    clean.includes("fight-camp") ||
+    clean.includes("fight camp")
+  ) {
+    return "elite-fight-camp";
+  }
+
+  if (clean === "none" || clean === "free") return "none";
+
+  return clean;
+}
+
+function getMembershipLevelLabel(value = "") {
+  const level = normalizeMembershipLevel(value);
+
+  if (level === "foundations") return "Foundations";
+  if (level === "development") return "Development";
+  if (level === "performance") return "Performance";
+  if (level === "elite-fight-camp") return "Elite Fight Camp";
+  if (level === "none") return "Free";
+
+  return String(value || "")
+    .replaceAll("-", " ")
+    .replaceAll("_", " ")
+    .trim();
+}
+
 function clampNumber(value, min = 0, max = 100) {
   const n = Number(value);
   if (!Number.isFinite(n)) return min;
@@ -453,7 +505,16 @@ const CoursePlayer = () => {
     if (!lesson) return;
 
     if (!accessAllowed && !course?.isFree) {
-      notify("Unlock this course with an active membership.", "error");
+      const requiredLabel = getMembershipLevelLabel(
+        course?.requiredMembershipLevel || course?.level || "",
+      );
+
+      notify(
+        requiredLabel
+          ? `This course requires the ${requiredLabel} membership.`
+          : "This course requires the matching membership to unlock.",
+        "error",
+      );
       return;
     }
 
@@ -500,8 +561,9 @@ const CoursePlayer = () => {
             <LockIcon>🔒</LockIcon>
             <FallbackTitle>This course is locked</FallbackTitle>
             <FallbackText>
-              Get access through the exact required membership for this course
-              to watch the full lesson library.
+              This course is protected by its exact membership level. Unlock the
+              matching membership for this course to watch the full lesson
+              library.
             </FallbackText>
           </VideoFallback>
         </VideoWrapper>
@@ -611,20 +673,40 @@ const CoursePlayer = () => {
           <HeroTitle>{course.title}</HeroTitle>
           <HeroText>
             {!accessChecked
-              ? "Checking your access..."
+              ? "Checking your course access..."
               : canView
                 ? activeLesson
                   ? `Now playing: ${activeLesson.title}`
                   : "Select a lesson and continue your training."
-                : "This course is locked. Unlock access to continue."}
+                : `This course is locked until your account has the exact ${
+                    getMembershipLevelLabel(
+                      course?.requiredMembershipLevel || course?.level || "",
+                    ) || "required"
+                  } membership.`}
           </HeroText>
 
           <HeroBadges>
-            {course.level ? <HeroBadge>{course.level}</HeroBadge> : null}
+            {course.level ? (
+              <HeroBadge>{getMembershipLevelLabel(course.level)}</HeroBadge>
+            ) : null}
+
             {course.category ? <HeroBadge>{course.category}</HeroBadge> : null}
+
             <HeroBadge>
-              {course.isFree ? "Free Course" : "Premium Access"}
+              {course.isFree
+                ? "Free Course"
+                : accessAllowed
+                  ? "Access Granted"
+                  : "Membership Locked"}
             </HeroBadge>
+
+            {!course.isFree && course.requiredMembershipLevel ? (
+              <HeroBadge>
+                Requires{" "}
+                {getMembershipLevelLabel(course.requiredMembershipLevel)}
+              </HeroBadge>
+            ) : null}
+
             <HeroBadge>
               {sortedLessons.length} Lesson
               {sortedLessons.length === 1 ? "" : "s"}
@@ -647,6 +729,14 @@ const CoursePlayer = () => {
                 )}% watched`
               : "Choose a lesson to begin"}
           </ProgressSmall>
+          {!canView && !course.isFree && course.requiredMembershipLevel ? (
+            <ProgressSmall>
+              Required membership:{" "}
+              <strong>
+                {getMembershipLevelLabel(course.requiredMembershipLevel)}
+              </strong>
+            </ProgressSmall>
+          ) : null}
         </ProgressCard>
       </Hero>
 
@@ -730,19 +820,33 @@ const CoursePlayer = () => {
               <LockedPanel>
                 <LockedTitle>Unlock this course</LockedTitle>
                 <LockedText>
-                  Your access is protected by the exact membership required for
-                  this course. Choose the matching plan to continue training.
+                  This course is locked behind its exact membership level.
+                  Choose the matching membership for this course to continue
+                  training inside the protected player.
                 </LockedText>
                 <PrimaryButton
                   type="button"
-                  onClick={() =>
-                    navigate(
-                      `/memberships?courseId=${encodeURIComponent(courseId)}`,
-                      { replace: false },
-                    )
-                  }
+                  onClick={() => {
+                    const params = new URLSearchParams();
+
+                    params.set("courseId", courseId);
+
+                    if (course?.requiredMembershipLevel) {
+                      params.set("required", course.requiredMembershipLevel);
+                    }
+
+                    navigate(`/memberships?${params.toString()}`, {
+                      replace: false,
+                      state: {
+                        source: "course-player",
+                        courseId,
+                        requiredMembershipLevel:
+                          course?.requiredMembershipLevel || "",
+                      },
+                    });
+                  }}
                 >
-                  Go to Memberships
+                  View Matching Membership
                 </PrimaryButton>
               </LockedPanel>
             ) : null}
@@ -790,8 +894,8 @@ const CoursePlayer = () => {
               <SideState>Checking access...</SideState>
             ) : !course.isFree && !accessAllowed ? (
               <SideState>
-                Lessons are locked until your account has the exact required
-                membership for this course.
+                Lessons stay locked until your account has the exact membership
+                required for this course.
               </SideState>
             ) : sortedLessons.length === 0 && !lessonsLoading ? (
               <SideState>No lessons have been added yet.</SideState>
