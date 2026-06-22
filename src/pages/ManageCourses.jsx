@@ -20,7 +20,6 @@ const initialFormState = {
   focusArea: "",
   level: "foundations",
   requiredMembershipLevel: "foundations",
-  allowSinglePurchase: true,
   stripePriceId: "",
   thumbnail: "",
   promoVideo: "",
@@ -46,6 +45,18 @@ const textToArray = (value) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const levelOptions = [
+  { value: "foundations", label: "Foundations" },
+  { value: "development", label: "Development" },
+  { value: "performance", label: "Performance" },
+  { value: "elite-fight-camp", label: "Elite Fight Camp" },
+];
+
+function getLevelLabel(value = "") {
+  const match = levelOptions.find((item) => item.value === value);
+  return match?.label || String(value || "none");
+}
+
 const buildCoursePayload = (formData) => ({
   title: String(formData.title || "").trim(),
   description: String(formData.description || "").trim(),
@@ -53,11 +64,8 @@ const buildCoursePayload = (formData) => ({
   focusArea: String(formData.focusArea || "").trim(),
 
   level: formData.level,
-  requiredMembershipLevel: formData.isFree
-    ? "none"
-    : formData.requiredMembershipLevel,
+  requiredMembershipLevel: formData.isFree ? "none" : formData.level,
 
-  allowSinglePurchase: Boolean(formData.allowSinglePurchase),
   stripePriceId: String(formData.stripePriceId || "").trim(),
 
   thumbnail: String(formData.thumbnail || "").trim(),
@@ -195,9 +203,9 @@ const ManageCourses = () => {
       category: course.category || "Boxing Fundamentals",
       focusArea: course.focusArea || "",
       level: course.level || "foundations",
-      requiredMembershipLevel:
-        course.requiredMembershipLevel || course.level || "foundations",
-      allowSinglePurchase: Boolean(course.allowSinglePurchase),
+      requiredMembershipLevel: course.isFree
+        ? "none"
+        : course.level || course.requiredMembershipLevel || "foundations",
       stripePriceId: course.stripePriceId || "",
       thumbnail: course.thumbnail || "",
       promoVideo: course.promoVideo || "",
@@ -244,20 +252,15 @@ const ManageCourses = () => {
         [name]: type === "checkbox" ? checked : value,
       };
 
-      if (
-        name === "level" &&
-        !next.isFree &&
-        (!prev.requiredMembershipLevel ||
-          prev.requiredMembershipLevel === prev.level)
-      ) {
+      if (name === "level" && !next.isFree) {
         next.requiredMembershipLevel = value;
       }
 
       if (name === "isFree" && checked) {
         next.requiredMembershipLevel = "none";
-        next.allowSinglePurchase = false;
         next.price = "0";
         next.salePrice = "";
+        next.stripePriceId = "";
       }
 
       if (name === "isFree" && !checked) {
@@ -265,7 +268,6 @@ const ManageCourses = () => {
           prev.requiredMembershipLevel === "none"
             ? next.level || "foundations"
             : prev.requiredMembershipLevel || "foundations";
-        next.allowSinglePurchase = true;
       }
 
       return next;
@@ -284,6 +286,18 @@ const ManageCourses = () => {
       setToast({
         type: "error",
         message: "Title and description are required.",
+      });
+      return;
+    }
+
+    if (
+      !formData.isFree &&
+      formData.requiredMembershipLevel !== formData.level
+    ) {
+      setToast({
+        type: "error",
+        message:
+          "Protected courses must use the exact matching membership level.",
       });
       return;
     }
@@ -546,10 +560,11 @@ const ManageCourses = () => {
                 value={formData.level}
                 onChange={handleChange}
               >
-                <option value="foundations">Foundations</option>
-                <option value="development">Development</option>
-                <option value="performance">Performance</option>
-                <option value="elite-fight-camp">Elite Fight Camp</option>
+                {levelOptions.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
               </Select>
             </Field>
 
@@ -559,13 +574,17 @@ const ManageCourses = () => {
                 name="requiredMembershipLevel"
                 value={formData.requiredMembershipLevel}
                 onChange={handleChange}
-                disabled={formData.isFree}
+                disabled
               >
-                <option value="none">None / Free</option>
-                <option value="foundations">Foundations</option>
-                <option value="development">Development</option>
-                <option value="performance">Performance</option>
-                <option value="elite-fight-camp">Elite Fight Camp</option>
+                {formData.isFree ? (
+                  <option value="none">None / Free</option>
+                ) : (
+                  levelOptions.map((level) => (
+                    <option key={level.value} value={level.value}>
+                      {level.label}
+                    </option>
+                  ))
+                )}
               </Select>
             </Field>
 
@@ -697,17 +716,6 @@ const ManageCourses = () => {
               <CheckboxLabel>
                 <input
                   type="checkbox"
-                  name="allowSinglePurchase"
-                  checked={formData.allowSinglePurchase}
-                  onChange={handleChange}
-                  disabled={formData.isFree}
-                />
-                Allow Single Purchase
-              </CheckboxLabel>
-
-              <CheckboxLabel>
-                <input
-                  type="checkbox"
                   name="isFree"
                   checked={formData.isFree}
                   onChange={handleChange}
@@ -821,7 +829,7 @@ const ManageCourses = () => {
 
                     <BadgeRow>
                       <CourseBadge>
-                        {course?.level || "foundations"}
+                        {getLevelLabel(course?.level || "foundations")}
                       </CourseBadge>{" "}
                       <CourseBadge $light>
                         {course?.isPublished ? "Published" : "Draft"}
@@ -844,10 +852,13 @@ const ManageCourses = () => {
                       </span>
                       <span>{course?.studentsCount || 0} students</span>
                       <span>
-                        Membership: {course?.requiredMembershipLevel || "none"}
+                        Requires:{" "}
+                        {getLevelLabel(
+                          course?.requiredMembershipLevel || "none",
+                        )}
                       </span>
                       <span>
-                        Access: {course?.requiredMembershipLevel || "none"}
+                        {course?.isFree ? "Free Course" : "Protected Course"}
                       </span>
                     </CourseMeta>
 

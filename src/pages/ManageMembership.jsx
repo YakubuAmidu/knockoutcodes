@@ -249,7 +249,7 @@ export default function ManageMembership() {
 
     if (!levels.some((level) => level.value === formData.membershipId))
       return "Choose a valid membership ID.";
-    if (!levels.includes(formData.accessLevel))
+    if (!levels.some((level) => level.value === formData.accessLevel))
       return "Choose a valid access level.";
     if (title.length < 3) return "Title must be at least 3 characters.";
     if (!String(formData.priceLabel || "").trim())
@@ -422,8 +422,8 @@ export default function ManageMembership() {
                 onChange={handleChange}
               >
                 {levels.map((level) => (
-                  <option key={level} value={level}>
-                    {level}
+                  <option key={level.value} value={level.value}>
+                    {level.label}
                   </option>
                 ))}
               </Select>
@@ -646,8 +646,8 @@ export default function ManageMembership() {
             >
               <option value="all">All Levels</option>
               {levels.map((level) => (
-                <option key={level} value={level}>
-                  {level}
+                <option key={level.value} value={level.value}>
+                  {level.label}
                 </option>
               ))}
             </Select>
