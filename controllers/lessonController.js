@@ -5,6 +5,11 @@ import Course from "../models/CourseModel.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import UserSubscription from "../models/UserSubscriptionModel.js";
 import LessonProgress from "../models/LessonProgressModel.js";
+import {
+  getCourseRequiredLevel,
+  isSubscriptionActive,
+  normalizeAccessLevel,
+} from "../utils/accessRules.js";
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(String(id));
 
@@ -19,28 +24,6 @@ const ALLOWED_UPDATE_FIELDS = [
   "isPublished",
   "resources",
 ];
-
-function normalizeLevel(value) {
-  const level = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (level === "advanced") return "advance";
-  return level || "beginner";
-}
-
-function isSubscriptionActive(sub) {
-  if (!sub) return false;
-  if (!["active", "trialing"].includes(sub.status)) return false;
-
-  if (
-    sub.currentPeriodEnd &&
-    new Date(sub.currentPeriodEnd).getTime() < Date.now()
-  ) {
-    return false;
-  }
-
-  return true;
-}
 
 function cleanText(value = "", max = 2000) {
   return String(value || "")
@@ -135,22 +118,6 @@ async function verifyCourseAccess(userId, course) {
     };
   }
 
-  const enrollment = await Enrollment.findOne({
-    user: userId,
-    course: course._id,
-    status: { $in: ["active", "completed"] },
-    paymentStatus: "paid",
-  });
-
-  if (enrollment) {
-    return {
-      allowed: true,
-      reason: "paid_enrollment",
-      source: "enrollment",
-      enrollment,
-    };
-  }
-
   const subscription = await UserSubscription.findOne({ user: userId }).lean();
 
   if (!isSubscriptionActive(subscription)) {
@@ -161,15 +128,18 @@ async function verifyCourseAccess(userId, course) {
     };
   }
 
-  const userLevel = normalizeLevel(
+  const userLevel = normalizeAccessLevel(
     subscription.accessLevel || subscription.membershipId,
   );
 
-  const requiredLevel = normalizeLevel(
-    course.requiredMembershipLevel || course.level || "beginner",
-  );
+  const requiredLevel = getCourseRequiredLevel(course);
 
-  if (userLevel === requiredLevel) {
+  // exact-match only
+  if (
+    requiredLevel &&
+    requiredLevel !== "none" &&
+    userLevel === requiredLevel
+  ) {
     return {
       allowed: true,
       reason: "active_membership",
@@ -516,7 +486,8 @@ export const updateLessonProgress = async (req, res) => {
     if (!access.allowed) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Active enrollment or membership required.",
+        message:
+          "Access denied. The exact required membership for this course is required.",
         reason: access.reason,
       });
     }
@@ -527,7 +498,7 @@ export const updateLessonProgress = async (req, res) => {
       String(lesson.course.requiredMembershipLevel || "").toLowerCase() ===
         "none";
 
-    let enrollment = access.enrollment || null;
+    let enrollment = null;
 
     if (!enrollment && freeCourse) {
       enrollment = await Enrollment.findOneAndUpdate(

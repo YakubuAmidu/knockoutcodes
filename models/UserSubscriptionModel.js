@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
-const MEMBERSHIP_LEVELS = ["beginner", "intermediate", "advance", "complete"];
+const MEMBERSHIP_LEVELS = [
+  "foundations",
+  "development",
+  "performance",
+  "elite-fight-camp",
+];
+
 const BILLING_PERIODS = ["monthly", "yearly"];
 
 const SUBSCRIPTION_STATUSES = [
@@ -14,11 +20,38 @@ const SUBSCRIPTION_STATUSES = [
 ];
 
 function normalizeLevel(value) {
-  const level = String(value || "")
+  const clean = String(value || "")
     .trim()
     .toLowerCase();
-  if (level === "advanced") return "advance";
-  return level;
+
+  if (!clean) return "";
+
+  if (clean === "beginner" || clean.includes("foundation")) {
+    return "foundations";
+  }
+
+  if (clean === "intermediate" || clean.includes("development")) {
+    return "development";
+  }
+
+  if (
+    clean === "advance" ||
+    clean === "advanced" ||
+    clean.includes("performance")
+  ) {
+    return "performance";
+  }
+
+  if (
+    clean === "complete" ||
+    clean.includes("elite") ||
+    clean.includes("fight-camp") ||
+    clean.includes("fight camp")
+  ) {
+    return "elite-fight-camp";
+  }
+
+  return clean;
 }
 
 const userSubscriptionSchema = new mongoose.Schema(

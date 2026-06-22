@@ -4,6 +4,13 @@ import Course from "../models/CourseModel.js";
 import Enrollment from "../models/EnrollmentModel.js";
 import Review from "../models/ReviewModel.js";
 import UserSubscription from "../models/UserSubscriptionModel.js";
+import {
+  getCourseRequiredLevel,
+  isSubscriptionActive,
+  membershipCoversCourse,
+  normalizeAccessLevel,
+  getMembershipLabel,
+} from "../utils/accessRules.js";
 
 /* ======================================================
    SECURITY HELPERS
@@ -19,40 +26,6 @@ const sendError = (res, statusCode, message) => {
 const escapeRegex = (value = "") =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function normalizeLevel(value) {
-  const level = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (level === "advanced") return "advance";
-  if (level === "all-levels") return "beginner";
-  if (level === "none") return "none";
-  return level || "beginner";
-}
-
-function isSubscriptionActive(sub) {
-  if (!sub) return false;
-  if (!["active", "trialing"].includes(sub.status)) return false;
-
-  if (
-    sub.currentPeriodEnd &&
-    new Date(sub.currentPeriodEnd).getTime() < Date.now()
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-function hasExactMembershipAccess(userLevel, requiredLevel) {
-  const cleanUserLevel = normalizeLevel(userLevel);
-  const cleanRequiredLevel = normalizeLevel(requiredLevel);
-
-  if (!cleanUserLevel || !cleanRequiredLevel) return false;
-  if (cleanRequiredLevel === "none") return true;
-
-  return cleanUserLevel === cleanRequiredLevel;
-}
-
 const sanitizeCoursePayload = (payload = {}) => {
   const allowedFields = [
     "title",
@@ -62,12 +35,8 @@ const sanitizeCoursePayload = (payload = {}) => {
     "focusArea",
     "level",
     "requiredMembershipLevel",
-    "allowSinglePurchase",
-    "stripePriceId",
     "thumbnail",
     "promoVideo",
-    "price",
-    "salePrice",
     "isFree",
     "durationInMinutes",
     "totalLessons",
@@ -164,6 +133,11 @@ async function attachStatsToCourse(course) {
 export const createCourse = async (req, res) => {
   try {
     const data = sanitizeCoursePayload(req.body);
+
+    data.allowSinglePurchase = false;
+    data.stripePriceId = "";
+    data.price = 0;
+    data.salePrice = null;
 
     const price = Number(data.price || 0);
 
@@ -394,6 +368,11 @@ export const updateCourse = async (req, res) => {
 
     const updateData = sanitizeCoursePayload(req.body);
 
+    updateData.allowSinglePurchase = false;
+    updateData.stripePriceId = "";
+    updateData.price = 0;
+    updateData.salePrice = null;
+
     const price = Number(updateData.price || 0);
 
     const salePrice =
@@ -542,58 +521,39 @@ export const getCoursePlayer = async (req, res) => {
     let subscription = null;
     let accessReason = admin ? "admin" : course.isFree ? "free_course" : "";
     let accessSource = admin ? "admin" : course.isFree ? "free" : "";
-    let requiredLevel = normalizeLevel(
-      course.requiredMembershipLevel || course.level || "beginner",
-    );
+
+    let requiredLevel = getCourseRequiredLevel(course);
+
     let userLevel = null;
 
     if (!admin && !course.isFree) {
-      enrollment = await Enrollment.findOne({
-        user: userId,
-        course: courseId,
-        paymentStatus: "paid",
-        status: { $in: ["active", "completed"] },
-        $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
-      })
+      subscription = await UserSubscription.findOne({ user: userId })
         .select(
-          "_id status paymentStatus progressPercent startedAt lastAccessedAt",
+          "_id membershipId accessLevel status currentPeriodStart currentPeriodEnd billingPeriod cancelAtPeriodEnd",
         )
         .lean();
 
-      if (enrollment) {
-        accessReason = "paid_enrollment";
-        accessSource = "enrollment";
-      }
+      if (isSubscriptionActive(subscription)) {
+        userLevel = normalizeAccessLevel(
+          subscription.accessLevel || subscription.membershipId,
+        );
 
-      if (!enrollment) {
-        subscription = await UserSubscription.findOne({ user: userId })
-          .select(
-            "_id membershipId accessLevel status currentPeriodStart currentPeriodEnd billingPeriod cancelAtPeriodEnd",
-          )
-          .lean();
-
-        if (isSubscriptionActive(subscription)) {
-          userLevel = normalizeLevel(
-            subscription.accessLevel || subscription.membershipId,
-          );
-
-          if (hasExactMembershipAccess(userLevel, requiredLevel)) {
-            accessReason = "active_membership";
-            accessSource = "membership";
-          } else {
-            return sendError(
-              res,
-              403,
-              `This course requires ${requiredLevel} membership. Your active membership is ${userLevel}.`,
-            );
-          }
+        if (membershipCoversCourse(userLevel, requiredLevel)) {
+          accessReason = "active_membership";
+          accessSource = "membership";
         } else {
           return sendError(
             res,
             403,
-            "You must enroll in this course or have an active matching membership before watching it.",
+            `This course requires ${getMembershipLabel(requiredLevel)}. Your active membership is ${getMembershipLabel(userLevel)}.`,
           );
         }
+      } else {
+        return sendError(
+          res,
+          403,
+          "You must enroll in this course or have an active matching membership before watching it.",
+        );
       }
     }
 

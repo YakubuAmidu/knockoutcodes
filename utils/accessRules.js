@@ -1,11 +1,19 @@
 // utils/accessRules.js
 
-const LEVEL_ORDER = {
-  none: 0,
-  beginner: 1,
-  intermediate: 2,
-  advance: 3,
-  complete: 4,
+export const MEMBERSHIP_LEVELS = [
+  "foundations",
+  "development",
+  "performance",
+  "elite-fight-camp",
+];
+
+export const PUBLIC_LEVEL = "none";
+
+export const MEMBERSHIP_LABELS = {
+  foundations: "Foundations Membership",
+  development: "Development Membership",
+  performance: "Performance Membership",
+  "elite-fight-camp": "Elite Fight Camp Membership",
 };
 
 export function normalizeAccessLevel(value = "") {
@@ -14,27 +22,52 @@ export function normalizeAccessLevel(value = "") {
     .toLowerCase();
 
   if (!clean) return "";
-  if (clean === "advanced") return "advance";
-  if (clean === "all") return "all-levels";
 
-  if (clean.includes("beginner")) return "beginner";
-  if (clean.includes("intermediate")) return "intermediate";
-  if (clean.includes("advance") || clean.includes("advanced")) return "advance";
-  if (clean.includes("complete") || clean.includes("elite")) return "complete";
-  if (clean === "none" || clean === "free") return "none";
+  // Old names mapped to new professional names
+  if (clean === "beginner" || clean.includes("foundation")) {
+    return "foundations";
+  }
+
+  if (clean === "intermediate" || clean.includes("development")) {
+    return "development";
+  }
+
+  if (
+    clean === "advance" ||
+    clean === "advanced" ||
+    clean.includes("performance")
+  ) {
+    return "performance";
+  }
+
+  // Old "complete" becomes elite, but NOT all-access
+  if (
+    clean === "complete" ||
+    clean.includes("elite") ||
+    clean.includes("fight-camp") ||
+    clean.includes("fight camp")
+  ) {
+    return "elite-fight-camp";
+  }
+
+  if (clean === "none" || clean === "free") return PUBLIC_LEVEL;
 
   return clean;
 }
 
+export function isValidMembershipLevel(value = "") {
+  return MEMBERSHIP_LEVELS.includes(normalizeAccessLevel(value));
+}
+
 export function getCourseRequiredLevel(course = {}) {
-  if (course?.isFree) return "none";
+  if (course?.isFree) return PUBLIC_LEVEL;
 
   const level = normalizeAccessLevel(
-    course.requiredMembershipLevel || course.level || "beginner",
+    course.requiredMembershipLevel || course.level || "foundations",
   );
 
-  if (!level || level === "all-levels") return "beginner";
-  if (level === "none") return "none";
+  if (!level) return "foundations";
+  if (level === PUBLIC_LEVEL) return PUBLIC_LEVEL;
 
   return level;
 }
@@ -43,17 +76,18 @@ export function membershipCoversCourse(userLevel, courseRequiredLevel) {
   const memberLevel = normalizeAccessLevel(userLevel);
   const requiredLevel = normalizeAccessLevel(courseRequiredLevel);
 
-  if (!memberLevel || !requiredLevel || requiredLevel === "none") return false;
+  if (!requiredLevel || requiredLevel === PUBLIC_LEVEL) return true;
+  if (!memberLevel) return false;
 
-  // Complete unlocks everything.
-  if (memberLevel === "complete") return true;
-
-  // Beginner/intermediate/advance only unlock exact matching course level.
+  // Critical business rule:
+  // Each membership only unlocks its own level.
+  // Elite Fight Camp does NOT unlock Foundations, Development, or Performance.
   return memberLevel === requiredLevel;
 }
 
-export function membershipLevelValue(level) {
-  return LEVEL_ORDER[normalizeAccessLevel(level)] || 0;
+export function getMembershipLabel(level = "") {
+  const safeLevel = normalizeAccessLevel(level);
+  return MEMBERSHIP_LABELS[safeLevel] || "Membership";
 }
 
 export function isSubscriptionActive(sub) {

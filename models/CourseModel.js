@@ -8,17 +8,17 @@ import mongoose from "mongoose";
 ====================================================== */
 
 const COURSE_LEVELS = [
-  "beginner",
-  "intermediate",
-  "advance",
-  "complete",
-  "all-levels",
+  "foundations",
+  "development",
+  "performance",
+  "elite-fight-camp",
 ];
+
 const MEMBERSHIP_LEVELS = [
-  "beginner",
-  "intermediate",
-  "advance",
-  "complete",
+  "foundations",
+  "development",
+  "performance",
+  "elite-fight-camp",
   "none",
 ];
 
@@ -72,14 +72,14 @@ const courseSchema = new mongoose.Schema(
     level: {
       type: String,
       enum: COURSE_LEVELS,
-      default: "beginner",
+      default: "foundations",
       index: true,
     },
 
     requiredMembershipLevel: {
       type: String,
       enum: MEMBERSHIP_LEVELS,
-      default: "beginner",
+      default: "foundations",
       index: true,
     },
 
@@ -236,8 +236,34 @@ function normalizeLevel(value) {
     .trim()
     .toLowerCase();
 
-  if (clean === "advanced") return "advance";
-  if (clean === "all") return "all-levels";
+  if (!clean) return "";
+
+  if (clean === "beginner" || clean.includes("foundation")) {
+    return "foundations";
+  }
+
+  if (clean === "intermediate" || clean.includes("development")) {
+    return "development";
+  }
+
+  if (
+    clean === "advance" ||
+    clean === "advanced" ||
+    clean.includes("performance")
+  ) {
+    return "performance";
+  }
+
+  if (
+    clean === "complete" ||
+    clean.includes("elite") ||
+    clean.includes("fight-camp") ||
+    clean.includes("fight camp")
+  ) {
+    return "elite-fight-camp";
+  }
+
+  if (clean === "none" || clean === "free") return "none";
 
   return clean;
 }
@@ -258,9 +284,9 @@ function isValidUrl(value) {
 }
 
 function normalizeCourseAccess(doc) {
-  doc.level = normalizeLevel(doc.level) || "beginner";
+  doc.level = normalizeLevel(doc.level) || "foundations";
   doc.requiredMembershipLevel =
-    normalizeLevel(doc.requiredMembershipLevel) || "beginner";
+    normalizeLevel(doc.requiredMembershipLevel) || "foundations";
 
   if (!isValidUrl(doc.thumbnail)) {
     doc.thumbnail = "";
@@ -271,11 +297,11 @@ function normalizeCourseAccess(doc) {
   }
 
   if (!COURSE_LEVELS.includes(doc.level)) {
-    doc.level = "beginner";
+    doc.level = "foundations";
   }
 
   if (!MEMBERSHIP_LEVELS.includes(doc.requiredMembershipLevel)) {
-    doc.requiredMembershipLevel = "beginner";
+    doc.requiredMembershipLevel = "foundations";
   }
 
   if (!doc.requiredMembershipLevel || doc.requiredMembershipLevel === "none") {

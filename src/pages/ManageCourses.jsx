@@ -18,8 +18,8 @@ const initialFormState = {
   description: "",
   category: "Boxing Fundamentals",
   focusArea: "",
-  level: "beginner",
-  requiredMembershipLevel: "beginner",
+  level: "foundations",
+  requiredMembershipLevel: "foundations",
   allowSinglePurchase: true,
   stripePriceId: "",
   thumbnail: "",
@@ -194,9 +194,9 @@ const ManageCourses = () => {
       description: course.description || "",
       category: course.category || "Boxing Fundamentals",
       focusArea: course.focusArea || "",
-      level: course.level || "beginner",
+      level: course.level || "foundations",
       requiredMembershipLevel:
-        course.requiredMembershipLevel || course.level || "beginner",
+        course.requiredMembershipLevel || course.level || "foundations",
       allowSinglePurchase: Boolean(course.allowSinglePurchase),
       stripePriceId: course.stripePriceId || "",
       thumbnail: course.thumbnail || "",
@@ -263,8 +263,8 @@ const ManageCourses = () => {
       if (name === "isFree" && !checked) {
         next.requiredMembershipLevel =
           prev.requiredMembershipLevel === "none"
-            ? next.level || "beginner"
-            : prev.requiredMembershipLevel || "beginner";
+            ? next.level || "foundations"
+            : prev.requiredMembershipLevel || "foundations";
         next.allowSinglePurchase = true;
       }
 
@@ -498,7 +498,7 @@ const ManageCourses = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="Beginner Boxing Blueprint"
+                placeholder="Foundations Boxing Blueprint"
               />
             </Field>
 
@@ -546,10 +546,10 @@ const ManageCourses = () => {
                 value={formData.level}
                 onChange={handleChange}
               >
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advance">Advance</option>
-                <option value="complete">Complete</option>
+                <option value="foundations">Foundations</option>
+                <option value="development">Development</option>
+                <option value="performance">Performance</option>
+                <option value="elite-fight-camp">Elite Fight Camp</option>
               </Select>
             </Field>
 
@@ -562,10 +562,10 @@ const ManageCourses = () => {
                 disabled={formData.isFree}
               >
                 <option value="none">None / Free</option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advance">Advance</option>
-                <option value="complete">Complete</option>
+                <option value="foundations">Foundations</option>
+                <option value="development">Development</option>
+                <option value="performance">Performance</option>
+                <option value="elite-fight-camp">Elite Fight Camp</option>
               </Select>
             </Field>
 
@@ -782,10 +782,10 @@ const ManageCourses = () => {
               }
             >
               <option value="all">All Levels</option>
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advance">Advance</option>
-              <option value="complete">Complete</option>
+              <option value="foundations">Foundations</option>
+              <option value="development">Development</option>
+              <option value="performance">Performance</option>
+              <option value="elite-fight-camp">Elite Fight Camp</option>
             </Select>
 
             <Select
@@ -820,7 +820,9 @@ const ManageCourses = () => {
                     )}
 
                     <BadgeRow>
-                      <CourseBadge>{course?.level || "beginner"}</CourseBadge>
+                      <CourseBadge>
+                        {course?.level || "foundations"}
+                      </CourseBadge>{" "}
                       <CourseBadge $light>
                         {course?.isPublished ? "Published" : "Draft"}
                       </CourseBadge>

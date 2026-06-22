@@ -25,20 +25,6 @@ const normalizePlanSlug = (raw) => {
   return value;
 };
 
-const planRank = {
-  beginner: 1,
-  intermediate: 2,
-  advance: 3,
-  complete: 4,
-};
-
-const isPlanLowerOrSame = (current, target) => {
-  const currentRank = planRank[normalizePlanSlug(current)] || 0;
-  const targetRank = planRank[normalizePlanSlug(target)] || 0;
-
-  return currentRank >= targetRank;
-};
-
 const formatEnrolled = (value) => {
   const number = Number(value || 0);
 
@@ -546,8 +532,8 @@ const Memberships = () => {
             <HeroPoint>
               <strong>Upgrade Path</strong>
               <span>
-                Beginner → Intermediate → Advanced → Complete. No confusion.
-                Clear direction.
+                Beginner, Intermediate, Advance, and Complete are separate
+                memberships. Choose the exact training level you want.
               </span>
             </HeroPoint>
           </HeroGrid>
@@ -668,15 +654,8 @@ const Memberships = () => {
             const isSwitching = switchingId === planMembershipId;
             const isStarting = startingId === planMembershipId;
 
-            const isCoveredByCurrentPlan =
-              hasActiveSubscription &&
-              isPlanLowerOrSame(activeMembershipId, planMembershipId);
-
             const shouldDisableJoin =
-              plan.__skeleton ||
-              isStarting ||
-              isCurrentPlan ||
-              isCoveredByCurrentPlan;
+              plan.__skeleton || isStarting || isCurrentPlan;
 
             return (
               <Card
@@ -788,8 +767,8 @@ const Memberships = () => {
                     {isCurrentPlan
                       ? "You are already subscribed to this membership. Your access is active."
                       : hasActiveSubscription
-                        ? "Switching updates your active Stripe subscription securely."
-                        : "Choose this membership, select your course, then complete secure Stripe checkout."}
+                        ? "Switching replaces your current active membership with this one through Stripe."
+                        : "Choose this membership, then complete secure Stripe checkout to activate access."}
                   </SecurityNote>
 
                   <Footer>
@@ -817,22 +796,16 @@ const Memberships = () => {
                     ) : hasActiveSubscription ? (
                       <PrimaryButton
                         type="button"
-                        disabled={
-                          plan.__skeleton ||
-                          isSwitching ||
-                          isCoveredByCurrentPlan
-                        }
+                        disabled={plan.__skeleton || isSwitching}
                         onClick={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
                           handleSwitchPlan(plan);
                         }}
                       >
-                        {isCoveredByCurrentPlan
-                          ? "Already Included"
-                          : isSwitching
-                            ? "Switching..."
-                            : `Switch to ${billingPeriod}`}
+                        {isSwitching
+                          ? "Switching..."
+                          : `Switch to ${billingPeriod}`}
                       </PrimaryButton>
                     ) : (
                       <PrimaryButton

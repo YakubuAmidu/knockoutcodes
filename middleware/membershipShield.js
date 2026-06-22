@@ -51,12 +51,17 @@ function hasSuspiciousKeys(obj) {
 // Only allow updating safe fields (prevents attackers from setting createdBy, etc.)
 const ALLOWED_CREATE_FIELDS = new Set([
   "membershipId",
+  "accessLevel",
   "title",
   "instructor",
   "priceLabel",
+  "monthlyPriceLabel",
+  "yearlyPriceLabel",
   "rating",
   "enrolled",
   "stripePriceId",
+  "stripePriceIdMonthly",
+  "stripePriceIdYearly",
   "short",
   "meta",
   "glyph",
@@ -65,6 +70,7 @@ const ALLOWED_CREATE_FIELDS = new Set([
   "highlight",
   "isPublished",
   "isFeatured",
+  "sortOrder",
 ]);
 
 const ALLOWED_UPDATE_FIELDS = new Set([

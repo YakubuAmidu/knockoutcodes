@@ -317,7 +317,8 @@ export const createCourseCheckoutSession = asyncHandler(async (req, res) => {
       return res.status(409).json({
         success: false,
         alreadyAccessible: true,
-        message: "This course is already included in your active membership.",
+        message:
+          "You already have access to this course through your matching active membership.",
         courseId: String(course._id),
         accessType: "membership",
         userMembershipLevel: userLevel,

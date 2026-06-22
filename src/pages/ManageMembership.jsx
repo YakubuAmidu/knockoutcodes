@@ -11,12 +11,17 @@ import {
 
 import { MANAGE_MEMBERSHIPS_ACTIONS } from "../reducers/manageMembership/manageMembershipActionTypes";
 
-const levels = ["beginner", "intermediate", "advance", "complete"];
+const levels = [
+  { value: "foundations", label: "Foundations" },
+  { value: "development", label: "Development" },
+  { value: "performance", label: "Performance" },
+  { value: "elite-fight-camp", label: "Elite Fight Camp" },
+];
 
 const initialFormState = {
   _id: "",
-  membershipId: "beginner",
-  accessLevel: "beginner",
+  membershipId: "foundations",
+  accessLevel: "foundations",
   title: "",
   instructor: "KnockoutCodes Academy",
   priceLabel: "",
@@ -177,8 +182,8 @@ export default function ManageMembership() {
   const fillForm = (item) => {
     setFormData({
       _id: item?._id || "",
-      membershipId: item?.membershipId || "beginner",
-      accessLevel: item?.accessLevel || item?.membershipId || "beginner",
+      membershipId: item?.membershipId || "foundations",
+      accessLevel: item?.accessLevel || item?.membershipId || "foundations",
       title: item?.title || "",
       instructor: item?.instructor || "KnockoutCodes Academy",
       priceLabel: item?.priceLabel || "",
@@ -242,7 +247,7 @@ export default function ManageMembership() {
     const title = String(formData.title || "").trim();
     const short = String(formData.short || "").trim();
 
-    if (!levels.includes(formData.membershipId))
+    if (!levels.some((level) => level.value === formData.membershipId))
       return "Choose a valid membership ID.";
     if (!levels.includes(formData.accessLevel))
       return "Choose a valid access level.";
@@ -352,7 +357,7 @@ export default function ManageMembership() {
           <PanelLabel>Membership System</PanelLabel>
           <PanelTitle>Keep pricing, access, and Stripe IDs clean.</PanelTitle>
           <PanelList>
-            <li>Beginner, Intermediate, Advance, Complete</li>
+            <li>Foundations, Development, Performance, Elite Fight Camp</li>{" "}
             <li>Monthly and yearly Stripe price IDs</li>
             <li>Published, featured, and highlight controls</li>
             <li>Safe admin-only create, edit, and delete</li>
@@ -402,8 +407,8 @@ export default function ManageMembership() {
                 onChange={handleChange}
               >
                 {levels.map((level) => (
-                  <option key={level} value={level}>
-                    {level}
+                  <option key={level.value} value={level.value}>
+                    {level.label}
                   </option>
                 ))}
               </Select>
@@ -430,7 +435,7 @@ export default function ManageMembership() {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="KnockoutCodes Beginner Membership"
+                placeholder="KnockoutCodes Foundations Membership"
               />
             </WideField>
 

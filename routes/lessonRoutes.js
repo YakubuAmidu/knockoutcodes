@@ -10,6 +10,9 @@ import {
   updateLessonProgress,
 } from "../controllers/lessonController.js";
 
+import { csrfRequired } from "../middleware/csrfMiddleware.js";
+import { writeShield, allowMethods } from "../middleware/securityShield.js";
+
 import {
   authRequired,
   adminOnly,
@@ -22,7 +25,14 @@ const router = express.Router();
 router
   .route("/")
   .get(authRequired, adminOnly, getAllLessons)
-  .post(authRequired, adminOnly, createLesson);
+  .post(
+    allowMethods(["POST"]),
+    writeShield,
+    authRequired,
+    adminOnly,
+    csrfRequired,
+    createLesson,
+  );
 
 // Public preview + paid/enrolled/membership access
 router.get("/by-course/:courseId", optionalAuth, getLessonsByCourse);
@@ -34,7 +44,21 @@ router.put("/progress/:lessonId", authRequired, updateLessonProgress);
 router
   .route("/:id")
   .get(optionalAuth, getLesson)
-  .put(authRequired, adminOnly, updateLesson)
-  .delete(authRequired, adminOnly, deleteLesson);
+  .put(
+    allowMethods(["PUT"]),
+    writeShield,
+    authRequired,
+    adminOnly,
+    csrfRequired,
+    updateLesson,
+  )
+  .delete(
+    allowMethods(["DELETE"]),
+    writeShield,
+    authRequired,
+    adminOnly,
+    csrfRequired,
+    deleteLesson,
+  );
 
 export default router;

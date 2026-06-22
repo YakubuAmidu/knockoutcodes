@@ -135,7 +135,7 @@ export const createCourseCheckout =
           courseId: data.courseId || courseId,
           message:
             data.message ||
-            "This course is already included in your active membership.",
+            "You already have access to this course through your current membership.",
         };
 
         dispatch({

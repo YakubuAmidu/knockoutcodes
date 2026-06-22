@@ -500,8 +500,8 @@ const CoursePlayer = () => {
             <LockIcon>🔒</LockIcon>
             <FallbackTitle>This course is locked</FallbackTitle>
             <FallbackText>
-              Get access through enrollment or an active membership to watch the
-              full lesson library.
+              Get access through the exact required membership for this course
+              to watch the full lesson library.
             </FallbackText>
           </VideoFallback>
         </VideoWrapper>
@@ -730,8 +730,8 @@ const CoursePlayer = () => {
               <LockedPanel>
                 <LockedTitle>Unlock this course</LockedTitle>
                 <LockedText>
-                  Your access is protected by your enrollment or active
-                  membership. Choose a plan to continue training.
+                  Your access is protected by the exact membership required for
+                  this course. Choose the matching plan to continue training.
                 </LockedText>
                 <PrimaryButton
                   type="button"
@@ -790,8 +790,8 @@ const CoursePlayer = () => {
               <SideState>Checking access...</SideState>
             ) : !course.isFree && !accessAllowed ? (
               <SideState>
-                Lessons are locked until you have enrollment or an active
-                membership.
+                Lessons are locked until your account has the exact required
+                membership for this course.
               </SideState>
             ) : sortedLessons.length === 0 && !lessonsLoading ? (
               <SideState>No lessons have been added yet.</SideState>

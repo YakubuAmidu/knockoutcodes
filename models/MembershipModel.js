@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 
-const MEMBERSHIP_LEVELS = ["beginner", "intermediate", "advance", "complete"];
+const MEMBERSHIP_LEVELS = [
+  "foundations",
+  "development",
+  "performance",
+  "elite-fight-camp",
+];
 
 function sanitizeText(value) {
   if (value == null) return "";
@@ -17,11 +22,32 @@ function generateSlug(input = "") {
 function normalizeLevel(value = "") {
   const clean = sanitizeText(value).toLowerCase();
 
-  if (clean === "advanced") return "advance";
-  if (clean.includes("beginner")) return "beginner";
-  if (clean.includes("intermediate")) return "intermediate";
-  if (clean.includes("advance") || clean.includes("advanced")) return "advance";
-  if (clean.includes("complete") || clean.includes("elite")) return "complete";
+  if (!clean) return "";
+
+  if (clean === "beginner" || clean.includes("foundation")) {
+    return "foundations";
+  }
+
+  if (clean === "intermediate" || clean.includes("development")) {
+    return "development";
+  }
+
+  if (
+    clean === "advance" ||
+    clean === "advanced" ||
+    clean.includes("performance")
+  ) {
+    return "performance";
+  }
+
+  if (
+    clean === "complete" ||
+    clean.includes("elite") ||
+    clean.includes("fight-camp") ||
+    clean.includes("fight camp")
+  ) {
+    return "elite-fight-camp";
+  }
 
   return clean;
 }

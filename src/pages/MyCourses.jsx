@@ -254,9 +254,10 @@ const MyCourses = () => {
             <Eyebrow>KnockoutCodes Student Room</Eyebrow>
             <Title>Your Purchased Courses, Progress, And Access</Title>
             <Subtitle>
-              Everything you bought is organized here: payment status, access
-              status, enrollment date, progress, last activity, instructor,
-              course level, and the next action to take.
+              Everything you have unlocked is organized here: your active course
+              access, membership-backed enrollments, payment status, progress,
+              last activity, instructor, course level, and the next action to
+              take.
             </Subtitle>
           </HeroContent>
 
@@ -264,7 +265,7 @@ const MyCourses = () => {
             <PanelLabel>Student Access</PanelLabel>
             <PanelTitle>No confusion. Just your unlocked training.</PanelTitle>
             <PanelList>
-              <li>See every purchased course</li>
+              <li>See every course unlocked on your account</li>{" "}
               <li>Track progress and completion</li>
               <li>Review payment and access details</li>
               <li>Continue directly into Course Player</li>
@@ -381,9 +382,10 @@ const MyCourses = () => {
           <>
             <SectionHeader>
               <div>
-                <SectionEyebrow>Purchased Library</SectionEyebrow>
+                <SectionEyebrow>My Course Access</SectionEyebrow>
                 <SectionTitle>
-                  Every course you own, with the full access story.
+                  Every course unlocked on your account, with the full access
+                  story.
                 </SectionTitle>
               </div>
 
