@@ -35,6 +35,17 @@ const PUBLIC_AUTH_PATHS = new Set([
   "/",
 ]);
 
+const CHECKOUT_RETURN_PATHS = new Set([
+  "/product/success",
+  "/product/failed",
+  "/subscription/success",
+  "/subscription/failed",
+  "/order/success",
+  "/order/failed",
+  "/membership-success",
+  "/membership-failed",
+]);
+
 function safeGet(storage, key) {
   try {
     return storage.getItem(key);
@@ -183,7 +194,10 @@ function persistUser(user, mode = "local") {
 
 function shouldRedirectToLogin() {
   const path = window.location.pathname;
+
   if (PUBLIC_AUTH_PATHS.has(path)) return false;
+  if (CHECKOUT_RETURN_PATHS.has(path)) return false;
+
   return (
     path.startsWith("/admin") ||
     path.startsWith("/user") ||
@@ -417,6 +431,10 @@ export function AuthProvider({ children }) {
 
       const message =
         event?.detail?.message || "Session expired. Please login again.";
+
+      if (CHECKOUT_RETURN_PATHS.has(window.location.pathname)) {
+        return;
+      }
 
       forceLogout(message);
     }

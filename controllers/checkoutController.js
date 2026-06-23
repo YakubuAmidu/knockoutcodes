@@ -193,11 +193,11 @@ export const createProductCheckoutSession = asyncHandler(async (req, res) => {
     phone_number_collection: { enabled: true },
     billing_address_collection: "auto",
     success_url:
-      `${FRONTEND_URL}/order/success` +
+      `${FRONTEND_URL}/product/success` +
       `?session_id={CHECKOUT_SESSION_ID}` +
       `&kind=products`,
     cancel_url:
-      `${FRONTEND_URL}/order/failed` + `?canceled=true` + `&kind=products`,
+      `${FRONTEND_URL}/product/failed` + `?canceled=true` + `&kind=products`,
     metadata: {
       type: "products",
       kind: "products",
