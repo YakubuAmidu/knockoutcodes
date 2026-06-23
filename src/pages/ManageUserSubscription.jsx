@@ -283,7 +283,12 @@ export default function ManageUserSubscription() {
       setError("");
       setMessage("");
 
-      await apiClient.delete(`/subscriptions/${id}`);
+      await apiClient.delete(`/subscriptions/${id}`, {
+        data: {},
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       setMessage("Subscription deleted successfully.");
 
