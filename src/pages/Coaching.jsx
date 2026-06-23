@@ -158,35 +158,6 @@ export default function Coaching() {
     [safeForm.coachingType],
   );
 
-  const emailSubject = useMemo(
-    () =>
-      `KnockoutCodes Boxing Coaching — ${
-        normalizeSpaces(stripAngleBrackets(safeForm.fullName)) || "(no name)"
-      }`,
-    [safeForm.fullName],
-  );
-
-  const emailSummary = useMemo(
-    () =>
-      [
-        `Name: ${normalizeSpaces(stripAngleBrackets(safeForm.fullName))}`,
-        `Email: ${normalizeSpaces(stripAngleBrackets(safeForm.email))}`,
-        `Phone: ${onlyDigitsPlus(safeForm.phone) || "—"}`,
-        `Coaching Type: ${selectedCoachingType}`,
-        `Duration: ${safeForm.duration} mins`,
-        `Time Zone: ${normalizeSpaces(stripAngleBrackets(safeForm.timeZone))}`,
-        `Preferred: ${safeForm.date || "—"} at ${safeForm.time || "—"}`,
-        `Session Method: ${
-          safeForm.preferGoogleMeet
-            ? "Google Meet"
-            : safeForm.sessionMethod || "Phone Call"
-        }`,
-        `Marketing Opt-In: ${safeForm.marketingOptIn ? "Yes" : "No"}`,
-        `Goals: ${normalizeSpaces(stripAngleBrackets(safeForm.goals)) || "—"}`,
-      ].join("\n"),
-    [safeForm, selectedCoachingType],
-  );
-
   function setField(name, value) {
     dispatch({
       type: COACHING_ACTIONS.UPDATE_FIELD,
