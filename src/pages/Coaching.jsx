@@ -438,8 +438,6 @@ export default function Coaching() {
         headers: {
           Accept: "application/json",
           "X-Requested-With": "axios",
-          "X-Form-TS": String(Date.now()),
-          "X-Honey": "",
         },
         signal: controller.signal,
       });
