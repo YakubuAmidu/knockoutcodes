@@ -1,6 +1,7 @@
 // controllers/subscriptionController.js
 import mongoose from "mongoose";
 import { stripe } from "../config/stripe.js";
+import { sendMail } from "../utils/mailer.js";
 import Membership from "../models/MembershipModel.js";
 import UserSubscription from "../models/UserSubscriptionModel.js";
 import User from "../models/UserModel.js";
@@ -168,6 +169,80 @@ async function syncUserMembershipPlan(userId, status, membershipLevel) {
       membershipPlan: isActiveStatus(status) ? membershipLevel : null,
     },
   });
+}
+
+function formatMoney(amount, currency = "USD") {
+  return `${currency.toUpperCase()} ${Number(amount || 0).toFixed(2)}`;
+}
+
+function formatDate(value) {
+  if (!value) return "Not available";
+
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
+async function sendMembershipEnrollmentEmail({
+  userId,
+  membershipTitle,
+  membershipId,
+  billingPeriod,
+  amount,
+  currency,
+  currentPeriodEnd,
+}) {
+  try {
+    const user = await User.findById(userId)
+      .select("name fullName email")
+      .lean();
+
+    if (!user?.email) return;
+
+    const customerName = user.name || user.fullName || "Fighter";
+
+    await sendMail({
+      to: user.email,
+      subject: `Your ${membershipTitle} is active`,
+      text: `
+Hi ${customerName},
+
+Your KnockoutCodes membership is now active.
+
+Membership: ${membershipTitle}
+Access Level: ${membershipId}
+Billing: ${billingPeriod}
+Amount: ${formatMoney(amount, currency)}
+Current Period Ends: ${formatDate(currentPeriodEnd)}
+
+You can now log in and start training.
+
+KnockoutCodes Academy
+      `.trim(),
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+          <h2>Your membership is active 🥊</h2>
+          <p>Hi ${customerName},</p>
+          <p>Your KnockoutCodes membership is now active.</p>
+
+          <div style="padding:16px;border:1px solid #ddd;border-radius:10px;background:#fafafa;">
+            <p><strong>Membership:</strong> ${membershipTitle}</p>
+            <p><strong>Access Level:</strong> ${membershipId}</p>
+            <p><strong>Billing:</strong> ${billingPeriod}</p>
+            <p><strong>Amount:</strong> ${formatMoney(amount, currency)}</p>
+            <p><strong>Current Period Ends:</strong> ${formatDate(currentPeriodEnd)}</p>
+          </div>
+
+          <p>You can now log in and start training.</p>
+          <p><strong>KnockoutCodes Academy</strong></p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Membership enrollment email failed:", error?.message);
+  }
 }
 
 export const createCheckoutSession = async (req, res) => {
@@ -593,6 +668,18 @@ export const stripeWebhook = async (req, res) => {
                 note: "",
                 status: "completed",
                 isSeenByAdmin: false,
+              });
+
+              await sendMembershipEnrollmentEmail({
+                userId,
+                membershipTitle: plan.title || "Membership Subscription",
+                membershipId: safeMembershipId,
+                billingPeriod: normalizeBillingPeriod(
+                  session.metadata?.billingPeriod,
+                ),
+                amount: membershipPrice,
+                currency,
+                currentPeriodEnd: subDoc?.currentPeriodEnd,
               });
             }
           }
