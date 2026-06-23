@@ -1,13 +1,189 @@
-// controllers/orderController.js
 import Order from "../models/OrderModel.js";
 import Product from "../models/ProductModel.js";
 import { stripe } from "../config/stripe.js";
 import { getIO } from "../config/socket.js";
+import { sendMail } from "../utils/mailer.js";
 
 /* =========================================================
    HELPERS
 ========================================================= */
 const ORDER_LOCKED_STATUSES = ["cancelled", "refunded"];
+
+function formatMoney(amount = 0, currency = "USD") {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: String(currency || "USD").toUpperCase(),
+    }).format(Number(amount || 0));
+  } catch {
+    return `$${Number(amount || 0).toFixed(2)}`;
+  }
+}
+
+function getOrderCustomerEmail(order) {
+  return (order?.shippingAddress?.email || order?.user?.email || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+}
+
+function getOrderCustomerName(order) {
+  return (order?.shippingAddress?.fullName || order?.user?.name || "Customer")
+    .toString()
+    .trim();
+}
+
+function buildOrderItemsHtml(order) {
+  const items = Array.isArray(order?.items) ? order.items : [];
+
+  if (!items.length) {
+    return "<li>Your order items will appear in your account dashboard.</li>";
+  }
+
+  return items
+    .map((item) => {
+      const title = String(item?.title || "Product");
+      const qty = Number(item?.quantity || 1);
+      const unitPrice = Number(item?.unitPrice || 0);
+      const currency = item?.currency || order?.currency || "USD";
+
+      return `<li><strong>${title}</strong> — Qty: ${qty} — ${formatMoney(
+        unitPrice,
+        currency,
+      )} each</li>`;
+    })
+    .join("");
+}
+
+async function sendOrderConfirmationEmail(order) {
+  const to = getOrderCustomerEmail(order);
+  if (!to) return false;
+
+  const customerName = getOrderCustomerName(order);
+  const orderId = order?._id ? String(order._id) : "your order";
+  const total = formatMoney(order?.total || 0, order?.currency || "USD");
+  const itemsHtml = buildOrderItemsHtml(order);
+
+  await sendMail({
+    to,
+    subject: `KnockoutCodes Order Confirmed — #${orderId.slice(-8)}`,
+    text: `Hi ${customerName},
+
+Your order has been confirmed and payment was received successfully.
+
+Order ID: ${orderId}
+Total: ${total}
+
+We’ll send you another update as soon as your order ships.
+
+— KnockoutCodes`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+        <h2>Order Confirmed</h2>
+        <p>Hi ${customerName},</p>
+        <p>Your KnockoutCodes order has been confirmed and payment was received successfully.</p>
+
+        <p><strong>Order ID:</strong> ${orderId}<br />
+        <strong>Total:</strong> ${total}</p>
+
+        <h3>Order Summary</h3>
+        <ul>${itemsHtml}</ul>
+
+        <p>We’ll send you another update as soon as your order ships.</p>
+        <p>— KnockoutCodes</p>
+      </div>
+    `,
+  });
+
+  return true;
+}
+
+async function sendOrderTrackingEmail(order) {
+  const to = getOrderCustomerEmail(order);
+  if (!to) return false;
+
+  const customerName = getOrderCustomerName(order);
+  const orderId = order?._id ? String(order._id) : "your order";
+  const carrier = String(
+    order?.shipping?.carrier || "shipping carrier",
+  ).toUpperCase();
+  const trackingNumber = String(order?.shipping?.trackingNumber || "").trim();
+  const trackingUrl = String(order?.shipping?.trackingUrl || "").trim();
+
+  if (!trackingNumber) return false;
+
+  await sendMail({
+    to,
+    subject: `Your KnockoutCodes Order Has Shipped — #${orderId.slice(-8)}`,
+    text: `Hi ${customerName},
+
+Your order has shipped.
+
+Order ID: ${orderId}
+Carrier: ${carrier}
+Tracking Number: ${trackingNumber}
+${trackingUrl ? `Track here: ${trackingUrl}` : ""}
+
+— KnockoutCodes`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+        <h2>Your Order Has Shipped</h2>
+        <p>Hi ${customerName},</p>
+        <p>Your KnockoutCodes order is on the way.</p>
+
+        <p><strong>Order ID:</strong> ${orderId}<br />
+        <strong>Carrier:</strong> ${carrier}<br />
+        <strong>Tracking Number:</strong> ${trackingNumber}</p>
+
+        ${
+          trackingUrl
+            ? `<p><a href="${trackingUrl}" target="_blank" rel="noopener noreferrer">Track your shipment</a></p>`
+            : ""
+        }
+
+        <p>— KnockoutCodes</p>
+      </div>
+    `,
+  });
+
+  return true;
+}
+
+async function sendOrderFulfilledEmail(order) {
+  const to = getOrderCustomerEmail(order);
+  if (!to) return false;
+
+  const customerName = getOrderCustomerName(order);
+  const orderId = order?._id ? String(order._id) : "your order";
+
+  await sendMail({
+    to,
+    subject: `Your KnockoutCodes Order Is Fulfilled — #${orderId.slice(-8)}`,
+    text: `Hi ${customerName},
+
+Your order has been fulfilled by KnockoutCodes.
+
+Order ID: ${orderId}
+
+If tracking has been added, you can check your account for shipment details.
+
+— KnockoutCodes`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+        <h2>Order Fulfilled</h2>
+        <p>Hi ${customerName},</p>
+        <p>Your KnockoutCodes order has been fulfilled.</p>
+
+        <p><strong>Order ID:</strong> ${orderId}</p>
+
+        <p>If tracking has been added, you can check your account for shipment details.</p>
+        <p>— KnockoutCodes</p>
+      </div>
+    `,
+  });
+
+  return true;
+}
 
 function isLockedOrder(order) {
   return ORDER_LOCKED_STATUSES.includes(
@@ -494,6 +670,13 @@ export const fulfillOrder = async (req, res) => {
 
     const order = await existing.save();
     await order.populate("user", "name email");
+
+    try {
+      await sendOrderFulfilledEmail(order);
+    } catch {
+      // Email failure should not block order fulfillment.
+    }
+
     emitOrderRealtime(order, "fulfilled");
 
     return res.status(200).json({
@@ -668,6 +851,15 @@ export const updateOrderTracking = async (req, res) => {
 
     const order = await existing.save();
     await order.populate("user", "name email");
+
+    if (trackingNumber) {
+      try {
+        await sendOrderTrackingEmail(order);
+      } catch {
+        // Email failure should not block tracking updates.
+      }
+    }
+
     emitOrderRealtime(order, "tracking-updated");
 
     return res.status(200).json({
@@ -846,6 +1038,21 @@ export const confirmProductOrder = async (req, res) => {
     const address = customerDetails.address || {};
     const transactionId = String(session.payment_intent || session.id);
 
+    const existingPaidOrder = await Order.findOne({
+      user: userId,
+      stripeSessionId: session.id,
+      paymentStatus: "paid",
+    });
+
+    if (existingPaidOrder) {
+      return res.status(200).json({
+        success: true,
+        paid: true,
+        orderReady: true,
+        order: sanitizeOrderForUser(existingPaidOrder),
+      });
+    }
+
     order = await Order.findOneAndUpdate(
       { stripeSessionId: session.id },
       {
@@ -892,7 +1099,14 @@ export const confirmProductOrder = async (req, res) => {
         new: true,
         runValidators: true,
       },
-    ).lean();
+    );
+
+    try {
+      await order.populate("user", "name email");
+      await sendOrderConfirmationEmail(order);
+    } catch {
+      // Email failure should never block paid order confirmation.
+    }
 
     return res.status(200).json({
       success: true,
