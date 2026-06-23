@@ -455,10 +455,14 @@ export default function Coaching() {
 
       dispatch({ type: COACHING_ACTIONS.RESET_AFTER_SUCCESS });
     } catch (err) {
+      console.error("Coaching submit error:", err?.response?.data || err);
+
       const msg =
-        err?.name === "AbortError"
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (err?.name === "AbortError"
           ? "Request timed out. Please try again or book instantly through Cal.com."
-          : "Network issue. Your request was not sent. Please try again or use Cal.com.";
+          : "Your request was not sent. Please check the form and try again.");
 
       setStatus({
         state: err?.name === "AbortError" ? "warning" : "error",
