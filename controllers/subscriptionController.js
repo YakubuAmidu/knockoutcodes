@@ -930,6 +930,18 @@ export const confirmCheckoutSession = async (req, res) => {
 
     await syncUserMembershipPlan(userId, finalStatus, safeMembershipId);
 
+    if (["active", "trialing"].includes(finalStatus)) {
+      await sendMembershipEnrollmentEmail({
+        userId,
+        membershipTitle: plan.title || "Membership Subscription",
+        membershipId: safeMembershipId,
+        billingPeriod,
+        amount: session.amount_total ? Number(session.amount_total) / 100 : 0,
+        currency: (session.currency || "usd").toUpperCase(),
+        currentPeriodEnd: subDoc?.currentPeriodEnd,
+      });
+    }
+
     return res.status(200).json({
       success: true,
       paid: true,
