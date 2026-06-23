@@ -423,22 +423,10 @@ export default function Coaching() {
           : safeForm.sessionMethod || "Phone Call",
         goals: v.cleaned.goals,
         marketingOptIn: !!safeForm.marketingOptIn,
-        emailSubject,
-        emailSummary,
         nickName: safeForm.nickName || "",
-        source: {
-          channel: "web",
-          pageUrl: typeof window !== "undefined" ? window.location.href : null,
-          userAgent:
-            typeof navigator !== "undefined" ? navigator.userAgent : null,
-        },
       };
 
       const { data } = await axiosInstance.post(COACHING_ENDPOINT, payload, {
-        headers: {
-          Accept: "application/json",
-          "X-Requested-With": "axios",
-        },
         signal: controller.signal,
       });
 
