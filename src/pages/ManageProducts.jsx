@@ -78,10 +78,23 @@ function getProductId(product) {
 
 function extractProducts(res) {
   const data = res?.data;
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.products)) return data.products;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.products)
+      ? data.products
+      : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+  const seen = new Set();
+
+  return list.filter((product) => {
+    const id = getProductId(product);
+    if (!id) return false;
+    if (seen.has(String(id))) return false;
+    seen.add(String(id));
+    return true;
+  });
 }
 
 function extractProduct(res) {
@@ -179,54 +192,62 @@ export default function ManageProducts() {
     });
   }, [query, state.items]);
 
-  const fetchProducts = useCallback(async () => {
-    dispatch({ type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_START });
+  const fetchProducts = useCallback(
+    async ({ useCache = true } = {}) => {
+      dispatch({ type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_START });
 
-    const cached = readCache();
+      const cached = useCache ? readCache() : null;
 
-    if (cached?.length) {
-      dispatch({
-        type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_SUCCESS,
-        payload: cached,
-      });
-    }
+      if (cached?.length) {
+        dispatch({
+          type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_SUCCESS,
+          payload: cached,
+        });
+      }
 
-    try {
-      const res = await axiosInstance.get("/products/admin/manage", {
-        params: {
-          brand: "knockoutcodes",
-          limit: 100,
-          page: 1,
-          sort: "-createdAt",
-        },
-      });
+      try {
+        const res = await axiosInstance.get("/products/admin/manage", {
+          params: {
+            brand: "knockoutcodes",
+            limit: 100,
+            page: 1,
+            sort: "-createdAt",
+            t: Date.now(),
+          },
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
 
-      const products = extractProducts(res);
+        const products = extractProducts(res);
 
-      dispatch({
-        type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_SUCCESS,
-        payload: products,
-      });
+        dispatch({
+          type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_SUCCESS,
+          payload: products,
+        });
 
-      writeCache(products);
-    } catch (error) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to load products.";
+        writeCache(products);
+      } catch (error) {
+        const msg =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to load products.";
 
-      dispatch({
-        type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_ERROR,
-        payload: msg,
-      });
+        dispatch({
+          type: MANAGE_PRODUCT_ACTION_TYPES.FETCH_ERROR,
+          payload: msg,
+        });
 
-      push({
-        title: "Couldn’t load products",
-        description: msg,
-        variant: "error",
-      });
-    }
-  }, [push, readCache, writeCache]);
+        push({
+          title: "Couldn’t load products",
+          description: msg,
+          variant: "error",
+        });
+      }
+    },
+    [push, readCache, writeCache],
+  );
 
   useEffect(() => {
     fetchProducts();
@@ -693,7 +714,7 @@ export default function ManageProducts() {
 
               <RefreshBtn
                 type="button"
-                onClick={fetchProducts}
+                onClick={() => fetchProducts({ useCache: false })}
                 disabled={state.loading}
               >
                 {state.loading ? "Refreshing..." : "Refresh"}
@@ -885,7 +906,7 @@ const StatLabel = styled.div`
 
 const TwoCol = styled.div`
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: 14px;
 
   @media (max-width: 980px) {
@@ -894,6 +915,8 @@ const TwoCol = styled.div`
 `;
 
 const Panel = styled.section`
+  min-width: 0;
+  overflow: hidden;
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.glass};
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1091,8 +1114,9 @@ const List = styled.div`
 `;
 
 const Item = styled.div`
+  min-width: 0;
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 64px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   padding: 10px;
@@ -1101,7 +1125,7 @@ const Item = styled.div`
   background: rgba(0, 0, 0, 0.28);
 
   @media (max-width: 520px) {
-    grid-template-columns: 56px 1fr;
+    grid-template-columns: 56px minmax(0, 1fr);
   }
 `;
 
@@ -1143,27 +1167,35 @@ const Info = styled.div`
 `;
 
 const NameRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
-  flex-wrap: wrap;
+  align-items: start;
+
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const Name = styled.div`
+  min-width: 0;
+  max-width: 100%;
   font-weight: 950;
   color: ${({ theme }) => theme.colors.ivory};
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
+  white-space: nowrap;
 `;
 
 const Meta = styled.div`
+  min-width: 0;
+  max-width: 100%;
   font-size: 13px;
   opacity: 0.92;
   color: ${({ theme }) => theme.colors.lightBrown};
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 
   b {
     color: ${({ theme }) => theme.colors.ivory};
@@ -1192,7 +1224,7 @@ const Actions = styled.div`
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
 `;
 
 const MiniBtn = styled.button`
