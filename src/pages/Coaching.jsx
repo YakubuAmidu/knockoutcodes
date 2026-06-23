@@ -8,11 +8,6 @@ import axiosInstance from "../../utils/axiosInstance";
 import { useToast } from "../components/Toast";
 import { COACHING_ACTIONS } from "../reducers/coaching/coachingActionTypes";
 
-// const API_BASE_URL = (
-//   String(import.meta.env.VITE_API_BASE_URL || "").trim() ||
-//   "https://knockoutcodes.onrender.com/api/v1"
-// ).replace(/\/$/, "");
-
 const COACHING_ENDPOINT = "/coachings";
 
 const CAL_URL =
