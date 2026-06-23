@@ -93,6 +93,20 @@ function extractUser(data) {
   return sanitizeUser(data?.user || data?.data?.user || data?.data || null);
 }
 
+function isNetworkAuthError(error) {
+  return (
+    !error?.response ||
+    error?.code === "ERR_NETWORK" ||
+    error?.code === "ECONNABORTED" ||
+    String(error?.message || "")
+      .toLowerCase()
+      .includes("network") ||
+    String(error?.message || "")
+      .toLowerCase()
+      .includes("connection")
+  );
+}
+
 function readStoredUser() {
   const mode = getPersistMode();
 
@@ -276,8 +290,12 @@ export function AuthProvider({ children }) {
 
         return user;
       } catch (error) {
+        if (isNetworkAuthError(error)) {
+          return readStoredUser();
+        }
+
         if (error?.response?.status !== 401) {
-          return null;
+          return readStoredUser();
         }
 
         if (!refreshPromiseRef.current) {
@@ -319,6 +337,10 @@ export function AuthProvider({ children }) {
         return null;
       }
 
+      if (isNetworkAuthError(error)) {
+        return readStoredUser();
+      }
+
       return null;
     }
   }, [dispatch, ensureCsrf, forceLogout]);
@@ -329,8 +351,11 @@ export function AuthProvider({ children }) {
     if (!mountedRef.current) return null;
 
     if (!freshUser) {
-      clearAuthState();
-      return null;
+      if (!hasStoredAuthUser()) {
+        clearAuthState();
+      }
+
+      return readStoredUser();
     }
 
     if (freshUser.isActive === false) {
@@ -369,7 +394,7 @@ export function AuthProvider({ children }) {
             type: AUTH_ACTIONS.AUTH_SUCCESS,
             payload: freshUser,
           });
-        } else {
+        } else if (!hasStoredAuthUser()) {
           clearAuthState();
         }
       } finally {
