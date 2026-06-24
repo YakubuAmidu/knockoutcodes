@@ -189,7 +189,7 @@ app.get("/health", (_req, res) => {
 app.get("/api/v1/debug-version", (_req, res) => {
   res.status(200).json({
     success: true,
-    version: "checkout-cors-fix-2026-06-21-v1",
+    version: "coaching-cors-headers-fix-2026-06-23-v1",
     time: new Date().toISOString(),
   });
 });
