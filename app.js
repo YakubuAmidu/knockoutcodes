@@ -106,6 +106,8 @@ const corsOptions = {
     "X-Requested-With",
     "X-Client-Fingerprint",
     "X-Request-Intent",
+    "X-Form-Ts",
+    "X-Honey",
     "Cache-Control",
     "Pragma",
   ],
