@@ -235,7 +235,7 @@ function AppShell() {
     navigate,
   ]);
 
-  const hideFooter = location.pathname.startsWith("/admin");
+  const hideFooter = false;
 
   return (
     <>
