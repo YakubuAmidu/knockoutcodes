@@ -175,6 +175,13 @@ export const sendEmailCampaign = (id) => async (dispatch) => {
     const { data } = await axiosInstance.post(
       `${ADMIN_EMAIL_CAMPAIGN_URL}/${id}/send`,
       {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Intent": "admin-email-campaign-send",
+        },
+        withCredentials: true,
+      },
     );
 
     dispatch({
